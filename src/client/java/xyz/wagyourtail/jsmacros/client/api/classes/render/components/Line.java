@@ -154,7 +154,7 @@ public class Line implements RenderElement, Alignable<Line> {
      * @since 1.8.4
      */
     public Line setColor(int color) {
-        if (color < 0xFFFFFFFF) {
+        if (color <= 0xFFFFFF) {
             color = color | 0xFF000000;
         }
         this.color = color;

@@ -210,7 +210,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
      * @since 1.0.5
      */
     public Rect setColor(int color) {
-        if (color <= 0x00FFFFFF) {
+        if (color <= 0xFFFFFF) {
             color = color | 0xFF000000;
         }
         this.color = color;

@@ -213,7 +213,7 @@ public class Image implements RenderElement, Alignable<Image> {
      * @since 1.6.5
      */
     public Image setColor(int color) {
-        if (color <= 0xFFFFFFFF) {
+        if (color <= 0xFFFFFF) {
             color = color | 0xFF000000;
         }
         this.color = color;
