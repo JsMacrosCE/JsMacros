@@ -365,7 +365,7 @@ public class ClientPlayerEntityHelper<T extends ClientPlayerEntity> extends Play
     @Deprecated
     @DocletReplaceParams("x: int, y: int, z: int, direction: Direction")
     public ClientPlayerEntityHelper<T> attack(int x, int y, int z, String direction) throws InterruptedException {
-        return attack(x, y, z, Direction.byId(direction.toLowerCase(Locale.ROOT)).getId(), false);
+        return attack(x, y, z, direction, false);
     }
 
     /**
@@ -395,7 +395,7 @@ public class ClientPlayerEntityHelper<T extends ClientPlayerEntity> extends Play
     @Deprecated
     @DocletReplaceParams("x: int, y: int, z: int, direction: Direction, await: boolean")
     public ClientPlayerEntityHelper<T> attack(int x, int y, int z, String direction, boolean await) throws InterruptedException {
-        return attack(x, y, z, Direction.byId(direction.toLowerCase(Locale.ROOT)).getId(), await);
+        return attack(x, y, z, Direction.byId(direction.toLowerCase(Locale.ROOT)), await);
     }
 
     /**
@@ -411,16 +411,20 @@ public class ClientPlayerEntityHelper<T extends ClientPlayerEntity> extends Play
     @Deprecated
     @DocletReplaceParams("x: int, y: int, z: int, direction: Hexit, await: boolean")
     public ClientPlayerEntityHelper<T> attack(int x, int y, int z, int direction, boolean await) throws InterruptedException {
+        return attack(x, y, z, Direction.byIndex(direction), await);
+    }
+
+    private ClientPlayerEntityHelper<T> attack(int x, int y, int z, Direction direction, boolean await) throws InterruptedException {
         assert mc.interactionManager != null;
         boolean joinedMain = JsMacrosClient.clientCore.profile.checkJoinedThreadStack();
         if (joinedMain) {
-            mc.interactionManager.attackBlock(new BlockPos(x, y, z), Direction.values()[direction]);
+            mc.interactionManager.attackBlock(new BlockPos(x, y, z), direction);
             assert mc.player != null;
             mc.player.swingHand(Hand.MAIN_HAND);
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
-                mc.interactionManager.attackBlock(new BlockPos(x, y, z), Direction.values()[direction]);
+                mc.interactionManager.attackBlock(new BlockPos(x, y, z), direction);
                 assert mc.player != null;
                 mc.player.swingHand(Hand.MAIN_HAND);
                 wait.release();
@@ -532,7 +536,7 @@ public class ClientPlayerEntityHelper<T extends ClientPlayerEntity> extends Play
     @Deprecated
     @DocletReplaceParams("x: int, y: int, z: int, direction: Direction, offHand: boolean")
     public ClientPlayerEntityHelper<T> interactBlock(int x, int y, int z, String direction, boolean offHand) throws InterruptedException {
-        return interactBlock(x, y, z, Direction.byId(direction.toLowerCase(Locale.ROOT)).getId(), offHand, false);
+        return interactBlock(x, y, z, direction, offHand, false);
     }
 
     /**
@@ -563,7 +567,7 @@ public class ClientPlayerEntityHelper<T extends ClientPlayerEntity> extends Play
     @Deprecated
     @DocletReplaceParams("x: int, y: int, z: int, direction: Direction, offHand: boolean, await: boolean")
     public ClientPlayerEntityHelper<T> interactBlock(int x, int y, int z, String direction, boolean offHand, boolean await) throws InterruptedException {
-        return interactBlock(x, y, z, Direction.byId(direction.toLowerCase(Locale.ROOT)).getIndex(), offHand, await);
+        return interactBlock(x, y, z, Direction.byId(direction.toLowerCase(Locale.ROOT)), offHand, await);
     }
 
     /**
@@ -579,13 +583,16 @@ public class ClientPlayerEntityHelper<T extends ClientPlayerEntity> extends Play
     @Deprecated
     @DocletReplaceParams("x: int, y: int, z: int, direction: Hexit, offHand: boolean, await: boolean")
     public ClientPlayerEntityHelper<T> interactBlock(int x, int y, int z, int direction, boolean offHand, boolean await) throws InterruptedException {
+        return interactBlock(x, y, z, Direction.byIndex(direction), offHand, await);
+    }
+
+    public ClientPlayerEntityHelper<T> interactBlock(int x, int y, int z, Direction direction, boolean offHand, boolean await) throws InterruptedException {
         assert mc.interactionManager != null;
         Hand hand = offHand ? Hand.OFF_HAND : Hand.MAIN_HAND;
         boolean joinedMain = JsMacrosClient.clientCore.profile.checkJoinedThreadStack();
         if (joinedMain) {
             ActionResult result = mc.interactionManager.interactBlock(mc.player, hand,
-                    new BlockHitResult(new Vec3d(x, y, z), Direction.values()[direction], new BlockPos(x, y, z), false)
-            );
+                    new BlockHitResult(new Vec3d(x, y, z), direction, new BlockPos(x, y, z), false));
             assert mc.player != null;
             if (result.isAccepted()) {
                 mc.player.swingHand(hand);
@@ -594,8 +601,7 @@ public class ClientPlayerEntityHelper<T extends ClientPlayerEntity> extends Play
             Semaphore wait = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
                 ActionResult result = mc.interactionManager.interactBlock(mc.player, hand,
-                        new BlockHitResult(new Vec3d(x, y, z), Direction.values()[direction], new BlockPos(x, y, z), false)
-                );
+                        new BlockHitResult(new Vec3d(x, y, z), direction, new BlockPos(x, y, z), false));
                 assert mc.player != null;
                 if (result.isAccepted()) {
                     mc.player.swingHand(hand);

@@ -57,8 +57,8 @@ public class InteractionProxy {
             Target.clearIfEmptyShape = false;
         }
 
-        public static void setTargetBlock(@Nullable BlockPos pos, int direction) {
-            setTarget(pos == null ? null : new BlockHitResult(pos.toCenterPos(), Direction.values()[direction], pos, false));
+        public static void setTargetBlock(@Nullable BlockPos pos, Direction direction) {
+            setTarget(pos == null ? null : new BlockHitResult(pos.toCenterPos(), direction, pos, false));
         }
 
         public static void setTarget(@Nullable HitResult value) {
