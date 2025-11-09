@@ -13,6 +13,7 @@ import xyz.wagyourtail.doclet.DocletIgnore;
 import xyz.wagyourtail.jsmacros.client.api.classes.TextBuilder;
 import xyz.wagyourtail.jsmacros.client.api.classes.render.IDraw2D;
 import xyz.wagyourtail.jsmacros.client.api.helper.TextHelper;
+import xyz.wagyourtail.jsmacros.client.util.ColorUtil;
 
 import java.nio.FloatBuffer;
 
@@ -45,7 +46,7 @@ public class Text implements RenderElement, Alignable<Text> {
         this.text = text.getRaw();
         this.x = x;
         this.y = y;
-        this.color = color;
+        setColor(color);
         this.width = mc.textRenderer.getWidth(this.text);
         this.shadow = shadow;
         this.scale = scale;
@@ -231,7 +232,7 @@ public class Text implements RenderElement, Alignable<Text> {
      * @since 1.8.4
      */
     public Text setColor(int color) {
-        this.color = color;
+        this.color = ColorUtil.fixAlpha(color);
         return this;
     }
 

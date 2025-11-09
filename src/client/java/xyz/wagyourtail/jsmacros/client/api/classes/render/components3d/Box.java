@@ -11,6 +11,7 @@ import xyz.wagyourtail.jsmacros.api.math.Pos3D;
 import xyz.wagyourtail.jsmacros.api.math.Vec3D;
 import xyz.wagyourtail.jsmacros.client.api.classes.render.Draw3D;
 import xyz.wagyourtail.jsmacros.client.api.helper.world.BlockPosHelper;
+import xyz.wagyourtail.jsmacros.client.util.ColorUtil;
 
 import java.lang.reflect.Field;
 import java.util.Objects;
@@ -111,10 +112,7 @@ public class Box implements RenderElement3D<Box> {
      * @since 1.0.6
      */
     public void setColor(int color) {
-        if (color <= 0xFFFFFF) {
-            color = color | 0xFF000000;
-        }
-        this.color = color;
+        this.color = ColorUtil.fixAlpha(color);
     }
 
     /**

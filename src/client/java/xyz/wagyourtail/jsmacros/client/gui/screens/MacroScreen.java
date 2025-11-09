@@ -46,28 +46,28 @@ public class MacroScreen extends BaseScreen {
     protected void init() {
         super.init();
         macros.clear();
-        keyScreen = this.addDrawableChild(new Button(0, 0, this.width / 6 - 1, 20, textRenderer, 0x00FFFFFF, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Text.translatable("jsmacros.keys"), btn -> {
+        keyScreen = this.addDrawableChild(new Button(0, 0, this.width / 6 - 1, 20, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Text.translatable("jsmacros.keys"), btn -> {
             assert client != null;
             if (client.currentScreen.getClass() != KeyMacrosScreen.class) {
                 client.setScreen(new KeyMacrosScreen(this));
             }
         }));
 
-        eventScreen = this.addDrawableChild(new Button(this.width / 6 + 1, 0, this.width / 6 - 1, 20, textRenderer, 0x00FFFFFF, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Text.translatable("jsmacros.events"), btn -> {
+        eventScreen = this.addDrawableChild(new Button(this.width / 6 + 1, 0, this.width / 6 - 1, 20, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Text.translatable("jsmacros.events"), btn -> {
             assert client != null;
             if (client.currentScreen.getClass() != EventMacrosScreen.class) {
                 client.setScreen(new EventMacrosScreen(this));
             }
         }));
 
-        serviceScreen = this.addDrawableChild(new Button(2 * this.width / 6 + 2, 0, this.width / 6 - 1, 20, textRenderer, 0x00FFFFFF, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Text.translatable("jsmacros.services"), btn -> {
+        serviceScreen = this.addDrawableChild(new Button(2 * this.width / 6 + 2, 0, this.width / 6 - 1, 20, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Text.translatable("jsmacros.services"), btn -> {
             assert client != null;
             if (client.currentScreen.getClass() != ServiceScreen.class) {
                 client.setScreen(new ServiceScreen(this));
             }
         }));
 
-        this.addDrawableChild(new Button(this.width * 5 / 6 + 1, 0, this.width / 6 - 1, 20, textRenderer, 0x00FFFFFF, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Text.translatable("jsmacros.settings"), (btn) -> {
+        this.addDrawableChild(new Button(this.width * 5 / 6 + 1, 0, this.width / 6 - 1, 20, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Text.translatable("jsmacros.settings"), (btn) -> {
             openOverlay(new SettingsOverlay(this.width / 4, this.height / 4, this.width / 2, this.height / 2, textRenderer, this));
         }));
 

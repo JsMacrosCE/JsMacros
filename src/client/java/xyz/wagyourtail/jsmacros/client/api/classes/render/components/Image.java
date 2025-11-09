@@ -10,6 +10,7 @@ import org.joml.Matrix3x2fStack;
 import xyz.wagyourtail.jsmacros.client.api.classes.CustomImage;
 import xyz.wagyourtail.jsmacros.client.api.classes.RegistryHelper;
 import xyz.wagyourtail.jsmacros.client.api.classes.render.IDraw2D;
+import xyz.wagyourtail.jsmacros.client.util.ColorUtil;
 
 /**
  * @author Wagyourtail
@@ -213,10 +214,7 @@ public class Image implements RenderElement, Alignable<Image> {
      * @since 1.6.5
      */
     public Image setColor(int color) {
-        if (color <= 0xFFFFFF) {
-            color = color | 0xFF000000;
-        }
-        this.color = color;
+        this.color = ColorUtil.fixAlpha(color);
         return this;
     }
 

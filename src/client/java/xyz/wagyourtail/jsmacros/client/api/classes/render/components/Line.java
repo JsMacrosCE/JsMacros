@@ -5,6 +5,7 @@ import net.minecraft.util.math.MathHelper;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import xyz.wagyourtail.jsmacros.client.api.classes.render.IDraw2D;
+import xyz.wagyourtail.jsmacros.client.util.ColorUtil;
 
 /**
  * @author Etheradon
@@ -154,10 +155,7 @@ public class Line implements RenderElement, Alignable<Line> {
      * @since 1.8.4
      */
     public Line setColor(int color) {
-        if (color <= 0xFFFFFF) {
-            color = color | 0xFF000000;
-        }
-        this.color = color;
+        this.color = ColorUtil.fixAlpha(color);
         return this;
     }
 
