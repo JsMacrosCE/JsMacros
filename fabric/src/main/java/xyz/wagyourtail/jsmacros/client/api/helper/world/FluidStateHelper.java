@@ -72,7 +72,8 @@ public class FluidStateHelper extends StateHelper<FluidState> {
      * @since 1.8.4
      */
     public Pos3D getVelocity(BlockPosHelper pos) {
-        return new Pos3D(base.getVelocity(MinecraftClient.getInstance().world, pos.getRaw()));
+        var velocity = base.getVelocity(MinecraftClient.getInstance().world, pos.getRaw());
+        return new Pos3D(velocity.x, velocity.y, velocity.z);
     }
 
     /**

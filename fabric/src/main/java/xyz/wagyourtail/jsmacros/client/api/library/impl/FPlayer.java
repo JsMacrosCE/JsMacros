@@ -473,7 +473,8 @@ public class FPlayer extends BaseLibrary {
         MovementDummy dummy = new MovementDummy(mc.player);
         List<Pos3D> predictions = new ArrayList<>();
         for (PlayerInput input : inputs) {
-            predictions.add(new Pos3D(dummy.applyInput(input)));
+            var pos = dummy.applyInput(input);
+            predictions.add(new Pos3D(pos.x, pos.y, pos.z));
         }
         if (draw) {
             for (Pos3D point : predictions) {

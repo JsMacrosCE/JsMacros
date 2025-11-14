@@ -103,7 +103,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
      * @since 1.8.4
      */
     public Pos3D getEyePos() {
-        return new Pos3D(base.getEyePos());
+        return new Pos3D(base.getEyePos().x, base.getEyePos().y, base.getEyePos().z);
     }
 
     /**

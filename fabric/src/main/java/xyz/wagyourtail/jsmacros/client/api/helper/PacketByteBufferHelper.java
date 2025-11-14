@@ -861,10 +861,11 @@ public class PacketByteBufferHelper extends BaseHelper<PacketByteBuf> {
      */
     public PacketByteBufferHelper writeBlockHitResult(Pos3D pos, String direction, BlockPosHelper blockPos, boolean missed, boolean insideBlock) {
         BlockHitResult result;
+        Vec3d vecPos = new Vec3d(pos.x, pos.y, pos.z);
         if (missed) {
-            result = BlockHitResult.createMissed(pos.toMojangDoubleVector(), Direction.valueOf(direction), blockPos.getRaw());
+            result = BlockHitResult.createMissed(vecPos, Direction.valueOf(direction), blockPos.getRaw());
         } else {
-            result = new BlockHitResult(pos.toMojangDoubleVector(), Direction.valueOf(direction), blockPos.getRaw(), insideBlock);
+            result = new BlockHitResult(vecPos, Direction.valueOf(direction), blockPos.getRaw(), insideBlock);
         }
         base.writeBlockHitResult(result);
         return this;

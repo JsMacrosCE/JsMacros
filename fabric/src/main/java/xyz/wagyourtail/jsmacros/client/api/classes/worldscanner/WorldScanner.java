@@ -249,7 +249,8 @@ public class WorldScanner {
      */
     public List<Pos3D> scanReachable() {
         if (mc.player == null) return new ArrayList<>();
-        return scanReachable(new Pos3D(mc.player.getEyePos()), getReach(), true);
+        var eyePos = mc.player.getEyePos();
+        return scanReachable(new Pos3D(eyePos.x, eyePos.y, eyePos.z), getReach(), true);
     }
 
     /**
@@ -260,7 +261,8 @@ public class WorldScanner {
      */
     public List<Pos3D> scanReachable(boolean strict) {
         if (mc.player == null) return new ArrayList<>();
-        return scanReachable(new Pos3D(mc.player.getEyePos()), getReach(), strict);
+        var eyePos = mc.player.getEyePos();
+        return scanReachable(new Pos3D(eyePos.x, eyePos.y, eyePos.z), getReach(), strict);
     }
 
     /**
@@ -290,7 +292,7 @@ public class WorldScanner {
      * @since 1.9.1
      */
     public List<Pos3D> scanReachable(Pos3D pos, double reach, boolean strict) {
-        return scanReachableInternal(pos.toMojangDoubleVector(), reach, strict).collect(Collectors.toList());
+        return scanReachableInternal(new Vec3d(pos.x, pos.y, pos.z), reach, strict).collect(Collectors.toList());
     }
 
     /**
@@ -301,7 +303,8 @@ public class WorldScanner {
     @Nullable
     public Pos3D scanClosestReachable() {
         if (mc.player == null) return null;
-        return scanClosestReachable(new Pos3D(mc.player.getEyePos()), getReach(), true);
+        var eyePos = mc.player.getEyePos();
+        return scanClosestReachable(new Pos3D(eyePos.x, eyePos.y, eyePos.z), getReach(), true);
     }
 
     /**
@@ -312,7 +315,8 @@ public class WorldScanner {
     @Nullable
     public Pos3D scanClosestReachable(boolean strict) {
         if (mc.player == null) return null;
-        return scanClosestReachable(new Pos3D(mc.player.getEyePos()), getReach(), strict);
+        var eyePos = mc.player.getEyePos();
+        return scanClosestReachable(new Pos3D(eyePos.x, eyePos.y, eyePos.z), getReach(), strict);
     }
 
     /**
@@ -322,7 +326,7 @@ public class WorldScanner {
      */
     @Nullable
     public Pos3D scanClosestReachable(Pos3D pos, double reach, boolean strict) {
-        Vec3d vec = pos.toMojangDoubleVector();
+        Vec3d vec = new Vec3d(pos.x, pos.y, pos.z);
         Vec3d centered = vec.subtract(0.5, 0.5, 0.5);
         return scanReachableInternal(vec, reach, strict)
                 .min(Comparator.comparingDouble(p -> centered.squaredDistanceTo(p.x, p.y, p.z)))
@@ -404,7 +408,7 @@ public class WorldScanner {
         ) <= sq);
 
         return !strict ? stream : stream.filter(p -> {
-            BlockPos blockPos = p.toRawBlockPos();
+            BlockPos blockPos = BlockPos.ofFloored(p.x, p.y, p.z);
             VoxelShape vs = world.getBlockState(blockPos).getOutlineShape(world, blockPos);
             if (vs.isEmpty()) return false;
             if (VoxelShapes.fullCube().equals(vs)) return true;

@@ -66,7 +66,7 @@ public class ClientPlayerEntityHelper<T extends ClientPlayerEntity> extends Play
      * @since 1.8.4
      */
     public ClientPlayerEntityHelper<T> setVelocity(Pos3D velocity) {
-        return setVelocity(velocity.toMojangDoubleVector());
+        return setVelocity(new Vec3d(velocity.x, velocity.y, velocity.z));
     }
 
     /**
@@ -88,7 +88,7 @@ public class ClientPlayerEntityHelper<T extends ClientPlayerEntity> extends Play
      * @since 1.8.4
      */
     public ClientPlayerEntityHelper<T> addVelocity(Pos3D velocity) {
-        return addVelocity(velocity.toMojangDoubleVector());
+        return addVelocity(new Vec3d(velocity.x, velocity.y, velocity.z));
     }
 
     /**
@@ -127,7 +127,7 @@ public class ClientPlayerEntityHelper<T extends ClientPlayerEntity> extends Play
      * @since 1.9.0
      */
     public ClientPlayerEntityHelper<T> setPos(Pos3D pos, boolean await) throws InterruptedException {
-        return setPos(pos.toMojangDoubleVector(), await);
+        return setPos(new Vec3d(pos.x, pos.y, pos.z), await);
     }
 
     /**

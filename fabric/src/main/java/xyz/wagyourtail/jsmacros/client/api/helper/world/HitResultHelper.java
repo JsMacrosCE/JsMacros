@@ -33,7 +33,8 @@ public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
     }
 
     public Pos3D getPos() {
-        return new Pos3D(base.getPos());
+        var pos = base.getPos();
+        return new Pos3D(pos.x, pos.y, pos.z);
     }
 
     @Nullable
