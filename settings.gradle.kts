@@ -19,7 +19,7 @@ plugins {
 
 include("common")
 include("fabric")
-//include("forge")
+include("neoforge")
 
 include("site")
 
