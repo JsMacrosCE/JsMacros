@@ -21,9 +21,9 @@ public class CommandManagerForge extends CommandManager {
     public CommandNodeHelper unregisterCommand(String command) throws IllegalAccessException {
         CommandNode<?> cnf = CommandNodeAccessor.remove(ClientCommandHandler.getDispatcher().getRoot(), command);
         CommandNode<?> cn = null;
-        ClientPacketListener p = Minecraft.getInstance().getNetworkHandler();
+        ClientPacketListener p = Minecraft.getInstance().getConnection();
         if (p != null) {
-            CommandDispatcher<?> cd = p.getCommandDispatcher();
+            CommandDispatcher<?> cd = p.getCommands();
             cn = CommandNodeAccessor.remove(cd.getRoot(), command);
         }
         return cn != null || cnf != null ? new CommandNodeHelper(cn, cnf) : null;
@@ -34,9 +34,9 @@ public class CommandManagerForge extends CommandManager {
         if (node.fabric != null) {
             ClientCommandHandler.getDispatcher().getRoot().addChild((CommandNode) node.fabric);
         }
-        ClientPacketListener nh = Minecraft.getInstance().getNetworkHandler();
+        ClientPacketListener nh = Minecraft.getInstance().getConnection();
         if (nh != null) {
-            CommandDispatcher<?> cd = nh.getCommandDispatcher();
+            CommandDispatcher<?> cd = nh.getCommands();
             if (node.getRaw() != null) {
                 cd.getRoot().addChild((CommandNode) node.getRaw());
             }

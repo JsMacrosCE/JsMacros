@@ -100,11 +100,11 @@ public class CommandBuilderForge extends CommandBuilder {
         CommandDispatcher<CommandSourceStack> dispatcher = ClientCommandHandler.getDispatcher();
         Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>> head = pointer.pop().getU();
         if (dispatcher != null) {
-            ClientPacketListener networkHandler = Client.getInstance().getNetworkHandler();
+            ClientPacketListener networkHandler = Minecraft.getInstance().getConnection();
             if (networkHandler != null) {
-                LiteralArgumentBuilder lb = (LiteralArgumentBuilder) head.apply(CommandBuildContext.of(networkHandler.getRegistryManager(), networkHandler.getEnabledFeatures()));
+                LiteralArgumentBuilder lb = (LiteralArgumentBuilder) head.apply(CommandBuildContext.simple(networkHandler.registryAccess(), networkHandler.enabledFeatures()));
                 dispatcher.register(lb);
-                networkHandler.getCommandDispatcher().register(lb);
+                networkHandler.getCommands().register(lb);
             }
         }
         commands.put(name, head);
@@ -114,9 +114,9 @@ public class CommandBuilderForge extends CommandBuilder {
     @Override
     public CommandBuilder unregister() throws IllegalAccessException {
         CommandNodeAccessor.remove(ClientCommandHandler.getDispatcher().getRoot(), name);
-        ClientPacketListener p = Client.getInstance().getNetworkHandler();
+        ClientPacketListener p = Minecraft.getInstance().getConnection();
         if (p != null) {
-            CommandDispatcher<?> cd = p.getCommandDispatcher();
+            CommandDispatcher<?> cd = p.getCommands();
             CommandNodeAccessor.remove(cd.getRoot(), name);
         }
         commands.remove(name);
@@ -125,8 +125,8 @@ public class CommandBuilderForge extends CommandBuilder {
 
     public static void onRegisterEvent(RegisterClientCommandsEvent event) {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
-        Client mc = Client.getInstance();
-        CommandBuildContext registryAccess = CommandBuildContext.of(mc.getNetworkHandler().getRegistryManager(), mc.getNetworkHandler().getEnabledFeatures());
+        Minecraft mc = Minecraft.getInstance();
+        CommandBuildContext registryAccess = CommandBuildContext.simple(mc.getConnection().registryAccess(), mc.getConnection().enabledFeatures());
         for (Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>> command : commands.values()) {
             dispatcher.register((LiteralArgumentBuilder<CommandSourceStack>) command.apply(registryAccess));
         }

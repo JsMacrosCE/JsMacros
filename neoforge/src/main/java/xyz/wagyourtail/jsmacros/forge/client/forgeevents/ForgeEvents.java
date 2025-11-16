@@ -31,7 +31,7 @@ public class ForgeEvents {
 
     static {
         try {
-            DRAW_CONTEXT_CONSTRUCTOR = GuiGraphics.class.getDeclaredConstructor(Minecraft.class, PoseStack.class, MultiBufferSource.Immediate.class);
+            DRAW_CONTEXT_CONSTRUCTOR = GuiGraphics.class.getDeclaredConstructor(Minecraft.class, PoseStack.class, MultiBufferSource.BufferSource.class);
             DRAW_CONTEXT_CONSTRUCTOR.setAccessible(true);
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
@@ -97,16 +97,13 @@ public class ForgeEvents {
         ev.registerBelow(VanillaGuiLayers.DEBUG_OVERLAY, ResourceLocation.of("jsmacros:hud"), ForgeEvents::renderHudListener);
     }
 
-    public static void renderWorldListener(RenderLevelStageEvent e) {
-        if (e.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
-            return;
-        }
+    public static void renderWorldListener(RenderLevelStageEvent.AfterLevel e) {
         var profiler = Profiler.get();
         profiler.push("jsmacros_draw3d");
         for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
             try {
-                GuiGraphics GuiGraphics = DRAW_CONTEXT_CONSTRUCTOR.newInstance(client, e.getPoseStack(), client.getBufferBuilders().getEntityVertexConsumers());
-                d.render(GuiGraphics, e.getPartialTick().getLastDuration());
+                GuiGraphics guiGraphics = DRAW_CONTEXT_CONSTRUCTOR.newInstance(client, e.getPoseStack(), client.renderBuffers().bufferSource());
+                d.render(e.getPoseStack(), guiGraphics, e.getPartialTick().getGameTimeDeltaPartialTick(false));
             } catch (Throwable t) {
                 t.printStackTrace();
             }
