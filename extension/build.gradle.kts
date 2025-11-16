@@ -77,22 +77,23 @@ subprojects {
     }
 
     afterEvaluate {
-        // Collect all runtime dependencies for inclusion in extension JAR
-        var includeFiles = files(configurations.runtimeClasspath.get().filter { it.name.endsWith(".jar") })
+        // Reference dependencies that are in the main jar's META-INF/jars/
+        val mainJarDependencies = listOf(
+            "graal-sdk-23.0.10.jar",
+            "truffle-api-23.0.10.jar",
+            "js-23.0.10.jar",
+            "regex-23.0.10.jar",
+            "common-2.0.0.jar"
+        )
 
         tasks.jar {
-            from(includeFiles) {
-                include("*")
-                into("META-INF/jsmacrosdeps")
-            }
-
             isPreserveFileTimestamps = false
             isReproducibleFileOrder = true
         }
 
         tasks.processResources {
             filesMatching("jsmacros.ext.*.json") {
-                expand("dependencies" to includeFiles.joinToString("\", \"") { "META-INF/jsmacrosdeps/${it.name}" })
+                expand("dependencies" to mainJarDependencies.joinToString("\", \"") { "META-INF/jars/$it" })
             }
         }
     }

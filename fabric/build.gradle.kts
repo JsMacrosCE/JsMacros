@@ -39,10 +39,14 @@ dependencies {
     include(libs.joor)
 
     // Extensions
-    runtimeOnly(project(":extension:graal"))
-    runtimeOnly(project(":extension:graal:js"))
     include(project(":extension:graal"))
     include(project(":extension:graal:js"))
+
+    // Include shared dependencies once in main jar
+    include(libs.graal.sdk)
+    include(libs.truffle.api)
+    include(libs.graal.js)
+    include(libs.graal.regex)
 
     // Add all extension subprojects for runtime
     for (file in file("../extension").listFiles() ?: emptyArray()) {
