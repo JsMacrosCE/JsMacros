@@ -94,7 +94,7 @@ public class ForgeEvents {
     }
 
     public static void onRegisterGuiOverlays(RegisterGuiLayersEvent ev) {
-        ev.registerBelow(VanillaGuiLayers.DEBUG_OVERLAY, ResourceLocation.of("jsmacros:hud"), ForgeEvents::renderHudListener);
+        ev.registerBelow(VanillaGuiLayers.DEBUG_OVERLAY, ResourceLocation.parse("jsmacros:hud"), ForgeEvents::renderHudListener);
     }
 
     public static void renderWorldListener(RenderLevelStageEvent.AfterLevel e) {
@@ -103,7 +103,8 @@ public class ForgeEvents {
         for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
             try {
                 GuiGraphics guiGraphics = DRAW_CONTEXT_CONSTRUCTOR.newInstance(client, e.getPoseStack(), client.renderBuffers().bufferSource());
-                d.render(e.getPoseStack(), guiGraphics, e.getPartialTick().getGameTimeDeltaPartialTick(false));
+                // TODO: Fix Draw3d rendering
+                // d.render(e.getPoseStack(), guiGraphics, e.getPartialTick().getGameTimeDeltaPartialTick(false));
             } catch (Throwable t) {
                 t.printStackTrace();
             }
