@@ -6,12 +6,12 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraftforge.client.ClientCommandHandler;
-import net.minecraftforge.client.event.RegisterClientCommandsEvent;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.commands.CommandBuildContext;
+import net.minecraft.commands.CommandSourceStack;
+import net.neoforged.neoforge.client.ClientCommandHandler;
+import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import xyz.wagyourtail.Pair;
 import xyz.wagyourtail.jsmacros.client.access.CommandNodeAccessor;
 import xyz.wagyourtail.jsmacros.client.api.classes.inventory.CommandBuilder;
@@ -25,14 +25,14 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class CommandBuilderForge extends CommandBuilder {
-    private static final Map<String, Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>>> commands = new HashMap<>();
+    private static final Map<String, Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>>> commands = new HashMap<>();
 
     private final String name;
 
-    private final Stack<Pair<Boolean, Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>>>> pointer = new Stack<>();
+    private final Stack<Pair<Boolean, Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>>>> pointer = new Stack<>();
 
     public CommandBuilderForge(String name) {
-        Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>> head = (a) -> LiteralArgumentBuilder.literal(name);
+        Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>> head = (a) -> LiteralArgumentBuilder.literal(name);
         this.name = name;
         pointer.push(new Pair<>(false, head));
     }
@@ -43,7 +43,7 @@ public class CommandBuilderForge extends CommandBuilder {
     }
 
     @Override
-    protected void argument(String name, Function<CommandRegistryAccess, ArgumentType<?>> type) {
+    protected void argument(String name, Function<CommandBuildContext, ArgumentType<?>> type) {
         pointer.push(new Pair<>(true, (e) -> RequiredArgumentBuilder.argument(name, type.apply(e))));
     }
 
@@ -55,14 +55,14 @@ public class CommandBuilderForge extends CommandBuilder {
 
     @Override
     public CommandBuilder executes(MethodWrapper<CommandContextHelper, Object, Object, ?> callback) {
-        Pair<Boolean, Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>>> arg = pointer.pop();
+        Pair<Boolean, Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>>> arg = pointer.pop();
         pointer.push(new Pair<>(arg.getT(), arg.getU().andThen((e) -> e.executes((ctx) -> internalExecutes(ctx, callback)))));
         return this;
     }
 
     @Override
     protected <S> void suggests(SuggestionProvider<S> suggestionProvider) {
-        Pair<Boolean, Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>>> arg = pointer.pop();
+        Pair<Boolean, Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>>> arg = pointer.pop();
         if (!arg.getT()) {
             throw new AssertionError("SuggestionProvider can only be used on non-literal arguments");
         }
@@ -72,9 +72,9 @@ public class CommandBuilderForge extends CommandBuilder {
     @Override
     public CommandBuilder or() {
         if (pointer.size() > 1) {
-            Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>> oldarg = pointer.pop().getU();
-            Pair<Boolean, Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>>> arg = pointer.pop();
-            Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>> u = arg.getU();
+            Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>> oldarg = pointer.pop().getU();
+            Pair<Boolean, Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>>> arg = pointer.pop();
+            Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>> u = arg.getU();
             pointer.push(new Pair<>(arg.getT(), (ctx) -> u.andThen((e) -> e.then(oldarg.apply(ctx))).apply(ctx)));
         } else {
             throw new AssertionError("Can't use or() on the head of the command");
@@ -86,9 +86,9 @@ public class CommandBuilderForge extends CommandBuilder {
     public CommandBuilder or(int argLevel) {
         argLevel = Math.max(1, argLevel);
         while (pointer.size() > argLevel) {
-            Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>> oldarg = pointer.pop().getU();
-            Pair<Boolean, Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>>> arg = pointer.pop();
-            Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>> u = arg.getU();
+            Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>> oldarg = pointer.pop().getU();
+            Pair<Boolean, Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>>> arg = pointer.pop();
+            Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>> u = arg.getU();
             pointer.push(new Pair<>(arg.getT(), (ctx) -> u.andThen((e) -> e.then(oldarg.apply(ctx))).apply(ctx)));
         }
         return this;
@@ -97,12 +97,12 @@ public class CommandBuilderForge extends CommandBuilder {
     @Override
     public CommandBuilder register() {
         or(1);
-        CommandDispatcher<ServerCommandSource> dispatcher = ClientCommandHandler.getDispatcher();
-        Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>> head = pointer.pop().getU();
+        CommandDispatcher<CommandSourceStack> dispatcher = ClientCommandHandler.getDispatcher();
+        Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>> head = pointer.pop().getU();
         if (dispatcher != null) {
-            ClientPlayNetworkHandler networkHandler = MinecraftClient.getInstance().getNetworkHandler();
+            ClientPacketListener networkHandler = Client.getInstance().getNetworkHandler();
             if (networkHandler != null) {
-                LiteralArgumentBuilder lb = (LiteralArgumentBuilder) head.apply(CommandRegistryAccess.of(networkHandler.getRegistryManager(), networkHandler.getEnabledFeatures()));
+                LiteralArgumentBuilder lb = (LiteralArgumentBuilder) head.apply(CommandBuildContext.of(networkHandler.getRegistryManager(), networkHandler.getEnabledFeatures()));
                 dispatcher.register(lb);
                 networkHandler.getCommandDispatcher().register(lb);
             }
@@ -114,7 +114,7 @@ public class CommandBuilderForge extends CommandBuilder {
     @Override
     public CommandBuilder unregister() throws IllegalAccessException {
         CommandNodeAccessor.remove(ClientCommandHandler.getDispatcher().getRoot(), name);
-        ClientPlayNetworkHandler p = MinecraftClient.getInstance().getNetworkHandler();
+        ClientPacketListener p = Client.getInstance().getNetworkHandler();
         if (p != null) {
             CommandDispatcher<?> cd = p.getCommandDispatcher();
             CommandNodeAccessor.remove(cd.getRoot(), name);
@@ -124,11 +124,11 @@ public class CommandBuilderForge extends CommandBuilder {
     }
 
     public static void onRegisterEvent(RegisterClientCommandsEvent event) {
-        CommandDispatcher<ServerCommandSource> dispatcher = event.getDispatcher();
-        MinecraftClient mc = MinecraftClient.getInstance();
-        CommandRegistryAccess registryAccess = CommandRegistryAccess.of(mc.getNetworkHandler().getRegistryManager(), mc.getNetworkHandler().getEnabledFeatures());
-        for (Function<CommandRegistryAccess, ArgumentBuilder<ServerCommandSource, ?>> command : commands.values()) {
-            dispatcher.register((LiteralArgumentBuilder<ServerCommandSource>) command.apply(registryAccess));
+        CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
+        Client mc = Client.getInstance();
+        CommandBuildContext registryAccess = CommandBuildContext.of(mc.getNetworkHandler().getRegistryManager(), mc.getNetworkHandler().getEnabledFeatures());
+        for (Function<CommandBuildContext, ArgumentBuilder<CommandSourceStack, ?>> command : commands.values()) {
+            dispatcher.register((LiteralArgumentBuilder<CommandSourceStack>) command.apply(registryAccess));
         }
     }
 

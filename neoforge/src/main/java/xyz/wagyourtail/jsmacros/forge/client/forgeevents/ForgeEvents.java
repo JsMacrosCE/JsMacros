@@ -1,13 +1,13 @@
 package xyz.wagyourtail.jsmacros.forge.client.forgeevents;
 
 import com.google.common.collect.ImmutableSet;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.profiler.Profilers;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.renderer.MultiBufferSource;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.profiling.Profiler;
 import net.neoforged.neoforge.client.event.*;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.neoforge.common.NeoForge;
@@ -25,13 +25,13 @@ import java.util.Comparator;
 import java.util.stream.Collectors;
 
 public class ForgeEvents {
-    private static final MinecraftClient client = MinecraftClient.getInstance();
+    private static final Minecraft client = Minecraft.getInstance();
 
-    private static final Constructor<DrawContext> DRAW_CONTEXT_CONSTRUCTOR;
+    private static final Constructor<GuiGraphics> DRAW_CONTEXT_CONSTRUCTOR;
 
     static {
         try {
-            DRAW_CONTEXT_CONSTRUCTOR = DrawContext.class.getDeclaredConstructor(MinecraftClient.class, MatrixStack.class, VertexConsumerProvider.Immediate.class);
+            DRAW_CONTEXT_CONSTRUCTOR = GuiGraphics.class.getDeclaredConstructor(Minecraft.class, PoseStack.class, MultiBufferSource.Immediate.class);
             DRAW_CONTEXT_CONSTRUCTOR.setAccessible(true);
         } catch (NoSuchMethodException e) {
             throw new RuntimeException(e);
@@ -84,29 +84,29 @@ public class ForgeEvents {
         ((IScreenInternal) event.getScreen()).jsmacros_mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY());
     }
 
-    public static void renderHudListener(DrawContext drawContext, RenderTickCounter partialTicks) {
+    public static void renderHudListener(GuiGraphics GuiGraphics, DeltaTracker partialTicks) {
         for (IDraw2D<Draw2D> h : ImmutableSet.copyOf(FHud.overlays).stream().sorted(Comparator.comparingInt(IDraw2D::getZIndex)).collect(Collectors.toList())) {
             try {
-                h.render(drawContext);
+                h.render(GuiGraphics);
             } catch (Throwable ignored) {
             }
         }
     }
 
     public static void onRegisterGuiOverlays(RegisterGuiLayersEvent ev) {
-        ev.registerBelow(VanillaGuiLayers.DEBUG_OVERLAY, Identifier.of("jsmacros:hud"), ForgeEvents::renderHudListener);
+        ev.registerBelow(VanillaGuiLayers.DEBUG_OVERLAY, ResourceLocation.of("jsmacros:hud"), ForgeEvents::renderHudListener);
     }
 
     public static void renderWorldListener(RenderLevelStageEvent e) {
         if (e.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
             return;
         }
-        var profiler = Profilers.get();
+        var profiler = Profiler.get();
         profiler.push("jsmacros_draw3d");
         for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
             try {
-                DrawContext drawContext = DRAW_CONTEXT_CONSTRUCTOR.newInstance(client, e.getPoseStack(), client.getBufferBuilders().getEntityVertexConsumers());
-                d.render(drawContext, e.getPartialTick().getLastDuration());
+                GuiGraphics GuiGraphics = DRAW_CONTEXT_CONSTRUCTOR.newInstance(client, e.getPoseStack(), client.getBufferBuilders().getEntityVertexConsumers());
+                d.render(GuiGraphics, e.getPartialTick().getLastDuration());
             } catch (Throwable t) {
                 t.printStackTrace();
             }
@@ -115,7 +115,7 @@ public class ForgeEvents {
     }
 
     public static void onTick(ClientTickEvent.Post event) {
-        TickBasedEvents.onTick(MinecraftClient.getInstance());
+        TickBasedEvents.onTick(Minecraft.getInstance());
     }
 
     public static void onRegisterCommands(RegisterClientCommandsEvent event) {

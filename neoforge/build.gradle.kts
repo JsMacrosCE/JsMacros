@@ -1,15 +1,43 @@
 plugins {
     alias(libs.plugins.architectury.plugin)
-    alias(libs.plugins.architectury.loom) apply false
-    alias(libs.plugins.shadow) apply false
+    alias(libs.plugins.architectury.loom)
+    id("java")
+    id("maven-publish")
+    alias(libs.plugins.shadow)
 }
 
 architectury {
-    minecraft = libs.versions.minecraft.get()
+    platformSetupLoomIde()
+    neoForge()
 }
 
 version = "2.0.0"
 group = "xyz.wagyourtail"
+
+// NeoForge dependencies
+dependencies {
+    minecraft("com.mojang:minecraft:${libs.versions.minecraft.get()}")
+    mappings(loom.officialMojangMappings())
+    neoForge("net.neoforged:neoforge:${libs.versions.neoforge.get()}")
+
+    implementation(project(":common"))
+
+    // Implementation dependencies
+    implementation(libs.prism4j)
+    implementation(libs.nv.websocket.client)
+    implementation(libs.javassist)
+    implementation(libs.joor)
+}
+
+repositories {
+    mavenCentral()
+    maven("https://maven.neoforged.net/releases")
+    maven("https://maven.minecraftforge.net/")
+    maven("https://maven.fabricmc.net/")
+    maven("https://maven.architectury.dev/")
+    maven("https://maven.terraformersmc.com/releases/")
+    maven("https://jitpack.io")
+}
 
 // Subproject configuration for all modules
 subprojects {
@@ -18,6 +46,7 @@ subprojects {
 
     repositories {
         mavenCentral()
+        maven("https://maven.neoforged.net/releases")
         maven("https://maven.minecraftforge.net/")
         maven("https://maven.fabricmc.net/")
         maven("https://maven.architectury.dev/")
@@ -64,11 +93,6 @@ tasks.register("cleanAll") {
      jsmacrosExtensionInclude(project(":extension:graal:js")) { isTransitive = false }
  }
 
-// Enhanced clean task
-tasks.register<Delete>("clean") {
-    delete(layout.buildDirectory)
-    delete(file("dist"))
-}
 
 // Distribution task
 tasks.register<Sync>("createDist") {
