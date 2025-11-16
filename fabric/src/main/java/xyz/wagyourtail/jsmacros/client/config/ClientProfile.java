@@ -19,6 +19,7 @@ import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
+import net.minecraft.text.ClickEvent;
 import net.minecraft.util.DyeColor;
 import net.minecraft.util.Formatting;
 import org.slf4j.Logger;
@@ -125,7 +126,7 @@ public class ClientProfile extends BaseProfile {
                     if (loc.file != null) {
                         locationStyle = locationStyle.withHoverEvent(
                                 new HoverEvent.ShowText(Text.translatable("jsmacros.clicktoview"))
-                        ).withClickEvent(new CustomClickEvent(() -> {
+                        ).withClickEvent((ClickEvent) new CustomClickEvent(() -> {
                             if (loc.startIndex > -1) {
                                 EditorScreen.openAndScrollToIndex(loc.file, loc.startIndex, loc.endIndex);
                             } else if (loc.line > -1) {
@@ -133,7 +134,7 @@ public class ClientProfile extends BaseProfile {
                             } else {
                                 EditorScreen.openAndScrollToIndex(loc.file, 0, 0);
                             }
-                        }));
+                        }).toPlatformClickEvent());
                     }
                 }
                 line.append(Text.literal(" (" + head.location + ")").setStyle(locationStyle));

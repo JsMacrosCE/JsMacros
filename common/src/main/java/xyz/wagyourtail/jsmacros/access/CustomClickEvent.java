@@ -1,9 +1,7 @@
 package xyz.wagyourtail.jsmacros.access;
 
-import net.minecraft.text.ClickEvent;
-
-public class CustomClickEvent implements ClickEvent {
-    Runnable event;
+public class CustomClickEvent implements ICustomClickEvent {
+    private final Runnable event;
 
     public CustomClickEvent(Runnable event) {
         this.event = event;
@@ -14,12 +12,19 @@ public class CustomClickEvent implements ClickEvent {
         return event.hashCode();
     }
 
+    @Override
     public Runnable getEvent() {
         return event;
     }
 
     @Override
-    public Action getAction() {
-        return null;
+    public Object toPlatformClickEvent() {
+        // Platform-specific implementations should override this
+        throw new UnsupportedOperationException("Platform-specific implementation required");
+    }
+
+    @Override
+    public String getActionType() {
+        return "CUSTOM";
     }
 }

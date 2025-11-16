@@ -177,13 +177,14 @@ public class TextBuilder {
      * @since 1.3.0
      */
     public TextBuilder withCustomClickEvent(MethodWrapper<Object, Object, Object, ?> action) {
-        self.styled(style -> style.withClickEvent(new CustomClickEvent(() -> {
+        CustomClickEvent customEvent = new CustomClickEvent(() -> {
             try {
                 action.run();
             } catch (Throwable ex) {
                 JsMacrosClient.clientCore.profile.logError(ex);
             }
-        })));
+        });
+        self.styled(style -> style.withClickEvent((ClickEvent) customEvent.toPlatformClickEvent()));
         return this;
     }
 
