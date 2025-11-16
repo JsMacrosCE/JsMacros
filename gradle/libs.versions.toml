@@ -4,7 +4,13 @@ java = "21"
 minecraft = "1.21.8"
 yarn = "1"
 
-fabric_loader = "0.17.2"
+fabric_loader = "0.17.3"
+forge = "52.0.19"
+neoforge = "21.4.0-beta"
+
+# Architectury/loom versions
+architectury = "3.4-SNAPSHOT"
+loom = "1.13-SNAPSHOT"
 
 mixin = "0.8.7"
 mixin_extra = "0.3.2"
@@ -22,6 +28,25 @@ modmenu = "15.0.0"
 
 shadow = "8.3.6"
 
+# Additional dependencies for common module
+guava = "33.4.8-jre"
+gson = "2.13.1"
+slf4j = "2.0.16"
+fastutil = "8.5.15"
+commons_codec = "1.17.1"
+commons_io = "2.20.0"
+commons_lang3 = "3.19.0"
+joml = "1.10.8"
+
+# Graal dependencies for extension system
+# TODO: Can these be updated?
+graal_sdk = "23.0.10"    # org.graalvm.sdk:graal-sdk
+truffle_api = "23.0.10"  # org.graalvm.truffle:truffle-api
+graal_js = "23.0.10"     # org.graalvm.js:js
+graal_regex = "23.0.10"  # org.graalvm.regex:regex
+graal_python = "24.2.2"  # org.graalvm.python:python
+graal_llvm = "25.0.1"    # org.graalvm.llvm:llvm
+
 [libraries]
 prism4j = { module = "io.noties:prism4j", version.ref = "prism4j" }
 
@@ -31,6 +56,7 @@ mixin_extra = { module = "io.github.llamalad7:mixinextras-common", version.ref =
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
 joor = { module = "org.jooq:joor", version.ref = "joor" }
 nv_websocket = { module = "com.neovisionaries:nv-websocket-client", version.ref = "nv_websocket" }
+nv_websocket_client = { module = "com.neovisionaries:nv-websocket-client", version.ref = "nv_websocket" }
 javassist = { module = "org.javassist:javassist", version.ref = "javassist" }
 
 modmenu = { module = "com.terraformersmc:modmenu", version.ref = "modmenu" }
@@ -40,5 +66,26 @@ junit_engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref 
 
 jb_annotations = { module = "org.jetbrains:annotations", version.ref = "jb_annotations" }
 
+# Additional libraries for common module
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+slf4j_api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+fastutil = { module = "it.unimi.dsi:fastutil", version.ref = "fastutil" }
+commons_codec = { module = "commons-codec:commons-codec", version.ref = "commons_codec" }
+commons_io = { module = "commons-io:commons-io", version.ref = "commons_io" }
+commons_lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons_lang3" }
+joml = { module = "org.joml:joml", version.ref = "joml" }
+
+# Graal libraries for extension system
+graal_sdk = { module = "org.graalvm.sdk:graal-sdk", version.ref = "graal_sdk" }
+truffle_api = { module = "org.graalvm.truffle:truffle-api", version.ref = "truffle_api" }
+graal_js = { module = "org.graalvm.js:js", version.ref = "graal_js" }
+graal_regex = { module = "org.graalvm.regex:regex", version.ref = "graal_regex" }
+graal_python = { module = "org.graalvm.python:python", version.ref = "graal_python" }
+graal_llvm = { module = "org.graalvm.llvm:llvm", version.ref = "graal_llvm" }
+
 [plugins]
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+fabric_loom = { id = "fabric-loom", version.ref = "loom" }
+architectury_plugin = { id = "architectury-plugin", version.ref = "architectury" }
+architectury_loom = { id = "dev.architectury.loom", version.ref = "loom" }

@@ -4,6 +4,9 @@ pluginManagement {
         maven("https://maven.wagyourtail.xyz/releases")
         maven("https://maven.wagyourtail.xyz/snapshots")
         maven("https://maven.neoforged.net/releases")
+        maven("https://maven.fabricmc.net/")
+        maven("https://files.minecraftforge.net/maven/")
+        maven("https://maven.architectury.dev/")
         mavenCentral()
         maven("https://jitpack.io")
         gradlePluginPortal()
@@ -13,6 +16,10 @@ pluginManagement {
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
+
+include("common")
+include("fabric")
+//include("forge")
 
 include("site")
 

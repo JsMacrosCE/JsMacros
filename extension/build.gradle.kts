@@ -1,6 +1,6 @@
 plugins {
-    java
-    alias(libs.plugins.shadow)
+    id("java")
+    id("com.gradleup.shadow")
 }
 
 val archives_base_name: String by project.properties
@@ -11,26 +11,36 @@ repositories {
 }
 
 dependencies {
-    implementation(rootProject.sourceSets["core"].output)
-    for (dependency in rootProject.configurations["minecraftLibraries"].dependencies) {
-        implementation(dependency)
-    }
+    implementation(project(":common"))
 
-    for (dependency in rootProject.configurations.implementation.get().dependencies) {
-        implementation(dependency)
-    }
+    // Additional dependencies for testing
+    implementation(libs.guava)
+    implementation(libs.slf4j.api)
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testImplementation("org.jetbrains:annotations:20.1.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+base {
+    archivesName.set(archives_base_name + "-extension")
+}
+
 subprojects {
-    apply(plugin= "java")
-    apply(plugin= "com.github.johnrengelman.shadow")
+    apply(plugin = "java")
+    apply(plugin = "com.gradleup.shadow")
 
     base {
-        archivesName = archives_base_name + "-${project.name}-extension"
+        archivesName.set(archives_base_name + "-${project.name}-extension")
     }
 
     java {
@@ -42,10 +52,9 @@ subprojects {
         }
     }
 
-    val jsmacrosExtensionInclude by configurations.creating
-
-    configurations.implementation.configure {
-        extendsFrom(jsmacrosExtensionInclude)
+    // Create configuration for extension dependencies
+    val jsmacrosExtensionDeps by configurations.creating {
+        extendsFrom(configurations.implementation.get())
     }
 
     repositories {
@@ -54,17 +63,22 @@ subprojects {
     }
 
     dependencies {
-
-        implementation(parent!!.sourceSets.main.get().output)
-        for (dependency in parent!!.configurations.implementation.get().dependencies) {
-            implementation(dependency)
+        // Depend on parent extension project if exists
+        if (parent != null) {
+            implementation(parent!!)
         }
 
-        testImplementation(parent!!.sourceSets.test.get().output)
+        // Depend on common module
+        implementation(project(":common"))
+
+        testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
+        testImplementation("org.jetbrains:annotations:20.1.0")
+        testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     }
 
     afterEvaluate {
-        var includeFiles = files(jsmacrosExtensionInclude) - files(parent!!.configurations.findByName("jsmacrosExtensionInclude") ?: emptySet<File>()).filter{ it.name.endsWith(".jar") }
+        // Collect all runtime dependencies for inclusion in extension JAR
+        var includeFiles = files(configurations.runtimeClasspath.get().filter { it.name.endsWith(".jar") })
 
         tasks.jar {
             from(includeFiles) {
@@ -82,5 +96,4 @@ subprojects {
             }
         }
     }
-
 }
