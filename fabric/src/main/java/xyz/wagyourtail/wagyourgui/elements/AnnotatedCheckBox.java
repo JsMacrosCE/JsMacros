@@ -1,15 +1,15 @@
 package xyz.wagyourtail.wagyourgui.elements;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 
 import java.util.function.Consumer;
 
 public class AnnotatedCheckBox extends Button {
     public boolean value;
 
-    public AnnotatedCheckBox(int x, int y, int width, int height, TextRenderer textRenderer, int color, int borderColor, int highlightColor, int textColor, Text message, boolean initialValue, Consumer<Button> onPress) {
+    public AnnotatedCheckBox(int x, int y, int width, int height, Font textRenderer, int color, int borderColor, int highlightColor, int textColor, Component message, boolean initialValue, Consumer<Button> onPress) {
         super(x, y, width, height, textRenderer, color, borderColor, highlightColor, textColor, message, onPress);
         value = initialValue;
         horizCenter = false;
@@ -22,25 +22,25 @@ public class AnnotatedCheckBox extends Button {
     }
 
     @Override
-    public void setMessage(Text message) {
+    public void setMessage(Component message) {
         setMessageSuper(message);
         int width = this.width - height;
-        this.textLines = textRenderer.wrapLines(message, width - 4);
-        this.visibleLines = Math.min(Math.max((height - 2) / textRenderer.fontHeight, 1), textLines.size());
-        this.verticalCenter = ((height - 4) - (visibleLines * textRenderer.fontHeight)) / 2;
+        this.textLines = textRenderer.split(message, width - 4);
+        this.visibleLines = Math.min(Math.max((height - 2) / textRenderer.lineHeight, 1), textLines.size());
+        this.verticalCenter = ((height - 4) - (visibleLines * textRenderer.lineHeight)) / 2;
     }
 
     @Override
-    protected void renderMessage(DrawContext drawContext) {
+    protected void renderMessage(GuiGraphics drawContext) {
         int width = this.width - height;
         for (int i = 0; i < visibleLines; ++i) {
-            int w = textRenderer.getWidth(textLines.get(i));
-            drawContext.drawText(textRenderer, textLines.get(i), (int) (horizCenter ? getX() + width / 2F - w / 2F : getX() + 1), getY() + 2 + verticalCenter + (i * textRenderer.fontHeight), textColor, false);
+            int w = textRenderer.width(textLines.get(i));
+            drawContext.drawString(textRenderer, textLines.get(i), (int) (horizCenter ? getX() + width / 2F - w / 2F : getX() + 1), getY() + 2 + verticalCenter + (i * textRenderer.lineHeight), textColor, false);
         }
     }
 
     @Override
-    public void renderWidget(DrawContext drawContext, int mouseX, int mouseY, float delta) {
+    public void renderWidget(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         if (this.visible) {
             this.renderMessage(drawContext);
 

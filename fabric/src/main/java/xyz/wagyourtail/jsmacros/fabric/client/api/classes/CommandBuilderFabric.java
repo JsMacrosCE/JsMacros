@@ -9,9 +9,9 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.commands.CommandBuildContext;
 import xyz.wagyourtail.Pair;
 import xyz.wagyourtail.jsmacros.client.access.CommandNodeAccessor;
 import xyz.wagyourtail.jsmacros.client.api.classes.inventory.CommandBuilder;
@@ -25,13 +25,13 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class CommandBuilderFabric extends CommandBuilder {
-    private static final Map<String, Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>>> commands = new HashMap<>();
+    private static final Map<String, Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>>> commands = new HashMap<>();
 
     private final String name;
-    private final Stack<Pair<Boolean, Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>>>> pointer = new Stack<>();
+    private final Stack<Pair<Boolean, Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>>>> pointer = new Stack<>();
 
     public CommandBuilderFabric(String name) {
-        Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>> head = (a) -> ClientCommandManager.literal(name);
+        Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>> head = (a) -> ClientCommandManager.literal(name);
         this.name = name;
         pointer.push(new Pair<>(false, head));
     }
@@ -42,7 +42,7 @@ public class CommandBuilderFabric extends CommandBuilder {
     }
 
     @Override
-    protected void argument(String name, Function<CommandRegistryAccess, ArgumentType<?>> type) {
+    protected void argument(String name, Function<CommandBuildContext, ArgumentType<?>> type) {
         pointer.push(new Pair<>(true, (e) -> ClientCommandManager.argument(name, type.apply(e))));
     }
 
@@ -54,14 +54,14 @@ public class CommandBuilderFabric extends CommandBuilder {
 
     @Override
     public CommandBuilder executes(MethodWrapper<CommandContextHelper, Object, Object, ?> callback) {
-        Pair<Boolean, Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>>> arg = pointer.pop();
+        Pair<Boolean, Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>>> arg = pointer.pop();
         pointer.push(new Pair<>(arg.getT(), arg.getU().andThen((e) -> e.executes((ctx) -> internalExecutes(ctx, callback)))));
         return this;
     }
 
     @Override
     protected <S> void suggests(SuggestionProvider<S> suggestionProvider) {
-        Pair<Boolean, Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>>> arg = pointer.pop();
+        Pair<Boolean, Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>>> arg = pointer.pop();
         if (!arg.getT()) {
             throw new AssertionError("SuggestionProvider can only be used on non-literal arguments");
         }
@@ -71,9 +71,9 @@ public class CommandBuilderFabric extends CommandBuilder {
     @Override
     public CommandBuilder or() {
         if (pointer.size() > 1) {
-            Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>> oldarg = pointer.pop().getU();
-            Pair<Boolean, Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>>> arg = pointer.pop();
-            Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>> u = arg.getU();
+            Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>> oldarg = pointer.pop().getU();
+            Pair<Boolean, Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>>> arg = pointer.pop();
+            Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>> u = arg.getU();
             pointer.push(new Pair<>(arg.getT(), (ctx) -> u.andThen((e) -> e.then(oldarg.apply(ctx))).apply(ctx)));
         }
         return this;
@@ -83,9 +83,9 @@ public class CommandBuilderFabric extends CommandBuilder {
     public CommandBuilder or(int argLevel) {
         argLevel = Math.max(1, argLevel);
         while (pointer.size() > argLevel) {
-            Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>> oldarg = pointer.pop().getU();
-            Pair<Boolean, Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>>> arg = pointer.pop();
-            Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>> u = arg.getU();
+            Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>> oldarg = pointer.pop().getU();
+            Pair<Boolean, Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>>> arg = pointer.pop();
+            Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>> u = arg.getU();
             pointer.push(new Pair<>(arg.getT(), (ctx) -> u.andThen((e) -> e.then(oldarg.apply(ctx))).apply(ctx)));
         }
         return this;
@@ -95,13 +95,13 @@ public class CommandBuilderFabric extends CommandBuilder {
     public CommandBuilder register() {
         or(1);
         CommandDispatcher<FabricClientCommandSource> dispatcher = ClientCommandManager.getActiveDispatcher();
-        Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>> head = pointer.pop().getU();
+        Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>> head = pointer.pop().getU();
         if (dispatcher != null) {
-            ClientPlayNetworkHandler networkHandler = MinecraftClient.getInstance().getNetworkHandler();
+            ClientPacketListener networkHandler = Minecraft.getInstance().getConnection();
             if (networkHandler != null) {
-                LiteralArgumentBuilder lb = (LiteralArgumentBuilder) head.apply(CommandRegistryAccess.of(networkHandler.getRegistryManager(), networkHandler.getEnabledFeatures()));
+                LiteralArgumentBuilder lb = (LiteralArgumentBuilder) head.apply(CommandBuildContext.simple(networkHandler.registryAccess(), networkHandler.enabledFeatures()));
                 dispatcher.register(lb);
-                networkHandler.getCommandDispatcher().register(lb);
+                networkHandler.getCommands().register(lb);
             }
         }
         commands.put(name, head);
@@ -111,9 +111,9 @@ public class CommandBuilderFabric extends CommandBuilder {
     @Override
     public CommandBuilder unregister() throws IllegalAccessException {
         CommandNodeAccessor.remove(ClientCommandManager.getActiveDispatcher().getRoot(), name);
-        ClientPlayNetworkHandler p = MinecraftClient.getInstance().getNetworkHandler();
+        ClientPacketListener p = Minecraft.getInstance().getConnection();
         if (p != null) {
-            CommandDispatcher<?> cd = p.getCommandDispatcher();
+            CommandDispatcher<?> cd = p.getCommands();
             CommandNodeAccessor.remove(cd.getRoot(), name);
         }
         commands.remove(name);
@@ -122,7 +122,7 @@ public class CommandBuilderFabric extends CommandBuilder {
 
     public static void registerEvent() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
-            for (Function<CommandRegistryAccess, ArgumentBuilder<FabricClientCommandSource, ?>> command : commands.values()) {
+            for (Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>> command : commands.values()) {
                 dispatcher.register((LiteralArgumentBuilder<FabricClientCommandSource>) command.apply(registryAccess));
             }
         });

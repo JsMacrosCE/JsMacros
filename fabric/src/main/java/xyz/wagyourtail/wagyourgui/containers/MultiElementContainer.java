@@ -1,11 +1,11 @@
 package xyz.wagyourtail.wagyourgui.containers;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Drawable;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.gui.widget.ClickableWidget;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.components.AbstractWidget;
 import xyz.wagyourtail.wagyourgui.overlays.IOverlayParent;
 import xyz.wagyourtail.wagyourgui.overlays.OverlayContainer;
 
@@ -13,8 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class MultiElementContainer<T extends IContainerParent> implements IContainerParent {
-    protected List<ClickableWidget> buttons = new ArrayList<>();
-    protected TextRenderer textRenderer;
+    protected List<AbstractWidget> buttons = new ArrayList<>();
+    protected Font textRenderer;
     protected boolean visible = true;
     public final T parent;
     public int x;
@@ -22,7 +22,7 @@ public abstract class MultiElementContainer<T extends IContainerParent> implemen
     public int width;
     public int height;
 
-    public MultiElementContainer(int x, int y, int width, int height, TextRenderer textRenderer, T parent) {
+    public MultiElementContainer(int x, int y, int width, int height, Font textRenderer, T parent) {
         this.textRenderer = textRenderer;
         this.x = x;
         this.y = y;
@@ -40,7 +40,7 @@ public abstract class MultiElementContainer<T extends IContainerParent> implemen
     }
 
     public void setVisible(boolean visible) {
-        for (ClickableWidget btn : buttons) {
+        for (AbstractWidget btn : buttons) {
             btn.visible = visible;
             btn.active = visible;
         }
@@ -48,13 +48,13 @@ public abstract class MultiElementContainer<T extends IContainerParent> implemen
     }
 
     @Override
-    public <T extends Element & Drawable & Selectable> T addDrawableChild(T drawableElement) {
-        buttons.add((ClickableWidget) drawableElement);
+    public <T extends GuiEventListener & Renderable & NarratableEntry> T addDrawableChild(T drawableElement) {
+        buttons.add((AbstractWidget) drawableElement);
         parent.addDrawableChild(drawableElement);
         return drawableElement;
     }
 
-    public List<ClickableWidget> getButtons() {
+    public List<AbstractWidget> getButtons() {
         return buttons;
     }
 
@@ -76,7 +76,7 @@ public abstract class MultiElementContainer<T extends IContainerParent> implemen
     }
 
     @Override
-    public void remove(Element button) {
+    public void remove(GuiEventListener button) {
         this.buttons.remove(button);
         parent.remove(button);
     }
@@ -86,6 +86,6 @@ public abstract class MultiElementContainer<T extends IContainerParent> implemen
         return parent.getFirstOverlayParent();
     }
 
-    public abstract void render(DrawContext drawContext, int mouseX, int mouseY, float delta);
+    public abstract void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta);
 
 }

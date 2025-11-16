@@ -1,13 +1,13 @@
 package xyz.wagyourtail.wagyourgui.elements;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.network.chat.Component;
 
 import java.util.function.Consumer;
 
-public class Scrollbar extends ClickableWidget {
+public class Scrollbar extends AbstractWidget {
     protected double scrollPages = 1;
     protected double scrollAmount = 0;
     protected double scrollbarHeight;
@@ -18,7 +18,7 @@ public class Scrollbar extends ClickableWidget {
     protected Consumer<Double> onChange;
 
     public Scrollbar(int x, int y, int width, int height, int color, int borderColor, int highlightColor, double scrollPages, Consumer<Double> onChange) {
-        super(x, y, width, height, Text.literal(""));
+        super(x, y, width, height, Component.literal(""));
         this.color = color;
         this.borderColor = borderColor;
         this.highlightColor = highlightColor;
@@ -93,7 +93,7 @@ public class Scrollbar extends ClickableWidget {
     }
 
     @Override
-    public void renderWidget(DrawContext drawContext, int mouseX, int mouseY, float delta) {
+    public void renderWidget(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         // mainpart
         drawContext.fill(getX() + 1, (int) (getY() + 1 + scrollAmount), getX() + width - 1, (int) (getY() + 1 + scrollAmount + scrollbarHeight), highlightColor);
 
@@ -106,7 +106,7 @@ public class Scrollbar extends ClickableWidget {
     }
 
     @Override
-    protected void appendClickableNarrations(NarrationMessageBuilder builder) {
+    protected void updateWidgetNarration(NarrationElementOutput builder) {
 
     }
 

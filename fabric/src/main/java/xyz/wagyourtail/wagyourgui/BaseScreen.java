@@ -1,16 +1,16 @@
 package xyz.wagyourtail.wagyourgui;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.Drawable;
-import net.minecraft.client.gui.Element;
-import net.minecraft.client.gui.Selectable;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.StringVisitable;
-import net.minecraft.text.Text;
-import net.minecraft.util.Language;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.Component;
+import net.minecraft.locale.Language;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 import xyz.wagyourtail.jsmacros.client.JsMacrosClient;
@@ -21,13 +21,13 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
     protected Screen parent;
     protected OverlayContainer overlay;
 
-    protected BaseScreen(Text title, Screen parent) {
+    protected BaseScreen(Component title, Screen parent) {
         super(title);
         this.parent = parent;
     }
 
-    public static OrderedText trimmed(TextRenderer textRenderer, StringVisitable str, int width) {
-        return Language.getInstance().reorder(textRenderer.trimToWidth(str, width));
+    public static FormattedCharSequence trimmed(Font textRenderer, FormattedText str, int width) {
+        return Language.getInstance().getVisualOrder(textRenderer.substrByWidth(str, width));
     }
 
     public void setParent(Screen parent) {
@@ -40,8 +40,8 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
 
     @Override
     protected void init() {
-        assert client != null;
-        clearChildren();
+        assert minecraft != null;
+        clearWidgets();
         super.init();
         overlay = null;
         JsMacrosClient.prevScreen = this;
@@ -49,7 +49,7 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
 
     @Override
     public void removed() {
-        assert client != null;
+        assert minecraft != null;
     }
 
     @Override
@@ -77,27 +77,30 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
             return;
         }
         if (disableButtons) {
-            for (Element b : children()) {
-                if (!(b instanceof ClickableWidget)) {
+            for (GuiEventListener b : children()) {
+                if (!(b instanceof AbstractWidget)) {
                     continue;
                 }
-                overlay.savedBtnStates.put((ClickableWidget) b, ((ClickableWidget) b).active);
-                ((ClickableWidget) b).active = false;
+                overlay.savedBtnStates.put((AbstractWidget) b, ((AbstractWidget) b).active);
+                ((AbstractWidget) b).active = false;
             }
         }
         this.overlay = overlay;
         overlay.init();
     }
 
+    // TODO(Ravel): method origins have different new names
+// net.minecraft.client.gui.screen.Screen#PsiMethod:remove -> removeWidget
+// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:remove -> remove
     @Override
     public void closeOverlay(OverlayContainer overlay) {
         if (overlay == null) {
             return;
         }
-        for (ClickableWidget b : overlay.getButtons()) {
+        for (AbstractWidget b : overlay.getButtons()) {
             this.remove(b);
         }
-        for (ClickableWidget b : overlay.savedBtnStates.keySet()) {
+        for (AbstractWidget b : overlay.savedBtnStates.keySet()) {
             b.active = overlay.savedBtnStates.get(b);
         }
         overlay.onClose();
@@ -106,18 +109,24 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
         }
     }
 
+    // TODO(Ravel): method origins have different new names
+// net.minecraft.client.gui.screen.Screen#PsiMethod:remove -> removeWidget
+// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:remove -> remove
     @Override
-    public void remove(Element btn) {
-        super.remove(btn);
+    public void remove(GuiEventListener btn) {
+        super.removeWidget(btn);
+    }
+
+    // TODO(Ravel): method origins have different new names
+// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
+// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
+    @Override
+    public <T extends GuiEventListener & Renderable & NarratableEntry> T addDrawableChild(T drawableElement) {
+        return super.addRenderableWidget(drawableElement);
     }
 
     @Override
-    public <T extends Element & Drawable & Selectable> T addDrawableChild(T drawableElement) {
-        return super.addDrawableChild(drawableElement);
-    }
-
-    @Override
-    public void setFocused(@Nullable Element focused) {
+    public void setFocused(@Nullable GuiEventListener focused) {
         super.setFocused(focused);
     }
 
@@ -149,7 +158,7 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
     }
 
     @Override
-    public void render(DrawContext drawContext, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         if (overlay != null) {
             overlay.render(drawContext, mouseX, mouseY, delta);
         }
@@ -164,19 +173,19 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
     }
 
     @Override
-    public void close() {
-        assert client != null;
-        if (client.world == null) {
+    public void onClose() {
+        assert minecraft != null;
+        if (minecraft.level == null) {
             openParent();
         } else {
             setFocused(null);
-            client.setScreen(null);
+            minecraft.setScreen(null);
         }
     }
 
     public void openParent() {
-        assert client != null;
-        client.setScreen(parent);
+        assert minecraft != null;
+        minecraft.setScreen(parent);
     }
 
 }

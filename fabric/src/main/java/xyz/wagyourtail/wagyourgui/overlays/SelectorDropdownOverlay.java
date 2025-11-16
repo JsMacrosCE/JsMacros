@@ -1,9 +1,9 @@
 package xyz.wagyourtail.wagyourgui.overlays;
 
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
 import xyz.wagyourtail.wagyourgui.elements.Button;
 import xyz.wagyourtail.wagyourgui.elements.Scrollbar;
@@ -15,16 +15,16 @@ import java.util.function.Consumer;
 
 public class SelectorDropdownOverlay extends OverlayContainer {
     private final int lineHeight;
-    private final Collection<Text> choices;
+    private final Collection<Component> choices;
     private final List<Button> scrollChoices = new LinkedList<>();
     private final Consumer<Integer> onChoice;
     protected int selected = -1;
     private final double pages;
 
-    public SelectorDropdownOverlay(int x, int y, int width, int height, Collection<Text> choices, TextRenderer textRenderer, IOverlayParent parent, Consumer<Integer> onChoice) {
+    public SelectorDropdownOverlay(int x, int y, int width, int height, Collection<Component> choices, Font textRenderer, IOverlayParent parent, Consumer<Integer> onChoice) {
         super(x, y, width, height, textRenderer, parent);
         this.choices = choices;
-        this.lineHeight = textRenderer.fontHeight + 1;
+        this.lineHeight = textRenderer.lineHeight + 1;
         this.onChoice = onChoice;
         this.pages = lineHeight * choices.size() / (height - 4F);
     }
@@ -37,7 +37,7 @@ public class SelectorDropdownOverlay extends OverlayContainer {
         }
         int pos = 0;
         int scrollwidth = pages <= 1 ? width - 4 : width - 10;
-        for (Text choice : choices) {
+        for (Component choice : choices) {
             final int finalPos = pos;
             Button ch = this.addDrawableChild(new Button(x + 2, y + pos * lineHeight + 2, scrollwidth, lineHeight, textRenderer, 0, 0xFF000000, 0x4FFFFFFF, 0xFFFFFFFF, choice, (b) -> {
                 if (onChoice != null) {
@@ -76,7 +76,7 @@ public class SelectorDropdownOverlay extends OverlayContainer {
         if (selected != -1) {
             scrollChoices.get(selected).forceHover = false;
         }
-        selected = MathHelper.clamp(sel, -1, scrollChoices.size() - 1);
+        selected = Mth.clamp(sel, -1, scrollChoices.size() - 1);
         if (selected != -1) {
             scrollChoices.get(selected).forceHover = true;
         }
@@ -107,7 +107,7 @@ public class SelectorDropdownOverlay extends OverlayContainer {
     }
 
     @Override
-    public void render(DrawContext drawContext, int mouseX, int mouseY, float delta) {
+    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         renderBackground(drawContext);
         super.render(drawContext, mouseX, mouseY, delta);
     }

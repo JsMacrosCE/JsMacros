@@ -2,9 +2,17 @@ package xyz.wagyourtail.jsmacros.fabric.client.mixins.access;
 
 import com.google.common.collect.ImmutableSet;
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
-import net.minecraft.client.render.*;
-import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.util.profiler.Profiler;
+import com.mojang.blaze3d.framegraph.FrameGraphBuilder;
+import com.mojang.blaze3d.framegraph.FramePass;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.Camera;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.LevelTargetBundle;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderBuffers;
+import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.util.profiling.ProfilerFiller;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,17 +23,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import xyz.wagyourtail.jsmacros.client.api.classes.render.Draw3D;
 import xyz.wagyourtail.jsmacros.client.api.library.impl.FHud;
 
-@Mixin(value = WorldRenderer.class)
+@Mixin(value = LevelRenderer.class)
 public class MixinWorldRenderer {
 
     @Shadow
     @Final
-    private BufferBuilderStorage bufferBuilders;
+    private RenderBuffers renderBuffers;
     @Shadow
     @Final
-    private DefaultFramebufferSet framebufferSet;
+    private LevelTargetBundle targets;
 
-    @Inject(method = "renderMain", at = @At("TAIL"))
+    @Inject(method = "addMainPass", at = @At("TAIL"))
     private void onRenderMain(FrameGraphBuilder frameGraphBuilder,
                               Frustum frustum,
                               Camera camera,
@@ -33,31 +41,31 @@ public class MixinWorldRenderer {
                               GpuBufferSlice fog,
                               boolean renderBlockOutline,
                               boolean renderEntityOutlines,
-                              RenderTickCounter renderTickCounter,
-                              Profiler profiler,
+                              DeltaTracker renderTickCounter,
+                              ProfilerFiller profiler,
                               CallbackInfo ci) {
-        if (this.framebufferSet == null) {
+        if (this.targets == null) {
             return;
         }
-        FramePass framePass = frameGraphBuilder.createPass("jsmacros_draw3d");
-        DefaultFramebufferSet frameBufferSet = this.framebufferSet;
-        frameBufferSet.mainFramebuffer = framePass.transfer(frameBufferSet.mainFramebuffer);
+        FramePass framePass = frameGraphBuilder.addPass("jsmacros_draw3d");
+        LevelTargetBundle frameBufferSet = this.targets;
+        frameBufferSet.main = framePass.readsAndWrites(frameBufferSet.main);
 
-        framePass.setRenderer(() -> {
+        framePass.executes(() -> {
             profiler.push("jsmacros_d3d");
 
             try {
-                VertexConsumerProvider.Immediate consumers = bufferBuilders.getEffectVertexConsumers();
+                MultiBufferSource.BufferSource consumers = renderBuffers.crumblingBufferSource();
 
-                float tickDelta = renderTickCounter.getTickProgress(true);
+                float tickDelta = renderTickCounter.getGameTimeDeltaPartialTick(true);
 
-                MatrixStack matrixStack = new MatrixStack();
-                matrixStack.push();
+                PoseStack matrixStack = new PoseStack();
+                matrixStack.pushPose();
                 for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
                     d.render(matrixStack, consumers, tickDelta);
                 }
-                matrixStack.pop();
-                consumers.draw();
+                matrixStack.popPose();
+                consumers.endBatch();
             } catch (Throwable e) {
                 e.printStackTrace();
             }

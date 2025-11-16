@@ -17,7 +17,7 @@ loom {
 
 dependencies {
     minecraft("com.mojang:minecraft:${libs.versions.minecraft.get()}")
-    mappings("net.fabricmc:yarn:${libs.versions.minecraft.get()}+build.1:v2")
+    mappings(loom.officialMojangMappings())
     modImplementation("net.fabricmc:fabric-loader:${libs.versions.fabric.loader.get()}")
 
     implementation(project(":common"))

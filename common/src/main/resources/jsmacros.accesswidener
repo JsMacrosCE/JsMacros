@@ -1,32 +1,32 @@
 accessWidener v2 named
 
-accessible field net/minecraft/client/gui/hud/BossBarHud bossBars Ljava/util/Map;
-accessible field net/minecraft/client/gui/screen/ingame/BeaconScreen primaryEffect Lnet/minecraft/registry/entry/RegistryEntry;
-accessible field net/minecraft/client/gui/screen/ingame/BeaconScreen secondaryEffect Lnet/minecraft/registry/entry/RegistryEntry;
+accessible field net/minecraft/client/gui/components/BossHealthOverlay events Ljava/util/Map;
+accessible field net/minecraft/client/gui/screens/inventory/BeaconScreen primary Lnet/minecraft/core/Holder;
+accessible field net/minecraft/client/gui/screens/inventory/BeaconScreen secondary Lnet/minecraft/core/Holder;
 
-accessible field net/minecraft/client/MinecraftClient fontManager Lnet/minecraft/client/font/FontManager;
-accessible method net/minecraft/client/MinecraftClient doItemUse ()V
-accessible method net/minecraft/client/MinecraftClient doAttack ()Z
+accessible field net/minecraft/client/Minecraft fontManager Lnet/minecraft/client/gui/font/FontManager;
+accessible method net/minecraft/client/Minecraft startUseItem ()V
+accessible method net/minecraft/client/Minecraft startAttack ()Z
 
-accessible field net/minecraft/client/gui/screen/ingame/HandledScreen cancelNextRelease Z
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen skipNextRelease Z
 
-accessible field net/minecraft/client/gui/hud/ChatHud messages Ljava/util/List;
+accessible field net/minecraft/client/gui/components/ChatComponent allMessages Ljava/util/List;
 
-accessible field net/minecraft/client/input/Input movementVector Lnet/minecraft/util/math/Vec2f;
-accessible method net/minecraft/client/input/KeyboardInput getMovementMultiplier (ZZ)F
+accessible field net/minecraft/client/player/ClientInput moveVector Lnet/minecraft/world/phys/Vec2;
+accessible method net/minecraft/client/player/KeyboardInput calculateImpulse (ZZ)F
 
-accessible method net/minecraft/world/World getEntityLookup ()Lnet/minecraft/world/entity/EntityLookup;
+accessible method net/minecraft/world/level/Level getEntities ()Lnet/minecraft/world/level/entity/LevelEntityGetter;
 
-accessible field net/minecraft/client/option/SimpleOption value Ljava/lang/Object;
+accessible field net/minecraft/client/OptionInstance value Ljava/lang/Object;
 
-accessible field net/minecraft/client/gui/screen/ingame/RecipeBookScreen recipeBook Lnet/minecraft/client/gui/screen/recipebook/RecipeBookWidget;
-accessible field net/minecraft/client/gui/screen/recipebook/RecipeBookWidget tabs Ljava/util/List;
-accessible field net/minecraft/recipe/RecipeFinder recipeMatcher Lnet/minecraft/recipe/RecipeMatcher;
+accessible field net/minecraft/client/gui/screens/inventory/AbstractRecipeBookScreen recipeBookComponent Lnet/minecraft/client/gui/screens/recipebook/RecipeBookComponent;
+accessible field net/minecraft/client/gui/screens/recipebook/RecipeBookComponent tabInfos Ljava/util/List;
+accessible field net/minecraft/world/entity/player/StackedItemContents raw Lnet/minecraft/world/entity/player/StackedContents;
 
-accessible field net/minecraft/item/FuelRegistry fuelValues Lit/unimi/dsi/fastutil/objects/Object2IntSortedMap;
+accessible field net/minecraft/world/level/block/entity/FuelValues values Lit/unimi/dsi/fastutil/objects/Object2IntSortedMap;
 
-accessible field net/minecraft/entity/vehicle/AbstractBoatEntity location Lnet/minecraft/entity/vehicle/AbstractBoatEntity$Location;
+accessible field net/minecraft/world/entity/vehicle/AbstractBoat status Lnet/minecraft/world/entity/vehicle/AbstractBoat$Status;
 
-accessible field net/minecraft/entity/passive/DolphinEntity treasurePos Lnet/minecraft/util/math/BlockPos;
-accessible method net/minecraft/entity/passive/TropicalFishEntity getTropicalFishVariant ()I
-accessible field net/minecraft/entity/passive/WolfEntity furWet Z
+accessible field net/minecraft/world/entity/animal/Dolphin treasurePos Lnet/minecraft/core/BlockPos;
+accessible method net/minecraft/world/entity/animal/TropicalFish getPackedVariant ()I
+accessible field net/minecraft/world/entity/animal/wolf/Wolf isWet Z

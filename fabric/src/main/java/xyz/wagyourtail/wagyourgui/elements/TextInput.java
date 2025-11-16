@@ -1,10 +1,10 @@
 package xyz.wagyourtail.wagyourgui.elements;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.function.Consumer;
@@ -20,8 +20,8 @@ public class TextInput extends Button {
     public int selEndIndex;
     protected int arrowCursor;
 
-    public TextInput(int x, int y, int width, int height, TextRenderer textRenderer, int color, int borderColor, int highlightColor, int textColor, String message, Consumer<Button> onClick, Consumer<String> onChange) {
-        super(x, y, width, height, textRenderer, color, borderColor, color, textColor, Text.literal(""), onClick);
+    public TextInput(int x, int y, int width, int height, Font textRenderer, int color, int borderColor, int highlightColor, int textColor, String message, Consumer<Button> onClick, Consumer<String> onChange) {
+        super(x, y, width, height, textRenderer, color, borderColor, color, textColor, Component.literal(""), onClick);
         this.selColor = highlightColor;
         this.content = message;
         this.onChange = onChange;
@@ -39,7 +39,7 @@ public class TextInput extends Button {
         if (startIndex == 0) {
             selStart = getX() + 1;
         } else {
-            selStart = getX() + 2 + textRenderer.getWidth(content.substring(0, startIndex));
+            selStart = getX() + 2 + textRenderer.width(content.substring(0, startIndex));
         }
     }
 
@@ -48,14 +48,14 @@ public class TextInput extends Button {
         if (endIndex == 0) {
             selEnd = getX() + 2;
         } else {
-            selEnd = getX() + 3 + textRenderer.getWidth(content.substring(0, endIndex));
+            selEnd = getX() + 3 + textRenderer.width(content.substring(0, endIndex));
         }
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (this.isFocused()) {
-            int pos = textRenderer.trimToWidth(content, (int) (mouseX - getX() - 2)).length();
+            int pos = textRenderer.plainSubstrByWidth(content, (int) (mouseX - getX() - 2)).length();
             updateSelStart(pos);
             updateSelEnd(pos);
             arrowCursor = pos;
@@ -66,7 +66,7 @@ public class TextInput extends Button {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
         if (this.isFocused()) {
-            int pos = textRenderer.trimToWidth(content, (int) (mouseX - getX() - 2)).length();
+            int pos = textRenderer.plainSubstrByWidth(content, (int) (mouseX - getX() - 2)).length();
             updateSelEnd(pos);
             arrowCursor = pos;
         }
@@ -87,21 +87,21 @@ public class TextInput extends Button {
             if (selEndIndex < selStartIndex) {
                 swapStartEnd();
             }
-            MinecraftClient mc = MinecraftClient.getInstance();
+            Minecraft mc = Minecraft.getInstance();
             if (Screen.isSelectAll(keyCode)) {
                 this.updateSelStart(0);
                 this.updateSelEnd(content.length());
             } else if (Screen.isCopy(keyCode)) {
-                mc.keyboard.setClipboard(this.content.substring(selStartIndex, selEndIndex));
+                mc.keyboardHandler.setClipboard(this.content.substring(selStartIndex, selEndIndex));
             } else if (Screen.isPaste(keyCode)) {
-                content = content.substring(0, selStartIndex) + mc.keyboard.getClipboard() + content.substring(selEndIndex);
+                content = content.substring(0, selStartIndex) + mc.keyboardHandler.getClipboard() + content.substring(selEndIndex);
                 if (onChange != null) {
                     onChange.accept(content);
                 }
-                updateSelEnd(selStartIndex + mc.keyboard.getClipboard().length());
-                arrowCursor = selStartIndex + mc.keyboard.getClipboard().length();
+                updateSelEnd(selStartIndex + mc.keyboardHandler.getClipboard().length());
+                arrowCursor = selStartIndex + mc.keyboardHandler.getClipboard().length();
             } else if (Screen.isCut(keyCode)) {
-                mc.keyboard.setClipboard(this.content.substring(selStartIndex, selEndIndex));
+                mc.keyboardHandler.setClipboard(this.content.substring(selStartIndex, selEndIndex));
                 content = content.substring(0, selStartIndex) + content.substring(selEndIndex);
                 if (onChange != null) {
                     onChange.accept(content);
@@ -201,9 +201,9 @@ public class TextInput extends Button {
     }
 
     @Override
-    protected void renderMessage(DrawContext drawContext) {
-        drawContext.fill(selStart, height > 9 ? getY() + 2 : getY(), Math.min(selEnd, getX() + width - 2), (height > 9 ? getY() + 2 : getY()) + textRenderer.fontHeight, selColor);
-        drawContext.drawTextWithShadow(textRenderer, textRenderer.trimToWidth(content, width - 4), getX() + 2, height > 9 ? getY() + 2 :
+    protected void renderMessage(GuiGraphics drawContext) {
+        drawContext.fill(selStart, height > 9 ? getY() + 2 : getY(), Math.min(selEnd, getX() + width - 2), (height > 9 ? getY() + 2 : getY()) + textRenderer.lineHeight, selColor);
+        drawContext.drawString(textRenderer, textRenderer.plainSubstrByWidth(content, width - 4), getX() + 2, height > 9 ? getY() + 2 :
                 getY(), textColor);
     }
 

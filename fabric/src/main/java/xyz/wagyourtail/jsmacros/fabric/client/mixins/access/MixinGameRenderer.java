@@ -1,9 +1,9 @@
 package xyz.wagyourtail.jsmacros.fabric.client.mixins.access;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.GameRenderer;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,17 +19,17 @@ import xyz.wagyourtail.jsmacros.client.api.classes.render.ScriptScreen;
 public class MixinGameRenderer {
     @Shadow
     @Final
-    private MinecraftClient client;
+    private Minecraft minecraft;
 
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screen/Screen;renderWithTooltip(Lnet/minecraft/client/gui/DrawContext;IIF)V"))
-    private void onRender(Screen instance, DrawContext drawContext, int mouseX, int mouseY, float delta) {
+    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;renderWithTooltip(Lnet/minecraft/client/gui/GuiGraphics;IIF)V"))
+    private void onRender(Screen instance, GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         instance.renderWithTooltip(drawContext, mouseX, mouseY, delta);
-        if (!(client.currentScreen instanceof ScriptScreen)) {
+        if (!(minecraft.screen instanceof ScriptScreen)) {
             ((IScreenInternal) instance).jsmacros_render(drawContext, mouseX, mouseY, delta);
         }
     }
 
-    @Inject(at = @At("HEAD"), method = "updateCrosshairTarget", cancellable = true)
+    @Inject(at = @At("HEAD"), method = "pick", cancellable = true)
     public void onTargetUpdate(float tickDelta, CallbackInfo ci) {
         if (InteractionProxy.Target.onUpdate(tickDelta)) {
             ci.cancel();

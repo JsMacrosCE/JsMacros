@@ -1,8 +1,8 @@
 package xyz.wagyourtail.jsmacros.fabric.client.mixins.access;
 
 import com.google.common.collect.ImmutableSet;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.hud.DebugHud;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.DebugScreenOverlay;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -12,15 +12,15 @@ import xyz.wagyourtail.jsmacros.client.api.library.impl.FHud;
 
 import java.util.Comparator;
 
-@Mixin(DebugHud.class)
+@Mixin(DebugScreenOverlay.class)
 class MixinDebugHud {
     @Inject(
-            method = "drawLeftText(Lnet/minecraft/client/gui/DrawContext;)V",
+            method = "drawGameInformation(Lnet/minecraft/client/gui/GuiGraphics;)V",
             at = @At("TAIL")
     )
-    private void afterDrawLeftText(DrawContext context, CallbackInfo ci) {
-        DebugHud self = (DebugHud) (Object) this;
-        if (!self.shouldShowDebugHud()) return;
+    private void afterDrawLeftText(GuiGraphics context, CallbackInfo ci) {
+        DebugScreenOverlay self = (DebugScreenOverlay) (Object) this;
+        if (!self.showDebugScreen()) return;
 
         ImmutableSet.copyOf(FHud.overlays).stream()
                 .sorted(Comparator.comparingInt(IDraw2D::getZIndex))

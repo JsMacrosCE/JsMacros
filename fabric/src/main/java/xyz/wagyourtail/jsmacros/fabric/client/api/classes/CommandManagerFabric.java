@@ -3,8 +3,8 @@ package xyz.wagyourtail.jsmacros.fabric.client.api.classes;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.tree.CommandNode;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import xyz.wagyourtail.jsmacros.client.access.CommandNodeAccessor;
 import xyz.wagyourtail.jsmacros.client.api.classes.inventory.CommandBuilder;
 import xyz.wagyourtail.jsmacros.client.api.classes.inventory.CommandManager;
@@ -21,9 +21,9 @@ public class CommandManagerFabric extends CommandManager {
     public CommandNodeHelper unregisterCommand(String command) throws IllegalAccessException {
         CommandNode<?> cnf = CommandNodeAccessor.remove(ClientCommandManager.getActiveDispatcher().getRoot(), command);
         CommandNode<?> cn = null;
-        ClientPlayNetworkHandler p = MinecraftClient.getInstance().getNetworkHandler();
+        ClientPacketListener p = Minecraft.getInstance().getConnection();
         if (p != null) {
-            CommandDispatcher<?> cd = p.getCommandDispatcher();
+            CommandDispatcher<?> cd = p.getCommands();
             cn = CommandNodeAccessor.remove(cd.getRoot(), command);
         }
         return cn != null || cnf != null ? new CommandNodeHelper(cn, cnf) : null;
@@ -34,9 +34,9 @@ public class CommandManagerFabric extends CommandManager {
         if (node.fabric != null) {
             ClientCommandManager.getActiveDispatcher().getRoot().addChild((CommandNode) node.fabric);
         }
-        ClientPlayNetworkHandler nh = MinecraftClient.getInstance().getNetworkHandler();
+        ClientPacketListener nh = Minecraft.getInstance().getConnection();
         if (nh != null) {
-            CommandDispatcher<?> cd = nh.getCommandDispatcher();
+            CommandDispatcher<?> cd = nh.getCommands();
             if (node.getRaw() != null) {
                 cd.getRoot().addChild((CommandNode) node.getRaw());
             }
