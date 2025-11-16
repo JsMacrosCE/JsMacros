@@ -30,6 +30,7 @@
     "jsmacros-client.mixins.json",
     "jsmacros-fabric.mixins.json"
   ],
+  "accessWidener": "jsmacros.accesswidener",
   "depends": {
     "fabricloader": ">=0.15.0",
     "fabric-api": "*",

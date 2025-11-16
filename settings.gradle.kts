@@ -1,3 +1,5 @@
+rootProject.name = "jsmacros"
+
 pluginManagement {
     repositories {
         mavenLocal()
@@ -35,7 +37,6 @@ for (file in file("extension").listFiles() ?: emptyArray()) {
     }
 }
 
-
 dependencyResolutionManagement {
     versionCatalogs {
         for (file in file("extension").listFiles() ?: emptyArray()) {
@@ -51,6 +52,3 @@ dependencyResolutionManagement {
         }
     }
 }
-
-
-rootProject.name = "jsmacros"

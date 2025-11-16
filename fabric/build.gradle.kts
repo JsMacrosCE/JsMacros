@@ -13,16 +13,37 @@ architectury {
 
 loom {
     accessWidenerPath.set(project(":common").file("src/main/resources/jsmacros.accesswidener"))
+
+    mixin {
+        defaultRefmapName.set("jsmacros.refmap.json")
+        useLegacyMixinAp.set(true)
+    }
 }
+
+val common by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+val shadowBundle by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+
+configurations["compileClasspath"].extendsFrom(common)
+configurations["runtimeClasspath"].extendsFrom(common)
+configurations["developmentFabric"].extendsFrom(common)
 
 dependencies {
     minecraft("com.mojang:minecraft:${libs.versions.minecraft.get()}")
     mappings(loom.officialMojangMappings())
     modImplementation("net.fabricmc:fabric-loader:${libs.versions.fabric.loader.get()}")
 
-    implementation(project(":common"))
-    include(project(":common"))
+    add(common.name, project(":common", "namedElements")) {
+        isTransitive = false
+    }
+    add(shadowBundle.name, project(":common", "transformProductionFabric"))
 
+    
     modImplementation("net.fabricmc.fabric-api:fabric-api:${libs.versions.fapi.get()}")
     modImplementation("com.terraformersmc:modmenu:${libs.versions.modmenu.get()}")
 
@@ -86,6 +107,14 @@ tasks.jar {
     archiveClassifier.set("fabric-dev")
 }
 
+tasks.shadowJar {
+    exclude("architectury.common.json")
+    configurations = listOf(project.configurations["shadowBundle"])
+    archiveClassifier.set("dev-shadow")
+}
+
 tasks.remapJar {
+    inputFile.set(tasks.shadowJar.get().archiveFile)
+    injectAccessWidener = true
     archiveClassifier.set("fabric")
 }
