@@ -219,24 +219,6 @@ public class EditorScreen extends BaseScreen {
         compileRenderedText();
     }
 
-    // TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
     @Override
     public void init() {
         super.init();
@@ -246,10 +228,10 @@ public class EditorScreen extends BaseScreen {
         lineSpread = minecraft.font.lineHeight + 1;
         int width = this.width - 10;
 
-        scrollbar = addDrawableChild(new Scrollbar(width, 12, 10, height - 24, 0, 0xFF000000, 0xFFFFFFFF, 1, this::setScroll));
-        saveBtn = this.addDrawableChild(new Button(width / 2, 0, width / 6, 12, font, needSave() ? 0xFFA0A000 : 0xFF00A000, 0xFF000000, needSave() ? 0xFF707000 : 0xFF007000, 0xFFFFFFFF, Component.translatable("jsmacros.save"), (btn) -> save()));
-        this.addDrawableChild(new Button(width * 4 / 6, 0, width / 6, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.close"), (btn) -> openParent()));
-        this.addDrawableChild(new Button(width, 0, 10, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal(minecraft.level == null ? "X" : "-"), (btn) -> onClose()));
+        scrollbar = addRenderableWidget(new Scrollbar(width, 12, 10, height - 24, 0, 0xFF000000, 0xFFFFFFFF, 1, this::setScroll));
+        saveBtn = this.addRenderableWidget(new Button(width / 2, 0, width / 6, 12, font, needSave() ? 0xFFA0A000 : 0xFF00A000, 0xFF000000, needSave() ? 0xFF707000 : 0xFF007000, 0xFFFFFFFF, Component.translatable("jsmacros.save"), (btn) -> save()));
+        this.addRenderableWidget(new Button(width * 4 / 6, 0, width / 6, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.close"), (btn) -> openParent()));
+        this.addRenderableWidget(new Button(width, 0, 10, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal(minecraft.level == null ? "X" : "-"), (btn) -> onClose()));
 
         if (language == null) {
             setLanguage(getDefaultLanguage());
@@ -276,7 +258,7 @@ public class EditorScreen extends BaseScreen {
             }
         };
 
-        this.addDrawableChild(new Button(this.width - width / 8, height - 12, width / 8, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal(language), (btn) -> {
+        this.addRenderableWidget(new Button(this.width - width / 8, height - 12, width / 8, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal(language), (btn) -> {
             int height = langs.size() * (font.lineHeight + 1) + 4;
             openOverlay(new SelectorDropdownOverlay(btn.getX(), btn.getY() - height, btn.getWidth(), height, langs.stream().map(Component::literal).collect(Collectors.toList()), font, this, (i) -> {
                 setLanguage(langs.get(i));
@@ -284,7 +266,7 @@ public class EditorScreen extends BaseScreen {
             }));
         }));
 
-        this.addDrawableChild(new Button(this.width - width / 4, height - 12, width / 8, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.settings"), (btn) -> {
+        this.addRenderableWidget(new Button(this.width - width / 4, height - 12, width / 8, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.settings"), (btn) -> {
             openOverlay(new SettingsOverlay(this.width / 4, this.height / 4, this.width / 2, this.height / 2, font, this));
         }));
 

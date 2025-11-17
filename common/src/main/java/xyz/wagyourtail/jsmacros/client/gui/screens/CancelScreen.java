@@ -32,15 +32,6 @@ public class CancelScreen extends BaseScreen {
         super(Component.literal("Cancel"), parent);
     }
 
-    // TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
     @Override
     public void init() {
         super.init();
@@ -48,10 +39,10 @@ public class CancelScreen extends BaseScreen {
         System.gc();
         topScroll = 10;
         running.clear();
-        s = this.addDrawableChild(new Scrollbar(width - 12, 5, 8, height - 10, 0xFFFFFFFF, 0xFF000000, 0x7FFFFFFF, 1, this::onScrollbar));
+        s = this.addRenderableWidget(new Scrollbar(width - 12, 5, 8, height - 10, 0xFFFFFFFF, 0xFF000000, 0x7FFFFFFF, 1, this::onScrollbar));
 
-        this.addDrawableChild(new Button(0, this.height - 12, this.width / 12, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.back"), (btn) -> this.onClose()));
-        services = this.addDrawableChild(new AnnotatedCheckBox(this.width / 12 + 5, this.height - 12, 200, 12, font, 0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.showservices"), JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).showRunningServices, btn -> JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).showRunningServices = ((AnnotatedCheckBox) btn).value));
+        this.addRenderableWidget(new Button(0, this.height - 12, this.width / 12, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.back"), (btn) -> this.onClose()));
+        services = this.addRenderableWidget(new AnnotatedCheckBox(this.width / 12 + 5, this.height - 12, 200, 12, font, 0xFFFFFFFF, 0xFF000000, 0xFFFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.showservices"), JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).showRunningServices, btn -> JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).showRunningServices = ((AnnotatedCheckBox) btn).value));
     }
 
     public void addContainer(BaseScriptContext<?> t) {
@@ -70,12 +61,9 @@ public class CancelScreen extends BaseScreen {
         }
     }
 
-    // TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:remove -> removeWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:remove -> remove
     public void removeContainer(RunningContextContainer t) {
         for (AbstractWidget b : t.getButtons()) {
-            remove(b);
+            removeWidget(b);
         }
         running.remove(t);
         s.setScrollPages(running.size() * 15 / (double) (height - 20));

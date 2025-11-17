@@ -20,7 +20,7 @@ public class FloatField extends AbstractSettingField<Float> {
     public void init() {
         super.init();
         try {
-            TextInput floatIn = addDrawableChild(new TextInput(x + width / 2, y, width / 2, height, textRenderer, 0xFF101010, 0, 0xFF4040FF, 0xFFFFFFFF, setting.get().toString(), null, (value) -> {
+            TextInput floatIn = addRenderableWidget(new TextInput(x + width / 2, y, width / 2, height, textRenderer, 0xFF101010, 0, 0xFF4040FF, 0xFFFFFFFF, setting.get().toString(), null, (value) -> {
                 try {
                     if (value.equals("")) {
                         value = "0";

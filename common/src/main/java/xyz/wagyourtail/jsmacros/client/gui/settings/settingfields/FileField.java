@@ -48,7 +48,7 @@ public class FileField extends AbstractSettingField<String> {
     public void init() {
         super.init();
         try {
-            this.addDrawableChild(new Button(x + width / 2, y, width / 2, height, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal(setting.get()), (btn) -> {
+            this.addRenderableWidget(new Button(x + width / 2, y, width / 2, height, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal(setting.get()), (btn) -> {
                 try {
                     File current = new File(getTopLevel(setting), setting.get());
                     FileChooser fc = new FileChooser(parent.x, parent.y, parent.width, parent.height, textRenderer, current.getParentFile(), current, getFirstOverlayParent(), (file) -> {

@@ -20,7 +20,7 @@ public class StringField extends AbstractSettingField<String> {
     public void init() {
         super.init();
         try {
-            addDrawableChild(new TextInput(x + width / 2, y, width / 2, height, textRenderer, 0xFF101010, 0, 0xFF4040FF, 0xFFFFFFFF, setting.get(), null, (value) -> {
+            addRenderableWidget(new TextInput(x + width / 2, y, width / 2, height, textRenderer, 0xFF101010, 0, 0xFF4040FF, 0xFFFFFFFF, setting.get(), null, (value) -> {
                 try {
                     setting.set(value);
                 } catch (IllegalAccessException | InvocationTargetException e) {

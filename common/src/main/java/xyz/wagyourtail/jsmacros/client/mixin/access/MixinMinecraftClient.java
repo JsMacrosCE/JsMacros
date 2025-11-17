@@ -122,7 +122,6 @@ class MixinMinecraftClient {
         }
     }
 
-    // TODO(Ravel): @At.args is not supported
     @Inject(at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = "ldc=gameRenderer"), method = "tick")
     private void ensureOverrideInteractions(CallbackInfo ci) {
         if (!(overlay == null && screen == null) && !pause) {

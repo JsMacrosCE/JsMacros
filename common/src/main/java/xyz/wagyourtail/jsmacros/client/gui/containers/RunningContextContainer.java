@@ -26,7 +26,7 @@ public class RunningContextContainer extends MultiElementContainer<CancelScreen>
     @Override
     public void init() {
         super.init();
-        cancelButton = this.addDrawableChild(new Button(x + 1, y + 1, height - 2, height - 2, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("X"), (btn) -> {
+        cancelButton = this.addRenderableWidget(new Button(x + 1, y + 1, height - 2, height - 2, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("X"), (btn) -> {
             BaseScriptContext<?> ctx = t;
             if (ctx != null && !ctx.isContextClosed()) {
                 ctx.closeContext();

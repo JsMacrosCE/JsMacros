@@ -20,9 +20,9 @@ public abstract class OverlayContainer extends MultiElementContainer<IOverlayPar
     }
 
     @Override
-    public void remove(GuiEventListener btn) {
+    public void removeWidget(GuiEventListener btn) {
         this.buttons.remove(btn);
-        parent.remove(btn);
+        parent.removeWidget(btn);
     }
 
     @Override
@@ -64,7 +64,7 @@ public abstract class OverlayContainer extends MultiElementContainer<IOverlayPar
     public void closeOverlay(OverlayContainer overlay) {
         if (this.overlay != null && this.overlay == overlay) {
             for (AbstractWidget b : overlay.getButtons()) {
-                remove(b);
+                removeWidget(b);
             }
             for (AbstractWidget b : overlay.savedBtnStates.keySet()) {
                 b.active = overlay.savedBtnStates.get(b);

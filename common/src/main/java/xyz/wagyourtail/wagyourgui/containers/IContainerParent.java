@@ -8,9 +8,9 @@ import xyz.wagyourtail.wagyourgui.overlays.OverlayContainer;
 
 public interface IContainerParent {
 
-    <T extends GuiEventListener & Renderable & NarratableEntry> T addDrawableChild(T drawableElement);
+    <T extends GuiEventListener & Renderable & NarratableEntry> T addRenderableWidget(T renderableWidget);
 
-    void remove(GuiEventListener button);
+    void removeWidget(GuiEventListener button);
 
     void openOverlay(OverlayContainer overlay);
 

@@ -27,11 +27,11 @@ public class TextPrompt extends OverlayContainer {
         super.init();
         int w = width - 4;
 
-        ti = this.addDrawableChild(new TextInput(x + 3, y + 25, w - 2, 14, textRenderer, 0xFF101010, 0, 0xFF4040FF, 0xFFFFFFFF, defText, null, null));
+        ti = this.addRenderableWidget(new TextInput(x + 3, y + 25, w - 2, 14, textRenderer, 0xFF101010, 0, 0xFF4040FF, 0xFFFFFFFF, defText, null, null));
 
-        this.addDrawableChild(new Button(x + 2, y + height - 14, w / 2, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("gui.cancel"), (btn) -> close()));
+        this.addRenderableWidget(new Button(x + 2, y + height - 14, w / 2, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("gui.cancel"), (btn) -> close()));
 
-        this.addDrawableChild(new Button(x + w / 2, y + height - 14, w / 2, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.confirm"), (btn) -> {
+        this.addRenderableWidget(new Button(x + w / 2, y + height - 14, w / 2, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.confirm"), (btn) -> {
             if (this.accept != null) {
                 this.accept.accept(ti.content);
             }

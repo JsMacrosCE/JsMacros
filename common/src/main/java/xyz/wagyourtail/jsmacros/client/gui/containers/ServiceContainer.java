@@ -35,7 +35,7 @@ public class ServiceContainer extends MultiElementContainer<MacroScreen> {
         super.init();
 
         int w = width - 12;
-        nameBtn = addDrawableChild(new Button(x + 1, y + 1, w * 2 / 12 - 1, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal(service), (btn) -> {
+        nameBtn = addRenderableWidget(new Button(x + 1, y + 1, w * 2 / 12 - 1, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal(service), (btn) -> {
             openOverlay(new TextPrompt(parent.width / 4, parent.height / 4, parent.width / 2, parent.height / 2, textRenderer, Component.literal("Enter new service name"), service, getFirstOverlayParent(), (newService) -> {
                 if (!JsMacrosClient.clientCore.services.renameService(service, newService)) {
                     openOverlay(new TextOverlay(parent.width / 4, parent.height / 4, parent.width / 2, parent.height / 2, textRenderer, getFirstOverlayParent(), Component.literal("Failed to rename service").withStyle(s -> s.withColor(ChatFormatting.RED))));
@@ -46,14 +46,14 @@ public class ServiceContainer extends MultiElementContainer<MacroScreen> {
             }));
         }));
 
-        fileBtn = addDrawableChild(new Button(x + w * 2 / 12 + 1, y + 1, w * 8 / 12 - 1, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal("./" + getTrigger().file.toString().replaceAll("\\\\", "/")), (btn) -> {
+        fileBtn = addRenderableWidget(new Button(x + w * 2 / 12 + 1, y + 1, w * 8 / 12 - 1, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal("./" + getTrigger().file.toString().replaceAll("\\\\", "/")), (btn) -> {
             parent.setFile(this);
         }));
 
         boolean enabled = getEnabled();
         boolean running = getRunning();
 
-        enableBtn = addDrawableChild(new Button(x + w * 10 / 12 + 1, y + 1, w / 12, height - 2, textRenderer, enabled ? 0x7000FF00 : 0x70FF0000, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.translatable("jsmacros." + (enabled ? "enabled" : "disabled")), (btn) -> {
+        enableBtn = addRenderableWidget(new Button(x + w * 10 / 12 + 1, y + 1, w / 12, height - 2, textRenderer, enabled ? 0x7000FF00 : 0x70FF0000, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.translatable("jsmacros." + (enabled ? "enabled" : "disabled")), (btn) -> {
             if (getEnabled()) {
                 JsMacrosClient.clientCore.services.disableService(service);
                 btn.setColor(0x70FF0000);
@@ -65,7 +65,7 @@ public class ServiceContainer extends MultiElementContainer<MacroScreen> {
             }
         }));
 
-        runningBtn = addDrawableChild(new Button(x + w * 11 / 12 + 1, y + 1, w / 12, height - 2, textRenderer, running ? 0x7000FF00 : 0x70FF0000, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.translatable("jsmacros." + (running ? "running" : "stopped")), (btn) -> {
+        runningBtn = addRenderableWidget(new Button(x + w * 11 / 12 + 1, y + 1, w / 12, height - 2, textRenderer, running ? 0x7000FF00 : 0x70FF0000, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.translatable("jsmacros." + (running ? "running" : "stopped")), (btn) -> {
             if (getRunning()) {
                 JsMacrosClient.clientCore.services.stopService(service);
             } else {
@@ -73,7 +73,7 @@ public class ServiceContainer extends MultiElementContainer<MacroScreen> {
             }
         }));
 
-        delBtn = addDrawableChild(new Button(x + w - 1, y + 1, 12, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal("X"), (btn) -> {
+        delBtn = addRenderableWidget(new Button(x + w - 1, y + 1, 12, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal("X"), (btn) -> {
             parent.confirmRemoveMacro(this);
         }));
 

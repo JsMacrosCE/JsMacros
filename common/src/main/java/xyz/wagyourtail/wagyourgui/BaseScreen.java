@@ -89,16 +89,13 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
         overlay.init();
     }
 
-    // TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:remove -> removeWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:remove -> remove
     @Override
     public void closeOverlay(OverlayContainer overlay) {
         if (overlay == null) {
             return;
         }
         for (AbstractWidget b : overlay.getButtons()) {
-            this.remove(b);
+            this.removeWidget(b);
         }
         for (AbstractWidget b : overlay.savedBtnStates.keySet()) {
             b.active = overlay.savedBtnStates.get(b);
@@ -109,20 +106,14 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
         }
     }
 
-    // TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:remove -> removeWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:remove -> remove
     @Override
-    public void remove(GuiEventListener btn) {
+    public void removeWidget(GuiEventListener btn) {
         super.removeWidget(btn);
     }
 
-    // TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
     @Override
-    public <T extends GuiEventListener & Renderable & NarratableEntry> T addDrawableChild(T drawableElement) {
-        return super.addRenderableWidget(drawableElement);
+    public <T extends GuiEventListener & Renderable & NarratableEntry> T addRenderableWidget(T renderableWidget) {
+        return super.addRenderableWidget(renderableWidget);
     }
 
     @Override

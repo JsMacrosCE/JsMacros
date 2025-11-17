@@ -38,13 +38,10 @@ public class ServiceScreen extends MacroScreen {
         macroScroll.setScrollPages(((macros.size() + 1) * 16) / (double) Math.max(1, this.height - 40));
     }
 
-    // TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:remove -> removeWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:remove -> remove
     @Override
     public void removeMacro(MultiElementContainer<MacroScreen> macro) {
         for (AbstractWidget b : macro.getButtons()) {
-            remove(b);
+            removeWidget(b);
         }
         JsMacrosClient.clientCore.services.unregisterService(((ServiceContainer) macro).service);
         macros.remove(macro);

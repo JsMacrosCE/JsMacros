@@ -40,8 +40,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
-// TODO(Ravel): remapper for org.spongepowered.asm.mixin.Interface is not implemented
-// TODO(Ravel): remapper for org.spongepowered.asm.mixin.Implements is not implemented
 @SuppressWarnings("AddedMixinMembersNamePattern")
 @Mixin(Screen.class)
 @Implements(@Interface(iface = IScreen.class, prefix = "soft$"))

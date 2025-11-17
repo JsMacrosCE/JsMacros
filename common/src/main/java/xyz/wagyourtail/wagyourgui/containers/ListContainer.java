@@ -33,7 +33,7 @@ public class ListContainer extends MultiElementContainer<IContainerParent> {
         int w = width - 4;
         topScroll = y + 13;
 
-        scroll = this.addDrawableChild(new Scrollbar(x + width - 10, y + 13, 8, height - 28, 0, 0xFF000000, 0xFFFFFFFF, 2, this::onScrollbar));
+        scroll = this.addRenderableWidget(new Scrollbar(x + width - 10, y + 13, 8, height - 28, 0, 0xFF000000, 0xFFFFFFFF, 2, this::onScrollbar));
 
         for (Component element : list) {
             addItem(element);
@@ -42,7 +42,7 @@ public class ListContainer extends MultiElementContainer<IContainerParent> {
 
     public void addItem(Component name) {
         int index = listItems.size();
-        listItems.add(this.addDrawableChild(new Button(x + 3 + (index % 5 * (width - 12) / 5), topScroll + (index / 5 * 12), (width - 12) / 5, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, name, (btn) -> setSelected(index))));
+        listItems.add(this.addRenderableWidget(new Button(x + 3 + (index % 5 * (width - 12) / 5), topScroll + (index / 5 * 12), (width - 12) / 5, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, name, (btn) -> setSelected(index))));
     }
 
     public void setSelected(int index) {

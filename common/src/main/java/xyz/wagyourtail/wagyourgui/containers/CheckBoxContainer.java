@@ -25,7 +25,7 @@ public class CheckBoxContainer extends MultiElementContainer<IContainerParent> {
     public void init() {
         super.init();
 
-        checkBox = this.addDrawableChild(new Button(x, y, height, height, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal(state ? "\u2713" : ""), btn -> {
+        checkBox = this.addRenderableWidget(new Button(x, y, height, height, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal(state ? "\u2713" : ""), btn -> {
             state = !state;
             if (setState != null) {
                 setState.accept(state);

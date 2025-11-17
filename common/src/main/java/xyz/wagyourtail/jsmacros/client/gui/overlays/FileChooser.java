@@ -42,7 +42,7 @@ public class FileChooser extends OverlayContainer {
 
     public void setDir(File dir) {
         for (fileObj f : files) {
-            this.remove(f.btn);
+            this.removeWidget(f.btn);
         }
         files.clear();
 
@@ -87,23 +87,23 @@ public class FileChooser extends OverlayContainer {
         super.init();
         int w = width - 4;
         topScroll = y + 13;
-        this.addDrawableChild(new Button(x + width - 12, y + 2, 10, 10, textRenderer, 0, 0x7FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("X"), (btn) -> this.close()));
-        scroll = this.addDrawableChild(new Scrollbar(x + width - 10, y + 13, 8, height - 28, 0, 0xFF000000, 0xFFFFFFFF, 2, this::onScrollbar));
+        this.addRenderableWidget(new Button(x + width - 12, y + 2, 10, 10, textRenderer, 0, 0x7FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("X"), (btn) -> this.close()));
+        scroll = this.addRenderableWidget(new Scrollbar(x + width - 10, y + 13, 8, height - 28, 0, 0xFF000000, 0xFFFFFFFF, 2, this::onScrollbar));
 
-        this.addDrawableChild(new Button(x + w * 5 / 6 + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.select"), (btn) -> {
+        this.addRenderableWidget(new Button(x + w * 5 / 6 + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.select"), (btn) -> {
             if (this.selected != null && this.setFile != null) {
                 this.setFile.accept(this.selected);
                 this.close();
             }
         }));
 
-        this.addDrawableChild(new Button(x + w * 4 / 6 + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("selectWorld.edit"), (btn) -> {
+        this.addRenderableWidget(new Button(x + w * 4 / 6 + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("selectWorld.edit"), (btn) -> {
             if (this.selected != null) {
                 editFile.accept(selected);
             }
         }));
 
-        this.addDrawableChild(new Button(x + w * 3 / 6 + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.rename"), (btn) -> {
+        this.addRenderableWidget(new Button(x + w * 3 / 6 + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.rename"), (btn) -> {
             if (selected != null) {
                 this.openOverlay(new TextPrompt(x + width / 2 - 100, y + height / 2 - 50, 200, 100, textRenderer, Component.translatable("jsmacros.filename"), selected.getName(), this, (str) -> {
                     File f = new File(directory, str);
@@ -115,7 +115,7 @@ public class FileChooser extends OverlayContainer {
             }
         }));
 
-        this.addDrawableChild(new Button(x + w * 2 / 6 + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("selectWorld.delete"), (btn) -> {
+        this.addRenderableWidget(new Button(x + w * 2 / 6 + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("selectWorld.delete"), (btn) -> {
             if (this.selected != null && this.selected.isFile()) {
                 fileObj f = null;
                 for (fileObj fi : files) {
@@ -130,7 +130,7 @@ public class FileChooser extends OverlayContainer {
             }
         }));
 
-        this.addDrawableChild(new Button(x + w / 6 + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.new"), (btn) -> this.openOverlay(new TextPrompt(x + width / 2 - 100, y + height / 2 - 50, 200, 100, textRenderer, Component.translatable("jsmacros.filename"), "", this, (str) -> {
+        this.addRenderableWidget(new Button(x + w / 6 + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.new"), (btn) -> this.openOverlay(new TextPrompt(x + width / 2 - 100, y + height / 2 - 50, 200, 100, textRenderer, Component.translatable("jsmacros.filename"), "", this, (str) -> {
             if (str.trim().equals("")) {
                 return;
             }
@@ -150,7 +150,7 @@ public class FileChooser extends OverlayContainer {
             }
         }))));
 
-        this.addDrawableChild(new Button(x + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.openfolder"), (btn) -> {
+        this.addRenderableWidget(new Button(x + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.openfolder"), (btn) -> {
             Util.getPlatform().openFile(directory);
         }));
 
@@ -170,7 +170,7 @@ public class FileChooser extends OverlayContainer {
         }));
         file.btn.visible = topScroll + (files.size() / 5 * 12) >= y + 13 && topScroll + (files.size() / 5 * 12) <= y + height - 27;
         files.add(file);
-        this.addDrawableChild(file.btn);
+        this.addRenderableWidget(file.btn);
         scroll.setScrollPages((Math.ceil(files.size() / 5D) * 12) / (double) Math.max(1, height - 39));
     }
 
@@ -189,7 +189,7 @@ public class FileChooser extends OverlayContainer {
     }
 
     public void delete(fileObj f) {
-        remove(f.btn);
+        removeWidget(f.btn);
         files.remove(f);
         f.file.delete();
         updateFilePos();

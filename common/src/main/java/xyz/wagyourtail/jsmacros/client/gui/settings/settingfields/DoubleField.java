@@ -20,7 +20,7 @@ public class DoubleField extends AbstractSettingField<Double> {
     public void init() {
         super.init();
         try {
-            TextInput doubleIn = addDrawableChild(new TextInput(x + width / 2, y, width / 2, height, textRenderer, 0xFF101010, 0, 0xFF4040FF, 0xFFFFFFFF, setting.get().toString(), null, (value) -> {
+            TextInput doubleIn = addRenderableWidget(new TextInput(x + width / 2, y, width / 2, height, textRenderer, 0xFF101010, 0, 0xFF4040FF, 0xFFFFFFFF, setting.get().toString(), null, (value) -> {
                 try {
                     if (value.equals("")) {
                         value = "0";

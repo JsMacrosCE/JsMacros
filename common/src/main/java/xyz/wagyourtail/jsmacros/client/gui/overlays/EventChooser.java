@@ -47,14 +47,14 @@ public class EventChooser extends OverlayContainer {
         super.init();
         int w = width - 4;
         topScroll = y + 13;
-        this.addDrawableChild(new Button(x + width - 12, y + 2, 10, 10, textRenderer, 0, 0x7FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("X"), (btn) -> {
+        this.addRenderableWidget(new Button(x + width - 12, y + 2, 10, 10, textRenderer, 0, 0x7FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("X"), (btn) -> {
             this.close();
         }));
-        scroll = this.addDrawableChild(new Scrollbar(x + width - 10, y + 13, 8, height - 28, 0, 0xFF000000, 0xFFFFFFFF, 2, this::onScrollbar));
-        this.addDrawableChild(new Button(x + 2, y + height - 14, w / 2, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("gui.cancel"), (btn) -> {
+        scroll = this.addRenderableWidget(new Scrollbar(x + width - 10, y + 13, 8, height - 28, 0, 0xFF000000, 0xFFFFFFFF, 2, this::onScrollbar));
+        this.addRenderableWidget(new Button(x + 2, y + height - 14, w / 2, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("gui.cancel"), (btn) -> {
             this.close();
         }));
-        this.addDrawableChild(new Button(x + w / 2 + 3, y + height - 14, w / 2, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.select"), (btn) -> {
+        this.addRenderableWidget(new Button(x + w / 2 + 3, y + height - 14, w / 2, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.select"), (btn) -> {
             if (this.selected != null && this.setEvent != null) {
                 this.setEvent.accept(this.selected);
                 this.close();
@@ -76,7 +76,7 @@ public class EventChooser extends OverlayContainer {
 
         e.btn.visible = topScroll + (events.size() / 5 * 12) >= y + 13 && topScroll + (events.size() / 5 * 12) <= y + height - 27;
         events.add(e);
-        this.addDrawableChild(e.btn);
+        this.addRenderableWidget(e.btn);
         scroll.setScrollPages((Math.ceil(events.size() / 5D) * 12) / (double) Math.max(1, height - 39));
     }
 

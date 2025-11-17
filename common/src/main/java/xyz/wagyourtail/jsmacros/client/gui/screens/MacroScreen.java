@@ -42,67 +42,46 @@ public class MacroScreen extends BaseScreen {
         super(Component.translatable("jsmacros.title"), parent);
     }
 
-    // TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
-// TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:addDrawableChild -> addRenderableWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:addDrawableChild -> addDrawableChild
     @Override
     protected void init() {
         super.init();
         macros.clear();
-        keyScreen = this.addDrawableChild(new Button(0, 0, this.width / 6 - 1, 20, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.keys"), btn -> {
+        keyScreen = this.addRenderableWidget(new Button(0, 0, this.width / 6 - 1, 20, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.keys"), btn -> {
             assert minecraft != null;
             if (minecraft.screen.getClass() != KeyMacrosScreen.class) {
                 minecraft.setScreen(new KeyMacrosScreen(this));
             }
         }));
 
-        eventScreen = this.addDrawableChild(new Button(this.width / 6 + 1, 0, this.width / 6 - 1, 20, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.events"), btn -> {
+        eventScreen = this.addRenderableWidget(new Button(this.width / 6 + 1, 0, this.width / 6 - 1, 20, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.events"), btn -> {
             assert minecraft != null;
             if (minecraft.screen.getClass() != EventMacrosScreen.class) {
                 minecraft.setScreen(new EventMacrosScreen(this));
             }
         }));
 
-        serviceScreen = this.addDrawableChild(new Button(2 * this.width / 6 + 2, 0, this.width / 6 - 1, 20, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.services"), btn -> {
+        serviceScreen = this.addRenderableWidget(new Button(2 * this.width / 6 + 2, 0, this.width / 6 - 1, 20, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.services"), btn -> {
             assert minecraft != null;
             if (minecraft.screen.getClass() != ServiceScreen.class) {
                 minecraft.setScreen(new ServiceScreen(this));
             }
         }));
 
-        this.addDrawableChild(new Button(this.width * 5 / 6 + 1, 0, this.width / 6 - 1, 20, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.settings"), (btn) -> {
+        this.addRenderableWidget(new Button(this.width * 5 / 6 + 1, 0, this.width / 6 - 1, 20, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.settings"), (btn) -> {
             openOverlay(new SettingsOverlay(this.width / 4, this.height / 4, this.width / 2, this.height / 2, font, this));
         }));
 
         topbar = createTopbar();
 
         topScroll = 40;
-        macroScroll = this.addDrawableChild(new Scrollbar(this.width * 23 / 24 - 4, 50, 8, this.height - 75, 0, 0xFF000000, 0xFFFFFFFF, 2, this::onScrollbar));
+        macroScroll = this.addRenderableWidget(new Scrollbar(this.width * 23 / 24 - 4, 50, 8, this.height - 75, 0, 0xFF000000, 0xFFFFFFFF, 2, this::onScrollbar));
 
-        runningBtn = this.addDrawableChild(new Button(0, this.height - 12, this.width / 12, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.running"), (btn) -> {
+        runningBtn = this.addRenderableWidget(new Button(0, this.height - 12, this.width / 12, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.running"), (btn) -> {
             assert minecraft != null;
             minecraft.setScreen(new CancelScreen(this));
         }));
 
-        aboutBtn = this.addDrawableChild(new Button(this.width * 11 / 12, this.height - 12, this.width / 12, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.about"), (btn) -> this.openOverlay(new AboutOverlay(this.width / 4, this.height / 4, this.width / 2, this.height / 2, font, this))));
+        aboutBtn = this.addRenderableWidget(new Button(this.width * 11 / 12, this.height - 12, this.width / 12, 12, font, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacros.about"), (btn) -> this.openOverlay(new AboutOverlay(this.width / 4, this.height / 4, this.width / 2, this.height / 2, font, this))));
     }
 
     protected MultiElementContainer<MacroScreen> createTopbar() {
@@ -151,13 +130,10 @@ public class MacroScreen extends BaseScreen {
         openOverlay(new ConfirmOverlay(width / 2 - 100, height / 2 - 50, 200, 100, this.font, Component.translatable("jsmacros.confirmdeletemacro"), this, (conf) -> removeMacro(macro)));
     }
 
-    // TODO(Ravel): method origins have different new names
-// net.minecraft.client.gui.screen.Screen#PsiMethod:remove -> removeWidget
-// xyz.wagyourtail.wagyourgui.containers.IContainerParent#PsiMethod:remove -> remove
     public void removeMacro(MultiElementContainer<MacroScreen> macro) {
         JsMacrosClient.clientCore.eventRegistry.removeScriptTrigger(((MacroContainer) macro).getRawMacro());
         for (AbstractWidget b : macro.getButtons()) {
-            remove(b);
+            removeWidget(b);
         }
         macros.remove(macro);
         setMacroPos();

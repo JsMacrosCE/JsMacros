@@ -55,13 +55,13 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
     public void init() {
         super.init();
         int w = width - 12;
-        enableBtn = addDrawableChild(new Button(x + 1, y + 1, w / 12 - 1, height - 2, textRenderer, macro.enabled ? 0x7000FF00 : 0x70FF0000, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.translatable(macro.enabled ? "jsmacros.enabled" : "jsmacros.disabled"), (btn) -> {
+        enableBtn = addRenderableWidget(new Button(x + 1, y + 1, w / 12 - 1, height - 2, textRenderer, macro.enabled ? 0x7000FF00 : 0x70FF0000, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.translatable(macro.enabled ? "jsmacros.enabled" : "jsmacros.disabled"), (btn) -> {
             macro.enabled = !macro.enabled;
             btn.setColor(macro.enabled ? 0x7000FF00 : 0x70FF0000);
             btn.setMessage(Component.translatable(macro.enabled ? "jsmacros.enabled" : "jsmacros.disabled"));
         }));
 
-        keyBtn = addDrawableChild(new Button(x + w / 12 + 1, y + 1, macro.triggerType == ScriptTrigger.TriggerType.EVENT ? (w / 4) - (w / 12) - 1 - height : (w / 4) - (w / 12) - 1 - height * 2, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, macro.triggerType == ScriptTrigger.TriggerType.EVENT ? Component.translatable("jsmacros.event." + macro.event.toLowerCase(Locale.ROOT)) : buildKeyName(macro.event), (btn) -> {
+        keyBtn = addRenderableWidget(new Button(x + w / 12 + 1, y + 1, macro.triggerType == ScriptTrigger.TriggerType.EVENT ? (w / 4) - (w / 12) - 1 - height : (w / 4) - (w / 12) - 1 - height * 2, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, macro.triggerType == ScriptTrigger.TriggerType.EVENT ? Component.translatable("jsmacros.event." + macro.event.toLowerCase(Locale.ROOT)) : buildKeyName(macro.event), (btn) -> {
             if (macro.triggerType == ScriptTrigger.TriggerType.EVENT) {
                 parent.setEvent(this);
             } else {
@@ -70,10 +70,10 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
             }
         }));
         if (macro.triggerType != ScriptTrigger.TriggerType.EVENT) {
-            joinedBtn = addDrawableChild(new Button(x + w / 4 - height * 2, y + 1, height, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal(""), (btn) -> {
+            joinedBtn = addRenderableWidget(new Button(x + w / 4 - height * 2, y + 1, height, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal(""), (btn) -> {
                 macro.joined = !macro.joined;
             }));
-            keyStateBtn = addDrawableChild(new Button(x + w / 4 - height, y + 1, height, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal(""), (btn) -> {
+            keyStateBtn = addRenderableWidget(new Button(x + w / 4 - height, y + 1, height, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal(""), (btn) -> {
                 switch (macro.triggerType) {
                     default:
                     case KEY_RISING:
@@ -88,7 +88,7 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
                 }
             }));
         } else {
-            joinedBtn = addDrawableChild(new Button(x + w / 4 - height, y + 1, height, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal(""), (btn) -> {
+            joinedBtn = addRenderableWidget(new Button(x + w / 4 - height, y + 1, height, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal(""), (btn) -> {
                 macro.joined = !macro.joined;
             }));
         }
@@ -100,11 +100,11 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
         } else {
             fileName = macro.scriptFile.toString();
         }
-        fileBtn = addDrawableChild(new Button(x + (w / 4) + 1, y + 1, w * 3 / 4 - 3 - 30, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal("./" + fileName.replaceAll("\\\\", "/")), (btn) -> {
+        fileBtn = addRenderableWidget(new Button(x + (w / 4) + 1, y + 1, w * 3 / 4 - 3 - 30, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal("./" + fileName.replaceAll("\\\\", "/")), (btn) -> {
             parent.setFile(this);
         }));
 
-        editBtn = addDrawableChild(new Button(x + w - 32, y + 1, 30, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.translatable("selectServer.edit"), (btn) -> {
+        editBtn = addRenderableWidget(new Button(x + w - 32, y + 1, 30, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.translatable("selectServer.edit"), (btn) -> {
             if (macro.scriptFile != null) {
                 final File file;
                 if (macro.scriptFile.isAbsolute()) {
@@ -116,7 +116,7 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
             }
         }));
 
-        delBtn = addDrawableChild(new Button(x + w - 1, y + 1, 12, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal("X"), (btn) -> {
+        delBtn = addRenderableWidget(new Button(x + w - 1, y + 1, 12, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal("X"), (btn) -> {
             parent.confirmRemoveMacro(this);
         }));
     }

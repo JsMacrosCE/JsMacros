@@ -26,7 +26,7 @@ public class OptionsField extends AbstractSettingField<Object> {
         try {
             List<Object> values = setting.getOptions();
             List<Component> textvalues = values.stream().map(e -> Component.literal(e.toString())).collect(Collectors.toList());
-            this.addDrawableChild(new Button(x + width / 2, y, width / 2, height, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal(setting.get().toString()), (btn) -> {
+            this.addRenderableWidget(new Button(x + width / 2, y, width / 2, height, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal(setting.get().toString()), (btn) -> {
                 getFirstOverlayParent().openOverlay(new SelectorDropdownOverlay(x + width / 2, y, width / 2, values.size() * (textRenderer.lineHeight + 1) + 4, textvalues, textRenderer, getFirstOverlayParent(), (choice) -> {
                     btn.setMessage(textvalues.get(choice));
                     try {

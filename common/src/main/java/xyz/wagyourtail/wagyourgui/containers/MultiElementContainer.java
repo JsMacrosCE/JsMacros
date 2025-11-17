@@ -48,9 +48,9 @@ public abstract class MultiElementContainer<T extends IContainerParent> implemen
     }
 
     @Override
-    public <T extends GuiEventListener & Renderable & NarratableEntry> T addDrawableChild(T drawableElement) {
+    public <T extends GuiEventListener & Renderable & NarratableEntry> T addRenderableWidget(T drawableElement) {
         buttons.add((AbstractWidget) drawableElement);
-        parent.addDrawableChild(drawableElement);
+        parent.addRenderableWidget(drawableElement);
         return drawableElement;
     }
 
@@ -76,9 +76,9 @@ public abstract class MultiElementContainer<T extends IContainerParent> implemen
     }
 
     @Override
-    public void remove(GuiEventListener button) {
+    public void removeWidget(GuiEventListener button) {
         this.buttons.remove(button);
-        parent.remove(button);
+        parent.removeWidget(button);
     }
 
     @Override
