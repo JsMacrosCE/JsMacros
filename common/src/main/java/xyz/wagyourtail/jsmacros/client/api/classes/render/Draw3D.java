@@ -693,12 +693,12 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     @DocletIgnore
-    public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
+    public void render(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         Vec3 cameraPos = camera.getPosition();
 
-        matrixStack.pushPose();
-        matrixStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
+        poseStack.pushPose();
+        poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
 
         EntityTraceLine.dirty = false;
 
@@ -706,7 +706,7 @@ public class Draw3D implements Registrable<Draw3D> {
             Collections.sort(elements);
 
             for (RenderElement3D<?> element : elements) {
-                element.render(matrixStack, consumers, tickDelta);
+                element.render(poseStack, consumers, tickDelta);
             }
         }
 
@@ -716,6 +716,6 @@ public class Draw3D implements Registrable<Draw3D> {
             }
         }
 
-        matrixStack.popPose();
+        poseStack.popPose();
     }
 }
