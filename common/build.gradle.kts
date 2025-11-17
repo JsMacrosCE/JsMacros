@@ -1,3 +1,5 @@
+import org.gradle.api.file.DuplicatesStrategy
+
 plugins {
     alias(libs.plugins.architectury.plugin)
     alias(libs.plugins.architectury.loom)
@@ -11,6 +13,11 @@ architectury {
 
 loom {
     accessWidenerPath.set(file("src/main/resources/jsmacros.accesswidener"))
+
+    mixin {
+        defaultRefmapName.set("jsmacros.refmap.json")
+        useLegacyMixinAp.set(true)
+    }
 }
 
 repositories {
@@ -30,6 +37,7 @@ dependencies {
     compileOnly(libs.mixin)
     compileOnly(libs.mixin.extra)
     implementation(libs.asm)
+    implementation(libs.asm.tree)
     implementation(libs.prism4j)
     implementation(libs.joor)
     implementation(libs.nv.websocket.client)
@@ -45,6 +53,8 @@ dependencies {
     implementation(libs.commons.lang3)
     implementation(libs.joml)
     implementation(libs.jb.annotations)
+
+    annotationProcessor("org.spongepowered:mixin:0.8.7:processor")
 }
 
 java {
@@ -59,7 +69,16 @@ tasks.withType<JavaCompile> {
 }
 
 tasks.processResources {
+    dependsOn(tasks.named("compileJava"))
+
+    val refmap = layout.buildDirectory.file("classes/java/main/jsmacros.refmap.json")
+    from(refmap)
+
     filesMatching("jsmacros.extension.json") {
         expand("dependencies" to "")
     }
+}
+
+tasks.jar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

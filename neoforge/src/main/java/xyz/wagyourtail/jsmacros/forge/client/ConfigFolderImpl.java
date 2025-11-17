@@ -1,6 +1,6 @@
 package xyz.wagyourtail.jsmacros.forge.client;
 
-import net.minecraft.client.Minecraft;
+import net.neoforged.fml.loading.FMLPaths;
 import xyz.wagyourtail.jsmacros.client.ConfigFolder;
 
 import java.io.File;
@@ -8,7 +8,7 @@ import java.io.File;
 public class ConfigFolderImpl implements ConfigFolder {
     @Override
     public File getFolder() {
-        return new File(Minecraft.getInstance().gameDirectory, "config/jsMacros");
+        return FMLPaths.CONFIGDIR.get().resolve("jsMacros").toFile();
     }
 
 }

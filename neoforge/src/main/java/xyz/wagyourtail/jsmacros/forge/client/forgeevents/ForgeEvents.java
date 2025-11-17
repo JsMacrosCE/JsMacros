@@ -4,8 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.renderer.MultiBufferSource;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.render.state.GuiRenderState;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.profiling.Profiler;
 import net.neoforged.neoforge.client.event.*;
@@ -20,22 +19,14 @@ import xyz.wagyourtail.jsmacros.client.api.library.impl.FHud;
 import xyz.wagyourtail.jsmacros.client.tick.TickBasedEvents;
 import xyz.wagyourtail.jsmacros.forge.client.api.classes.CommandBuilderForge;
 
-import java.lang.reflect.Constructor;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 
 public class ForgeEvents {
     private static final Minecraft client = Minecraft.getInstance();
 
-    private static final Constructor<GuiGraphics> DRAW_CONTEXT_CONSTRUCTOR;
-
-    static {
-        try {
-            DRAW_CONTEXT_CONSTRUCTOR = GuiGraphics.class.getDeclaredConstructor(Minecraft.class, PoseStack.class, MultiBufferSource.BufferSource.class);
-            DRAW_CONTEXT_CONSTRUCTOR.setAccessible(true);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
+    private static GuiGraphics createGuiGraphics() {
+        return new GuiGraphics(client, new GuiRenderState());
     }
 
     public static void init() {
@@ -102,7 +93,7 @@ public class ForgeEvents {
         profiler.push("jsmacros_draw3d");
         for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
             try {
-                GuiGraphics guiGraphics = DRAW_CONTEXT_CONSTRUCTOR.newInstance(client, e.getPoseStack(), client.renderBuffers().bufferSource());
+                GuiGraphics guiGraphics = createGuiGraphics();
                 // TODO: Fix Draw3d rendering
                 // d.render(e.getPoseStack(), guiGraphics, e.getPartialTick().getGameTimeDeltaPartialTick(false));
             } catch (Throwable t) {

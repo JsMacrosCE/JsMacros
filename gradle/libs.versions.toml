@@ -54,6 +54,7 @@ mixin = { module = "org.spongepowered:mixin", version.ref = "mixin" }
 mixin_extra = { module = "io.github.llamalad7:mixinextras-common", version.ref = "mixin_extra" }
 
 asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
+asm_tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
 joor = { module = "org.jooq:joor", version.ref = "joor" }
 nv_websocket = { module = "com.neovisionaries:nv-websocket-client", version.ref = "nv_websocket" }
 nv_websocket_client = { module = "com.neovisionaries:nv-websocket-client", version.ref = "nv_websocket" }

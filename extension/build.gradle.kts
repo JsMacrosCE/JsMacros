@@ -77,23 +77,28 @@ subprojects {
     }
 
     afterEvaluate {
-        // Reference dependencies that are in the main jar's META-INF/jars/
-        val mainJarDependencies = listOf(
-            "graal-sdk-23.0.10.jar",
-            "truffle-api-23.0.10.jar",
-            "js-23.0.10.jar",
-            "regex-23.0.10.jar",
-            "common-2.0.0.jar"
-        )
+        val dependencyFiles = jsmacrosExtensionDeps
+            .resolve()
+            .filter { it.extension.equals("jar", ignoreCase = true) }
+            .distinctBy { it.name }
 
         tasks.jar {
             isPreserveFileTimestamps = false
             isReproducibleFileOrder = true
+            dependsOn(":common:remapJar")
+
+            if (dependencyFiles.isNotEmpty()) {
+                from(dependencyFiles) {
+                    into("META-INF/jars")
+                    duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.EXCLUDE
+                }
+            }
         }
 
         tasks.processResources {
+            val dependencyPaths = dependencyFiles.map { "META-INF/jars/${it.name}" }
             filesMatching("jsmacros.ext.*.json") {
-                expand("dependencies" to mainJarDependencies.joinToString("\", \"") { "META-INF/jars/$it" })
+                expand("dependencies" to dependencyPaths.joinToString("\", \""))
             }
         }
     }
