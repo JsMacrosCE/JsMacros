@@ -30,7 +30,7 @@ loom {
     accessWidenerPath.set(project(":common").file("src/main/resources/jsmacros.accesswidener"))
 
     mixin {
-        defaultRefmapName.set("jsmacros.refmap.json")
+        defaultRefmapName.set("jsmacros-neoforge.refmap.json")
         useLegacyMixinAp.set(true)
     }
 
@@ -115,6 +115,8 @@ tasks.register("buildAll") {
     dependsOn(":common:build")
     dependsOn(":extension:build")
     dependsOn(":site:build")
+    dependsOn(":fabric:build")
+    dependsOn(":neoforge:build")
 }
 
 tasks.register("cleanAll") {

@@ -15,7 +15,7 @@ loom {
     accessWidenerPath.set(project(":common").file("src/main/resources/jsmacros.accesswidener"))
 
     mixin {
-        defaultRefmapName.set("jsmacros.refmap.json")
+        defaultRefmapName.set("jsmacros-fabric.refmap.json")
         useLegacyMixinAp.set(true)
     }
 }
