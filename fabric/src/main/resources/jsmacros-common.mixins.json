@@ -1,7 +1,7 @@
 {
   "required": true,
   "package": "xyz.wagyourtail.jsmacros.client.mixin",
-  "compatibilityLevel": "JAVA_17",
+  "compatibilityLevel": "JAVA_21",
   "refmap": "jsmacros.refmap.json",
   "plugin": "xyz.wagyourtail.jsmacros.client.mixin.JSMacrosMixinPlugin",
   "client": [
