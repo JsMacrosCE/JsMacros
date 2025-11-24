@@ -53,7 +53,7 @@ jobs:
 
       - name: Build
         run: |
-          ./gradlew build
+          ./gradlew createDist
 
       - name: Upload To Artifacts
         uses: actions/upload-artifact@v4
