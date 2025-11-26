@@ -34,46 +34,37 @@ configurations["runtimeClasspath"].extendsFrom(common)
 configurations["developmentFabric"].extendsFrom(common)
 
 dependencies {
-    minecraft("com.mojang:minecraft:${libs.versions.minecraft.get()}")
+    minecraft(libs.minecraft)
     mappings(loom.officialMojangMappings())
-    modImplementation("net.fabricmc:fabric-loader:${libs.versions.fabric.loader.get()}")
+    modImplementation(libs.fabric.loader)
 
     add(common.name, project(":common", "namedElements")) {
         isTransitive = false
     }
     add(shadowBundle.name, project(":common", "transformProductionFabric"))
 
-    
-    modImplementation("net.fabricmc.fabric-api:fabric-api:${libs.versions.fapi.get()}")
-    modImplementation("com.terraformersmc:modmenu:${libs.versions.modmenu.get()}")
+    modImplementation(libs.fabric.api)
+    modImplementation(libs.modmenu)
 
     // Implementation dependencies
-    implementation(libs.prism4j)
-    implementation(libs.nv.websocket.client)
+    implementation(libs.bundles.scripting.libs)
     implementation(libs.javassist)
-    implementation(libs.joor)
 
     // Include dependencies in jar for runtime
-    include(libs.prism4j)
-    include(libs.nv.websocket.client)
+    include(libs.bundles.scripting.libs)
     include(libs.javassist)
-    include(libs.joor)
 
     // Extensions
     include(project(":extension:graal"))
     include(project(":extension:graal:js"))
 
     // Include shared dependencies once in main jar
-    include(libs.graal.sdk)
-    include(libs.truffle.api)
-    include(libs.graal.js)
-    include(libs.graal.regex)
+    include(libs.bundles.graal.core)
 
-    // Add all extension subprojects for runtime
+    // Add all extension subprojects (embed in JAR, not runtime classpath)
     for (file in file("../extension").listFiles() ?: emptyArray()) {
         if (!file.isDirectory || file.name in listOf("build", "src", ".gradle", "gradle")) continue
 
-        runtimeOnly(project(":extension:${file.name}"))
         if (file.resolve("subprojects.txt").exists()) {
             for (subproject in file.resolve("subprojects.txt").readLines()) {
                 if (file.name == "graal" && subproject.trim() == "python") {
@@ -81,7 +72,6 @@ dependencies {
                     // currently explodes Architectury Transformer. Skip it for Fabric runtime.
                     continue
                 }
-                runtimeOnly(project(":extension:${file.name}:$subproject"))
                 include(project(":extension:${file.name}:$subproject"))
             }
         } else {
@@ -110,7 +100,28 @@ tasks.jar {
 tasks.shadowJar {
     exclude("architectury.common.json")
     configurations = listOf(project.configurations["shadowBundle"])
+
+    // Extract javassist classes to make them available on main classpath
+    dependencies {
+        include(dependency("org.javassist:javassist:.*"))
+    }
+
     archiveClassifier.set("dev-shadow")
+}
+
+// Extension system configuration for development
+val devExtensionsDir = layout.projectDirectory.dir("run/config/jsMacros/Extensions")
+
+val copyDevExtensions = tasks.register<Copy>("copyDevExtensions") {
+    dependsOn(":extension:graal:jar", ":extension:graal:js:jar")
+    from(project(":extension:graal").tasks.named("jar"))
+    from(project(":extension:graal:js").tasks.named("jar"))
+    into(devExtensionsDir)
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+tasks.named<JavaExec>("runClient") {
+    dependsOn(copyDevExtensions)
 }
 
 tasks.remapJar {

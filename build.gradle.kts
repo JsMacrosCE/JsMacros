@@ -43,10 +43,11 @@ tasks.register("buildAll") {
     group = "build"
     description = "Build all available modules"
 
-    // Only build modules that are currently enabled
     dependsOn(":common:build")
     dependsOn(":extension:build")
     dependsOn(":site:build")
+    dependsOn(":fabric:build")
+    dependsOn(":neoforge:build")
 }
 
 tasks.register("cleanAll") {
@@ -55,16 +56,19 @@ tasks.register("cleanAll") {
 
     dependsOn(tasks.named("clean"))
     dependsOn(":common:clean")
+    dependsOn(":extension:clean")
     dependsOn(":site:clean")
+    dependsOn(":fabric:clean")
+    dependsOn(":neoforge:clean")
 }
 
 // Extension system configuration
- val jsmacrosExtensionInclude by configurations.creating
+val jsmacrosExtensionInclude by configurations.creating
 
- dependencies {
-     jsmacrosExtensionInclude(project(":extension:graal")) { isTransitive = false }
-     jsmacrosExtensionInclude(project(":extension:graal:js")) { isTransitive = false }
- }
+dependencies {
+ jsmacrosExtensionInclude(project(":extension:graal")) { isTransitive = false }
+ jsmacrosExtensionInclude(project(":extension:graal:js")) { isTransitive = false }
+}
 
 // Enhanced clean task
 tasks.register<Delete>("clean") {
@@ -82,6 +86,10 @@ tasks.register<Copy>("createDist") {
         delete(file("dist"))
         file("dist").mkdirs()
     }
+
+    // Collect mod JARs
+    from(project(":fabric").tasks.named("remapJar"))
+    from(project(":neoforge").tasks.named("remapJar"))
 
     // Collect extension JARs
     from(project(":extension:graal").tasks.named("jar")) {

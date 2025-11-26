@@ -1,14 +1,11 @@
 
 dependencies {
     // Graal core dependencies
-    implementation(libs.graal.sdk)
-    implementation(libs.truffle.api)
-    implementation(libs.graal.regex)
+    implementation(libs.bundles.graal.core)
     implementation(libs.graal.js)
 
     // Common library dependencies
-    implementation(libs.gson)
-    implementation(libs.guava)
+    implementation(libs.bundles.common.libs)
 }
 
 var projectPath = project.path
