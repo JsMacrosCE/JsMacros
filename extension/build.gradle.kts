@@ -22,12 +22,14 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
 }
 
+val javaVersion = libs.versions.java.get().toInt()
+
 java {
-    sourceCompatibility = JavaVersion.toVersion(rootProject.libs.versions.java.get().toInt())
-    targetCompatibility = JavaVersion.toVersion(rootProject.libs.versions.java.get().toInt())
+    sourceCompatibility = JavaVersion.toVersion(javaVersion)
+    targetCompatibility = JavaVersion.toVersion(javaVersion)
 
     toolchain {
-        languageVersion = JavaLanguageVersion.of(rootProject.libs.versions.java.get().toInt())
+        languageVersion = JavaLanguageVersion.of(javaVersion)
     }
 }
 
@@ -44,11 +46,11 @@ subprojects {
     }
 
     java {
-        sourceCompatibility = JavaVersion.toVersion(rootProject.libs.versions.java.get().toInt())
-        targetCompatibility = JavaVersion.toVersion(rootProject.libs.versions.java.get().toInt())
+        sourceCompatibility = JavaVersion.toVersion(javaVersion)
+        targetCompatibility = JavaVersion.toVersion(javaVersion)
 
         toolchain {
-            languageVersion = JavaLanguageVersion.of(rootProject.libs.versions.java.get().toInt())
+            languageVersion = JavaLanguageVersion.of(javaVersion)
         }
     }
 
