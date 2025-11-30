@@ -130,6 +130,6 @@ tasks.named<JavaExec>("runClient") {
 
 tasks.remapJar {
     inputFile.set(tasks.shadowJar.get().archiveFile)
-    injectAccessWidener = true
+    injectAccessWidener.set(true)
     archiveClassifier.set("fabric")
 }

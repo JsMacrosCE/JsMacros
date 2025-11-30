@@ -30,7 +30,7 @@ subprojects {
     // Apply Java toolchain consistently
     tasks.withType<JavaCompile> {
         options.encoding = "UTF-8"
-        options.release.set(21)
+        options.release.set(rootProject.libs.versions.java.get().toInt())
     }
 
     tasks.withType<Test> {

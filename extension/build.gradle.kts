@@ -23,11 +23,11 @@ dependencies {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.toVersion(rootProject.libs.versions.java.get().toInt())
+    targetCompatibility = JavaVersion.toVersion(rootProject.libs.versions.java.get().toInt())
 
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(rootProject.libs.versions.java.get().toInt())
     }
 }
 
@@ -44,8 +44,8 @@ subprojects {
     }
 
     java {
-        sourceCompatibility = JavaVersion.values()[rootProject.libs.versions.java.get().toInt() - 1]
-        targetCompatibility = JavaVersion.values()[rootProject.libs.versions.java.get().toInt() - 1]
+        sourceCompatibility = JavaVersion.toVersion(rootProject.libs.versions.java.get().toInt())
+        targetCompatibility = JavaVersion.toVersion(rootProject.libs.versions.java.get().toInt())
 
         toolchain {
             languageVersion = JavaLanguageVersion.of(rootProject.libs.versions.java.get().toInt())
