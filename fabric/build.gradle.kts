@@ -104,12 +104,7 @@ tasks.jar {
 tasks.shadowJar {
     exclude("architectury.common.json")
     configurations = listOf(project.configurations["shadowBundle"])
-
-    // Extract javassist classes to make them available on main classpath
-    dependencies {
-        include(dependency("org.javassist:javassist:.*"))
-    }
-
+    
     archiveClassifier.set("dev-shadow")
 }
 
