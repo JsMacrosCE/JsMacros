@@ -10,11 +10,9 @@ repositories {
     mavenCentral()
 }
 
-val javaVersion = libs.versions.java.get().toInt()
-
 java {
-    sourceCompatibility = JavaVersion.toVersion(javaVersion)
-    targetCompatibility = JavaVersion.toVersion(javaVersion)
+    sourceCompatibility = JavaVersion.toVersion(21)
+    targetCompatibility = JavaVersion.toVersion(21)
 }
 
 dependencies {
@@ -25,5 +23,5 @@ dependencies {
 
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
-    options.release.set(javaVersion)
+    options.release.set(21)
 }
