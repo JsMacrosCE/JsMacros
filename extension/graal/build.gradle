@@ -21,7 +21,7 @@ dependencies {
     implementation project(':common')
     
     // Graal core dependencies
-    implementation group: 'org.graalvm.sdk', name: 'graal-sdk', version: '24.0.1'
+    api group: 'org.graalvm.sdk', name: 'graal-sdk', version: '24.0.1'
     implementation group: 'org.graalvm.truffle', name: 'truffle-api', version: '24.0.1'
     implementation group: 'org.graalvm.regex', name: 'regex', version: '24.0.1'
     implementation group: 'org.graalvm.polyglot', name: 'js', version: '24.0.1'
