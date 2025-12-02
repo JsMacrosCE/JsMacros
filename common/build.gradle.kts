@@ -15,7 +15,7 @@ loom {
     accessWidenerPath.set(file("src/main/resources/jsmacros.accesswidener"))
 
     mixin {
-        defaultRefmapName.set("jsmacros.refmap.json")
+        defaultRefmapName.set("jsmacros-common.refmap.json")
         useLegacyMixinAp.set(true)
     }
 }
@@ -52,7 +52,7 @@ java {
 tasks.processResources {
     dependsOn(tasks.named("compileJava"))
 
-    val refmap = layout.buildDirectory.file("classes/java/main/jsmacros.refmap.json")
+    val refmap = layout.buildDirectory.file("classes/java/main/jsmacros-common.refmap.json")
     from(refmap)
 
     filesMatching("jsmacros.extension.json") {

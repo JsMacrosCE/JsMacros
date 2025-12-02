@@ -2,7 +2,7 @@
   "required": true,
   "package": "xyz.wagyourtail.jsmacros.client.mixin",
   "compatibilityLevel": "JAVA_21",
-  "refmap": "jsmacros.refmap.json",
+  "refmap": "jsmacros-common.refmap.json",
   "plugin": "xyz.wagyourtail.jsmacros.client.mixin.JSMacrosMixinPlugin",
   "client": [
     "access.MixinAbstractFurnaceScreenHandler",

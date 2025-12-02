@@ -1,6 +1,9 @@
 {
   "required": true,
   "package": "xyz.wagyourtail.jsmacros.forge.client.mixins",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "jsmacros-neoforge.refmap.json",
+  "plugin": "xyz.wagyourtail.jsmacros.client.mixin.JSMacrosMixinPlugin",
   "mixins": [
   ],
   "client": [
