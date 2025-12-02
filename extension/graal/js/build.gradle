@@ -32,6 +32,14 @@ dependencies {
     testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.1'
 }
 
+// Process resources to expand dependencies placeholder
+processResources {
+    // The graal-js extension has no embedded dependencies of its own that need extraction
+    filesMatching('jsmacros.ext.graaljs.json') {
+        expand 'dependencies': ''
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
 }

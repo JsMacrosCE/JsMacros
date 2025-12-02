@@ -39,6 +39,15 @@ dependencies {
     testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.8.1'
 }
 
+// Process resources to expand dependencies placeholder
+processResources {
+    // The graal extension has no embedded dependencies of its own that need extraction
+    // Its runtime dependencies (graalvm libs) are loaded via the extension classloader
+    filesMatching('jsmacros.ext.graal.json') {
+        expand 'dependencies': ''
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
 }
