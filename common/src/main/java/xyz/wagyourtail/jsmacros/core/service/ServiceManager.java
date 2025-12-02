@@ -368,7 +368,7 @@ public class ServiceManager {
     }
 
     /**
-     * save current registered services & enabled/disabled status to config
+     * save current registered services &amp; enabled/disabled status to config
      */
     public synchronized void save() {
         Map<String, ServiceTrigger> services = new HashMap<>();

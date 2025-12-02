@@ -37,7 +37,7 @@ import xyz.wagyourtail.jsmacros.core.MethodWrapper;
  * Depending on the return type of the method, the following parameters must be passed to 'is' or 'test'. There are two methods, because 'is' is a keyword in some languages.<br>
  * <pre>
  * For any number:
- *   - is(operation, number) with operation = '>', '>=', '<', '<=', '==', '!=' and the number that should be compared to,
+ *   - is(operation, number) with operation = '>', '>=', '&lt;', '&lt;=', '==', '!=' and the number that should be compared to,
  *     i.e. is(">=", 8) returns true if the returned number is greater or equal to 8.
  * For any String:
  *   - is(method, string) with method = 'EQUALS', 'CONTAINS', 'STARTS_WITH', 'ENDS_WITH', 'MATCHES' and the string is the one to compare the returned value to,

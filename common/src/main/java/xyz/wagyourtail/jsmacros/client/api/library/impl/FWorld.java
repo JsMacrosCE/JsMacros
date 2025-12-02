@@ -200,7 +200,7 @@ public class FWorld extends BaseLibrary {
      * have a hardness of 10 or less and whose name contains either chest or barrel.
      * <pre>
      * World.getWorldScanner()
-     *     .withBlockFilter("getHardness").is("<=", 10)
+     *     .withBlockFilter("getHardness").is("&gt;=", 10)
      *     .andStringBlockFilter().contains("chest", "barrel")
      *     .withStringStateFilter().contains("facing=south")
      *     .andStateFilter("isToolRequired").is(false)
