@@ -53,7 +53,15 @@ jobs:
 
       - name: Build
         run: |
-          ./gradlew createDist
+          ./gradlew build
+
+      - name: Collect build artifacts
+        run: |
+          mkdir -p dist
+          cp fabric/build/libs/*.jar dist/ 2>/dev/null || true
+          cp neoforge/build/libs/*.jar dist/ 2>/dev/null || true
+          # Remove sources and dev jars from dist
+          rm -f dist/*-sources.jar dist/*-dev.jar 2>/dev/null || true
 
       - name: Upload To Artifacts
         uses: actions/upload-artifact@v4
@@ -80,7 +88,7 @@ jobs:
             return process.env.branch.replace(/\//g, '_')
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: ${{ steps.artifact_id.outputs.result }}
 
@@ -92,13 +100,13 @@ jobs:
           properties: 'java_version minecraft_version'
 
       - name: Check For Fabric Jar
-        uses: actions/github-script@v5
+        uses: actions/github-script@v7
         id: fabric_release
         with:
           result-encoding: string
           script: |
             const fs = require("fs")
-            return fs.readdirSync("./dist/").filter(e => e.endsWith("fabric.jar"))[0] || false;
+            return fs.readdirSync("./dist/").filter(e => e.endsWith("fabric.jar") || e.includes("-fabric-"))[0] || false;
 
       - name: Check For Forge Jar
         uses: actions/github-script@v7
@@ -107,23 +115,10 @@ jobs:
           result-encoding: string
           script: |
             const fs = require("fs")
-            return fs.readdirSync("./dist/").filter(e => e.endsWith("forge.jar"))[0] || false;
-
-      - name: Zip TS
-        uses: vimtor/action-zip@v1
-        with:
-          files: dist/typescript/
-          dest: dist/typescript-${{ steps.artifact_id.outputs.result }}.zip
-
-      - name: Upload TS to Git Release
-        uses: JasonEtco/upload-to-release@master
-        with:
-          args: ./dist/typescript-${{ steps.artifact_id.outputs.result }}.zip application/jar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            return fs.readdirSync("./dist/").filter(e => e.endsWith("forge.jar") || e.endsWith("neoforge.jar") || e.includes("-neoforge-"))[0] || false;
 
       - name: Extract Version Number
-        uses: actions/github-script@v5
+        uses: actions/github-script@v7
         id: version_num
         env:
           REF: '${{ inputs.GITHUB_REF }}'
@@ -195,7 +190,7 @@ jobs:
       - build
     steps:
       - name: Get Artifact Id
-        uses: actions/github-script@v5
+        uses: actions/github-script@v7
         id: artifact_id
         env:
           branch: '${{ inputs.branch }}'
@@ -211,9 +206,9 @@ jobs:
           name: ${{ steps.artifact_id.outputs.result }}
 
       - name: Install Python
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v5
         with:
-          python-version: 3.7
+          python-version: '3.11'
 
       - name: Install Python Deps
         run: |
@@ -225,6 +220,10 @@ jobs:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          cd dist/python
-          python setup.py sdist bdist_wheel
-          twine upload dist/*
+          if [ -d "dist/python" ]; then
+            cd dist/python
+            python setup.py sdist bdist_wheel
+            twine upload dist/*
+          else
+            echo "No Python dist directory found, skipping PyDoc upload"
+          fi
