@@ -49,7 +49,7 @@ neoForge {
 }
 
 dependencies {
-    // Common library dependencies - use jarJar for bundling in NeoForge
+    // Common library dependencies - implementation for dev, jarJar for bundling in production
     implementation group: 'io.noties', name: 'prism4j', version: '2.0.0'
     jarJar(group: 'io.noties', name: 'prism4j', version: '[2.0.0,2.1.0)')
     
@@ -62,9 +62,19 @@ dependencies {
     implementation group: 'org.javassist', name: 'javassist', version: '3.30.2-GA'
     jarJar(group: 'org.javassist', name: 'javassist', version: '[3.30.2-GA,3.31.0)')
     
+    // Also add as runtimeOnly to ensure they're available during dev runs
+    runtimeOnly group: 'io.noties', name: 'prism4j', version: '2.0.0'
+    runtimeOnly group: 'org.jooq', name: 'joor', version: '0.9.15'
+    runtimeOnly group: 'com.neovisionaries', name: 'nv-websocket-client', version: '2.14'
+    runtimeOnly group: 'org.javassist', name: 'javassist', version: '3.30.2-GA'
+    
     // Extension jars to embed
     extensionJars project(path: ':extension:graal', configuration: 'archives')
     extensionJars project(path: ':extension:graal:js', configuration: 'archives')
+    
+    // Extension runtime dependencies for dev mode
+    runtimeOnly project(':extension:graal')
+    runtimeOnly project(':extension:graal:js')
 }
 
 // Collect extension jar names for dependencies property
