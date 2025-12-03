@@ -24,11 +24,11 @@ jobs:
           script: |
             const fs = require("fs");
             let file = fs.readFileSync("./gradle.properties");
-            file = file.toString().split("\n").map(e => e.trim().startsWith("mod_version=") ? `${e}-beta-${process.env.GITHUB_SHA.substring(0, 7)}` : e).join("\n");
+            file = file.toString().split("\n").map(e => e.trim().startsWith("version=") ? `${e}-beta-${process.env.GITHUB_SHA.substring(0, 7)}` : e).join("\n");
             fs.writeFileSync("./gradle.properties", file);
-            const mod_version = file.toString().split("\n").filter(e => e.trim().startsWith("mod_version="))[0].split("=")[1].trim();
-            const archives_base_name = file.toString().split("\n").filter(e => e.trim().startsWith("archives_base_name="))[0].split("=")[1].trim();
-            return `${archives_base_name}-${mod_version}`;
+            const version = file.toString().split("\n").filter(e => e.trim().startsWith("version="))[0].split("=")[1].trim();
+            const mod_id = file.toString().split("\n").filter(e => e.trim().startsWith("mod_id="))[0].split("=")[1].trim();
+            return `${mod_id}-${version}`;
 
       - name: Zip source code
         run: |

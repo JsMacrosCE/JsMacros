@@ -92,7 +92,7 @@ task generatePyDoc(type: Javadoc) {
     destinationDir = file("${rootProject.layout.buildDirectory.get().asFile}/docs/python/JsMacrosAC/")
     options.doclet = 'xyz.wagyourtail.doclet.pydoclet.Main'
     options.docletpath = [file("${rootProject.rootDir}/buildSrc/build/libs/buildSrc.jar")]
-    (options as CoreJavadocOptions).addStringOption('v', mod_version)
+    (options as CoreJavadocOptions).addStringOption('v', version)
     
     doFirst {
         classpath = sourceSets.main.compileClasspath + commonProject.sourceSets.main.compileClasspath
@@ -119,7 +119,7 @@ task generateTSDoc(type: Javadoc) {
     destinationDir = file("${rootProject.layout.buildDirectory.get().asFile}/docs/typescript/headers/")
     options.doclet = 'xyz.wagyourtail.doclet.tsdoclet.Main'
     options.docletpath = [file("${rootProject.rootDir}/buildSrc/build/libs/buildSrc.jar")]
-    (options as CoreJavadocOptions).addStringOption('v', mod_version)
+    (options as CoreJavadocOptions).addStringOption('v', version)
     
     doFirst {
         classpath = sourceSets.main.compileClasspath + commonProject.sourceSets.main.compileClasspath
@@ -146,7 +146,7 @@ task generateWebDoc(type: Javadoc) {
     destinationDir = file("${rootProject.layout.buildDirectory.get().asFile}/docs/web/")
     options.doclet = 'xyz.wagyourtail.doclet.webdoclet.Main'
     options.docletpath = [file("${rootProject.rootDir}/buildSrc/build/libs/buildSrc.jar")]
-    (options as CoreJavadocOptions).addStringOption('v', mod_version)
+    (options as CoreJavadocOptions).addStringOption('v', version)
     (options as CoreJavadocOptions).addStringOption('mcv', minecraft_version)
     (options as StandardJavadocDocletOptions).links(
         'https://docs.oracle.com/javase/8/docs/api/',
