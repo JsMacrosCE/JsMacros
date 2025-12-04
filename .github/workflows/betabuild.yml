@@ -24,11 +24,11 @@ jobs:
           script: |
             const fs = require("fs");
             let file = fs.readFileSync("./gradle.properties");
-            file = file.toString().split("\n").map(e => e.trim().startsWith("mod_version=") ? `${e}-beta-${process.env.GITHUB_SHA.substring(0, 7)}` : e).join("\n");
+            file = file.toString().split("\n").map(e => e.trim().startsWith("version=") ? `${e}-beta-${process.env.GITHUB_SHA.substring(0, 7)}` : e).join("\n");
             fs.writeFileSync("./gradle.properties", file);
-            const mod_version = file.toString().split("\n").filter(e => e.trim().startsWith("mod_version="))[0].split("=")[1].trim();
-            const archives_base_name = file.toString().split("\n").filter(e => e.trim().startsWith("archives_base_name="))[0].split("=")[1].trim();
-            return `${archives_base_name}-${mod_version}`;
+            const mod_version = file.toString().split("\n").filter(e => e.trim().startsWith("version="))[0].split("=")[1].trim();
+            const mod_id = file.toString().split("\n").filter(e => e.trim().startsWith("mod_id="))[0].split("=")[1].trim();
+            return `${mod_id}-${mod_version}`;
 
       - name: Zip source code
         run: |
@@ -48,7 +48,15 @@ jobs:
       - name: Run build with Gradle wrapper
         run: |
           chmod +x gradlew
-          ./gradlew :fabric:createDist -x test --info --stacktrace
+          ./gradlew build --info --stacktrace
+
+      - name: Collect build artifacts
+        run: |
+          mkdir -p dist
+          cp fabric/build/libs/*.jar dist/ 2>/dev/null || true
+          cp neoforge/build/libs/*.jar dist/ 2>/dev/null || true
+          # Remove sources and dev jars from dist
+          rm -f dist/*-sources.jar dist/*-dev.jar 2>/dev/null || true
 
       - name: Bundle mods, documentation and source code
         uses: actions/upload-artifact@v4
@@ -58,5 +66,3 @@ jobs:
             ./dist/**/*
             !./dist/*-sources.jar
             !./dist/*-dev.jar
-            !./dist/*-dev-shadow.jar
-            !./dist/*-dev-shadow-js.jar

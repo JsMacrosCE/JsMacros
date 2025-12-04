@@ -53,7 +53,15 @@ jobs:
 
       - name: Build
         run: |
-          ./gradlew :fabric:createDist -x test
+          ./gradlew build
+
+      - name: Collect build artifacts
+        run: |
+          mkdir -p dist
+          cp fabric/build/libs/*.jar dist/ 2>/dev/null || true
+          cp neoforge/build/libs/*.jar dist/ 2>/dev/null || true
+          # Remove sources and dev jars from dist
+          rm -f dist/*-sources.jar dist/*-dev.jar 2>/dev/null || true
 
       - name: Upload To Artifacts
         uses: actions/upload-artifact@v4
