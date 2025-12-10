@@ -1,0 +1,139 @@
+package xyz.wagyourtail.doclet.mddoclet;
+
+import com.sun.source.util.DocTrees;
+import jdk.javadoc.doclet.Doclet;
+import jdk.javadoc.doclet.DocletEnvironment;
+import jdk.javadoc.doclet.Reporter;
+import org.jetbrains.annotations.NotNull;
+import xyz.wagyourtail.FileHandler;
+import xyz.wagyourtail.doclet.DocletIgnore;
+import xyz.wagyourtail.doclet.options.IgnoredItem;
+import xyz.wagyourtail.doclet.options.OutputDirectory;
+import xyz.wagyourtail.doclet.options.Version;
+import xyz.wagyourtail.doclet.mddoclet.options.Links;
+import xyz.wagyourtail.doclet.mddoclet.options.McVersion;
+import xyz.wagyourtail.doclet.mddoclet.parsers.ClassParser;
+
+import javax.lang.model.SourceVersion;
+import javax.lang.model.element.*;
+import javax.lang.model.util.Elements;
+import javax.lang.model.util.Types;
+import javax.tools.Diagnostic;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+
+public class Main implements Doclet {
+    public static Reporter reporter;
+    public static String mappingViewerURL;
+    public static Elements elementUtils;
+    public static DocTrees treeUtils;
+    public static Types types;
+    public static Set<? extends Element> elements;
+    public static Map<Element, ClassParser> internalClasses = new LinkedHashMap<>();
+
+    @Override
+    public void init(Locale locale, Reporter reporter) {
+        Main.reporter = reporter;
+    }
+
+    @Override
+    public String getName() {
+        return "VitePressDoc Generator";
+    }
+
+    @Override
+    public Set<? extends Option> getSupportedOptions() {
+        return Set.of(
+                new Version(),
+                new McVersion(),
+                new OutputDirectory(),
+                new Links(),
+                new IgnoredItem("-doctitle", 1),
+                new IgnoredItem("-notimestamp", 0),
+                new IgnoredItem("-windowtitle", 1)
+        );
+    }
+
+    @Override
+    public SourceVersion getSupportedSourceVersion() {
+        return SourceVersion.RELEASE_16;
+    }
+
+    @Override
+    public boolean run(DocletEnvironment environment) {
+        mappingViewerURL = "https://wagyourtail.xyz/Projects/MinecraftMappingViewer/App?mapping=INTERMEDIARY,YARN&version=" + McVersion.mcVersion + "&search=";
+        elements = environment.getIncludedElements();
+        treeUtils = environment.getDocTrees();
+        types = environment.getTypeUtils();
+        elementUtils = environment.getElementUtils();
+
+        elements = new HashSet<>(elements.stream().filter(element -> !shouldIgnore(element)).toList());
+
+        File outDir = new File(OutputDirectory.outputDir, Version.version);
+
+        try {
+            if (!outDir.exists() && !outDir.mkdirs()) {
+                reporter.print(Diagnostic.Kind.ERROR, "Failed to create version dir\n");
+                return false;
+            }
+
+            //create package-list
+            StringBuilder pkgList = new StringBuilder();
+            elements.stream().filter(e -> e.getKind() == ElementKind.PACKAGE).map(e -> (PackageElement) e).forEach(e -> {
+                if (Links.externalPackages.containsKey(e.getQualifiedName().toString())) {
+                    return;
+                }
+                pkgList.append(e.getQualifiedName()).append("\n");
+            });
+            pkgList.setLength(pkgList.length() - 1);
+            new FileHandler(new File(outDir, "package-list")).write(pkgList.toString());
+
+            elements.stream().filter(e -> e instanceof TypeElement).map(e -> (TypeElement) e).forEach(e -> {
+                AnnotationMirror mirror = e.getAnnotationMirrors().stream().filter(a -> a.getAnnotationType().asElement().getSimpleName().toString().equals("Event")).findFirst().orElse(null);
+                //Event
+                if (mirror != null) {
+                    internalClasses.put(e, new ClassParser(e, Group.Event, getAnnotationValue("value", mirror).toString()));
+                    return;
+                }
+
+                mirror = e.getAnnotationMirrors().stream().filter(a -> a.getAnnotationType().asElement().getSimpleName().toString().equals("Library")).findFirst().orElse(null);
+                //Library
+                if (mirror != null) {
+                    internalClasses.put(e, new ClassParser(e, Group.Library, getAnnotationValue("value", mirror).toString()));
+                    return;
+                }
+
+                internalClasses.put(e, new ClassParser(e, Group.Class, null));
+            });
+
+            for (ClassParser value : internalClasses.values()) {
+                File out = new File(outDir, value.getPathPart() + ".md");
+                File parent = out.getParentFile();
+                if (!parent.exists() && !parent.mkdirs()) {
+                    reporter.print(Diagnostic.Kind.ERROR, "Failed to create package dir " + parent + "\n");
+                    return false;
+                }
+                new FileHandler(out).write(value.generateMarkdown());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    public static Object getAnnotationValue(String key, AnnotationMirror annotation) {
+        for (Map.Entry<? extends ExecutableElement, ? extends AnnotationValue> el : annotation.getElementValues().entrySet()) {
+            if (el.getKey().getSimpleName().toString().equals(key)) {
+                return el.getValue().getValue();
+            }
+        }
+        return null;
+    }
+
+    private static boolean shouldIgnore(@NotNull Element e) {
+        return e.getAnnotation(DocletIgnore.class) != null;
+    }
+
+}
