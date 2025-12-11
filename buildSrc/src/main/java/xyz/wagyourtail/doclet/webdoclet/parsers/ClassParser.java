@@ -402,6 +402,10 @@ public class ClassParser {
                 case CONSTRUCTOR -> {
                     return new XMLBuilder("p").setClass("constructorSince since");
                 }
+                // TODO: Add support in css
+                case RECORD -> {
+                    return new XMLBuilder("p").setClass("recordSince since");
+                }
                 default -> throw new UnsupportedOperationException(element.getKind().toString());
             }
         } else {
