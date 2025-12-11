@@ -88,7 +88,6 @@ jobs:
             dist/jsmacros-${{ needs.build.outputs.mc_version }}-${{ matrix.loader }}-${{ needs.build.outputs.mod_version }}.jar
             dist/jsmacros-devkit-${{ needs.build.outputs.mc_version }}-${{ needs.build.outputs.mod_version }}.zip
             dist/jsmacros-extensions-${{ needs.build.outputs.mc_version }}-${{ needs.build.outputs.mod_version }}.zip
-            dist/extensions/jsmacros-ext-graalpy-${{ needs.build.outputs.mc_version }}-${{ matrix.loader }}-${{ needs.build.outputs.mod_version }}.jar
-            dist/*-source.zip
+            dist/extensions/jsmacros-ext-*-${{ needs.build.outputs.mc_version }}-${{ matrix.loader }}-${{ needs.build.outputs.mod_version }}.jar
           retry-attempts: 5
           retry-delay: 60000

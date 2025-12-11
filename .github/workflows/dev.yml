@@ -67,7 +67,7 @@ jobs:
             dist/jsmacros-${{ steps.versions.outputs.mc_version }}-neoforge-${{ steps.versions.outputs.mod_version }}.jar
             dist/jsmacros-devkit-${{ steps.versions.outputs.mc_version }}-${{ steps.versions.outputs.mod_version }}.zip
             dist/jsmacros-extensions-${{ steps.versions.outputs.mc_version }}-${{ steps.versions.outputs.mod_version }}.zip
-            dist/extensions/jsmacros-ext-graalpy-${{ steps.versions.outputs.mc_version }}-${{ steps.versions.outputs.mod_version }}.jar
+            dist/extensions/jsmacros-ext-*-${{ steps.versions.outputs.mc_version }}-${{ steps.versions.outputs.mod_version }}.jar
             dist/*-source.zip
           fail_on_unmatched_files: false
           token: ${{ secrets.GITHUB_TOKEN }}
