@@ -12,7 +12,7 @@ on:
 
 env:
   JAVA_VERSION: '21'
-  MODRINTH_PROJECT: 3wGWhm8A
+  MODRINTH_PROJECT: 2m9WfquA
   MOD_ID: jsmacros
 
 permissions:
