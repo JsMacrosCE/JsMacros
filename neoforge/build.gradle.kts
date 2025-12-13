@@ -19,6 +19,7 @@ val extensionJars by configurations.creating {
     isCanBeConsumed = false
 }
 
+// TODO: Look into https://github.com/neoforged/ModDevGradle?tab=readme-ov-file#disabling-decompilation-and-recompilation in CI
 neoForge {
     version = property("neoforge_version").toString()
 
