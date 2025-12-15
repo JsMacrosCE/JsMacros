@@ -71,11 +71,9 @@ jobs:
       - name: List dist contents
         run: ls -R dist
 
-      - name: Publish to GitHub and Modrinth
+      - name: Publish to GitHub
         uses: Kir-Antipov/mc-publish@v3.3
         with:
-          modrinth-id: ${{ env.MODRINTH_PROJECT }}
-          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-tag: v${{ needs.build.outputs.mod_version }}+${{ needs.build.outputs.mc_version }}
           github-prerelease: true
