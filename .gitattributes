@@ -1,0 +1,12 @@
+# Default: text files normalized to LF in the repo
+* text=auto eol=lf
+
+# Windows scripts should stay CRLF on checkout if you have them
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Shell scripts should be LF
+*.sh text eol=lf
+
+gradlew   text eol=lf
+gradlew.bat text eol=crlf
