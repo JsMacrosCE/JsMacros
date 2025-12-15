@@ -46,6 +46,10 @@ val commonResources by configurations.creating {
 }
 
 artifacts {
-    add(commonJava.name, sourceSets["main"].java.sourceDirectories.singleFile)
-    add(commonResources.name, sourceSets["main"].resources.sourceDirectories.singleFile)
+    sourceSets["main"].java.srcDirs.forEach { dir ->
+        add(commonJava.name, dir)
+    }
+    sourceSets["main"].resources.srcDirs.forEach { dir ->
+        add(commonResources.name, dir)
+    }
 }

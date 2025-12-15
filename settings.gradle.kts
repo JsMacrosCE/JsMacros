@@ -40,9 +40,17 @@ pluginManagement {
             }
         }
     }
+
+    plugins {
+        // see https://fabricmc.net/develop/ for new versions
+        id("fabric-loom") version "1.13-SNAPSHOT" apply false
+        // see https://projects.neoforged.net/neoforged/moddevgradle for new versions
+        id("net.neoforged.moddev") version "2.0.124" apply false
+    }
 }
 
 plugins {
+	id("dev.kikugie.stonecutter") version "0.7.11"
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
 
@@ -56,3 +64,22 @@ include("extension")
 include("extension:graal")
 include("extension:graal:js")
 include("extension:graal:python")
+
+stonecutter {
+    kotlinController = true
+    centralScript = "build.gradle.kts"
+
+    create(rootProject) {
+        versions("1.21.8", "1.21.10")
+
+        branch("common") {
+            versions("1.21.8", "1.21.10")
+        }
+        branch("fabric") {
+            versions("1.21.8", "1.21.10")
+        }
+        branch("neoforge") {
+            versions("1.21.8", "1.21.10")
+        }
+    }
+}

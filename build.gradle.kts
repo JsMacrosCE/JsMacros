@@ -10,13 +10,6 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-plugins {
-    // see https://fabricmc.net/develop/ for new versions
-    id("fabric-loom") version "1.13-SNAPSHOT" apply false
-    // see https://projects.neoforged.net/neoforged/moddevgradle for new versions
-    id("net.neoforged.moddev") version "2.0.123" apply false
-}
-
 val documentationProjects = listOf(project(":common"), project(":extension"))
 val docletJarFile = layout.projectDirectory.file("buildSrc/build/libs/buildSrc.jar").asFile
 val docsBuildDir = layout.buildDirectory.dir("docs").get().asFile
@@ -75,9 +68,17 @@ val jsmExtensions: List<ExtensionSpec> = listOf(
 val artifactBaseName = providers.provider { "$modId-$mcVersion-$channel-$version" }
 
 gradle.projectsEvaluated {
-    val mainSourceSets = documentationProjects.map {
-        it.extensions.getByType(SourceSetContainer::class.java).named("main").get()
+    val docsProjects = allprojects
+        .filter { it.path.startsWith(":common") || it.path.startsWith(":extension") }
+        .mapNotNull { p ->
+            val ss = p.extensions.findByType(SourceSetContainer::class.java)
+            if (ss == null) null else p
+        }
+
+    val mainSourceSets = docsProjects.map { p ->
+        p.extensions.getByType(SourceSetContainer::class.java).named("main").get()
     }
+
     val documentationSources = files(mainSourceSets.map { it.allJava })
     val documentationClasspath = files(mainSourceSets.map { it.compileClasspath })
 
