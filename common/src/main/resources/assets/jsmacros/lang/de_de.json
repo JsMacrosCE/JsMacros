@@ -57,7 +57,7 @@
   "jsmacros.autocomplete": "Autovervollständigung",
   "jsmacros.font": "Schriftart",
   "jsmacros.sort": "Methoden zur Sortierung der Makroliste",
-  "jsmacros.extrajsoptions": "Extra Graal Optionen für Javascript",
+  "jsmacros.settings.languages.extrajsoptions": "Extra Graal Optionen für Javascript",
   "jsmacros.defaultprofile": "Standard Profil",
   "jsmacros.currentprofile": "Aktuelles Profil",
   "jsmacros.profiles": "Profilliste",

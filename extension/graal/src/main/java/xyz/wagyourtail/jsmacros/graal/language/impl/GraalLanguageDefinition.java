@@ -21,14 +21,47 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptContext> {
-    public static final Engine engine = Engine.newBuilder().option("engine.WarnInterpreterOnly", "false").build();
-    public static final boolean isJsInstalled = engine.getLanguages().containsKey("js");
+    private static volatile Engine engine = null;
+    public static final boolean isJsInstalled;
+
+    static {
+        // Create a temporary engine just to check available languages
+        try (Engine tempEngine = Engine.newBuilder()
+                .option("engine.WarnInterpreterOnly", "false")
+                .build()) {
+            isJsInstalled = tempEngine.getLanguages().containsKey("js");
+        }
+    }
 
     public GraalLanguageDefinition(Extension extension, Core<?, ?> runner) {
         super(extension, runner);
+        engine = getOrCreateEngine(runner);
     }
 
-    protected Context buildContext(File currentDir, String lang, Map<String, String> extraJsOptions, Map<String, Object> globals, Map<String, BaseLibrary> libs) throws IOException {
+    public static Engine getOrCreateEngine(Core<?, ?> runner) {
+        Engine e = engine;
+        if (e != null) return e;
+
+        synchronized (GraalLanguageDefinition.class) {
+            if (engine != null) return engine;
+
+            Engine.Builder b = Engine.newBuilder()
+                    .option("engine.WarnInterpreterOnly", "false");
+
+            final GraalConfig conf = runner.config.getOptions(GraalConfig.class);
+            for (Map.Entry<String, String> e2 : conf.extraEngineOptions.entrySet()) {
+                try {
+                    b.option(e2.getKey(), e2.getValue());
+                } catch (IllegalArgumentException ex) {
+                    runner.profile.logError(new RuntimeException("Invalid GraalVM option: " + e2.getKey() + " = " + e2.getValue(), ex));
+                }
+            }
+
+            return engine = b.build();
+        }
+    }
+
+    protected Context buildContext(File currentDir, String lang, Map<String, String> extraLangOptions, Map<String, Object> globals, Map<String, BaseLibrary> libs) throws IOException {
 
         Builder build = Context.newBuilder()
                 .engine(engine)
@@ -36,7 +69,7 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
                 .allowNativeAccess(true)
                 .allowExperimentalOptions(true);
 
-        for (Map.Entry<String, String> e : extraJsOptions.entrySet()) {
+        for (Map.Entry<String, String> e : extraLangOptions.entrySet()) {
             try {
                 build.option(e.getKey(), e.getValue());
             } catch (IllegalArgumentException ex) {
@@ -49,7 +82,7 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
         }
         build.currentWorkingDirectory(currentDir.toPath().toAbsolutePath());
 
-        if (isJsInstalled) {
+        if (isJsInstalled && lang.equals("js")) {
             build.option("js.commonjs-require", "true");
             build.option("js.commonjs-require-cwd", currentDir.getCanonicalPath());
         }
@@ -77,8 +110,12 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
         globals.put("context", ctx);
 
         final GraalConfig conf = runner.config.getOptions(GraalConfig.class);
-        if (conf.extraGraalOptions == null) {
-            conf.extraGraalOptions = new LinkedHashMap<>();
+        if (conf.extraEngineOptions == null) {
+            conf.extraEngineOptions = new LinkedHashMap<>();
+        }
+
+        if (conf.extraLangOptions == null) {
+            conf.extraLangOptions = new LinkedHashMap<>();
         }
 
         Map<String, BaseLibrary> lib = retrieveLibs(ctx.getCtx());
@@ -90,7 +127,7 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
                 lang = engine.getLanguages().keySet().stream().findFirst().orElseThrow(() -> new RuntimeException("No GraalVM languages installed!"));
             }
         }
-        final Context con = buildContext(ctx.getCtx().getContainedFolder(), lang, conf.extraGraalOptions, globals, lib);
+        final Context con = buildContext(ctx.getCtx().getContainedFolder(), lang, conf.extraLangOptions.getOrDefault(lang, new LinkedHashMap<>()), globals, lib);
         ctx.getCtx().setContext(con);
         con.enter();
         try {
@@ -119,8 +156,12 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
         globals.put("context", ctx);
 
         final GraalConfig conf = runner.config.getOptions(GraalConfig.class);
-        if (conf.extraGraalOptions == null) {
-            conf.extraGraalOptions = new LinkedHashMap<>();
+        if (conf.extraEngineOptions == null) {
+            conf.extraEngineOptions = new LinkedHashMap<>();
+        }
+
+        if (conf.extraLangOptions == null) {
+            conf.extraLangOptions = new LinkedHashMap<>();
         }
 
         Map<String, BaseLibrary> lib = retrieveLibs(ctx.getCtx());
@@ -132,7 +173,7 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
                 lang = engine.getLanguages().keySet().stream().findFirst().orElseThrow(() -> new RuntimeException("No GraalVM languages installed!"));
             }
         }
-        final Context con = buildContext(ctx.getCtx().getContainedFolder(), lang, conf.extraGraalOptions, globals, lib);
+        final Context con = buildContext(ctx.getCtx().getContainedFolder(), lang, conf.extraLangOptions.getOrDefault(lang, new LinkedHashMap<>()), globals, lib);
         ctx.getCtx().setContext(con);
         con.enter();
         try {

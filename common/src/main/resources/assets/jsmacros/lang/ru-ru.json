@@ -57,7 +57,7 @@
   "jsmacros.autocomplete": "Автодополнение",
   "jsmacros.font": "Шрифт",
   "jsmacros.sort": "Сортировка списка макросов",
-  "jsmacros.extrajsoptions": "Дополнительные настройки Graal для Javascript",
+  "jsmacros.settings.languages.extrajsoptions": "Дополнительные настройки Graal для Javascript",
   "jsmacros.defaultprofile": "Стандартный профиль",
   "jsmacros.currentprofile": "Текущий профиль",
   "jsmacros.profiles": "Список профилей",

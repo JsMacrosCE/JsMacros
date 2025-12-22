@@ -57,7 +57,7 @@
   "jsmacros.autocomplete": "Auto Completar",
   "jsmacros.font": "Fuente",
   "jsmacros.sort": "Metodo de Ordenar Lista de Macros",
-  "jsmacros.extrajsoptions": "Opciones Extra de Graal para Javascript",
+  "jsmacros.settings.languages.extrajsoptions": "Opciones Extra de Graal para Javascript",
   "jsmacros.defaultprofile": "Perfil por Defecto",
   "jsmacros.currentprofile": "Perfil Actual",
   "jsmacros.profiles": "Lista de Perfiles",

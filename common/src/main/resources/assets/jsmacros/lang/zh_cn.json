@@ -57,7 +57,7 @@
   "jsmacros.autocomplete": "自动补全",
   "jsmacros.font": "字体",
   "jsmacros.sort": "排序方法",
-  "jsmacros.extrajsoptions": "额外的Javascript Graal选项",
+  "jsmacros.settings.languages.extrajsoptions": "额外的Javascript Graal选项",
   "jsmacros.defaultprofile": "默认文件",
   "jsmacros.currentprofile": "当前文件",
   "jsmacros.profiles": "文件列表",

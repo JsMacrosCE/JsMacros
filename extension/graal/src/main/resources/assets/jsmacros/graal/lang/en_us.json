@@ -1,4 +1,6 @@
 {
   "jsmacros.settings.languages.graaloptions": "Graal Options",
-  "jsmacros.settings.languages.extragraaloptions": "Extra Graal Options"
+  "jsmacros.settings.languages.extragraaloptions": "Extra Graal Options",
+  "jsmacros.settings.languages.extralangoptions": "Extra Graal Language Options",
+  "jsmacros.settings.languages.extraengineoptions": "Extra Graal Engine Options"
 }

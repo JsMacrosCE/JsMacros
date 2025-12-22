@@ -52,7 +52,8 @@ public class ConfigManager {
     public final File macroFolder;
     public final File configFile;
     public final Logger LOGGER;
-    int loadedAsVers = 3;
+    public final static int TARGET_VERSION = 4;
+    int loadedAsVers = TARGET_VERSION;
     public JsonObject rawOptions = null;
 
     public ConfigManager(Core<?, ?> runner, File configFolder, File macroFolder, Logger logger) {
@@ -115,7 +116,7 @@ public class ConfigManager {
                 f.set(options.get(optionClass.getValue()), runner);
             } catch (NoSuchFieldException ignored) {}
         }
-        rawOptions.addProperty("version", 3);
+        rawOptions.addProperty("version", TARGET_VERSION);
     }
 
     protected synchronized void convertOrLoadConfig(String key, Class<?> clazz) throws IllegalAccessException, InstantiationException, InvocationTargetException, NoSuchMethodException {
@@ -158,6 +159,18 @@ public class ConfigManager {
             f.setAccessible(true);
             f.set(options.get(optionClass), runner);
         } catch (NoSuchFieldException ignored) {}
+
+        // If we loaded from an older version and converted this option, persist the migrated config
+        if (loadedAsVers != TARGET_VERSION) {
+            try {
+                if (configFile.exists()) {
+                    backupConfig();
+                }
+                saveConfig();
+            } catch (IOException e) {
+                LOGGER.error("Failed to persist migrated config for option " + key, e);
+            }
+        }
     }
 
     public synchronized void backupConfig() throws IOException {
@@ -178,7 +191,7 @@ public class ConfigManager {
             LOGGER.error("Failed to load config", e);
             loadDefaults();
         } finally {
-            if (loadedAsVers != 3) {
+            if (loadedAsVers != TARGET_VERSION) {
                 backupConfig();
             }
         }
@@ -193,7 +206,7 @@ public class ConfigManager {
         for (Map.Entry<String, Class<?>> optionClass : optionClasses.entrySet()) {
             options.put(optionClass.getValue(), optionClass.getValue().getConstructor().newInstance());
             rawOptions = new JsonObject();
-            rawOptions.addProperty("version", 3);
+            rawOptions.addProperty("version", TARGET_VERSION);
         }
     }
 

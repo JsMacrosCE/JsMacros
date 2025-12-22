@@ -56,6 +56,14 @@ dependencies {
     add(embedDeps.name, "org.graalvm.sdk:nativeimage:24.0.1")
     add(embedDeps.name, "org.graalvm.sdk:word:24.0.1")
 
+    // Chrome Inspector and Profiler tools
+    implementation("org.graalvm.tools:chromeinspector-tool:24.0.1")
+    implementation("org.graalvm.tools:profiler-tool:24.0.1")
+
+    // Embed them
+    add(embedDeps.name, "org.graalvm.tools:chromeinspector-tool:24.0.1")
+    add(embedDeps.name, "org.graalvm.tools:profiler-tool:24.0.1")
+
     // Test dependencies
     testImplementation(project(":extension"))
     testImplementation(project(":common:${minecraftVersion}"))
