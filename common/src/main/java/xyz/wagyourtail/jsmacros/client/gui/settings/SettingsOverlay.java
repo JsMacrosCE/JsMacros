@@ -9,7 +9,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import xyz.wagyourtail.jsmacros.client.JsMacrosClient;
 import xyz.wagyourtail.jsmacros.client.gui.settings.settingcontainer.*;
-import xyz.wagyourtail.jsmacros.client.gui.settings.settingcontainer.*;
 import xyz.wagyourtail.jsmacros.core.config.CoreConfigV2;
 import xyz.wagyourtail.jsmacros.core.config.Option;
 import xyz.wagyourtail.wagyourgui.BaseScreen;
