@@ -35,9 +35,7 @@ jobs:
         run: |
           SHORT_SHA=${GITHUB_SHA::7}
           MOD_VERSION=$(./gradlew -q printVersion -Pchannel=dev -Pbuild_sha=${SHORT_SHA} | tail -1 | tr -d '\n\r')
-          MC_VERSION=$(./gradlew -q printMinecraftVersion -Pchannel=dev -Pbuild_sha=${SHORT_SHA} | tail -1 | tr -d '\n\r')
           echo "mod_version=${MOD_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "mc_version=${MC_VERSION}" >> "$GITHUB_OUTPUT"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Build distribution
@@ -54,8 +52,8 @@ jobs:
       - name: Publish GitHub prerelease
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.versions.outputs.mod_version }}+${{ steps.versions.outputs.mc_version }}
-          name: Dev ${{ steps.versions.outputs.mod_version }} (MC ${{ steps.versions.outputs.mc_version }})
+          tag_name: v${{ steps.versions.outputs.mod_version }}-dev-${{ steps.versions.outputs.short_sha }}
+          name: Dev ${{ steps.versions.outputs.mod_version }}
           body: |
             Dev build for commit ${{ github.sha }}.
 
@@ -63,14 +61,14 @@ jobs:
           prerelease: true
           generate_release_notes: false
           files: |
-            dist/jsmacros-${{ steps.versions.outputs.mc_version }}-fabric-${{ steps.versions.outputs.mod_version }}.jar
-            dist/jsmacros-${{ steps.versions.outputs.mc_version }}-neoforge-${{ steps.versions.outputs.mod_version }}.jar
-            dist/jsmacros-devkit-${{ steps.versions.outputs.mc_version }}-${{ steps.versions.outputs.mod_version }}.zip
-            dist/jsmacros-extensions-${{ steps.versions.outputs.mc_version }}-${{ steps.versions.outputs.mod_version }}.zip
-            dist/extensions/jsmacros-ext-*-${{ steps.versions.outputs.mc_version }}-${{ steps.versions.outputs.mod_version }}.jar
+            dist/jsmacros-*-fabric-${{ steps.versions.outputs.mod_version }}.jar
+            dist/jsmacros-*-neoforge-${{ steps.versions.outputs.mod_version }}.jar
+            dist/jsmacros-devkit-*-${{ steps.versions.outputs.mod_version }}.zip
+            dist/jsmacros-extensions-*-${{ steps.versions.outputs.mod_version }}.zip
+            dist/extensions/jsmacros-ext-*-${{ steps.versions.outputs.mod_version }}.jar
             dist/*-source.zip
           fail_on_unmatched_files: false
           token: ${{ secrets.GITHUB_TOKEN }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REF: refs/tags/v${{ steps.versions.outputs.mod_version }}+${{ steps.versions.outputs.mc_version }}
+          GITHUB_REF: refs/tags/v${{ steps.versions.outputs.mod_version }}-dev-${{ steps.versions.outputs.short_sha }}

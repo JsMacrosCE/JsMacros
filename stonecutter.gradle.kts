@@ -35,6 +35,8 @@ val betaNumberProvider = providers.gradleProperty("beta_number")
 val alphaDateProvider = providers.gradleProperty("alpha_date")
 val buildShaProvider = providers.gradleProperty("build_sha")
 
+val isDevChannel = channelProvider.get() == "dev"
+
 val dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
 val computedAlphaDateProvider = providers.provider {
     alphaDateProvider.orElse(
@@ -69,9 +71,9 @@ val modId = modIdProvider.get()
 val channel = channelProvider.get()
 version = computedVersionProvider.get()
 
-// Get the active minecraft version from stonecutter.active file
-val activeVersion = file("stonecutter.active").takeIf { it.exists() }?.readText()?.trim() ?: "1.21.10"
-val mcVersion = activeVersion
+val supportedVersions = listOf("1.21.5", "1.21.8", "1.21.10")
+val mcVersionsToBuild = if (IS_CI) supportedVersions else listOf("1.21.10")
+val mcVersion = mcVersionsToBuild.first() // for backward compatibility
 
 val loaders = listOf("fabric", "neoforge")
 
@@ -110,9 +112,9 @@ tasks.register("printArtifactName") {
 
 tasks.register("printMinecraftVersion") {
     group = "distribution"
-    description = "Prints the targeted Minecraft version for CI workflows"
+    description = "Prints the targeted Minecraft version(s) for CI workflows"
     doLast {
-        println(mcVersion)
+        println(mcVersionsToBuild.joinToString(","))
     }
 }
 
@@ -209,26 +211,28 @@ gradle.projectsEvaluated {
 
     // Package loader-specific jars
     val baseJarTasks: Map<String, org.gradle.api.tasks.TaskProvider<Copy>> =
-        loaders.associateWith { loader ->
-            val loaderProject = project(":$loader:$mcVersion")
-            val sourceTaskName = if (loader == "fabric") "remapJar" else "jar"
-            val taskName = "package${loader.replaceFirstChar { it.uppercase() }}ModJar"
+        loaders.flatMap { loader ->
+            mcVersionsToBuild.map { version ->
+                val loaderProject = project(":$loader:$version")
+                val sourceTaskName = if (loader == "fabric") "remapJar" else "jar"
+                val taskName = "package${loader.replaceFirstChar { it.uppercase() }}ModJar${version.replace(".", "")}"
 
-            tasks.register(taskName, Copy::class.java) {
-                group = "distribution"
-                description = "Packages $loader mod jar into dist"
-                dependsOn("prepareDist", loaderProject.tasks.named(sourceTaskName))
+                tasks.register(taskName, Copy::class.java) {
+                    group = "distribution"
+                    description = "Packages $loader mod jar for $version into dist"
+                    dependsOn("prepareDist", loaderProject.tasks.named(sourceTaskName))
 
-                val jarFile = loaderProject.tasks.named(sourceTaskName).flatMap {
-                    (it as org.gradle.api.tasks.bundling.AbstractArchiveTask).archiveFile
+                    val jarFile = loaderProject.tasks.named(sourceTaskName).flatMap {
+                        (it as org.gradle.api.tasks.bundling.AbstractArchiveTask).archiveFile
+                    }
+
+                    from(jarFile)
+                    rename { "$modId-$version-$loader-${project.version}.jar" }
+                    into(distDirFile)
+                    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
                 }
-
-                from(jarFile)
-                rename { "$modId-$mcVersion-$loader-${project.version}.jar" }
-                into(distDirFile)
-                duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             }
-        }
+        }.associateBy { it.name }
 
     // Package extensions
     val extensionJarTasks = jsmExtensions.map { ext: ExtensionSpec ->
@@ -248,25 +252,25 @@ gradle.projectsEvaluated {
         }
     }
 
-    val devkitTasks = listOf(
-        tasks.register("packageDevkit", Zip::class.java) {
+    val devkitTasks = mcVersionsToBuild.map { version ->
+        tasks.register("packageDevkit${version.replace(".", "")}", Zip::class.java) {
             group = "distribution"
-            description = "Packages devkit bundle"
+            description = "Packages devkit bundle for $version"
             dependsOn("prepareDist", "copyPyDoc", "copyTSDoc", "copyWebDoc")
             destinationDirectory.set(distDir)
-            archiveFileName.set("$modId-devkit-$mcVersion-${project.version}.zip")
+            archiveFileName.set("$modId-devkit-$version-${project.version}.zip")
             from(docsBuildDir) {
                 include("web/**")
                 include("typescript/**")
                 include("python/**")
             }
         }
-    )
+    }
 
-    val extensionPackTasks = listOf(
-        tasks.register("packageExtensionsPack", Zip::class.java) {
+    val extensionPackTasks = mcVersionsToBuild.map { version ->
+        tasks.register("packageExtensionsPack${version.replace(".", "")}", Zip::class.java) {
             group = "distribution"
-            description = "Bundles all extensions into the config/jsMacros/extensions layout"
+            description = "Bundles all extensions into the config/jsMacros/extensions layout for $version"
             dependsOn(
                 "prepareDist",
                 extensionJarTasks,
@@ -275,14 +279,14 @@ gradle.projectsEvaluated {
                 baseJarTasks.values
             )
             destinationDirectory.set(distDir)
-            archiveFileName.set("$modId-extensions-$mcVersion-${project.version}.zip")
+            archiveFileName.set("$modId-extensions-$version-${project.version}.zip")
             into("config/jsMacros/extensions") {
                 from(File(distDirFile, "extensions")) {
                     include("*-${project.version}.jar")
                 }
             }
         }
-    )
+    }
 
     tasks.register("createDistMods") {
         group = "distribution"
