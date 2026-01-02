@@ -5,7 +5,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.render.state.GuiRenderState;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.profiling.Profiler;
@@ -26,10 +25,6 @@ import java.util.stream.Collectors;
 
 public class ForgeEvents {
     private static final Minecraft client = Minecraft.getInstance();
-
-    private static GuiGraphics createGuiGraphics() {
-        return new GuiGraphics(client, new GuiRenderState());
-    }
 
     public static void init() {
         NeoForge.EVENT_BUS.addListener(ForgeEvents::renderWorldListener);
@@ -101,7 +96,14 @@ public class ForgeEvents {
         ev.registerBelow(layer, ResourceLocation.parse("jsmacros:hud"), ForgeEvents::renderHudListener);
     }
 
-    public static void renderWorldListener(RenderLevelStageEvent.AfterLevel e) {
+    //? if >1.21.5 {
+    /*public static void renderWorldListener(RenderLevelStageEvent.AfterLevel e) {
+    *///?} else {
+    public static void renderWorldListener(RenderLevelStageEvent e) {
+        if (e.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
+            return;
+        }
+    //?}
         var profiler = Profiler.get();
         profiler.push("jsmacros_draw3d");
         try {
