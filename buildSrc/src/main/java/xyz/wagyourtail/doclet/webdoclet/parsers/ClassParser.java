@@ -117,6 +117,7 @@ public class ClassParser {
 
     private XMLBuilder parseClass() {
         XMLBuilder builder = new XMLBuilder("main").setClass("classDoc");
+        // subclasses start
         XMLBuilder subClasses;
         builder.append(subClasses = new XMLBuilder("div").setId("subClasses"));
         for (Element subClass : Main.elements.stream().filter(e -> {
@@ -127,8 +128,13 @@ public class ClassParser {
         }).collect(Collectors.toList())) {
             subClasses.append(parseType(subClass.asType()), " ");
         }
-        XMLBuilder cname;
-        builder.append(cname = new XMLBuilder("h2", true, true).setClass("classTitle").append((getPackage(type)), ".", getClassName(type)));
+        // subclasses end
+
+        // class name + types start
+        XMLBuilder cname = new XMLBuilder("h2", true, true)
+            .setClass("classTitle")
+            .append((getPackage(type)), ".", getClassName(type));
+        builder.append(cname);
 
         List<? extends TypeParameterElement> params = type.getTypeParameters();
         if (params != null && !params.isEmpty()) {
@@ -139,6 +145,7 @@ public class ClassParser {
             cname.pop();
             cname.append(">");
         }
+        // class name + types end
 
         builder.append(createFlags(type, false));
         TypeMirror sup = type.getSuperclass();

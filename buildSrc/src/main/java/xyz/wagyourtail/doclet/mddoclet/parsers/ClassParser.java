@@ -69,184 +69,152 @@ public class ClassParser {
         return s.toString();
     }
 
+    private StringBuilder getClassNameWithTypes(TypeElement type) {
+        StringBuilder s = new StringBuilder(getClassName(type));
+        List<? extends TypeParameterElement> params = type.getTypeParameters();
+        if (params != null && !params.isEmpty()) {
+            s.append("<");
+            for (TypeParameterElement param : params) {
+                s.append(parseType(param.asType())).append(", ");
+            }
+            s.delete(s.length() - 2, s.length());
+            s.append(">");
+        }
+
+        return s;
+    }
+
+    // TODO: Incomplete
+    private StringBuilder parseType(TypeMirror type) {
+        StringBuilder s = new StringBuilder();
+        switch (type.getKind()) {
+            case BOOLEAN, BYTE, SHORT, INT, LONG, CHAR, FLOAT, DOUBLE, VOID, NONE -> {
+                // primitive types
+                s.append(type.toString());
+            }
+            case ARRAY -> {
+                ArrayType arrayType = (ArrayType) type;
+                s.append(parseType(arrayType.getComponentType())).append("[]");
+            }
+            case DECLARED -> {
+                DeclaredType declaredType = (DeclaredType) type;
+                TypeElement typeElement = (TypeElement) declaredType.asElement();
+
+                Pair<String, Boolean> url = getURL(declaredType.asElement());
+                s.append(String.format("[%s](%s%s)",
+                        getClassName(typeElement),
+                        url.getKey(),
+                        url.getValue() ? " (external)" : ""
+                ));
+
+                List<? extends TypeMirror> params = declaredType.getTypeArguments();
+                if (params != null && !params.isEmpty()) {
+                    s.append("<");
+                    for (TypeMirror param : params) {
+                        if (param instanceof TypeVariable typeVariable && typeVariable.getUpperBound().equals(type)) {
+                            s.append(typeVariable.asElement().getSimpleName()).append(", ");
+                        } else {
+                            s.append(parseType(param)).append(", ");
+                        }
+                    }
+
+                    // Remove last ", "
+                    s.delete(s.length() - 2, s.length());
+                    s.append(">");
+                }
+            }
+            case TYPEVAR -> {
+                TypeVariable typeVariable = (TypeVariable) type;
+                s.append(typeVariable.asElement().getSimpleName());
+                TypeMirror ext = typeVariable.getUpperBound();
+                if (!ext.toString().equals("java.lang.Object")) {
+                    s.append(" extends ").append(parseType(ext));
+                }
+            }
+            case WILDCARD -> {
+                s.append("?");
+            }
+        }
+        return s;
+    }
+
     public String generateMarkdown() {
         StringBuilder builder = new StringBuilder();
 
         builder.append("# ").append(getClassName(type)).append("\n\n");
-        builder.append(String.format("**Full Class Name:** `%s.%s`", getPackage(type), getClassName(type))).append("\n\n");
+        builder.append(String.format("%s.%s", getPackage(type), getClassNameWithTypes(type))).append("\n\n");
         StringBuilder desc = getDescription(type.getEnclosingElement());
         builder.append(desc.isEmpty() ? "TODO: No description supplied" : desc);
         if (group == Group.Library) {
             // TODO: Don't use class name, get actual var name
-            builder.append(String.format("Accessible in scripts via the global `%s` variable.", getClassName(type)));
+            builder.append(String.format("\nAccessible in scripts via the global `%s` variable.", getClassName(type)));
         }
         builder.append("\n\n");
 
-        // Constructors
-        if (group != Group.Library) {
-            List<? extends Element> constructors = type.getEnclosedElements().stream().filter(e -> e.getKind() == ElementKind.CONSTRUCTOR).toList();
-
-            if (!constructors.isEmpty()) {
-                builder.append("## Constructors\n\n");
-            }
-
-            constructors.forEach(el -> {
-                if (!el.getModifiers().contains(Modifier.PUBLIC)) {
-                    return;
-                }
-//                if (firstFlag.get()) {
-//                    firstFlag.set(false);
-//                    builder.append(new XMLBuilder("h3", true, true).append("Constructors"));
-//                    XMLBuilder con = new XMLBuilder("div").setClass("constructorDoc");
-//                    builder.append(con);
-//                    constructors.set(con);
-//                }
-//                constructors.get().append(parseConstructor(el));
-
-                builder.append(parseConstructor((ExecutableElement) el));
-            });
+        switch (group) {
+            case Library -> builder.append(generateLibrary());
+            case Event -> builder.append(generateEvent());
+            case Class -> builder.append(generateClass());
         }
-
-        // Methods
-        builder.append("## Methods\n\n");
 
         return builder.toString();
     }
 
-//    private XMLBuilder parseClass() {
-//        XMLBuilder builder = new XMLBuilder("main").setClass("classDoc");
-//        XMLBuilder subClasses;
-//        builder.append(subClasses = new XMLBuilder("div").setId("subClasses"));
-//        for (Element subClass : Main.elements.stream().filter(e -> {
-//            if (e.getKind().isClass() || e.getKind().isInterface()) {
-//                return Main.types.isAssignable(e.asType(), Main.types.getDeclaredType(type)) && !e.equals(type);
-//            }
-//            return false;
-//        }).collect(Collectors.toList())) {
-//            subClasses.append(parseType(subClass.asType()), " ");
-//        }
-//        XMLBuilder cname;
-//        builder.append(cname = new XMLBuilder("h2", true, true).setClass("classTitle").append((getPackage(type)), ".", getClassName(type)));
-//
-//        List<? extends TypeParameterElement> params = type.getTypeParameters();
-//        if (params != null && !params.isEmpty()) {
-//            cname.append("<");
-//            for (TypeParameterElement param : params) {
-//                cname.append(parseType(param.asType()), ", ");
-//            }
-//            cname.pop();
-//            cname.append(">");
-//        }
-//
-//        builder.append(createFlags(type, false));
-//        TypeMirror sup = type.getSuperclass();
-//        List<? extends TypeMirror> ifaces = type.getInterfaces();
-//        XMLBuilder ext;
-//        builder.append(ext = new XMLBuilder("h4", true, true).addStringOption("class", "classExtends"));
-//        if (sup != null && !sup.toString().equals("java.lang.Object") && !sup.getKind().equals(TypeKind.NONE)) {
-//            ext.append("extends ", parseType(sup));
-//        }
-//        if (!ifaces.isEmpty()) {
-//            ext.append(" implements ");
-//            for (TypeMirror iface : ifaces) {
-//                ext.append(parseType(iface), " ");
-//            }
-//        }
-//
-//        builder.append(getSince(type));
-//        builder.append(getDescription(type));
-//
-//        AtomicBoolean firstFlag = new AtomicBoolean(true);
-//        AtomicReference<XMLBuilder> constructors = new AtomicReference<>();
-//        //CONSTRUCTORS
-//        if (!group.equals("Library")) {
-//            type.getEnclosedElements().stream().filter(e -> e.getKind() == ElementKind.CONSTRUCTOR).forEach(el -> {
-//                if (!el.getModifiers().contains(Modifier.PUBLIC)) {
-//                    return;
-//                }
-//                if (firstFlag.get()) {
-//                    firstFlag.set(false);
-//                    builder.append(new XMLBuilder("h3", true, true).append("Constructors"));
-//                    XMLBuilder con = new XMLBuilder("div").setClass("constructorDoc");
-//                    builder.append(con);
-//                    constructors.set(con);
-//                }
-//                constructors.get().append(parseConstructor((ExecutableElement) el));
-//            });
-//        }
-//
-//        XMLBuilder shorts;
-//        builder.append(shorts = new XMLBuilder("div").setClass("shortFieldMethods"));
-//
-//        AtomicReference<XMLBuilder> fieldShorts = new AtomicReference<>();
-//        AtomicReference<XMLBuilder> fields = new AtomicReference<>();
-//
-//        firstFlag.set(true);
-//        type.getEnclosedElements().stream().filter(e -> e.getKind() == ElementKind.FIELD || e.getKind() == ElementKind.ENUM_CONSTANT).forEach(el -> {
-//            if (!el.getModifiers().contains(Modifier.PUBLIC)) {
-//                return;
-//            }
-//            if (firstFlag.get()) {
-//                firstFlag.set(false);
-//
-//                builder.append(new XMLBuilder("h3", true, true).append("Fields"));
-//
-//                XMLBuilder f = new XMLBuilder("div").setClass("fieldDoc");
-//                builder.append(f);
-//                XMLBuilder fs = new XMLBuilder("div").setClass("fieldShorts").append(new XMLBuilder("h4").append("Fields"));
-//                shorts.append(fs);
-//
-//                fields.set(f);
-//                fieldShorts.set(fs);
-//            }
-//
-//            fields.get().append(parseField(el));
-//            fieldShorts.get().append(
-//                    new XMLBuilder("div").setClass("shortField shortClassItem").append(
-//                            new XMLBuilder("a", true, true).addStringOption("href", getURL(el).getKey()).append(memberName(el)),
-//                            createFlags(el, true)
-//                    )
-//            );
-//        });
-//
-//        AtomicReference<XMLBuilder> methodShorts = new AtomicReference<>();
-//        AtomicReference<XMLBuilder> methods = new AtomicReference<>();
-//
-//        firstFlag.set(true);
-//        type.getEnclosedElements().stream().filter(e -> e.getKind() == ElementKind.METHOD).forEach(el -> {
-//            if (!el.getModifiers().contains(Modifier.PUBLIC)) {
-//                return;
-//            }
-//            if (firstFlag.get()) {
-//                firstFlag.set(false);
-//
-//                builder.append(new XMLBuilder("h3", true, true).append("Methods"));
-//
-//                XMLBuilder m = new XMLBuilder("div").setClass("methodDoc");
-//                builder.append(m);
-//                XMLBuilder ms = new XMLBuilder("div").setClass("methodShorts").append(new XMLBuilder("h4").append("Methods"));
-//                shorts.append(ms);
-//
-//                methods.set(m);
-//                methodShorts.set(ms);
-//            }
-//            methods.get().append(parseMethod((ExecutableElement) el));
-//            methodShorts.get().append(
-//                    new XMLBuilder("div").setClass("shortMethod shortClassItem").append(
-//                            new XMLBuilder("a", true, true).addStringOption("href", getURL(el).getKey()).append(memberName(el)),
-//                            createFlags(el, true)
-//                    )
-//            );
-//        });
-//
-//        return builder;
-//    }
-//
+    private StringBuilder generateLibrary() {
+        StringBuilder builder = new StringBuilder();
+        builder.append(generateSubClasses());
+        builder.append(generateMethods());
+        return builder;
+    }
+
+    private StringBuilder generateEvent() {
+        StringBuilder builder = new StringBuilder();
+        builder.append(generateSubClasses());
+        builder.append(generateConstructors());
+        return builder;
+    }
+
+    private StringBuilder generateClass() {
+        StringBuilder builder = new StringBuilder();
+        builder.append(generateSubClasses());
+        builder.append(generateConstructors());
+        builder.append(generateMethods());
+        return builder;
+    }
+
+    private StringBuilder generateConstructors() {
+        StringBuilder builder = new StringBuilder();
+        List<? extends Element> constructors = type.getEnclosedElements().stream().filter(e -> e.getKind() == ElementKind.CONSTRUCTOR).toList();
+
+        if (constructors.isEmpty()) {
+            return builder;
+        }
+
+        builder.append("## Constructors\n\n");
+
+        constructors.forEach(el -> {
+            if (!el.getModifiers().contains(Modifier.PUBLIC)) {
+                return;
+            }
+            // if (firstFlag.get()) {
+            //     firstFlag.set(false);
+            //     builder.append(new XMLBuilder("h3", true, true).append("Constructors"));
+            //     XMLBuilder con = new XMLBuilder("div").setClass("constructorDoc");
+            //     builder.append(con);
+            //     constructors.set(con);
+            // }
+            // constructors.get().append(parseConstructor(el));
+
+            builder.append(parseConstructor((ExecutableElement) el));
+        });
+        return builder;
+    }
+
     private StringBuilder parseConstructor(ExecutableElement element) {
         StringBuilder builder = new StringBuilder();
 
-        builder.append(String.format("### `new %s(%s)`",
-                    getClassName((TypeElement) element.getEnclosingElement()),
+        builder.append(String.format("### new %s(%s)",
+                    getClassNameWithTypes((TypeElement) element.getEnclosingElement()),
                     createTitleParams(element)))
                 .append("\n\n");
 
@@ -254,73 +222,77 @@ public class ClassParser {
         builder.append(getSince(element));
         builder.append(getDescription(element));
 
-//        StringBuilder paramTable = createParamTable(element);
-//        if (paramTable != null) {
-//            builder.append(paramTable);
-//        }
+        return builder;
+    }
 
+    private StringBuilder generateMethods() {
+        StringBuilder builder = new StringBuilder();
+        List<? extends Element> methods = type.getEnclosedElements().stream().filter(e -> e.getKind() == ElementKind.METHOD).toList();
+        
+        if (methods.isEmpty()) {
+            return builder;
+        }
 
-//        XMLBuilder constructor = new XMLBuilder("div").setClass("constructor classItem").setId(memberId(element));
-//        constructor.append(new XMLBuilder("h4").setClass("constructorTitle classItemTitle").append(
-//                "new ", getClassName((TypeElement) element.getEnclosingElement()), "(",
-//                createTitleParams(element).setClass("constructorParams"),
-//                ")"
-//        ));
-//        constructor.append(createFlags(element, false));
-//        constructor.append(getSince(element));
-//
-//        constructor.append(new XMLBuilder("div").setClass("constructorDesc classItemDesc")
-//                .append(getDescription(element)));
-//
-//        XMLBuilder paramTable = createParamTable(element);
-//        if (paramTable != null) {
-//            constructor.append(paramTable);
-//        }
+        builder.append("## Methods\n\n");
+
+        methods.forEach(el -> {
+            if (!el.getModifiers().contains(Modifier.PUBLIC)) {
+                return;
+            }
+
+            builder.append(parseMethod((ExecutableElement) el));
+            // getURL(el).getKey()).append(memberName(el)
+            // createFlags(el, true)
+        });
 
         return builder;
     }
-//
-//    private XMLBuilder parseMethod(ExecutableElement element) {
-//        XMLBuilder method = new XMLBuilder("div").setClass("method classItem").setId(memberId(element));
-//        XMLBuilder methodTitle;
-//        method.append(methodTitle = new XMLBuilder("h4", true).setClass("methodTitle classItemTitle").append(
-//                ".", element.getSimpleName()
-//        ));
-//
-//        List<? extends TypeParameterElement> params = element.getTypeParameters();
-//        if (params.size() > 0) {
-//            methodTitle.append("<");
-//            for (TypeParameterElement param : params) {
-//                methodTitle.append(parseType(param.asType()), ", ");
-//            }
-//            methodTitle.pop();
-//            methodTitle.append(">");
-//        }
-//
-//        methodTitle.append("(",
-//                createTitleParams(element).setClass("methodParams"),
-//                ")"
-//        );
-//        method.append(createFlags(element, false));
-//        method.append(getSince(element));
-//
-//        method.append(new XMLBuilder("div").setClass("methodDesc classItemDesc").append(getDescription(element)));
-//
-//        XMLBuilder paramTable = createParamTable(element);
-//        if (paramTable != null) {
-//            method.append(paramTable);
-//        }
-//
-//        method.append(new XMLBuilder("div").setClass("methodReturn classItemType").append(
-//                new XMLBuilder("h5", true, true).setClass("methodReturnTitle classItemTypeTitle").append(
-//                        "Returns: ", parseType(element.getReturnType())
-//                ),
-//                getReturnDescription(element).setClass("methodReturnDesc classItemTypeDesc")
-//        ));
-//
-//        return method;
-//    }
-//
+
+    private StringBuilder parseMethod(ExecutableElement element) {
+        StringBuilder builder = new StringBuilder();
+
+        builder.append(String.format("### %s(%s)",
+                        element.getSimpleName().toString(),
+                        createTitleParams(element)))
+                .append("\n\n");
+
+        builder.append(createFlags(element));
+        builder.append(getSince(element));
+        builder.append(getDescription(element));
+
+        return builder;
+    }
+
+    private StringBuilder generateSubClasses() {
+        StringBuilder builder = new StringBuilder();
+        List<? extends Element> subClasses = Main.elements.stream().filter(e -> {
+            if (e.getKind().isClass() || e.getKind().isInterface()) {
+                return Main.types.isAssignable(
+                        e.asType(),
+                        Main.types.getDeclaredType(type)
+                    ) && !e.equals(type);
+            }
+            return false;
+        }).collect(Collectors.toList());
+
+        if (subClasses.isEmpty()) {
+            return builder;
+        }
+
+        builder.append("## Subclasses\n\n");
+        for (Element subClass : subClasses) {
+            Pair<String, Boolean> url = getURL(subClass);
+            builder.append(String.format("- [%s](%s)%s\n",
+                    getClassNameWithTypes((TypeElement) subClass),
+                    url.getKey(),
+                    url.getValue() ? " (external)" : ""
+            ));
+        }
+
+        builder.append("\n");
+        return builder;
+    }
+
 //    private XMLBuilder getReturnDescription(ExecutableElement element) {
 //        DocCommentTree dct = Main.treeUtils.getDocCommentTree(element);
 //        if (dct == null) {
@@ -434,11 +406,13 @@ public class ClassParser {
 
                         //  = new StringBuilder("a", true).addStringOption("href", url.getKey())
 
-                        linkBuilder.append(String.format("[%s](%s)", "", url.getKey()));
 
                         if (List.of(ElementKind.INTERFACE, ElementKind.CLASS, ElementKind.ANNOTATION_TYPE, ElementKind.ENUM).contains(ele.getKind())) {
-                            linkBuilder.append(getClassName((TypeElement) ele));
+                            linkBuilder.append(String.format("[%s](%s)", getClassName((TypeElement) ele), url.getKey()));
                         } else {
+                            linkBuilder.append(String.format("[%s](%s)", memberName(ele),
+                                    url.getKey()
+                            ));
 //                            linkBuilder.append(getClassName((TypeElement) ele.getEnclosingElement()), "#", ele.toString());
                         }
 
@@ -463,7 +437,7 @@ public class ClassParser {
         }
         return builder;
     }
-//
+
 //    private XMLBuilder parseType(TypeMirror type) {
 //        XMLBuilder builder = new XMLBuilder("div", true).setClass("typeParameter");
 //        XMLBuilder typeLink;
@@ -528,13 +502,15 @@ public class ClassParser {
 //    }
 
     /**
-     *
+     * Resolve an element to either an internal or external URL
+     * 
      * @param type The element to get the url to
      * @return a pair containing:
      *         1. the resolved URL, or "" if the element has no URL
      *         2. true if the URL should open in a new tab, false otherwise
      */
     private Pair<String, Boolean> getURL(Element type) {
+        // TODO: Reimplement for mddoclet
         if (type.asType().getKind().isPrimitive()) {
             return new Pair<>("", false);
         }
