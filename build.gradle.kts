@@ -100,7 +100,7 @@ if (isVersionedProject && hasMinecraftVersion) {
             source(documentationSources)
             classpath = documentationClasspath
             destinationDir = File(docsBuildDir, "python/JsMacrosAC")
-            options.doclet = "xyz.wagyourtail.doclet.pydoclet.Main"
+            options.doclet = "xyz.wagyourtail.doclet.core.pydoclet.Main"
             options.docletpath = mutableListOf(docletJarFile)
             (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
         }
@@ -119,7 +119,7 @@ if (isVersionedProject && hasMinecraftVersion) {
             source(documentationSources)
             classpath = documentationClasspath
             destinationDir = File(docsBuildDir, "typescript/headers")
-            options.doclet = "xyz.wagyourtail.doclet.tsdoclet.Main"
+            options.doclet = "xyz.wagyourtail.doclet.core.tsdoclet.Main"
             options.docletpath = mutableListOf(docletJarFile)
             (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
         }
@@ -138,7 +138,7 @@ if (isVersionedProject && hasMinecraftVersion) {
             source(documentationSources)
             classpath = documentationClasspath
             destinationDir = File(docsBuildDir, "web")
-            options.doclet = "xyz.wagyourtail.doclet.webdoclet.Main"
+            options.doclet = "xyz.wagyourtail.doclet.core.webdoclet.Main"
             options.docletpath = mutableListOf(docletJarFile)
             (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
             (options as CoreJavadocOptions).addStringOption("mcv", mcVersion)
@@ -167,7 +167,7 @@ if (isVersionedProject && hasMinecraftVersion) {
             source(documentationSources)
             classpath = documentationClasspath
             destinationDir = File(docsBuildDir, "vitepress")
-            options.doclet = "xyz.wagyourtail.doclet.mddoclet.Main"
+            options.doclet = "xyz.wagyourtail.doclet.core.mddoclet.Main"
             options.docletpath = mutableListOf(docletJarFile)
             (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
             (options as CoreJavadocOptions).addStringOption("mcv", mcVersion)
@@ -185,7 +185,7 @@ if (isVersionedProject && hasMinecraftVersion) {
             from(rootProject.file("docs/vitepress"))
             into(File(docsBuildDir, "vitepress"))
             inputs.property("version", project.version.toString())
-            filesMatching("index.html") {
+            filesMatching("index.md") {
                 expand(mapOf("version" to project.version.toString()))
             }
         }

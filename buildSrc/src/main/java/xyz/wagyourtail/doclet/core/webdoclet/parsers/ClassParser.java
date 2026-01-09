@@ -1,10 +1,10 @@
-package xyz.wagyourtail.doclet.webdoclet.parsers;
+package xyz.wagyourtail.doclet.core.webdoclet.parsers;
 
 import com.sun.source.doctree.*;
 import com.sun.source.util.DocTreePath;
 import xyz.wagyourtail.Pair;
 import xyz.wagyourtail.XMLBuilder;
-import xyz.wagyourtail.doclet.webdoclet.Main;
+import xyz.wagyourtail.doclet.core.webdoclet.Main;
 import xyz.wagyourtail.doclet.webdoclet.options.Links;
 
 import javax.lang.model.element.*;

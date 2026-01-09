@@ -37,3 +37,7 @@ doc/
 docs/web/[0-9]*
 
 /META-INF/
+
+node_modules/
+**/.vitepress/cache/
+**/.vitepress/dist/

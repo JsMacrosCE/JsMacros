@@ -1,27 +1,32 @@
-package xyz.wagyourtail.doclet.mddoclet;
+package xyz.wagyourtail.doclet.core.webdoclet;
 
 import com.sun.source.util.DocTrees;
 import jdk.javadoc.doclet.Doclet;
 import jdk.javadoc.doclet.DocletEnvironment;
 import jdk.javadoc.doclet.Reporter;
-import org.jetbrains.annotations.NotNull;
 import xyz.wagyourtail.FileHandler;
-import xyz.wagyourtail.doclet.DocletIgnore;
+import xyz.wagyourtail.doclet.core.webdoclet.parsers.ClassParser;
 import xyz.wagyourtail.doclet.options.IgnoredItem;
 import xyz.wagyourtail.doclet.options.OutputDirectory;
 import xyz.wagyourtail.doclet.options.Version;
-import xyz.wagyourtail.doclet.mddoclet.options.Links;
-import xyz.wagyourtail.doclet.mddoclet.options.McVersion;
-import xyz.wagyourtail.doclet.mddoclet.parsers.ClassParser;
+import xyz.wagyourtail.doclet.webdoclet.options.Links;
+import xyz.wagyourtail.doclet.webdoclet.options.McVersion;
 
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.*;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public class Main implements Doclet {
     public static Reporter reporter;
@@ -39,7 +44,7 @@ public class Main implements Doclet {
 
     @Override
     public String getName() {
-        return "VitePressDoc Generator";
+        return "WebDoc Generator (Core)";
     }
 
     @Override
@@ -68,54 +73,60 @@ public class Main implements Doclet {
         types = environment.getTypeUtils();
         elementUtils = environment.getElementUtils();
 
-        elements = new HashSet<>(elements.stream().filter(element -> !shouldIgnore(element)).toList());
-
         File outDir = new File(OutputDirectory.outputDir, Version.version);
-
         try {
             if (!outDir.exists() && !outDir.mkdirs()) {
                 reporter.print(Diagnostic.Kind.ERROR, "Failed to create version dir\n");
                 return false;
             }
 
-            //create package-list
             StringBuilder pkgList = new StringBuilder();
-            elements.stream().filter(e -> e.getKind() == ElementKind.PACKAGE).map(e -> (PackageElement) e).forEach(e -> {
-                if (Links.externalPackages.containsKey(e.getQualifiedName().toString())) {
-                    return;
+            for (Element element : elements) {
+                if (element.getKind() != javax.lang.model.element.ElementKind.PACKAGE) {
+                    continue;
                 }
-                pkgList.append(e.getQualifiedName()).append("\n");
-            });
-            pkgList.setLength(pkgList.length() - 1);
+                String name = ((javax.lang.model.element.PackageElement) element).getQualifiedName().toString();
+                if (Links.externalPackages.containsKey(name)) {
+                    continue;
+                }
+                pkgList.append(name).append("\n");
+            }
+            if (pkgList.length() > 0) {
+                pkgList.setLength(pkgList.length() - 1);
+            }
             new FileHandler(new File(outDir, "package-list")).write(pkgList.toString());
 
             elements.stream().filter(e -> e instanceof TypeElement).map(e -> (TypeElement) e).forEach(e -> {
                 AnnotationMirror mirror = e.getAnnotationMirrors().stream().filter(a -> a.getAnnotationType().asElement().getSimpleName().toString().equals("Event")).findFirst().orElse(null);
                 //Event
                 if (mirror != null) {
-                    internalClasses.put(e, new ClassParser(e, Group.Event, getAnnotationValue("value", mirror).toString()));
+                    internalClasses.put(e, new ClassParser(e, "Event", getAnnotationValue("value", mirror).toString()));
                     return;
                 }
 
                 mirror = e.getAnnotationMirrors().stream().filter(a -> a.getAnnotationType().asElement().getSimpleName().toString().equals("Library")).findFirst().orElse(null);
                 //Library
                 if (mirror != null) {
-                    internalClasses.put(e, new ClassParser(e, Group.Library, getAnnotationValue("value", mirror).toString()));
+                    internalClasses.put(e, new ClassParser(e, "Library", getAnnotationValue("value", mirror).toString()));
                     return;
                 }
 
-                internalClasses.put(e, new ClassParser(e, Group.Class, null));
+                internalClasses.put(e, new ClassParser(e, "Class", null));
             });
 
+            StringBuilder searchList = new StringBuilder();
             for (ClassParser value : internalClasses.values()) {
-                File out = new File(outDir, value.getPathPart() + ".md");
+                searchList.append(value.genSearchData());
+                File out = new File(outDir, value.getPathPart() + ".html");
                 File parent = out.getParentFile();
                 if (!parent.exists() && !parent.mkdirs()) {
                     reporter.print(Diagnostic.Kind.ERROR, "Failed to create package dir " + parent + "\n");
                     return false;
                 }
-                new FileHandler(out).write(value.generateMarkdown());
+                new FileHandler(out).write(value.genXML());
             }
+            new FileHandler(new File(outDir, "search-list")).write(searchList.toString());
+
         } catch (IOException e) {
             e.printStackTrace();
             return false;
@@ -130,10 +141,6 @@ public class Main implements Doclet {
             }
         }
         return null;
-    }
-
-    private static boolean shouldIgnore(@NotNull Element e) {
-        return e.getAnnotation(DocletIgnore.class) != null;
     }
 
 }
