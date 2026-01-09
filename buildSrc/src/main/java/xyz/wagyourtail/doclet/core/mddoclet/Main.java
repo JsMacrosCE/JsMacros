@@ -18,6 +18,7 @@ import javax.lang.model.SourceVersion;
 import javax.tools.Diagnostic;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Set;
 
@@ -59,7 +60,7 @@ public class Main implements Doclet {
         DocletModelBuilder builder = new DocletModelBuilder(typeResolver, new BasicDocCommentParser(trees));
         var model = builder.build(environment);
 
-        File outDir = new File(OutputDirectory.outputDir, Version.version);
+        File outDir = new File(OutputDirectory.outputDir.toPath().resolve("content").toString(), Version.version);
         if (!outDir.exists() && !outDir.mkdirs()) {
             reporter.print(Diagnostic.Kind.ERROR, "Failed to create version dir\n");
             return false;

@@ -13,12 +13,15 @@ import xyz.wagyourtail.doclet.core.model.MemberKind;
 import xyz.wagyourtail.doclet.core.model.PackageDoc;
 import xyz.wagyourtail.doclet.core.model.ParamDoc;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 public class MarkdownWriter {
@@ -35,6 +38,8 @@ public class MarkdownWriter {
         "java.lang.Double", "double",
         "java.lang.Number", "number"
     );
+    private static final String DEFAULT_CATEGORY = "Uncategorized";
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private final TypeResolver typeResolver;
 
     public MarkdownWriter(TypeResolver typeResolver) {
@@ -42,6 +47,16 @@ public class MarkdownWriter {
     }
 
     public void write(DocletModel model, File outDir, String version, String mcVersion) throws IOException {
+        Map<String, List<ClassDoc>> classCategories = groupByCategory(model, "Class");
+        Map<String, List<ClassDoc>> eventCategories = groupByCategory(model, "Event");
+        Map<String, List<ClassDoc>> libraryCategories = groupByCategory(model, "Library");
+        SidebarData sidebarData = new SidebarData(
+            version,
+            mapToSidebarCategories(classCategories, version),
+            mapToSidebarCategories(eventCategories, version),
+            mapToSidebarCategories(libraryCategories, version)
+        );
+
         for (PackageDoc pkg : model.packages()) {
             for (ClassDoc clz : pkg.classes()) {
                 File out = new File(outDir, classPath(clz) + ".md");
@@ -53,16 +68,36 @@ public class MarkdownWriter {
             }
         }
 
-        writeGroupIndexes(model, outDir, version, mcVersion);
+        writeGroupIndexes(model, outDir, version, mcVersion, classCategories, eventCategories, libraryCategories);
+        writeSidebarData(outDir, sidebarData);
     }
 
     private String classPath(ClassDoc clz) {
         String pkgPath = clz.packageName().replace('.', '/');
         String namePath = clz.name().replace('$', '.');
-        return pkgPath.isEmpty() ? namePath : pkgPath + "/" + namePath;
+        String basePath = pkgPath.isEmpty() ? namePath : pkgPath + "/" + namePath;
+        String groupPrefix = groupPathPrefix(clz);
+        return groupPrefix.isEmpty() ? basePath : groupPrefix + "/" + basePath;
     }
 
-    private void writeGroupIndexes(DocletModel model, File outDir, String version, String mcVersion) throws IOException {
+    private String groupPathPrefix(ClassDoc clz) {
+        return switch (clz.group()) {
+            case "Event" -> "events";
+            case "Class" -> "classes";
+            case "Library" -> "libraries";
+            default -> "";
+        };
+    }
+
+    private void writeGroupIndexes(
+        DocletModel model,
+        File outDir,
+        String version,
+        String mcVersion,
+        Map<String, List<ClassDoc>> classCategories,
+        Map<String, List<ClassDoc>> eventCategories,
+        Map<String, List<ClassDoc>> libraryCategories
+    ) throws IOException {
         Map<String, List<ClassDoc>> grouped = new java.util.HashMap<>();
         for (PackageDoc pkg : model.packages()) {
             for (ClassDoc clz : pkg.classes()) {
@@ -76,11 +111,11 @@ public class MarkdownWriter {
         new FileHandler(new File(outDir, "index.md"))
             .write(renderOverview(grouped, version, mcVersion));
         new FileHandler(new File(outDir, "libraries.md"))
-            .write(renderGroupPage("Libraries", grouped.getOrDefault("Library", List.of()), true));
+            .write(renderGroupPage("Libraries", grouped.getOrDefault("Library", List.of()), true, libraryCategories));
         new FileHandler(new File(outDir, "events.md"))
-            .write(renderGroupPage("Events", grouped.getOrDefault("Event", List.of()), true));
+            .write(renderGroupPage("Events", grouped.getOrDefault("Event", List.of()), true, eventCategories));
         new FileHandler(new File(outDir, "classes.md"))
-            .write(renderGroupPage("Classes", grouped.getOrDefault("Class", List.of()), false));
+            .write(renderGroupPage("Classes", grouped.getOrDefault("Class", List.of()), false, classCategories));
     }
 
     private String renderOverview(Map<String, List<ClassDoc>> grouped, String version, String mcVersion) {
@@ -96,32 +131,107 @@ public class MarkdownWriter {
         return builder.toString();
     }
 
-    private String renderGroupPage(String title, List<ClassDoc> classes, boolean includeAlias) {
+    private String renderGroupPage(String title, List<ClassDoc> classes, boolean preferAlias, Map<String, List<ClassDoc>> categories) {
         StringBuilder builder = new StringBuilder();
         builder.append("---\noutline: false\n---\n\n");
         builder.append("# ").append(title).append("\n\n");
-        if (classes.isEmpty()) {
+        if ((categories == null || categories.isEmpty()) && classes.isEmpty()) {
             builder.append("No entries found.\n");
             return builder.toString();
         }
-        for (ClassDoc clz : classes) {
+        if (categories != null && !categories.isEmpty()) {
+            for (Map.Entry<String, List<ClassDoc>> entry : categories.entrySet()) {
+                builder.append("### ").append(entry.getKey()).append("\n\n");
+                renderGroupEntries(entry.getValue(), preferAlias, builder);
+                builder.append("\n");
+            }
+            return builder.toString();
+        }
+        renderGroupEntries(classes, preferAlias, builder);
+        return builder.toString();
+    }
+
+    private void renderGroupEntries(List<ClassDoc> entries, boolean preferAlias, StringBuilder builder) {
+        if (entries == null || entries.isEmpty()) {
+            builder.append("No entries found.\n");
+            return;
+        }
+        for (ClassDoc clz : entries) {
+            String linkText = preferAlias && hasAlias(clz)
+                ? clz.alias()
+                : clz.qualifiedName();
             builder.append("- [")
-                .append(clz.qualifiedName())
+                .append(linkText)
                 .append("](./")
                 .append(classPath(clz))
                 .append(".md)");
-            if (includeAlias && clz.alias() != null && !clz.alias().isEmpty()) {
-                builder.append(" - `").append(clz.alias()).append("`");
+            if (preferAlias && hasAlias(clz) && !linkText.equals(clz.qualifiedName())) {
+                builder.append(" (`").append(clz.qualifiedName()).append("`)");
             }
             builder.append("\n");
         }
-        return builder.toString();
     }
+
+    private boolean hasAlias(ClassDoc clz) {
+        return clz.alias() != null && !clz.alias().isBlank();
+    }
+
+    private Map<String, List<ClassDoc>> groupByCategory(DocletModel model, String targetGroup) {
+        Map<String, List<ClassDoc>> categories = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (PackageDoc pkg : model.packages()) {
+            for (ClassDoc clz : pkg.classes()) {
+                if (!targetGroup.equals(clz.group())) {
+                    continue;
+                }
+                String category = clz.category();
+                if (category == null || category.isBlank()) {
+                    category = DEFAULT_CATEGORY;
+                }
+                categories.computeIfAbsent(category, key -> new ArrayList<>()).add(clz);
+            }
+        }
+        for (List<ClassDoc> list : categories.values()) {
+            list.sort(Comparator.comparing(this::sidebarSortKey, String.CASE_INSENSITIVE_ORDER));
+        }
+        return categories;
+    }
+
+    private String sidebarSortKey(ClassDoc clz) {
+        return hasAlias(clz) ? clz.alias() : clz.name();
+    }
+
+    private List<SidebarCategory> mapToSidebarCategories(Map<String, List<ClassDoc>> categories, String version) {
+        List<SidebarCategory> sections = new ArrayList<>();
+        for (Map.Entry<String, List<ClassDoc>> entry : categories.entrySet()) {
+            List<SidebarItem> items = new ArrayList<>();
+            for (ClassDoc clz : entry.getValue()) {
+                String link = "/" + version + "/" + classPath(clz);
+                items.add(new SidebarItem(displayLabel(clz), link));
+            }
+            sections.add(new SidebarCategory(entry.getKey(), items));
+        }
+        return sections;
+    }
+
+    private String displayLabel(ClassDoc clz) {
+        if (hasAlias(clz)) {
+            return clz.alias();
+        }
+        return clz.name();
+    }
+
+    private void writeSidebarData(File outDir, SidebarData data) throws IOException {
+        new FileHandler(new File(outDir, "sidebar-data.json")).write(GSON.toJson(data));
+    }
+
+    private record SidebarItem(String text, String link) {}
+    private record SidebarCategory(String name, List<SidebarItem> items) {}
+    private record SidebarData(String version, List<SidebarCategory> classes, List<SidebarCategory> events, List<SidebarCategory> libraries) {}
 
     private String renderClass(ClassDoc clz) {
         StringBuilder builder = new StringBuilder();
         builder.append("---\noutline: deep\n---\n\n");
-        builder.append("# ").append(clz.name()).append("\n\n");
+        builder.append("# ").append(displayTitle(clz)).append("\n\n");
         builder.append(clz.qualifiedName()).append("\n\n");
         String desc = formatDescription(clz.docComment());
         builder.append(desc.isEmpty() ? "TODO: No description supplied" : desc);
@@ -135,6 +245,13 @@ public class MarkdownWriter {
         renderMemberSection(builder, clz, MemberKind.FIELD, "Fields");
         renderMemberSection(builder, clz, MemberKind.METHOD, "Methods");
         return builder.toString();
+    }
+
+    private String displayTitle(ClassDoc clz) {
+        if ("Event".equals(clz.group()) && hasAlias(clz)) {
+            return clz.alias();
+        }
+        return clz.name();
     }
 
     private void renderMemberSection(StringBuilder builder, ClassDoc clz, MemberKind kind, String title) {
@@ -175,6 +292,8 @@ public class MarkdownWriter {
     private String renderMemberTitle(MemberDoc member) {
         if (member.kind() == MemberKind.CONSTRUCTOR) {
             return "new " + member.name() + "(" + renderParamNames(member) + ")";
+        } else if (member.kind() == MemberKind.FIELD) {
+            return member.name();
         }
         return member.name() + "(" + renderParamNames(member) + ")";
     }

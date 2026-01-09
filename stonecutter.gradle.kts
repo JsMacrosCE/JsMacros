@@ -27,6 +27,14 @@ val distDirFile = distDir.asFile
 val docsBuildDir = layout.buildDirectory.dir("docs").get().asFile
 val docletJarFile = layout.projectDirectory.file("buildSrc/build/libs/buildSrc.jar").asFile
 
+repositories {
+    mavenCentral()
+}
+
+val docletClasspath = configurations.detachedConfiguration(
+    dependencies.create("com.google.code.gson:gson:2.9.0")
+)
+
 // Root-level properties
 val modIdProvider = providers.gradleProperty("mod_id")
 val channelProvider = providers.gradleProperty("channel").orElse("release")
@@ -141,7 +149,7 @@ gradle.projectsEvaluated {
         classpath = documentationClasspath
         destinationDir = File(docsBuildDir, "python/JsMacrosAC")
         options.doclet = "xyz.wagyourtail.doclet.core.pydoclet.Main"
-        options.docletpath = mutableListOf(docletJarFile)
+        options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
         (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
     }
 
@@ -160,7 +168,7 @@ gradle.projectsEvaluated {
         classpath = documentationClasspath
         destinationDir = File(docsBuildDir, "typescript/headers")
         options.doclet = "xyz.wagyourtail.doclet.core.tsdoclet.Main"
-        options.docletpath = mutableListOf(docletJarFile)
+        options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
         (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
     }
 
@@ -179,7 +187,7 @@ gradle.projectsEvaluated {
         classpath = documentationClasspath
         destinationDir = File(docsBuildDir, "web")
         options.doclet = "xyz.wagyourtail.doclet.core.webdoclet.Main"
-        options.docletpath = mutableListOf(docletJarFile)
+        options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
         (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
         (options as CoreJavadocOptions).addStringOption("mcv", mcVersion)
         (options as StandardJavadocDocletOptions).links(
@@ -208,7 +216,7 @@ gradle.projectsEvaluated {
         classpath = documentationClasspath
         destinationDir = File(docsBuildDir, "vitepress")
         options.doclet = "xyz.wagyourtail.doclet.core.mddoclet.Main"
-        options.docletpath = mutableListOf(docletJarFile)
+        options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
         (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
         (options as CoreJavadocOptions).addStringOption("mcv", mcVersion)
         (options as StandardJavadocDocletOptions).links(
