@@ -18,10 +18,10 @@ public class MixinSplashOverlay {
 
     @Inject(
             //? if >1.21.8 {
-            method = "tick",
-            //?} else {
-            /*method = "render",
-            *///?}
+            /*method = "tick",
+            *///?} else {
+            method = "render",
+            //?}
             at = @At(value = "FIELD", target = "Lnet/minecraft/client/gui/screens/LoadingOverlay;fadeOutStart:J", opcode = Opcodes.PUTFIELD))
     private void onReloadComplete(CallbackInfo ci) {
         new EventResourcePackLoaded(!fadeIn).trigger();

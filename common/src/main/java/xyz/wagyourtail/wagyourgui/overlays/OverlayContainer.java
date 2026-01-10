@@ -11,9 +11,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 //? if >1.21.8 {
-import net.minecraft.client.input.KeyEvent;
+/*import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
-//?}
+*///?}
 
 public abstract class OverlayContainer extends MultiElementContainer<IOverlayParent> implements IOverlayParent {
     public Map<AbstractWidget, Boolean> savedBtnStates = new HashMap<>();
@@ -87,37 +87,37 @@ public abstract class OverlayContainer extends MultiElementContainer<IOverlayPar
     }
 
     //? if >1.21.8 {
-    public void onClick(MouseButtonEvent buttonEvent, boolean debounce) {
+    /*public void onClick(MouseButtonEvent buttonEvent, boolean debounce) {
         if (overlay != null) {
             overlay.onClick(buttonEvent, debounce);
         }
     }
-    //?} else {
-    /*public void onClick(double mouseX, double mouseY, int button) {
+    *///?} else {
+    public void onClick(double mouseX, double mouseY, int button) {
         if (overlay != null) {
             overlay.onClick(mouseX, mouseY, button);
         }
     }
-    *///?}
+    //?}
 
     /**
      * @return true if should be handled by overlay
      */
     //? if >1.21.8 {
-    public boolean keyPressed(KeyEvent keyEvent) {
+    /*public boolean keyPressed(KeyEvent keyEvent) {
         if (overlay != null) {
             overlay.keyPressed(keyEvent);
         }
         return false;
     }
-    //?} else {
-    /*public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    *///?} else {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (overlay != null) {
             overlay.keyPressed(keyCode, scanCode, modifiers);
         }
         return false;
     }
-    *///?}
+    //?}
 
     public void close() {
         parent.closeOverlay(this);

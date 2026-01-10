@@ -8,8 +8,8 @@ import net.minecraft.network.chat.Component;
 import java.util.function.Consumer;
 
 //? if >1.21.8 {
-import net.minecraft.client.input.MouseButtonEvent;
-//?}
+/*import net.minecraft.client.input.MouseButtonEvent;
+*///?}
 
 public class Scrollbar extends AbstractWidget {
     protected double scrollPages = 1;
@@ -64,11 +64,11 @@ public class Scrollbar extends AbstractWidget {
 
     @Override
     //? if >1.21.8 {
-    public void onClick(MouseButtonEvent buttonEvent, boolean debounce) {
+    /*public void onClick(MouseButtonEvent buttonEvent, boolean debounce) {
         double mouseY = buttonEvent.y();
-    //?} else {
-    /*public void onClick(double mouseX, double mouseY) {
-    *///?}
+    *///?} else {
+    public void onClick(double mouseX, double mouseY) {
+    //?}
         if (this.active) {
             double mpos = mouseY - getY() - 1;
             if (mpos < scrollAmount) {
@@ -90,11 +90,11 @@ public class Scrollbar extends AbstractWidget {
 
     @Override
     //? if >1.21.8 {
-    public boolean mouseDragged(MouseButtonEvent buttonEvent, double deltaX, double deltaY) {
+    /*public boolean mouseDragged(MouseButtonEvent buttonEvent, double deltaX, double deltaY) {
         double mouseY = buttonEvent.y();
-    //?} else {
-    /*public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-    *///?}
+    *///?} else {
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+    //?}
         scrollAmount += deltaY;
         if (scrollAmount > scrollDistance) {
             scrollAmount = scrollDistance;
@@ -104,10 +104,10 @@ public class Scrollbar extends AbstractWidget {
         }
         onChange();
         //? if >1.21.8 {
-        return super.mouseDragged(buttonEvent, deltaX, deltaY);
-        //?} else {
-        /*return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
-        *///?}
+        /*return super.mouseDragged(buttonEvent, deltaX, deltaY);
+        *///?} else {
+        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+        //?}
     }
 
     @Override

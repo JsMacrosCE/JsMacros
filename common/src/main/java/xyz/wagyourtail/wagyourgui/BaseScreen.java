@@ -18,10 +18,10 @@ import xyz.wagyourtail.wagyourgui.overlays.IOverlayParent;
 import xyz.wagyourtail.wagyourgui.overlays.OverlayContainer;
 
 //? if >1.21.8 {
-import net.minecraft.client.input.KeyEvent;
+/*import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
-//?}
+*///?}
 
 public abstract class BaseScreen extends Screen implements IOverlayParent {
     protected Screen parent;
@@ -128,7 +128,7 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
     }
 
     //? if >1.21.8 {
-    @Override
+    /*@Override
     public boolean keyPressed(KeyEvent keyEvent) {
         if (keyEvent.isEscape()) {
             if (overlay != null) {
@@ -138,8 +138,8 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
         }
         return super.keyPressed(keyEvent);
     }
-    //?} else {
-    /*@Override
+    *///?} else {
+    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             if (overlay != null) {
@@ -149,48 +149,48 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
-    *///?}
+    //?}
 
     // TODO: This is a bad way to scroll
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horiz, double vert) {
         if (overlay != null && overlay.scroll != null) {
             //? if >1.21.8 {
-            MouseButtonEvent evt = new MouseButtonEvent(
+            /*MouseButtonEvent evt = new MouseButtonEvent(
                     mouseX,
                     mouseY,
                     new MouseButtonInfo(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0));
-            //?}
+            *///?}
             overlay.scroll.mouseDragged(
                     //? if >1.21.8 {
-                    evt,
-                    //?} else {
-                    /*mouseX,
+                    /*evt,
+                    *///?} else {
+                    mouseX,
                     mouseY,
                     0,
-                    *///?}
+                    //?}
                     0, -vert * 2);
         }
         return super.mouseScrolled(mouseX, mouseY, horiz, vert);
     }
 
     //? if >1.21.8 {
-    @Override
+    /*@Override
     public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean debounce) {
         if (overlay != null) {
             overlay.onClick(buttonEvent, debounce);
         }
         return super.mouseClicked(buttonEvent, debounce);
     }
-    //?} else {
-    /*@Override
+    *///?} else {
+    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (overlay != null) {
             overlay.onClick(mouseX, mouseY, button);
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
-    *///?}
+    //?}
 
     @Override
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {

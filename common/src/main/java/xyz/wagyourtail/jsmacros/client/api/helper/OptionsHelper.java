@@ -32,8 +32,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 //? if >1.21.8 {
-import net.minecraft.resources.ResourceLocation;
-//?}
+/*import net.minecraft.resources.ResourceLocation;
+*///?}
 
 /**
  * @author Etheradon
@@ -334,10 +334,10 @@ public class OptionsHelper extends BaseHelper<Options> {
     private long getWindowHandle() {
         Window win = mc.getWindow();
         //? if >1.21.8 {
-         long handle = win.handle(); 
-        //?} else {
-        /*long handle = win.getWindow();
-        *///?}
+         /*long handle = win.handle(); 
+        *///?} else {
+        long handle = win.getWindow();
+        //?}
         return handle;
     }
 
@@ -1446,10 +1446,10 @@ public class OptionsHelper extends BaseHelper<Options> {
          */
         public boolean isMouseInverted() {
             //? if >1.21.8 {
-            return base.invertMouseY().get();
-            //?} else {
-            /*return base.invertYMouse().get();
-            *///?}
+            /*return base.invertMouseY().get();
+            *///?} else {
+            return base.invertYMouse().get();
+            //?}
         }
 
         /**
@@ -1459,10 +1459,10 @@ public class OptionsHelper extends BaseHelper<Options> {
          */
         public ControlOptionsHelper invertMouse(boolean val) {
             //? if >1.21.8 {
-            base.invertMouseY().set(val);
-            //?} else {
-            /*base.invertYMouse().set(val);
-            *///?}
+            /*base.invertMouseY().set(val);
+            *///?} else {
+            base.invertYMouse().set(val);
+            //?}
             return this;
         }
 
@@ -1617,9 +1617,9 @@ public class OptionsHelper extends BaseHelper<Options> {
             return Arrays.stream(base.keyMappings)
                     .map(KeyMapping::getCategory)
                     //? if >1.21.8 {
-                    .map(KeyMapping.Category::id)
+                    /*.map(KeyMapping.Category::id)
                     .map(ResourceLocation::toString)
-                    //?}
+                    *///?}
                     .distinct()
                     .collect(Collectors.toList());
         }
@@ -1668,10 +1668,10 @@ public class OptionsHelper extends BaseHelper<Options> {
             for (KeyMapping key : Minecraft.getInstance().options.keyMappings) {
                 Map<String, String> categoryMap;
                 //? >1.21.8 {
-                String category = key.getCategory().id().toLanguageKey();
-                //?} else {
-                /*String category = key.getCategory();
-                *///?}
+                /*String category = key.getCategory().id().toLanguageKey();
+                *///?} else {
+                String category = key.getCategory();
+                //?}
                 if (!entries.containsKey(category)) {
                     categoryMap = new HashMap<>();
                     entries.put(category, categoryMap);

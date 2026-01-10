@@ -9,9 +9,9 @@ import net.minecraft.util.FormattedCharSequence;
 import xyz.wagyourtail.jsmacros.client.util.ColorUtil;
 
 //? if >1.21.8 {
-import net.minecraft.client.input.InputWithModifiers;
+/*import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.input.MouseButtonEvent;
-//?}
+*///?}
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -113,42 +113,42 @@ public class Button extends AbstractButton {
     // as the target key.
     @Override
     //? if >1.21.8 {
-    public void onClick(MouseButtonEvent buttonEvent, boolean debounce) {
+    /*public void onClick(MouseButtonEvent buttonEvent, boolean debounce) {
     }
-    //?} else {
-    /*public void onClick(double mouseX, double mouseY) {
+    *///?} else {
+    public void onClick(double mouseX, double mouseY) {
     }
-    *///?}
+    //?}
 
     @Override
     //? if >1.21.8 {
-    public void onRelease(MouseButtonEvent buttonEvent) {
+    /*public void onRelease(MouseButtonEvent buttonEvent) {
         if (this.isActive()) {
             super.onClick(buttonEvent, true);
         }
     }
-    //?} else {
-    /*public void onRelease(double mouseX, double mouseY) {
+    *///?} else {
+    public void onRelease(double mouseX, double mouseY) {
         if (this.active) {
             super.onClick(mouseX, mouseY);
         }
     }
-    *///?}
+    //?}
 
     @Override
     //? if >1.21.8 {
-    public void onPress(InputWithModifiers input) {
+    /*public void onPress(InputWithModifiers input) {
         if (onPress != null) {
             onPress.accept(this);
         }
     }
-    //?} else {
-    /*public void onPress() {
+    *///?} else {
+    public void onPress() {
         if (onPress != null) {
             onPress.accept(this);
         }
     }
-    *///?}
+    //?}
 
     @Override
     protected void updateWidgetNarration(NarrationElementOutput builder) {

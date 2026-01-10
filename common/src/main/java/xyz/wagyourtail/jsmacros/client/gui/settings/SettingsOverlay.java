@@ -4,8 +4,8 @@ import com.google.common.collect.Lists;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 //? if >1.21.8 {
-import net.minecraft.client.input.KeyEvent;
-//?}
+/*import net.minecraft.client.input.KeyEvent;
+*///?}
 import net.minecraft.network.chat.Component;
 import xyz.wagyourtail.jsmacros.client.JsMacrosClient;
 import xyz.wagyourtail.jsmacros.client.gui.settings.settingcontainer.*;
@@ -206,12 +206,12 @@ public class SettingsOverlay extends OverlayContainer implements ICategoryTreePa
 
     @Override
     //? if >1.21.8 {
-    public boolean keyPressed(KeyEvent keyEvent) {
+    /*public boolean keyPressed(KeyEvent keyEvent) {
         super.keyPressed(keyEvent);
-    //?} else {
-    /*public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    *///?} else {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         super.keyPressed(keyCode, scanCode, modifiers);
-    *///?}
+    //?}
         return true;
     }
 

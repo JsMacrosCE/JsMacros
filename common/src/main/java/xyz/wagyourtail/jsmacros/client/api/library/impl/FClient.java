@@ -46,10 +46,10 @@ import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 //? if >1.21.8 {
-import net.minecraft.ChatFormatting;
+/*import net.minecraft.ChatFormatting;
 import net.minecraft.client.CloudStatus;
 import java.util.Locale;
-//?}
+*///?}
 
 /**
  * Functions that interact with minecraft that don't fit into their own module.
@@ -188,7 +188,7 @@ public class FClient extends PerExecLibrary {
      */
     public String getFPS() {
         //? if >1.21.8 {
-        int framerateLimit = mc.options.framerateLimit().get();
+        /*int framerateLimit = mc.options.framerateLimit().get();
         String string;
         if (mc.getGpuUtilization() > 0.0) {
             string = " GPU: " + (mc.getGpuUtilization() > 100.0 ? ChatFormatting.RED + "100%" : Math.round(mc.getGpuUtilization()) + "%");
@@ -209,9 +209,9 @@ public class FClient extends PerExecLibrary {
                 mc.options.biomeBlendRadius().get(),
                 string
         );
-        //?} else {
-        /*return mc.fpsString;
-        *///?}
+        *///?} else {
+        return mc.fpsString;
+        //?}
     }
 
     /**

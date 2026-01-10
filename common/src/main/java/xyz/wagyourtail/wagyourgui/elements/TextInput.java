@@ -5,10 +5,10 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 //? if >1.21.8 {
-import net.minecraft.client.input.CharacterEvent;
+/*import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
-//?}
+*///?}
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -59,11 +59,11 @@ public class TextInput extends Button {
 
     @Override
     //? if >1.21.8 {
-    public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean debounce) {
+    /*public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean debounce) {
         double mouseX = buttonEvent.x();
-    //?} else {
-    /*public boolean mouseClicked(double mouseX, double mouseY, int button) {
-    *///?}
+    *///?} else {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    //?}
         if (this.isFocused()) {
             int pos = textRenderer.plainSubstrByWidth(content, (int) (mouseX - getX() - 2)).length();
             updateSelStart(pos);
@@ -71,19 +71,19 @@ public class TextInput extends Button {
             arrowCursor = pos;
         }
         //? if >1.21.8 {
-        return super.mouseClicked(buttonEvent, debounce);
-        //?} else {
-        /*return super.mouseClicked(mouseX, mouseY, button);
-        *///?}
+        /*return super.mouseClicked(buttonEvent, debounce);
+        *///?} else {
+        return super.mouseClicked(mouseX, mouseY, button);
+        //?}
     }
 
     @Override
     //? if >1.21.8 {
-    public boolean mouseDragged(MouseButtonEvent buttonEvent, double deltaX, double deltaY) {
+    /*public boolean mouseDragged(MouseButtonEvent buttonEvent, double deltaX, double deltaY) {
         double mouseX = buttonEvent.x();
-    //?} else {
-    /*public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
-    *///?}
+    *///?} else {
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+    //?}
         if (this.isFocused()) {
             int pos = textRenderer.plainSubstrByWidth(content, (int) (mouseX - getX() - 2)).length();
             updateSelEnd(pos);
@@ -91,10 +91,10 @@ public class TextInput extends Button {
         }
 
         //? if >1.21.8 {
-        return super.mouseDragged(buttonEvent, deltaX, deltaY);
-        //?} else {
-        /*return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
-        *///?}
+        /*return super.mouseDragged(buttonEvent, deltaX, deltaY);
+        *///?} else {
+        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+        //?}
     }
 
     public void swapStartEnd() {
@@ -106,21 +106,21 @@ public class TextInput extends Button {
 
     @Override
     //? if >1.21.8 {
-    public boolean keyPressed(KeyEvent keyEvent) {
+    /*public boolean keyPressed(KeyEvent keyEvent) {
         boolean selectAll = keyEvent.isSelectAll();
         boolean isCopy = keyEvent.isCopy();
         boolean isPaste = keyEvent.isPaste();
         boolean isCut = keyEvent.isCut();
         boolean isCtrl = keyEvent.hasControlDown();
         int keyCode = keyEvent.key();
-        //?} else {
-    /*public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        *///?} else {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         boolean selectAll = Screen.isSelectAll(keyCode);
         boolean isCopy = Screen.isCopy(keyCode);
         boolean isPaste = Screen.isPaste(keyCode);
         boolean isCut = Screen.isCut(keyCode);
         boolean isCtrl = Screen.hasControlDown();
-        *///?}
+        //?}
 
         if (this.isFocused()) {
             if (selEndIndex < selStartIndex) {
@@ -213,19 +213,19 @@ public class TextInput extends Button {
             }
         }
         //? if >1.21.8 {
-        return super.keyPressed(keyEvent);
-        //?} else {
-        /*return super.keyPressed(keyCode, scanCode, modifiers);
-        *///?}
+        /*return super.keyPressed(keyEvent);
+        *///?} else {
+        return super.keyPressed(keyCode, scanCode, modifiers);
+        //?}
     }
 
     @Override
     //? if >1.21.8 {
-    public boolean charTyped(CharacterEvent characterEvent) {
+    /*public boolean charTyped(CharacterEvent characterEvent) {
     String chr = characterEvent.codepointAsString();
-        //?} else {
-    /*public boolean charTyped(char chr, int modifiers) {
-        *///?}
+        *///?} else {
+    public boolean charTyped(char chr, int modifiers) {
+        //?}
         if (selEndIndex < selStartIndex) {
             swapStartEnd();
         }

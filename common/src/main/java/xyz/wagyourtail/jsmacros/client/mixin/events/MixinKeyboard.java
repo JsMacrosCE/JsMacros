@@ -3,8 +3,8 @@ package xyz.wagyourtail.jsmacros.client.mixin.events;
 import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.Minecraft;
 //? if >1.21.8 {
-import net.minecraft.client.input.KeyEvent;
-//?}
+/*import net.minecraft.client.input.KeyEvent;
+*///?}
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -21,7 +21,7 @@ class MixinKeyboard {
     private Minecraft minecraft;
 
     //? if >1.21.8 {
-    @Inject(at = @At("HEAD"), method = "keyPress", cancellable = true)
+    /*@Inject(at = @At("HEAD"), method = "keyPress", cancellable = true)
     private void keyPress(long window, int action, KeyEvent keyEvent, CallbackInfo info) {
         if (window != minecraft.getWindow().handle()) {
             return;
@@ -33,8 +33,8 @@ class MixinKeyboard {
             info.cancel();
         }
     }
-    //?} else {
-    /*@Inject(at = @At("HEAD"), method = "keyPress", cancellable = true)
+    *///?} else {
+    @Inject(at = @At("HEAD"), method = "keyPress", cancellable = true)
     private void onKey(long window, int key, int scancode, int action, int mods, final CallbackInfo info) {
         if (window != minecraft.getWindow().getWindow()) {
             return;
@@ -46,5 +46,5 @@ class MixinKeyboard {
             info.cancel();
         }
     }
-    *///?}
+    //?}
 }

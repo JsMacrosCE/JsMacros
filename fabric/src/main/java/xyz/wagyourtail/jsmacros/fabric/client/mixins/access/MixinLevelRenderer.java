@@ -10,9 +10,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 //? if >1.21.8 {
-import net.minecraft.client.Minecraft;
+/*import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.state.LevelRenderState;
-//?}
+*///?}
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -39,7 +39,7 @@ public class MixinLevelRenderer {
     @Inject(method = "addMainPass", at = @At("TAIL"))
     private void onRenderMain(
             //? if >1.21.8 {
-            FrameGraphBuilder frameGraphBuilder,
+            /*FrameGraphBuilder frameGraphBuilder,
             Frustum frustum,
             Matrix4f frustumMatrix,
             GpuBufferSlice shaderFog,
@@ -48,8 +48,8 @@ public class MixinLevelRenderer {
             DeltaTracker deltaTracker,
             ProfilerFiller profiler,
             CallbackInfo ci
-            //?} else if >1.21.5 {
-            /*FrameGraphBuilder frameGraphBuilder,
+            *///?} else if >1.21.5 {
+            FrameGraphBuilder frameGraphBuilder,
             Frustum frustum,
             Camera camera,
             Matrix4f frustumMatrix,
@@ -59,7 +59,7 @@ public class MixinLevelRenderer {
             DeltaTracker deltaTracker,
             ProfilerFiller profiler,
             CallbackInfo ci
-            *///?} else {
+            //?} else {
             /*FrameGraphBuilder frameGraphBuilder,
             Frustum frustum,
             Camera camera,

@@ -248,10 +248,10 @@ public class FChat extends BaseLibrary {
             final Semaphore semaphore = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
                 //? if >1.21.8 {
-                mc.setScreen(new ChatScreen(finalMessage, true));
-                //?} else {
-                /*mc.setScreen(new ChatScreen(finalMessage));
-                *///?}
+                /*mc.setScreen(new ChatScreen(finalMessage, true));
+                *///?} else {
+                mc.setScreen(new ChatScreen(finalMessage));
+                //?}
                 semaphore.release();
             });
             semaphore.acquire();

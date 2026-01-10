@@ -9,12 +9,12 @@ import xyz.wagyourtail.jsmacros.client.api.helper.TextHelper;
 import xyz.wagyourtail.jsmacros.core.helpers.BaseHelper;
 
 //? if >1.21.8 {
-import net.minecraft.core.ClientAsset;
+/*import net.minecraft.core.ClientAsset;
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
-//?} else {
-/*import net.minecraft.client.resources.PlayerSkin;
-*///?}
+*///?} else {
+import net.minecraft.client.resources.PlayerSkin;
+//?}
 
 /**
  * @author Wagyourtail
@@ -35,10 +35,10 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
     public String getUUID() {
         GameProfile prof = base.getProfile();
         //? if >1.21.8 {
-        return prof.id().toString();
-        //?} else {
-        /*return prof.getId().toString();
-        *///?}
+        /*return prof.id().toString();
+        *///?} else {
+        return prof.getId().toString();
+        //?}
     }
 
     /**
@@ -49,10 +49,10 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
     public String getName() {
         GameProfile prof = base.getProfile();
         //? if >1.21.8 {
-        return prof.name();
-        //?} else {
-        /*return prof.getName();
-        *///?}
+        /*return prof.name();
+        *///?} else {
+        return prof.getName();
+        //?}
     }
 
     /**
@@ -96,10 +96,10 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
      */
     public boolean hasCape() {
         //? if >1.21.8 {
-        return base.getSkin().cape() != null;
-         //?} else {
-        /*return base.getSkin().capeTexture() != null;
-        *///?}
+        /*return base.getSkin().cape() != null;
+         *///?} else {
+        return base.getSkin().capeTexture() != null;
+        //?}
     }
 
     /**
@@ -110,10 +110,10 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
      */
     public boolean hasSlimModel() {
         //? if >1.21.8 {
-        return base.getSkin().model().equals(PlayerModelType.SLIM);
-        //?} else {
-        /*return base.getSkin().model().equals(PlayerSkin.Model.SLIM);
-        *///?}
+        /*return base.getSkin().model().equals(PlayerModelType.SLIM);
+        *///?} else {
+        return base.getSkin().model().equals(PlayerSkin.Model.SLIM);
+        //?}
     }
 
 
@@ -124,10 +124,10 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
      */
     public String getSkinTexture() {
         //? if >1.21.8 {
-        return base.getSkin().body().toString();
-        //?} else {
-        /*return base.getSkin().texture().toString();
-        *///?}
+        /*return base.getSkin().body().toString();
+        *///?} else {
+        return base.getSkin().texture().toString();
+        //?}
     }
 
     /**
@@ -137,10 +137,10 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
     @Nullable
     public String getSkinUrl() {
         //? if >1.21.8 {
-        return base.getSkin().body() instanceof ClientAsset.DownloadedTexture downloadedTexture ? downloadedTexture.url() : null;
-        //?} else {
-        /*return base.getSkin().textureUrl();
-        *///?}
+        /*return base.getSkin().body() instanceof ClientAsset.DownloadedTexture downloadedTexture ? downloadedTexture.url() : null;
+        *///?} else {
+        return base.getSkin().textureUrl();
+        //?}
     }
 
     /**
@@ -150,10 +150,10 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
     @Nullable
     public String getCapeTexture() {
         //? if >1.21.8 {
-        return base.getSkin().cape() == null ? null : base.getSkin().cape().toString();
-        //?} else {
-        /*return base.getSkin().capeTexture() == null ? null : base.getSkin().capeTexture().toString();
-        *///?}
+        /*return base.getSkin().cape() == null ? null : base.getSkin().cape().toString();
+        *///?} else {
+        return base.getSkin().capeTexture() == null ? null : base.getSkin().capeTexture().toString();
+        //?}
     }
 
     /**
@@ -161,11 +161,11 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
      * @since 2.1.0
      */
     //? if >1.21.8 {
-    @Nullable
+    /*@Nullable
     public String getCapeUrl() {
         return base.getSkin().body() instanceof ClientAsset.DownloadedTexture downloadedTexture ? downloadedTexture.url() : null;
     }
-    //?}
+    *///?}
 
     /**
      * @return the identifier of the player's elytra texture or {@code null} if it's unknown.
@@ -174,10 +174,10 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
     @Nullable
     public String getElytraTexture() {
         //? if >1.21.8 {
-        return base.getSkin().elytra() == null ? null : base.getSkin().elytra().toString();
-         //?} else {
-        /*return base.getSkin().elytraTexture() == null ? null : base.getSkin().elytraTexture().toString();
-        *///?}
+        /*return base.getSkin().elytra() == null ? null : base.getSkin().elytra().toString();
+         *///?} else {
+        return base.getSkin().elytraTexture() == null ? null : base.getSkin().elytraTexture().toString();
+        //?}
     }
 
     /**
@@ -185,11 +185,11 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
      * @since 2.1.0
      */
     //? if >1.21.8 {
-    @Nullable
+    /*@Nullable
     public String getElytraUrl() {
         return base.getSkin().elytra() instanceof ClientAsset.DownloadedTexture downloadedTexture ? downloadedTexture.url() : null;
     }
-    //?}
+    *///?}
 
     /**
      * @return the team of the player or {@code null} if the player is not in a team.

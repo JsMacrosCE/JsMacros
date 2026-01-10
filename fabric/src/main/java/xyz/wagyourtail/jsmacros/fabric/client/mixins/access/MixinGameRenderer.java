@@ -22,16 +22,16 @@ public class MixinGameRenderer {
     private Minecraft minecraft;
 
 //? if >1.21.8 {
-    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;renderWithTooltipAndSubtitles(Lnet/minecraft/client/gui/GuiGraphics;IIF)V"))
-//?} else {
-    /*@Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;renderWithTooltip(Lnet/minecraft/client/gui/GuiGraphics;IIF)V"))
-*///?}
+    /*@Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;renderWithTooltipAndSubtitles(Lnet/minecraft/client/gui/GuiGraphics;IIF)V"))
+*///?} else {
+    @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;renderWithTooltip(Lnet/minecraft/client/gui/GuiGraphics;IIF)V"))
+//?}
     private void onRender(Screen instance, GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         //? if >1.21.8 {
-        instance.renderWithTooltipAndSubtitles(drawContext, mouseX, mouseY, delta);
-        //?} else {
-        /*instance.renderWithTooltip(drawContext, mouseX, mouseY, delta);
-        *///?}
+        /*instance.renderWithTooltipAndSubtitles(drawContext, mouseX, mouseY, delta);
+        *///?} else {
+        instance.renderWithTooltip(drawContext, mouseX, mouseY, delta);
+        //?}
         if (!(minecraft.screen instanceof ScriptScreen)) {
             ((IScreenInternal) instance).jsmacros_render(drawContext, mouseX, mouseY, delta);
         }

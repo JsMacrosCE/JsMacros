@@ -95,8 +95,8 @@ public class MacroScreen extends BaseScreen {
             //  If this is *really* what we want, we'll need to make a fake event
             //  Later note: I believe this is how scrolling is done in the editor?
             //? if <=1.21.8 {
-            /*macroScroll.mouseDragged(mouseX, mouseY, 0, 0, -vert * 2);
-            *///?}
+            macroScroll.mouseDragged(mouseX, mouseY, 0, 0, -vert * 2);
+            //?}
         }
         return super.mouseScrolled(mouseX, mouseY, horiz, vert);
     }

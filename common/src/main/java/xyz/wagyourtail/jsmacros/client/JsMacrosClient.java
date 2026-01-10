@@ -24,16 +24,16 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
 //? if >1.21.8 {
-import net.minecraft.resources.ResourceLocation;
-//?}
+/*import net.minecraft.resources.ResourceLocation;
+*///?}
 
 public class JsMacrosClient extends JsMacros {
     //? if >1.21.8 {
-    // TODO: This isn't properly getting the name
+    /*// TODO: This isn't properly getting the name
     public static KeyMapping.Category keyBindingCategory = KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath("jsmacrosce", "jsmacrosce.title"));
-    //?} else {
-    /*public static String keyBindingCategory = I18n.get("jsmacrosce.title");
-    *///?}
+    *///?} else {
+    public static String keyBindingCategory = I18n.get("jsmacrosce.title");
+    //?}
     public static KeyMapping keyBinding = new KeyMapping("jsmacrosce.menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_K, keyBindingCategory);
     public static final Core<ClientProfile, EventRegistry> clientCore = new Core<>(EventRegistry::new, ClientProfile::new, configFolder.getAbsoluteFile(), new File(configFolder, "Macros"), LOGGER);
 

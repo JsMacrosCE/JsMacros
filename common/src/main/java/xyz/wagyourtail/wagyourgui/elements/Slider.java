@@ -18,9 +18,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 //? if >1.21.8 {
-import net.minecraft.client.input.KeyEvent;
+/*import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
-//?}
+*///?}
 
 /**
  * @author Etheradon
@@ -49,11 +49,11 @@ public class Slider extends AbstractWidget {
 
     @Override
     //? if >1.21.8 {
-    public boolean keyPressed(KeyEvent keyEvent) {
+    /*public boolean keyPressed(KeyEvent keyEvent) {
         int keyCode = keyEvent.key();
-    //?} else {
-    /*public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-    *///?}
+    *///?} else {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    //?}
         if (keyCode == GLFW.GLFW_KEY_LEFT) {
             setValue(value + (double) (1 / steps));
         } else if (keyCode == GLFW.GLFW_KEY_RIGHT) {
@@ -117,35 +117,35 @@ public class Slider extends AbstractWidget {
 
     @Override
     //? if >1.21.8 {
-    public void onClick(MouseButtonEvent event, boolean isDoubleClick)  {
+    /*public void onClick(MouseButtonEvent event, boolean isDoubleClick)  {
     double mouseX = event.x();
-    //?} else {
-    /*public void onClick(double mouseX, double mouseY) {
-    *///?}
+    *///?} else {
+    public void onClick(double mouseX, double mouseY) {
+    //?}
         setValueFromMouse(mouseX);
     }
 
     @Override
     //? if >1.21.8 {
-    public void onRelease(MouseButtonEvent event) {
-    //?} else {
-    /*public void onRelease(double mouseX, double mouseY) {
-    *///?}
+    /*public void onRelease(MouseButtonEvent event) {
+    *///?} else {
+    public void onRelease(double mouseX, double mouseY) {
+    //?}
         super.playDownSound(Minecraft.getInstance().getSoundManager());
     }
 
     @Override
     //? if >1.21.8 {
-    protected void onDrag(MouseButtonEvent event, double deltaX, double deltaY) {
+    /*protected void onDrag(MouseButtonEvent event, double deltaX, double deltaY) {
         setValueFromMouse(event.x());
         super.onDrag(event, deltaX, deltaY);
     }
-    //?} else {
-    /*protected void onDrag(double mouseX, double mouseY, double deltaX, double deltaY) {
+    *///?} else {
+    protected void onDrag(double mouseX, double mouseY, double deltaX, double deltaY) {
         setValueFromMouse(mouseX);
         super.onDrag(mouseX, mouseY, deltaX, deltaY);
     }
-    *///?}
+    //?}
 
     public void setMessage(String message) {
         setMessage(Component.literal(message));

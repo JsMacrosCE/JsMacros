@@ -219,9 +219,9 @@ public class Box implements RenderElement3D<Box> {
             // TODO: Is this correct?
             ShapeRenderer.renderLineBox(
                     //? if >1.21.8 {
-                    matrixStack.last(),
-                    //?} else
-                    /*matrixStack,*/
+                    /*matrixStack.last(),
+                    *///?} else
+                    matrixStack,
                     consumers.getBuffer(linesLayer),
                     x1,
                     y1,

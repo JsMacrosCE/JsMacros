@@ -432,30 +432,30 @@ public interface IScreen extends IDraw2D<IScreen> {
     ButtonWidgetHelper.TexturedButtonBuilder texturedButtonBuilder();
 
     //? if <=1.21.8 {
-    /*/^*
+    /**
      * @return {@code true} if the shift key is pressed, {@code false} otherwise.
      * @since 1.8.4
-     ^/
+     */
     default boolean isShiftDown() {
         return Screen.hasShiftDown();
     }
 
-    /^*
+    /**
      * @return {@code true} if the ctrl key is pressed, {@code false} otherwise.
      * @since 1.8.4
-     ^/
+     */
     default boolean isCtrlDown() {
         return Screen.hasControlDown();
     }
 
-    /^*
+    /**
      * @return {@code true} if the alt key is pressed, {@code false} otherwise.
      * @since 1.8.4
-     ^/
+     */
     default boolean isAltDown() {
         return Screen.hasAltDown();
     }
-    *///?}
+    //?}
 
     @Nullable
     MethodWrapper<IScreen, Object, Object, ?> getOnClose();

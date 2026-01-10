@@ -88,10 +88,10 @@ public class ForgeEvents {
         // TODO: This used to be DEBUG_OVERLAY in 1.21.8, removed in 1.21.9 or 1.21.10.
         //  How did this get handled on the fabric side?
         //? if >1.21.8 {
-        ResourceLocation layer = VanillaGuiLayers.AFTER_CAMERA_DECORATIONS;
-        //?} else {
-        /*ResourceLocation layer = VanillaGuiLayers.DEBUG_OVERLAY;
-        *///?}
+        /*ResourceLocation layer = VanillaGuiLayers.AFTER_CAMERA_DECORATIONS;
+        *///?} else {
+        ResourceLocation layer = VanillaGuiLayers.DEBUG_OVERLAY;
+        //?}
 
         ev.registerBelow(layer, ResourceLocation.parse("jsmacrosce:hud"), ForgeEvents::renderHudListener);
     }
@@ -109,10 +109,10 @@ public class ForgeEvents {
         try {
             MultiBufferSource.BufferSource consumers = Minecraft.getInstance().renderBuffers().bufferSource();
             //? if >1.21.8 {
-            DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-            //?} else {
-            /*DeltaTracker deltaTracker = e.getPartialTick();
-            *///?}
+            /*DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
+            *///?} else {
+            DeltaTracker deltaTracker = e.getPartialTick();
+            //?}
             float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(true);
             PoseStack poseStack = new PoseStack();
 

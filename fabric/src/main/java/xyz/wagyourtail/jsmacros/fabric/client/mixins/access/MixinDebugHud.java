@@ -18,7 +18,7 @@ class MixinDebugHud {
     
     //? if >1.21.8 {
     //?} else {
-    /*@Inject(
+    @Inject(
             method = "drawGameInformation(Lnet/minecraft/client/gui/GuiGraphics;)V",
             at = @At("TAIL")
     )
@@ -30,5 +30,5 @@ class MixinDebugHud {
                 .sorted(Comparator.comparingInt(IDraw2D::getZIndex))
                 .forEachOrdered(hud -> hud.render(context));
     }
-    *///?}
+    //?}
 }

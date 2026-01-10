@@ -565,39 +565,39 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
 
     // TODO: These methods were removed in 1.21.9 or 1.21.10
     //? if <=1.21.8 {
-    /*/^
-    /^*
+    /*
+    /**
      * @param chunkX the x coordinate of the chunk to store
      * @param y      the y coordinate to store
      * @param chunkZ the z coordinate of the chunk to store
      * @return self for chaining.
      * @since 1.8.4
-     ^/
+     */
     public PacketByteBufferHelper writeChunkSectionPos(int chunkX, int y, int chunkZ) {
         base.writeSectionPos(SectionPos.of(chunkX, y, chunkZ));
         return this;
     }
 
-    /^*
+    /**
      * @param chunk the chunk whose position should be stored
      * @param y     the y to store
      * @return self for chaining.
      * @since 1.8.4
-     ^/
+     */
     public PacketByteBufferHelper writeChunkSectionPos(ChunkHelper chunk, int y) {
         base.writeSectionPos(SectionPos.of(chunk.getRaw().getPos(), y));
         return this;
     }
 
-    /^*
+    /**
      * @return the read chunk section pos, as a {@link BlockPosHelper}.
      * @since 1.8.4
-     ^/
+     */
     public BlockPosHelper readChunkSectionPos() {
         SectionPos pos = base.readSectionPos();
         return new BlockPosHelper(pos.x(), pos.y(), pos.z());
     }
-    *///?}
+    //?}
 
     /**
      * @param dimension the dimension, vanilla default are {@code overworld}, {@code the_nether},

@@ -41,11 +41,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 //? if >1.21.8 {
-import net.minecraft.client.input.CharacterEvent;
+/*import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.FontDescription;
-//?}
+*///?}
 
 public class EditorScreen extends BaseScreen {
     private static final FormattedCharSequence ellipses = Component.literal("...").withStyle(ChatFormatting.DARK_GRAY).getVisualOrderText();
@@ -64,10 +64,10 @@ public class EditorScreen extends BaseScreen {
     );
     // TODO: Why in the everloving fuck would we be changing this multiple times in here. Mistake?
     //? if >1.21.8 {
-    public static FontDescription.Resource defaultFontResource = new FontDescription.Resource(ResourceLocation.fromNamespaceAndPath("jsmacrosce", "ubuntumono"));
-    //?} else {
-    /*public static ResourceLocation defaultFontResource = ResourceLocation.fromNamespaceAndPath("jsmacrosce", "ubuntumono");
-    *///?}
+    /*public static FontDescription.Resource defaultFontResource = new FontDescription.Resource(ResourceLocation.fromNamespaceAndPath("jsmacrosce", "ubuntumono"));
+    *///?} else {
+    public static ResourceLocation defaultFontResource = ResourceLocation.fromNamespaceAndPath("jsmacrosce", "ubuntumono");
+    //?}
     public static Style defaultStyle = Style.EMPTY.withFont(defaultFontResource);
     protected final File file;
     protected final FileHandler handler;
@@ -108,10 +108,10 @@ public class EditorScreen extends BaseScreen {
 
         this.handler = handler;
         //? if >1.21.8 {
-        defaultFontResource = new FontDescription.Resource((ResourceLocation.parse(JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).editorFont)));
-        //?} else {
-        /*defaultFontResource = ResourceLocation.parse(JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).editorFont);
-        *///?}
+        /*defaultFontResource = new FontDescription.Resource((ResourceLocation.parse(JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).editorFont)));
+        *///?} else {
+        defaultFontResource = ResourceLocation.parse(JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).editorFont);
+        //?}
         defaultStyle = Style.EMPTY.withFont(defaultFontResource);
 
         cursor = new SelectCursor(defaultStyle);
@@ -317,7 +317,7 @@ public class EditorScreen extends BaseScreen {
 
     @Override
             //? if >1.21.8 {
-    public boolean keyPressed(KeyEvent keyEvent) {
+    /*public boolean keyPressed(KeyEvent keyEvent) {
         boolean isSelectAll = keyEvent.isSelectAll();
         boolean isCopy = keyEvent.isCopy();
         boolean isPaste = keyEvent.isPaste();
@@ -326,8 +326,8 @@ public class EditorScreen extends BaseScreen {
         boolean hasShift = keyEvent.hasShiftDown();
         boolean hasAlt = keyEvent.hasAltDown();
         int keyCode = keyEvent.key();
-        //?} else {
-    /*public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        *///?} else {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         boolean isSelectAll = Screen.isSelectAll(keyCode);
         boolean isCopy = Screen.isCopy(keyCode);
         boolean isPaste = Screen.isPaste(keyCode);
@@ -335,15 +335,15 @@ public class EditorScreen extends BaseScreen {
         boolean hasCtrl = Screen.hasControlDown();
         boolean hasShift = Screen.hasShiftDown();
         boolean hasAlt = Screen.hasAltDown();
-        *///?}
+        //?}
         assert minecraft != null;
         if (overlay == null) {
             setFocused(null);
 //? if >1.21.8 {
-      } else if (overlay.keyPressed(keyEvent)) {
-//?} else {
-        /*} else if (overlay.keyPressed(keyCode, scanCode, modifiers)) {
-*///?}
+      /*} else if (overlay.keyPressed(keyEvent)) {
+*///?} else {
+        } else if (overlay.keyPressed(keyCode, scanCode, modifiers)) {
+//?}
             return true;
         }
         if (isSelectAll) {
@@ -599,10 +599,10 @@ public class EditorScreen extends BaseScreen {
         }
 
         //? if >1.21.8 {
-        return super.keyPressed(keyEvent);
-        //?} else {
-        /*return super.keyPressed(keyCode, scanCode, modifiers);
-        *///?}
+        /*return super.keyPressed(keyEvent);
+        *///?} else {
+        return super.keyPressed(keyCode, scanCode, modifiers);
+        //?}
     }
 
     private synchronized void compileRenderedText() {
@@ -704,8 +704,8 @@ public class EditorScreen extends BaseScreen {
             //  If this is *really* what we want, we'll need to make a fake event
             //  Later note: I believe this is how scrolling is done in the editor?
             //? if <=1.21.8 {
-            /*scrollbar.mouseDragged(mouseX, mouseY, 0, 0, -vert * 2);
-            *///?}
+            scrollbar.mouseDragged(mouseX, mouseY, 0, 0, -vert * 2);
+            //?}
         }
         return super.mouseScrolled(mouseX, mouseY, horiz, vert);
     }
@@ -780,19 +780,19 @@ public class EditorScreen extends BaseScreen {
 
     @Override
     //? if >1.21.8 {
-    public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean debounce) {
+    /*public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean debounce) {
         setFocused(null);
         boolean handled = super.mouseClicked(buttonEvent, debounce);
         double mouseX = buttonEvent.x();
         double mouseY = buttonEvent.y();
         int button = buttonEvent.button();
         boolean hasShift = buttonEvent.hasShiftDown();
-    //?} else {
-    /*public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    *///?} else {
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
         setFocused(null);
         boolean handled = super.mouseClicked(mouseX, mouseY, button);
         boolean hasShift = Screen.hasShiftDown();
-    *///?}
+    //?}
         if (!handled && overlay == null) {
             int index = getIndexPosition(mouseX - 30, mouseY - 12 + 1);
             if (button != 1 || (cursor.startIndex > index || cursor.endIndex < index)) {
@@ -877,14 +877,14 @@ public class EditorScreen extends BaseScreen {
 
     @Override
     //? if >1.21.8 {
-    public boolean mouseDragged(MouseButtonEvent buttonEvent, double deltaX, double deltaY) {
+    /*public boolean mouseDragged(MouseButtonEvent buttonEvent, double deltaX, double deltaY) {
         if (!(getFocused() instanceof Scrollbar) && buttonEvent.isLeft() && overlay == null) {
             int index = getIndexPosition(buttonEvent.x() - 30, buttonEvent.y() - 12);
-    //?} else {
-    /*public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+    *///?} else {
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
         if (!(getFocused() instanceof Scrollbar) && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && overlay == null) {
             int index = getIndexPosition(mouseX - 30, mouseY - 12);
-    *///?}
+    //?}
             if (index == cursor.dragStartIndex) {
                 cursor.updateStartIndex(index, history.current);
                 cursor.updateEndIndex(index, history.current);
@@ -902,19 +902,19 @@ public class EditorScreen extends BaseScreen {
         }
 
         //? if >1.21.8 {
-        return super.mouseDragged(buttonEvent, deltaX, deltaY);
-        //?} else {
-        /*return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
-        *///?}
+        /*return super.mouseDragged(buttonEvent, deltaX, deltaY);
+        *///?} else {
+        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+        //?}
     }
 
     @Override
     public void updateSettings() {
         //? if >1.21.8 {
-        defaultFontResource = new FontDescription.Resource((ResourceLocation.parse(JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).editorFont)));
-        //?} else {
-        /*defaultFontResource = ResourceLocation.parse(JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).editorFont);
-        *///?}
+        /*defaultFontResource = new FontDescription.Resource((ResourceLocation.parse(JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).editorFont)));
+        *///?} else {
+        defaultFontResource = ResourceLocation.parse(JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).editorFont);
+        //?}
         defaultStyle = Style.EMPTY.withFont(defaultFontResource);
         cursor.defaultStyle = defaultStyle;
         cursor.updateStartIndex(cursor.startIndex, history.current);
@@ -924,19 +924,19 @@ public class EditorScreen extends BaseScreen {
 
     @Override
     //? if >1.21.8 {
-    public synchronized boolean charTyped(CharacterEvent characterEvent) {
+    /*public synchronized boolean charTyped(CharacterEvent characterEvent) {
         char chr = (char) characterEvent.codepoint();
-    //?} else {
-    /*public synchronized  boolean charTyped(char chr, int keyCode) {
-    *///?}
+    *///?} else {
+    public synchronized  boolean charTyped(char chr, int keyCode) {
+    //?}
         if (overlay == null) {
             setFocused(null);
         } else if (overlay instanceof SettingsOverlay) {
             //? if >1.21.8 {
-            return super.charTyped(characterEvent);
-            //?} else {
-            /*return super.charTyped(chr, keyCode);
-            *///?}
+            /*return super.charTyped(characterEvent);
+            *///?} else {
+            return super.charTyped(chr, keyCode);
+            //?}
         }
         if (blockFirst) {
             blockFirst = false;

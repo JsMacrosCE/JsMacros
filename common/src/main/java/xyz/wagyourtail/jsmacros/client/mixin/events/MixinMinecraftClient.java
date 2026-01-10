@@ -25,8 +25,8 @@ import xyz.wagyourtail.jsmacros.client.api.event.impl.world.EventDisconnect;
 import xyz.wagyourtail.jsmacros.client.mixin.access.MixinDisconnectedScreen;
 
 //? if <=1.21.8 {
-/*import net.minecraft.client.gui.screens.ReceivingLevelScreen;
-*///?}
+import net.minecraft.client.gui.screens.ReceivingLevelScreen;
+//?}
 
 @Mixin(Minecraft.class)
 public abstract class MixinMinecraftClient {
@@ -49,8 +49,8 @@ public abstract class MixinMinecraftClient {
     public void onJoinWorld(
             ClientLevel world,
             //? if <=1.21.8 {
-            /*ReceivingLevelScreen.Reason worldEntryReason,
-            *///?}
+            ReceivingLevelScreen.Reason worldEntryReason,
+            //?}
             CallbackInfo ci) {
         if (world != null) {
             new EventDimensionChange(world.dimension().location().toString()).trigger();

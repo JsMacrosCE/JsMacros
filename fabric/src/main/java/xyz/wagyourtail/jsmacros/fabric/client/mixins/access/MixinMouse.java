@@ -5,8 +5,8 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.gui.screens.Screen;
 //? if >1.21.8 {
-import net.minecraft.client.input.MouseButtonEvent;
-//?}
+/*import net.minecraft.client.input.MouseButtonEvent;
+*///?}
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import xyz.wagyourtail.jsmacros.client.access.IScreenInternal;
@@ -15,7 +15,7 @@ import xyz.wagyourtail.jsmacros.client.access.IScreenInternal;
 public class MixinMouse {
 
 //? if >1.21.8 {
-    @WrapOperation(method = "onButton", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;mouseClicked(Lnet/minecraft/client/input/MouseButtonEvent;Z)Z"))
+    /*@WrapOperation(method = "onButton", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;mouseClicked(Lnet/minecraft/client/input/MouseButtonEvent;Z)Z"))
     private boolean onMouseClicked(Screen instance, MouseButtonEvent buttonEvent, boolean debounce, Operation<Boolean> original) {
         ((IScreenInternal) instance).jsmacros_mouseClicked(buttonEvent.x(), buttonEvent.y(), buttonEvent.button());
         return original.call(instance, buttonEvent, debounce);
@@ -32,8 +32,8 @@ public class MixinMouse {
         ((IScreenInternal) instance).jsmacros_mouseDragged(buttonEvent.x(), buttonEvent.y(), buttonEvent.button(), dx, dy);
         return original.call(instance, buttonEvent, dx, dy);
     }
-//?} else {
-    /*@WrapOperation(method = "onPress", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;mouseClicked(DDI)Z"))
+*///?} else {
+    @WrapOperation(method = "onPress", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;mouseClicked(DDI)Z"))
     private boolean onMouseClicked(Screen instance, double x, double y, int button, Operation<Boolean> original) {
         ((IScreenInternal) instance).jsmacros_mouseClicked(x, y, button);
         return original.call(instance, x, y, button);
@@ -50,7 +50,7 @@ public class MixinMouse {
         ((IScreenInternal) instance).jsmacros_mouseDragged(x, y, button, dx, dy);
         return original.call(instance, x, y, button, dx, dy);
     }
-    *///?}
+    //?}
 
     @WrapOperation(method = "onScroll", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;mouseScrolled(DDDD)Z"))
     private boolean onMouseScrolled(Screen instance, double x, double y, double dx, double dy, Operation<Boolean> original) {
