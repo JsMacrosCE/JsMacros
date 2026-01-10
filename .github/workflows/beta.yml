@@ -24,6 +24,7 @@ jobs:
     outputs:
       mod_version: ${{ steps.versions.outputs.mod_version }}
       mc_versions: ${{ steps.versions.outputs.mc_versions }}
+      mc_versions_list: ${{ steps.versions.outputs.mc_versions_list }}
       gradle_args: ${{ steps.versions.outputs.gradle_args }}
     steps:
       - name: Checkout
@@ -49,9 +50,11 @@ jobs:
           fi
           MOD_VERSION=$(./gradlew -q printVersion $ARGS | tail -1 | tr -d '\n\r')
           MC_VERSIONS=$(./gradlew -q printMinecraftVersion $ARGS | tail -1 | tr -d '\n\r')
+          MC_VERSIONS_LIST=$(printf '%s' "${MC_VERSIONS}" | tr ',' '\n')
           echo "gradle_args=$ARGS" >> "$GITHUB_OUTPUT"
           echo "mod_version=${MOD_VERSION}" >> "$GITHUB_OUTPUT"
           echo "mc_versions=${MC_VERSIONS}" >> "$GITHUB_OUTPUT"
+          echo "mc_versions_list=${MC_VERSIONS_LIST}" >> "$GITHUB_OUTPUT"
 
       - name: Build distribution
         run: ./gradlew createDist ${{ steps.versions.outputs.gradle_args }}
@@ -112,5 +115,6 @@ jobs:
           loaders: |
             fabric
             neoforge
-          game-versions: ${{ needs.build.outputs.mc_versions }}
+          game-versions: |
+            ${{ needs.build.outputs.mc_versions_list }}
           java: 21
