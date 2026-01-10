@@ -48,10 +48,15 @@ jobs:
           MOD_VERSION=$(./gradlew -q printVersion $ARGS | tail -1 | tr -d '\n\r')
           MC_VERSIONS=$(./gradlew -q printMinecraftVersion $ARGS | tail -1 | tr -d '\n\r')
           MC_VERSIONS_LIST=$(printf '%s' "${MC_VERSIONS}" | tr ',' '\n')
-          echo "gradle_args=$ARGS" >> "$GITHUB_OUTPUT"
-          echo "mod_version=${MOD_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "mc_versions=${MC_VERSIONS}" >> "$GITHUB_OUTPUT"
-          echo "mc_versions_list=${MC_VERSIONS_LIST}" >> "$GITHUB_OUTPUT"
+          DELIM="EOF_MC_VERSIONS"
+          {
+            echo "gradle_args=$ARGS"
+            echo "mod_version=${MOD_VERSION}"
+            echo "mc_versions=${MC_VERSIONS}"
+            echo "mc_versions_list<<${DELIM}"
+            echo "${MC_VERSIONS_LIST}"
+            echo "${DELIM}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build distribution
         run: ./gradlew createDist ${{ steps.versions.outputs.gradle_args }}
