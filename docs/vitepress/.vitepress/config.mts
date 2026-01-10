@@ -84,7 +84,12 @@ function buildSidebar(entries: SidebarDataNode, fallbackLink: string, mainTitle:
 
     return [{
       text: mainTitle,
-      items: entries.map((section) => ({
+      // Move Uncategorized to the end
+      items: entries.sort((a, b) => {
+        if (a.name === 'Uncategorized') return 1;
+        if (b.name === 'Uncategorized') return -1;
+        return a.name.localeCompare(b.name);
+      }).map((section) => ({
         text: section.name,
         collapsed: true,
         items: (section.items ?? []).map((item) => ({
