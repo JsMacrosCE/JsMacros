@@ -75,7 +75,7 @@ jobs:
       - name: List dist contents
         run: ls -R dist
 
-      - name: Create GitHub prerelease and upload all artifacts
+      - name: Create GitHub prerelease and upload artifacts
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.build.outputs.mod_version }}-beta-${{ github.event.inputs.beta_number }}
@@ -84,7 +84,33 @@ jobs:
             Beta build #${{ github.event.inputs.beta_number }} for JsMacros ${{ needs.build.outputs.mod_version }}.
             Built game versions: ${{ needs.build.outputs.mc_versions }}
           files: |
-            dist/**
+            dist/jsmacros-*-fabric-${{ needs.build.outputs.mod_version }}.jar
+            dist/jsmacros-*-neoforge-${{ needs.build.outputs.mod_version }}.jar
+            dist/jsmacros-devkit-*-${{ needs.build.outputs.mod_version }}.zip
+            dist/jsmacros-extensions-*-${{ needs.build.outputs.mod_version }}.zip
+            dist/extensions/jsmacros-ext-*-${{ needs.build.outputs.mod_version }}.jar
+            dist/*-source.zip
+          fail_on_unmatched_files: false
           prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ env.MODRINTH_PROJECT }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: |
+            dist/jsmacros-*-fabric-${{ needs.build.outputs.mod_version }}.jar
+            dist/jsmacros-*-neoforge-${{ needs.build.outputs.mod_version }}.jar
+          name: JsMacros ${{ needs.build.outputs.mod_version }} (beta)
+          version: ${{ needs.build.outputs.mod_version }}-beta-${{ github.event.inputs.beta_number }}
+          version-type: beta
+          changelog: |
+            Beta build #${{ github.event.inputs.beta_number }} for JsMacros ${{ needs.build.outputs.mod_version }}.
+            Built game versions: ${{ needs.build.outputs.mc_versions }}
+          loaders: |
+            fabric
+            neoforge
+          game-versions: ${{ needs.build.outputs.mc_versions }}
+          java: 21
