@@ -24,9 +24,10 @@ benefits.
 
 #### [More about extensions](https://jsmacrosce.com/?/extensions.html)
 
-## Beta Builds
+## Nightly Builds
 
-TODO: Link to 
+
+Development builds are automatically published for testing on each commit to the `main` branch. These builds are accessible via the [GitHub Releases page](https://github.com/JsMacrosCE/JsMacros/releases).
 
 ## Acknoledgements
 
