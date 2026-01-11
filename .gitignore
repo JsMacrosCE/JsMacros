@@ -37,3 +37,7 @@ doc/
 docs/web/[0-9]*
 
 /META-INF/
+
+# Affinity Photo
+*.af~lock~
+*.af~lock~:com.dropbox.ignored
