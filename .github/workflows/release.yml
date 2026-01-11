@@ -61,61 +61,14 @@ jobs:
       - name: Build distribution
         run: ./gradlew createDist ${{ steps.versions.outputs.gradle_args }}
 
+      - name: Publish to Modrinth and GitHub
+        run: ./gradlew publishMods ${{ steps.versions.outputs.gradle_args }}
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload dist
         uses: actions/upload-artifact@v4
         with:
           name: release-dist-${{ steps.versions.outputs.mod_version }}
           path: dist/**/*
-
-  publish:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Download dist
-        uses: actions/download-artifact@v4
-        with:
-          name: release-dist-${{ needs.build.outputs.mod_version }}
-          path: dist
-
-      - name: List dist contents
-        run: ls -R dist
-
-      - name: Create GitHub release and upload artifacts
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ needs.build.outputs.mod_version }}
-          name: JsMacrosCE ${{ needs.build.outputs.mod_version }}
-          body: |
-            Release for JsMacrosCE ${{ needs.build.outputs.mod_version }}.
-            Built game versions: ${{ needs.build.outputs.mc_versions }}
-          files: |
-            dist/jsmacrosce-*-fabric-${{ needs.build.outputs.mod_version }}.jar
-            dist/jsmacrosce-*-neoforge-${{ needs.build.outputs.mod_version }}.jar
-            dist/jsmacrosce-devkit-*-${{ needs.build.outputs.mod_version }}.zip
-            dist/jsmacrosce-extensions-*-${{ needs.build.outputs.mod_version }}.zip
-            dist/extensions/jsmacrosce-ext-*-${{ needs.build.outputs.mod_version }}.jar
-            dist/*-source.zip
-          fail_on_unmatched_files: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to Modrinth
-        uses: Kir-Antipov/mc-publish@v3.3
-        with:
-          modrinth-id: ${{ env.MODRINTH_PROJECT }}
-          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          files: |
-            dist/jsmacrosce-*-fabric-${{ needs.build.outputs.mod_version }}.jar
-            dist/jsmacrosce-*-neoforge-${{ needs.build.outputs.mod_version }}.jar
-          name: JsMacros ${{ needs.build.outputs.mod_version }}
-          version: ${{ needs.build.outputs.mod_version }}
-          version-type: release
-          changelog: |
-            Release for JsMacros ${{ needs.build.outputs.mod_version }}.
-            Built game versions: ${{ needs.build.outputs.mc_versions }}
-          loaders: |
-            fabric
-            neoforge
-          game-versions: |
-            ${{ needs.build.outputs.mc_versions_list }}
-          java: 21

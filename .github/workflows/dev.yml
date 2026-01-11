@@ -42,37 +42,15 @@ jobs:
           echo "mod_version=${MOD_VERSION}" >> "$GITHUB_OUTPUT"
           echo "short_sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
-      - name: Build distribution
+      - name: Publish to GitHub
         run: |
           SHORT_SHA=${GITHUB_SHA::7}
-          ./gradlew createDist -Pchannel=dev -Pbuild_sha=${SHORT_SHA}
+          ./gradlew publishMods -Pchannel=dev -Pbuild_sha=${SHORT_SHA}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload dist
         uses: actions/upload-artifact@v4
         with:
           name: dev-dist-${{ steps.versions.outputs.mod_version }}
           path: dist/**/*
-
-      - name: Publish GitHub prerelease
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.versions.outputs.mod_version }}
-          name: Dev ${{ steps.versions.outputs.mod_version }}
-          body: |
-            Dev build for commit ${{ github.sha }}.
-
-            Alpha, beta, and release builds are available on Modrinth: https://modrinth.com/mod/jsmacrosce/versions
-          prerelease: true
-          generate_release_notes: false
-          files: |
-            dist/jsmacrosce-*-fabric-${{ steps.versions.outputs.mod_version }}.jar
-            dist/jsmacrosce-*-neoforge-${{ steps.versions.outputs.mod_version }}.jar
-            dist/jsmacrosce-devkit-*-${{ steps.versions.outputs.mod_version }}.zip
-            dist/jsmacrosce-extensions-*-${{ steps.versions.outputs.mod_version }}.zip
-            dist/extensions/jsmacrosce-ext-*-${{ steps.versions.outputs.mod_version }}.jar
-            dist/*-source.zip
-          fail_on_unmatched_files: false
-          token: ${{ secrets.GITHUB_TOKEN }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REF: refs/tags/v${{ steps.versions.outputs.mod_version }}

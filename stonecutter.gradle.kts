@@ -1,19 +1,25 @@
+import me.modmuss50.mpp.PublishModTask
+import me.modmuss50.mpp.ReleaseType
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSetContainer
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.external.javadoc.CoreJavadocOptions
 import org.gradle.external.javadoc.StandardJavadocDocletOptions
+import org.gradle.internal.extensions.stdlib.capitalized
 import java.io.File
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 plugins {
     id("dev.kikugie.stonecutter")
     id("net.neoforged.moddev") version "2.0.125" apply false
     id("fabric-loom") version "1.13-SNAPSHOT" apply false
+    id("me.modmuss50.mod-publish-plugin") version "1.1.0"
 }
 
 val IS_CI = System.getenv("CI") == "true"
@@ -330,5 +336,94 @@ gradle.projectsEvaluated {
             extensionPackTasks,
             "packageSourceZip"
         )
+    }
+
+    val releaseType = when (channel) {
+        "release" -> ReleaseType.STABLE
+        "beta" -> ReleaseType.BETA
+        else -> ReleaseType.ALPHA
+    }
+
+    val modrinthProjectId = providers.gradleProperty("modrinth_id")
+        .orElse(providers.environmentVariable("MODRINTH_PROJECT"))
+    val modrinthToken = providers.gradleProperty("modrinth_token")
+        .orElse(providers.environmentVariable("MODRINTH_TOKEN"))
+    val githubRepo = providers.gradleProperty("github_repository")
+        .orElse(providers.environmentVariable("GITHUB_REPOSITORY"))
+        .orElse("JsMacrosCE/JsMacros")
+    val githubToken = providers.environmentVariable("GITHUB_TOKEN")
+    val githubCommitish = providers.environmentVariable("GITHUB_SHA").orElse("main")
+    val githubTagName = providers.provider { "v${project.version}" }
+
+    fun modrinthChangelog(loader: String, targetMcVersion: String): String = """
+        JsMacrosCE ${project.version} for $loader on Minecraft $targetMcVersion.
+        Source: https://github.com/JsMacrosCE/JsMacros
+    """.trimIndent()
+
+    fun githubChangelog(): String = """
+        ${releaseType.toString().lowercase(Locale.getDefault()).capitalized()} Release for JsMacrosCE ${project.version}.
+        Supported Minecraft versions: ${mcVersionsToBuild.joinToString(", ")}.
+        Alpha, beta, and release builds are available on Modrinth: https://modrinth.com/mod/jsmacrosce/versions
+    """.trimIndent()
+
+    publishMods {
+        val publishModrinth = modrinthToken.isPresent && channel != "dev"
+
+        if (publishModrinth) {
+            mcVersionsToBuild.forEach { targetMcVersion ->
+                val mcSegment = targetMcVersion.replace(".", "")
+                loaders.forEach { loader ->
+                    val platformName = "modrinth${loader.replaceFirstChar { it.uppercase() }}$mcSegment"
+                    val sourceTaskName = if (loader == "fabric") "remapJar" else "jar"
+                    val loaderProject = project(":$loader:$targetMcVersion")
+
+                    modrinth(platformName) {
+                        projectId.set(modrinthProjectId)
+                        accessToken.set(modrinthToken)
+                        minecraftVersions.add(targetMcVersion)
+                        modLoaders.set(listOf(loader))
+
+                        version.set("${project.version}+$targetMcVersion-$loader")
+                        displayName.set("JsMacrosCE ${project.version} ($loader $targetMcVersion)")
+                        changelog.set(modrinthChangelog(loader, targetMcVersion))
+                        type.set(releaseType)
+                        file.set(
+                            loaderProject.tasks.named(sourceTaskName, AbstractArchiveTask::class.java)
+                                .flatMap { it.archiveFile }
+                        )
+                    }
+                }
+            }
+        }
+
+        github("githubRelease") {
+            accessToken.set(githubToken)
+            repository.set(githubRepo)
+            commitish.set(githubCommitish)
+            tagName.set(githubTagName)
+            displayName.set("JsMacrosCE ${project.version}")
+            changelog.set(githubChangelog())
+            type.set(releaseType)
+            allowEmptyFiles.set(true)
+            additionalFiles.from(
+                providers.provider {
+                    distDir.asFileTree.matching {
+                        include("jsmacrosce-*-fabric-${project.version}.jar")
+                        include("jsmacrosce-*-neoforge-${project.version}.jar")
+                        include("jsmacrosce-devkit-*-${project.version}.zip")
+                        include("jsmacrosce-extensions-*-${project.version}.zip")
+                        include("extensions/jsmacrosce-ext-*-${project.version}.jar")
+                    }
+                }
+            )
+        }
+    }
+
+    tasks.named("publishMods") {
+        dependsOn("createDist")
+    }
+
+    tasks.withType(PublishModTask::class.java).configureEach {
+        dependsOn("createDist")
     }
 }
