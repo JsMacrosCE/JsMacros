@@ -24,7 +24,6 @@ val extensionJars by configurations.creating {
     isCanBeConsumed = false
 }
 
-// TODO: Look into https://github.com/neoforged/ModDevGradle?tab=readme-ov-file#disabling-decompilation-and-recompilation in CI
 neoForge {
     version = neoforge_version
 
@@ -110,18 +109,18 @@ dependencies {
 // Collect extension jar names for dependencies property
 fun getExtensionJarPaths(): String =
     extensionJars.files.joinToString(", ") { file ->
-        "\"META-INF/jsmacrosdeps/${file.name}\""
+        "\"META-INF/jsmacroscedeps/${file.name}\""
     }
 
 tasks.named<ProcessResources>("processResources") {
     // Embed extension jars into the final jar
     dependsOn(extensionJars)
     from(extensionJars) {
-        into("META-INF/jsmacrosdeps")
+        into("META-INF/jsmacroscedeps")
     }
 
-    // Add dependencies expansion for jsmacros.extension.json
-    filesMatching("jsmacros.extension.json") {
+    // Add dependencies expansion for jsmacrosce.extension.json
+    filesMatching("jsmacrosce.extension.json") {
         expand(mapOf("dependencies" to getExtensionJarPaths()))
     }
     

@@ -13,7 +13,7 @@ on:
 env:
   JAVA_VERSION: '21'
   MODRINTH_PROJECT: 2m9WfquA
-  MOD_ID: jsmacros
+  MOD_ID: jsmacrosce
 
 permissions:
   contents: write
@@ -24,6 +24,7 @@ jobs:
     outputs:
       mod_version: ${{ steps.versions.outputs.mod_version }}
       mc_versions: ${{ steps.versions.outputs.mc_versions }}
+      mc_versions_list: ${{ steps.versions.outputs.mc_versions_list }}
       gradle_args: ${{ steps.versions.outputs.gradle_args }}
     steps:
       - name: Checkout
@@ -38,6 +39,8 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-overwrite-existing: true
 
       - name: Compute versions
         id: versions
@@ -49,42 +52,28 @@ jobs:
           fi
           MOD_VERSION=$(./gradlew -q printVersion $ARGS | tail -1 | tr -d '\n\r')
           MC_VERSIONS=$(./gradlew -q printMinecraftVersion $ARGS | tail -1 | tr -d '\n\r')
-          echo "gradle_args=$ARGS" >> "$GITHUB_OUTPUT"
-          echo "mod_version=${MOD_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "mc_versions=${MC_VERSIONS}" >> "$GITHUB_OUTPUT"
+          MC_VERSIONS_LIST=$(printf '%s' "${MC_VERSIONS}" | tr ',' '\n')
+          DELIM="EOF_MC_VERSIONS"
+          {
+            echo "gradle_args=$ARGS"
+            echo "mod_version=${MOD_VERSION}"
+            echo "mc_versions=${MC_VERSIONS}"
+            echo "mc_versions_list<<${DELIM}"
+            echo "${MC_VERSIONS_LIST}"
+            echo "${DELIM}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build distribution
         run: ./gradlew createDist ${{ steps.versions.outputs.gradle_args }}
+
+      - name: Publish to Modrinth and GitHub
+        run: ./gradlew publishMods ${{ steps.versions.outputs.gradle_args }}
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload dist
         uses: actions/upload-artifact@v4
         with:
           name: beta-dist-${{ steps.versions.outputs.mod_version }}
           path: dist/**/*
-
-  publish:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Download dist
-        uses: actions/download-artifact@v4
-        with:
-          name: beta-dist-${{ needs.build.outputs.mod_version }}
-          path: dist
-
-      - name: List dist contents
-        run: ls -R dist
-
-      - name: Create GitHub prerelease and upload all artifacts
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ needs.build.outputs.mod_version }}-beta-${{ github.event.inputs.beta_number }}
-          name: JsMacros ${{ needs.build.outputs.mod_version }} (beta)
-          body: |
-            Beta build #${{ github.event.inputs.beta_number }} for JsMacros ${{ needs.build.outputs.mod_version }}.
-            Built game versions: ${{ needs.build.outputs.mc_versions }}
-          files: |
-            dist/**
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

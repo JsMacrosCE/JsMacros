@@ -61,18 +61,18 @@ dependencies {
 // Collect extension jar names for dependencies property
 fun getExtensionJarPaths(): String =
     extensionJars.files.joinToString(", ") { file ->
-        "\"META-INF/jsmacrosdeps/${file.name}\""
+        "\"META-INF/jsmacroscedeps/${file.name}\""
     }
 
 tasks.named<ProcessResources>("processResources") {
     // Embed extension jars into the final jar
     dependsOn(extensionJars)
     from(extensionJars) {
-        into("META-INF/jsmacrosdeps")
+        into("META-INF/jsmacroscedeps")
     }
 
     // Add dependencies expansion for jsmacros.extension.json
-    filesMatching("jsmacros.extension.json") {
+    filesMatching("jsmacrosce.extension.json") {
         expand(mapOf("dependencies" to getExtensionJarPaths()))
     }
     
@@ -102,14 +102,5 @@ loom {
 
     mixin {
         defaultRefmapName.set("$mod_id.refmap.json")
-    }
-
-    runs {
-        named("client") {
-            client()
-            setConfigName("Fabric Client")
-            ideConfigGenerated(true)
-            runDir("runs/client")
-        }
     }
 }

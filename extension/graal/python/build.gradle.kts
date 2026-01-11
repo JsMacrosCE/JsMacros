@@ -82,13 +82,13 @@ dependencies {
 // Collect embedded dependency paths for the json file
 fun getEmbeddedDepPaths(): String =
     filteredEmbedFiles.get().joinToString(", ") { file ->
-        "\"META-INF/jsmacrosdeps/${file.name}\""
+        "\"META-INF/jsmacroscedeps/${file.name}\""
     }
 
 // Process resources to expand dependencies placeholder
 tasks.named<ProcessResources>("processResources") {
     inputs.files(filteredEmbedFiles)
-    filesMatching("jsmacros.ext.graalpy.json") {
+    filesMatching("jsmacrosce.ext.graalpy.json") {
         expand(mapOf("dependencies" to getEmbeddedDepPaths()))
     }
 }
@@ -97,7 +97,7 @@ tasks.named<ProcessResources>("processResources") {
 tasks.named<Jar>("jar") {
     dependsOn(embedDeps)
     from(filteredEmbedFiles) {
-        into("META-INF/jsmacrosdeps")
+        into("META-INF/jsmacroscedeps")
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

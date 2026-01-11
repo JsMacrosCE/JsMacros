@@ -1,8 +1,8 @@
 # Known Issues
-This document acts as a working list of known issues with JsMacros. If you encounter a bug that is not listed here, please report it on the [GitHub Issues Page](https://github.com/EastArctica/JsMacros-Dev/issues).
+This document acts as a working list of known issues with JsMacrosCE. If you encounter a bug that is not listed here, please report it on the [GitHub Issues Page](https://github.com/JsMacrosCE/JsMacros/issues).
 
 ## General
-- Some antivirus software may falsely flag JsMacros as malicious.
+- Some antivirus software may falsely flag JsMacrosCE as malicious.
 
 ## API
 There are definitely some issues with the API, please report any bugs you find on the GitHub Issues Page.

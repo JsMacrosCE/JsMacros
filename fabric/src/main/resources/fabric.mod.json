@@ -1,35 +1,36 @@
 {
   "schemaVersion": 1,
-  "id": "jsmacros",
+  "id": "jsmacrosce",
   "version": "${version}",
-  "name": "Js Macros",
+  "name": "Js Macros Community Edition",
   "description": "Javascript Macros for Fabric",
   "authors": [
+    "East_Arctica",
     "wagyourtail"
   ],
   "contact": {
-    "homepage": "https://wagyourtail.xyz/",
-    "sources": "https://github.com/wagyourtail/JsMacros"
+    "homepage": "https://jsmacros.com/",
+    "sources": "https://github.com/JsMacrosCE/JsMacros"
   },
   "license": "MPL-2.0",
-  "icon": "assets/jsmacros/icon.png",
+  "icon": "assets/jsmacrosce/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "xyz.wagyourtail.jsmacros.fabric.client.JsMacrosFabric"
+      "com.jsmacrosce.jsmacros.fabric.client.JsMacrosFabric"
     ],
     "client": [
-      "xyz.wagyourtail.jsmacros.fabric.client.JsMacrosFabric"
+      "com.jsmacrosce.jsmacros.fabric.client.JsMacrosFabric"
     ],
     "modmenu": [
-      "xyz.wagyourtail.jsmacros.fabric.client.ModMenuEntry"
+      "com.jsmacrosce.jsmacros.fabric.client.ModMenuEntry"
     ]
   },
   "mixins": [
-    "jsmacros-common.mixins.json",
-    "jsmacros-fabric.mixins.json"
+    "jsmacrosce-common.mixins.json",
+    "jsmacrosce-fabric.mixins.json"
   ],
-  "accessWidener": "jsmacros.accesswidener",
+  "accessWidener": "jsmacrosce.accesswidener",
   "depends": {
     "fabricloader": ">=0.15.0",
     "fabric-api": "*",

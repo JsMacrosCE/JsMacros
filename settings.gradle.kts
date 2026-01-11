@@ -45,7 +45,7 @@ pluginManagement {
         // see https://fabricmc.net/develop/ for new versions
         id("fabric-loom") version "1.13-SNAPSHOT" apply false
         // see https://projects.neoforged.net/neoforged/moddevgradle for new versions
-        id("net.neoforged.moddev") version "2.0.124" apply false
+        id("net.neoforged.moddev") version "2.0.139" apply false
     }
 }
 
@@ -55,7 +55,7 @@ plugins {
 }
 
 // This should match the folder name of the project, or else IDEA may complain (see https://youtrack.jetbrains.com/issue/IDEA-317606)
-rootProject.name = "JsMacros"
+rootProject.name = "JsMacrosCE"
 
 include("common")
 include("fabric")

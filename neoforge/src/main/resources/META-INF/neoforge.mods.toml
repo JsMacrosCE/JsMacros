@@ -1,24 +1,24 @@
 modLoader = "javafml"
 loaderVersion = "[1,)"
-issueTrackerURL = "https://github.com/wagyourtail/jsmacros"
+issueTrackerURL = "https://github.com/JsMacrosCE/JsMacros/issues"
 license = "MPL-2.0"
 
 [[mixins]]
-config="jsmacros-common.mixins.json"
+config="jsmacrosce-common.mixins.json"
 
 [[mixins]]
-config="jsmacros-neoforge.mixins.json"
+config="jsmacrosce-neoforge.mixins.json"
 
 [[mods]]
-modId = "jsmacros"
+modId = "jsmacrosce"
 version = "${version}"
-displayName = "JS Macros"
-authors = "Wagyourtail"
+displayName = "JS Macros Community Edition"
+authors = "East_Arctica, Wagyourtail"
 description = '''
-    Macro Mod for Block Game
+    Javascript Macros for NeoForge
 '''
 
-[[dependencies.jsmacros]]
+[[dependencies.jsmacrosce]]
 modId = "minecraft"
 type = "required"
 versionRange = "[${minecraft_version}]"

@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "package": "com.jsmacrosce.jsmacros.fabric.client.mixins",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "jsmacrosce-fabric.refmap.json",
+  "client": [
+    "access.MixinDebugHud",
+    "access.MixinGameRenderer",
+    "access.MixinKeyboard",
+    "access.MixinMouse",
+    "access.MixinLevelRenderer"
+  ],
+  "mixins": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

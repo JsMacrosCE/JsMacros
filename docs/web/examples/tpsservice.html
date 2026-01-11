@@ -1,33 +1,35 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Getting Started</title>
 
-    <link rel="stylesheet" href="general.css"/>
+    <link rel="stylesheet" href="general.css" />
 
     <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
+
 <body>
-<header>
-    <a href="../../../..">
-        <----- Return to main JsMacros docs page.
-    </a>
-</header>
-<main class="General">
-    <h2>TPS Display Service</h2>
-    <p>
-        example code for a service that displays the tps in an overlay in the bottom
-        left corner of the screen.
-        <br>
-        <br>
-        To register a service, select service tab on the top bar.
-        (or click the service button in the bottom left next to "running" if you're on older version of jsmacros)
-        Give it a name, and assign a file. the enable/disable will determine if the service should start at startup,
-        you can manully start/stop with the run/stop button.
-    </p>
-    <pre class="prettyprint"><code class="language-javascript">
+    <header>
+        <a href="../../../..">
+            &lt;----- Return to main JsMacrosCE docs page.
+        </a>
+    </header>
+    <main class="General">
+        <h2>TPS Display Service</h2>
+        <p>
+            example code for a service that displays the tps in an overlay in the bottom
+            left corner of the screen.
+            <br>
+            <br>
+            To register a service, select service tab on the top bar.
+            (or click the service button in the bottom left next to "running" if you're on older version of jsmacros)
+            Give it a name, and assign a file. the enable/disable will determine if the service should start at startup,
+            you can manully start/stop with the run/stop button.
+        </p>
+        <pre class="prettyprint"><code class="language-javascript">
 // services start with minecraft, when enabled and are meant to be persistent scripts.
 JsMacros.assertEvent(event, "Service");
 
@@ -49,8 +51,8 @@ event.stopListener = JavaWrapper.methodToJava(() => {
     d2d.unregister();
     JsMacros.off(tickListener);
 });
-  </code>
-  </pre>
-</main>
+  </code></pre>
+    </main>
 </body>
+
 </html>

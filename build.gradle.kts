@@ -1,15 +1,24 @@
 import dev.kikugie.stonecutter.build.StonecutterBuildExtension
+import me.modmuss50.mpp.PublishModTask
+import me.modmuss50.mpp.ReleaseType
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSetContainer
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.external.javadoc.CoreJavadocOptions
 import org.gradle.external.javadoc.StandardJavadocDocletOptions
+import org.gradle.internal.extensions.stdlib.capitalized
 import java.io.File
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
+
+plugins {
+    id("me.modmuss50.mod-publish-plugin") version "1.1.0"
+}
 
 // Check if this is a Stonecutter versioned project by looking at the project path
 // Versioned projects have paths like ":1.21.10", ":common:1.21.10", etc.
@@ -100,7 +109,7 @@ if (isVersionedProject && hasMinecraftVersion) {
             source(documentationSources)
             classpath = documentationClasspath
             destinationDir = File(docsBuildDir, "python/JsMacrosAC")
-            options.doclet = "xyz.wagyourtail.doclet.pydoclet.Main"
+            options.doclet = "com.jsmacrosce.doclet.pydoclet.Main"
             options.docletpath = mutableListOf(docletJarFile)
             (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
         }
@@ -119,7 +128,7 @@ if (isVersionedProject && hasMinecraftVersion) {
             source(documentationSources)
             classpath = documentationClasspath
             destinationDir = File(docsBuildDir, "typescript/headers")
-            options.doclet = "xyz.wagyourtail.doclet.tsdoclet.Main"
+            options.doclet = "com.jsmacrosce.doclet.tsdoclet.Main"
             options.docletpath = mutableListOf(docletJarFile)
             (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
         }
@@ -138,7 +147,7 @@ if (isVersionedProject && hasMinecraftVersion) {
             source(documentationSources)
             classpath = documentationClasspath
             destinationDir = File(docsBuildDir, "web")
-            options.doclet = "xyz.wagyourtail.doclet.webdoclet.Main"
+            options.doclet = "com.jsmacrosce.doclet.webdoclet.Main"
             options.docletpath = mutableListOf(docletJarFile)
             (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
             (options as CoreJavadocOptions).addStringOption("mcv", mcVersion)
@@ -285,25 +294,6 @@ if (isVersionedProject && hasMinecraftVersion) {
             dependsOn(extensionJarTasks)
         }
 
-        tasks.register("packageSourceZip", Zip::class.java) {
-            group = "distribution"
-            description = "Creates a source archive matching the distribution version"
-            dependsOn("prepareDist")
-            destinationDirectory.set(distDir)
-            archiveFileName.set(artifactBaseName.map { "$it-source.zip" })
-            from(projectDir) {
-                include("**/*")
-                exclude(
-                    ".git/**",
-                    ".gradle/**",
-                    "**/.gradle/**",
-                    "build/**",
-                    "**/build/**",
-                    "dist/**"
-                )
-            }
-        }
-
         tasks.register("createDist") {
             group = "distribution"
             description = "Assembles documentation, mods, extensions, devkits, and sources into dist/"
@@ -312,8 +302,7 @@ if (isVersionedProject && hasMinecraftVersion) {
                 "createDistMods",
                 "createDistExtensions",
                 devkitTasks,
-                extensionPackTasks,
-                "packageSourceZip"
+                extensionPackTasks
             )
         }
 
@@ -331,6 +320,94 @@ if (isVersionedProject && hasMinecraftVersion) {
             doLast {
                 println(mcVersion)
             }
+        }
+
+        val releaseType = when (channel) {
+            "release" -> ReleaseType.STABLE
+            "beta" -> ReleaseType.BETA
+            else -> ReleaseType.ALPHA
+        }
+
+        val modrinthProjectId = providers.gradleProperty("modrinth_id")
+            .orElse(providers.environmentVariable("MODRINTH_PROJECT"))
+        val modrinthToken = providers.gradleProperty("modrinth_token")
+            .orElse(providers.environmentVariable("MODRINTH_TOKEN"))
+        val githubRepo = providers.gradleProperty("github_repository")
+            .orElse(providers.environmentVariable("GITHUB_REPOSITORY"))
+            .orElse("JsMacrosCE/JsMacros")
+        val githubToken = providers.environmentVariable("GITHUB_TOKEN")
+        val githubCommitish = providers.environmentVariable("GITHUB_SHA").orElse("main")
+        val githubTagName = providers.provider { "v${project.version}" }
+        val targetMcVersion = mcVersion
+
+        fun modrinthChangelog(loader: String): String = """
+            JsMacrosCE ${project.version} for $loader on Minecraft $targetMcVersion.
+            Source: https://github.com/JsMacrosCE/JsMacros
+        """.trimIndent()
+
+        fun githubChangelog(): String = """
+            ${releaseType.toString().lowercase(Locale.getDefault()).capitalized()} Release for JsMacrosCE ${project.version}.
+            Built game version: $targetMcVersion
+            Alpha, beta, and release builds are available on Modrinth: https://modrinth.com/mod/jsmacrosce/versions
+        """.trimIndent()
+
+
+        publishMods {
+            val publishModrinth = modrinthToken.isPresent && channel != "dev"
+
+            if (publishModrinth) {
+                loaders.forEach { loader ->
+                    val platformName = "modrinth${loader.replaceFirstChar { it.uppercase() }}${targetMcVersion.replace(".", "")}"
+                    val sourceTaskName = if (loader == "fabric") "remapJar" else "jar"
+                    val loaderProject = project(":$loader")
+
+                    modrinth(platformName) {
+                        projectId.set(modrinthProjectId)
+                        accessToken.set(modrinthToken)
+                        minecraftVersions.add(targetMcVersion)
+                        modLoaders.set(listOf(loader))
+
+                        version.set("${project.version}+$targetMcVersion-$loader")
+                        displayName.set("JsMacrosCE ${project.version} ($loader $targetMcVersion)")
+                        changelog.set(modrinthChangelog(loader))
+                        type.set(releaseType)
+                        file.set(
+                            loaderProject.tasks.named(sourceTaskName, AbstractArchiveTask::class.java)
+                                .flatMap { it.archiveFile }
+                        )
+                    }
+                }
+            }
+
+            github("githubRelease") {
+                accessToken.set(githubToken)
+                repository.set(githubRepo)
+                commitish.set(githubCommitish)
+                tagName.set(githubTagName)
+                displayName.set("JsMacrosCE ${project.version}")
+                changelog.set(githubChangelog())
+                type.set(releaseType)
+                allowEmptyFiles.set(true)
+                additionalFiles.from(
+                    providers.provider {
+                        distDir.asFileTree.matching {
+                            include("jsmacrosce-*-fabric-${project.version}.jar")
+                            include("jsmacrosce-*-neoforge-${project.version}.jar")
+                            include("jsmacrosce-devkit-*-${project.version}.zip")
+                            include("jsmacrosce-extensions-*-${project.version}.zip")
+                            include("extensions/jsmacrosce-ext-*-${project.version}.jar")
+                        }
+                    }
+                )
+            }
+        }
+
+        tasks.named("publishMods") {
+            dependsOn("createDist")
+        }
+
+        tasks.withType(PublishModTask::class.java).configureEach {
+            dependsOn("createDist")
         }
     }
 }

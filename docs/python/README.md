@@ -1,7 +1,7 @@
 # JsMacrosAC
 
 The sole purpose of this package is to let your IDE know what functions the
-various [JsMacros](https://www.curseforge.com/minecraft/mc-mods/jsmacros) classes have.\
+various [JsMacros](https://modrinth.com/mod/jsmacrosce) classes have.\
 Please note that this package does **not** add functionality and will crash your scripts if it is not imported
 correctly.
 
