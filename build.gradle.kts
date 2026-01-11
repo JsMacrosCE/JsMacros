@@ -265,25 +265,6 @@ if (isVersionedProject && hasMinecraftVersion) {
             dependsOn(extensionJarTasks)
         }
 
-        tasks.register("packageSourceZip", Zip::class.java) {
-            group = "distribution"
-            description = "Creates a source archive matching the distribution version"
-            dependsOn("prepareDist")
-            destinationDirectory.set(distDir)
-            archiveFileName.set(artifactBaseName.map { "$it-source.zip" })
-            from(projectDir) {
-                include("**/*")
-                exclude(
-                    ".git/**",
-                    ".gradle/**",
-                    "**/.gradle/**",
-                    "build/**",
-                    "**/build/**",
-                    "dist/**"
-                )
-            }
-        }
-
         tasks.register("createDist") {
             group = "distribution"
             description = "Assembles documentation, mods, extensions, devkits, and sources into dist/"
@@ -292,8 +273,7 @@ if (isVersionedProject && hasMinecraftVersion) {
                 "createDistMods",
                 "createDistExtensions",
                 devkitTasks,
-                extensionPackTasks,
-                "packageSourceZip"
+                extensionPackTasks
             )
         }
 
