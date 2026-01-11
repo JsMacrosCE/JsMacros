@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "xyz.wagyourtail.jsmacros.fabric.client.mixins",
+  "package": "com.jsmacrosce.jsmacros.fabric.client.mixins",
   "compatibilityLevel": "JAVA_21",
   "refmap": "jsmacrosce-fabric.refmap.json",
   "client": [

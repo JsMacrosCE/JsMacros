@@ -1,2 +1,2 @@
 Manifest-Version: 1.0
-MixinConnector: xyz.wagyourtail.jsmacros.forge.client.JsMacrosEarlyRiser
+MixinConnector: com.jsmacrosce.jsmacros.forge.client.JsMacrosEarlyRiser

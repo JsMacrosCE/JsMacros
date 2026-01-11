@@ -1,0 +1,33 @@
+package com.jsmacrosce.jsmacros.client.api.event.impl.player;
+
+import com.jsmacrosce.jsmacros.client.JsMacrosClient;
+import com.jsmacrosce.jsmacros.client.api.helper.StatusEffectHelper;
+import com.jsmacrosce.jsmacros.core.event.BaseEvent;
+import com.jsmacrosce.jsmacros.core.event.Event;
+
+/**
+ * @author Etheradon
+ * @since 1.8.4
+ */
+@Event(value = "StatusEffectUpdate")
+public class EventStatusEffectUpdate extends BaseEvent {
+
+    public final StatusEffectHelper oldEffect;
+    public final StatusEffectHelper newEffect;
+    public final boolean added;
+    public final boolean removed;
+
+    public EventStatusEffectUpdate(StatusEffectHelper oldEffect, StatusEffectHelper newEffect, boolean added) {
+        super(JsMacrosClient.clientCore);
+        this.oldEffect = oldEffect;
+        this.newEffect = newEffect;
+        this.added = added;
+        this.removed = !added;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s:{\"effect\": \"%s\", \"strength\": %d, \"time\": %d, \"change\": %s}", this.getEventName(), added ? newEffect.getId() : oldEffect.getId(), added ? newEffect.getStrength() : oldEffect.getStrength(), added ? newEffect.getTime() : oldEffect.getTime(), added ? "added" : "removed");
+    }
+
+}

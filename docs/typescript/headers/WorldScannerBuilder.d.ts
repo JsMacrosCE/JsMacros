@@ -4,7 +4,7 @@
  * 
  * @author aMelonRind
  * @version 1.9.0
- * @see Packages.xyz.wagyourtail.jsmacros.client.api.classes.worldscanner.WorldScannerBuilder
+ * @see Packages.com.jsmacrosce.jsmacros.client.api.classes.worldscanner.WorldScannerBuilder
  */
 declare namespace TypedWorldScannerBuilder {
 

@@ -9,7 +9,7 @@
     "wagyourtail"
   ],
   "contact": {
-    "homepage": "https://wagyourtail.xyz/",
+    "homepage": "https://jsmacros.com/",
     "sources": "https://github.com/JsMacrosCE/JsMacros"
   },
   "license": "MPL-2.0",
@@ -17,13 +17,13 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "xyz.wagyourtail.jsmacros.fabric.client.JsMacrosFabric"
+      "com.jsmacrosce.jsmacros.fabric.client.JsMacrosFabric"
     ],
     "client": [
-      "xyz.wagyourtail.jsmacros.fabric.client.JsMacrosFabric"
+      "com.jsmacrosce.jsmacros.fabric.client.JsMacrosFabric"
     ],
     "modmenu": [
-      "xyz.wagyourtail.jsmacros.fabric.client.ModMenuEntry"
+      "com.jsmacrosce.jsmacros.fabric.client.ModMenuEntry"
     ]
   },
   "mixins": [

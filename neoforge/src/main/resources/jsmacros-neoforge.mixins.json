@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "xyz.wagyourtail.jsmacros.forge.client.mixins",
+  "package": "com.jsmacrosce.jsmacros.neoforge.client.mixins",
   "compatibilityLevel": "JAVA_21",
   "refmap": "jsmacrosce-neoforge.refmap.json",
   "client": [],

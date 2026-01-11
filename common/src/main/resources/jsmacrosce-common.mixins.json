@@ -1,9 +1,9 @@
 {
   "required": true,
-  "package": "xyz.wagyourtail.jsmacros.client.mixin",
+  "package": "com.jsmacrosce.jsmacros.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "refmap": "jsmacrosce-common.refmap.json",
-  "plugin": "xyz.wagyourtail.jsmacros.client.mixin.JSMacrosMixinPlugin",
+  "plugin": "com.jsmacrosce.jsmacros.client.mixin.JSMacrosMixinPlugin",
   "client": [
     "access.MixinAbstractFurnaceScreenHandler",
     "access.MixinAbstractHorseEntity",
