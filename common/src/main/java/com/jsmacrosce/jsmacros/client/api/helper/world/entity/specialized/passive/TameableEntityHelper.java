@@ -2,12 +2,14 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passi
 
 import net.minecraft.world.entity.TamableAnimal;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.LivingEntityHelper;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class TameableEntityHelper<T extends TamableAnimal> extends AnimalEntityHelper<T> {
 

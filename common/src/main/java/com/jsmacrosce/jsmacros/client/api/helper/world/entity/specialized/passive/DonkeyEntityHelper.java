@@ -1,11 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive;
 
 import net.minecraft.world.entity.animal.horse.AbstractChestedHorse;
+import com.jsmacrosce.doclet.DocletCategory;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class DonkeyEntityHelper<T extends AbstractChestedHorse> extends AbstractHorseEntityHelper<T> {
 

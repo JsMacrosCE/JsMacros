@@ -1,12 +1,14 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive;
 
 import net.minecraft.world.entity.animal.horse.Horse;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinHorseEntity;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class HorseEntityHelper extends AbstractHorseEntityHelper<Horse> {
 

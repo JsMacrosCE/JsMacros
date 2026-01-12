@@ -16,10 +16,7 @@ import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
-import com.jsmacrosce.doclet.DocletDeclareType;
-import com.jsmacrosce.doclet.DocletReplaceParams;
-import com.jsmacrosce.doclet.DocletReplaceReturn;
-import com.jsmacrosce.doclet.DocletReplaceTypeParams;
+import com.jsmacrosce.doclet.*;
 import com.jsmacrosce.jsmacros.api.math.Pos2D;
 import com.jsmacrosce.jsmacros.client.JsMacros;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
@@ -39,6 +36,7 @@ import java.util.stream.IntStream;
  * @author Wagyourtail
  * @since 1.0.8
  */
+@DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public class Inventory<T extends AbstractContainerScreen<?>> {
     protected T inventory;

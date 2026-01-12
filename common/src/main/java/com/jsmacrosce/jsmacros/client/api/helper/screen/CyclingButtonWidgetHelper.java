@@ -4,6 +4,7 @@ import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IScreen;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
@@ -19,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Screen and UI Elements")
 @SuppressWarnings("unused")
 public class CyclingButtonWidgetHelper<T> extends ClickableWidgetHelper<CyclingButtonWidgetHelper<T>, CycleButton<T>> {
 
@@ -92,6 +94,7 @@ public class CyclingButtonWidgetHelper<T> extends ClickableWidgetHelper<CyclingB
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Screen and UI Elements")
     public static class CyclicButtonBuilder<T> extends AbstractWidgetBuilder<CyclicButtonBuilder<T>, CycleButton<T>, CyclingButtonWidgetHelper<T>> {
 
         private T value = null;

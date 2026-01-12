@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl;
 
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
@@ -9,6 +10,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Network/Chat")
 @Event(value = "SendMessage", oldName = "SEND_MESSAGE", cancellable = true)
 public class EventSendMessage extends BaseEvent {
     @Nullable

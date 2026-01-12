@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.screen;
 
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IScreen;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Screen and UI Elements")
 public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper, Slider> {
 
     public SliderWidgetHelper(Slider btn) {
@@ -69,6 +71,7 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Screen and UI Elements")
     public static class SliderBuilder extends AbstractWidgetBuilder<SliderBuilder, Slider, SliderWidgetHelper> {
 
         private int steps = 2;

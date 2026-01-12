@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob;
 
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinAbstractPiglinEntity;
 
@@ -8,6 +9,7 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinAbstractPiglinEntity;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class AbstractPiglinEntityHelper<T extends AbstractPiglin> extends MobEntityHelper<T> {
 

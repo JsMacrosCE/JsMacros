@@ -2,12 +2,14 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehic
 
 import net.minecraft.world.entity.vehicle.MinecartFurnace;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class FurnaceMinecartEntityHelper extends EntityHelper<MinecartFurnace> {
 

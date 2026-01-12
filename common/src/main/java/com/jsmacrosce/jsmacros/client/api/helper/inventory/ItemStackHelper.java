@@ -22,6 +22,7 @@ import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
@@ -42,6 +43,7 @@ import java.util.stream.Collectors;
 /**
  * @author Wagyourtail
  */
+@DocletCategory("Items/Enchantments")
 @SuppressWarnings("unused")
 public class ItemStackHelper extends BaseHelper<ItemStack> {
     private static final Style LORE_STYLE = Style.EMPTY.withColor(ChatFormatting.DARK_PURPLE).withItalic(true);

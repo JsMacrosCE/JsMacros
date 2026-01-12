@@ -2,12 +2,14 @@ package com.jsmacrosce.jsmacros.client.api.classes.inventory;
 
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.world.inventory.InventoryMenu;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Inventory")
 public class PlayerInventory extends RecipeInventory<InventoryScreen> {
 
     protected PlayerInventory(InventoryScreen inventory) {

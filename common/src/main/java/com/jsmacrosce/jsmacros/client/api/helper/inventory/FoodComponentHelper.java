@@ -1,12 +1,14 @@
 package com.jsmacrosce.jsmacros.client.api.helper.inventory;
 
 import net.minecraft.world.food.FoodProperties;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Items/Enchantments")
 @SuppressWarnings("unused")
 public class FoodComponentHelper extends BaseHelper<FoodProperties> {
 

@@ -5,6 +5,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.TextBuilder;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IScreen;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
  * @author Wagyourtail
  * @since 1.0.5
  */
+@DocletCategory("Screen and UI Elements")
 @SuppressWarnings("unused")
 public class ClickableWidgetHelper<B extends ClickableWidgetHelper<B, T>, T extends AbstractWidget> extends BaseHelper<T> implements RenderElement, Alignable<B> {
     public int zIndex;

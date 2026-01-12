@@ -8,6 +8,7 @@ import net.minecraft.world.entity.player.StackedItemContents;
 import net.minecraft.world.inventory.RecipeBookMenu;
 import net.minecraft.world.item.crafting.display.RecipeDisplayEntry;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IScreen;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public abstract class RecipeInventory<T extends AbstractRecipeBookScreen<? extends RecipeBookMenu>> extends Inventory<T> {
 

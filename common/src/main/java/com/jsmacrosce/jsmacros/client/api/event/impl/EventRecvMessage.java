@@ -4,6 +4,7 @@ import net.minecraft.client.GuiMessageTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
@@ -13,6 +14,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Network/Chat")
 @Event(value = "RecvMessage", oldName = "RECV_MESSAGE", cancellable = true)
 public class EventRecvMessage extends BaseEvent {
     @Nullable

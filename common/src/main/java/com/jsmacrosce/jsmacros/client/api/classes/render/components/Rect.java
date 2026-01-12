@@ -5,6 +5,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
 
@@ -12,6 +13,7 @@ import com.jsmacrosce.jsmacros.client.util.ColorUtil;
  * @author Wagyourtail
  * @since 1.0.5
  */
+@DocletCategory("Rendering/Graphics")
 @SuppressWarnings("unused")
 public class Rect implements RenderElement, Alignable<Rect> {
 
@@ -368,6 +370,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Rendering/Graphics")
     public static final class Builder extends RenderElementBuilder<Rect> implements Alignable<Builder> {
         private int x1 = 0;
         private int y1 = 0;

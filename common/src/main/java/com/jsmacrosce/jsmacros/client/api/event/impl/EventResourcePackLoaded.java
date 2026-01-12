@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl;
 
 import net.minecraft.client.Minecraft;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
@@ -15,6 +16,7 @@ import java.util.List;
  *
  * @since 1.5.1
  */
+@DocletCategory("System/Lifecycle")
 @Event("ResourcePackLoaded")
 public class EventResourcePackLoaded extends BaseEvent {
     public final boolean isGameStart;

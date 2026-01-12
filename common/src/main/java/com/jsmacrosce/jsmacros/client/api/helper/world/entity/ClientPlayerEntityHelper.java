@@ -26,6 +26,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
@@ -50,6 +51,7 @@ import java.util.stream.Collectors;
  * @see PlayerEntityHelper
  * @since 1.0.3
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntityHelper<T> {
     protected final Minecraft mc = Minecraft.getInstance();

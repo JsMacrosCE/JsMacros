@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other;
 
 import net.minecraft.world.entity.item.FallingBlockEntity;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockStateHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
@@ -9,6 +10,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class FallingBlockEntityHelper extends EntityHelper<FallingBlockEntity> {
 

@@ -42,3 +42,7 @@ docs/web/[0-9]*
 # Affinity Photo
 *.af~lock~
 *.af~lock~:com.dropbox.ignored
+
+node_modules/
+**/.vitepress/cache/
+**/.vitepress/dist/

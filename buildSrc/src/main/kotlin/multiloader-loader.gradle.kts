@@ -28,27 +28,32 @@ val ensureStonecutterGenerate = tasks.register("ensureStonecutterGenerate") {
     dependsOn("stonecutterGenerate")
 }
 
+// Add common's Stonecutter-generated sources to the source set
+sourceSets {
+    main {
+        java {
+            srcDir(commonStonecutterJava)
+        }
+        resources {
+            srcDir(commonStonecutterResources)
+        }
+    }
+}
+
 tasks.named<JavaCompile>("compileJava") {
     dependsOn(ensureStonecutterGenerate)
-    // Add common's Stonecutter-generated sources
-    source(commonStonecutterJava)
 }
 
 tasks.named<ProcessResources>("processResources") {
     dependsOn(ensureStonecutterGenerate)
-    // Include common's Stonecutter-generated resources
-    from(commonStonecutterResources)
 }
 
 tasks.named<Javadoc>("javadoc") {
     dependsOn(ensureStonecutterGenerate)
-    source(commonStonecutterJava)
 }
 
 tasks.named<Jar>("sourcesJar") {
     dependsOn(ensureStonecutterGenerate)
-    from(commonStonecutterJava)
-    from(commonStonecutterResources)
 }
 
 // Exclude access wideners folder from the jar (each loader handles this separately)

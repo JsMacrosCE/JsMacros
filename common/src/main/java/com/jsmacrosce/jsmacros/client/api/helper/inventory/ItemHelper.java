@@ -9,6 +9,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.item.*;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockHelper;
@@ -24,6 +25,7 @@ import java.util.stream.Stream;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Items/Enchantments")
 @SuppressWarnings("unused")
 public class ItemHelper extends BaseHelper<Item> {
     private static final Minecraft mc = Minecraft.getInstance();

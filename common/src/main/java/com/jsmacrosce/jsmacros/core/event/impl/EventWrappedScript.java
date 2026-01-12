@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.core.event.impl;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
@@ -11,6 +12,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author Wagyourtail
  * @since 1.7.0
  */
+@DocletCategory("Core")
 @Event("WrappedScript")
 public class EventWrappedScript<T, U, R> extends BaseEvent {
     public final T arg1;

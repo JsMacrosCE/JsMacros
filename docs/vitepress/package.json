@@ -1,0 +1,22 @@
+{
+  "name": "@jsmacros/vitepress",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Generated documentation for JsMacros using VitePress",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "keywords": [
+    "vitepress",
+    "jsmacros"
+  ],
+  "author": "Jack Manning",
+  "license": "MPL-2.0",
+  "packageManager": "pnpm@10.25.0",
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "vitepress": "2.0.0-alpha.15"
+  }
+}

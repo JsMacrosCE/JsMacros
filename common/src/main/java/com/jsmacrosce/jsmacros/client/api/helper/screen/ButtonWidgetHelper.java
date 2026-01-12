@@ -5,6 +5,7 @@ import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IScreen;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
@@ -15,6 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Screen and UI Elements")
 public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<ButtonWidgetHelper<T>, T> {
 
     public ButtonWidgetHelper(T btn) {
@@ -29,6 +31,7 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Screen and UI Elements")
     public static class ButtonBuilder extends AbstractWidgetBuilder<ButtonBuilder, Button, ButtonWidgetHelper<Button>> {
 
         @Nullable
@@ -103,6 +106,7 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Screen and UI Elements")
     public static class TexturedButtonBuilder extends AbstractWidgetBuilder<TexturedButtonBuilder, ImageButton, ButtonWidgetHelper<ImageButton>> {
 
         @Nullable

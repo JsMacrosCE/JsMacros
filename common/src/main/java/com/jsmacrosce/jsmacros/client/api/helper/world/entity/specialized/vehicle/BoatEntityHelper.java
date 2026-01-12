@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehic
 import net.minecraft.world.entity.vehicle.AbstractBoat;
 import net.minecraft.world.entity.vehicle.Boat;
 import net.minecraft.world.entity.vehicle.ChestBoat;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 
@@ -10,6 +11,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class BoatEntityHelper extends EntityHelper<AbstractBoat> {
 

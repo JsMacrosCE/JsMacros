@@ -6,6 +6,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShapeRenderer;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.api.math.Vec3D;
@@ -19,6 +20,7 @@ import java.util.Objects;
 /**
  * @author Wagyourtail
  */
+@DocletCategory("Rendering/Graphics")
 @SuppressWarnings("unused")
 public class Box implements RenderElement3D<Box> {
     private static final Field lineDepthTestFunction;
@@ -255,6 +257,7 @@ public class Box implements RenderElement3D<Box> {
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Rendering/Graphics")
     public static class Builder {
 
         private final Draw3D parent;

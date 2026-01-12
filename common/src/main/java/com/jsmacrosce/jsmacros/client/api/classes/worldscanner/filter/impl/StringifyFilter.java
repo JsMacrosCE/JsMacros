@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.impl;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.BasicFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.ICompare;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.compare.StringCompareFilter;
@@ -12,6 +13,7 @@ import java.util.Set;
  * @author Etheradon
  * @since 1.6.5
  */
+@DocletCategory("Filters/Predicates")
 public class StringifyFilter<T> extends BasicFilter<T> {
 
     private final Set<String> filterObjects;

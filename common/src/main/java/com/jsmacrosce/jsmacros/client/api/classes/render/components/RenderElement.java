@@ -6,11 +6,13 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Renderable;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
 
 /**
  * @author Wagyourtail
  */
+@DocletCategory("Rendering/Graphics")
 public interface RenderElement extends Renderable {
 
     Minecraft mc = Minecraft.getInstance();

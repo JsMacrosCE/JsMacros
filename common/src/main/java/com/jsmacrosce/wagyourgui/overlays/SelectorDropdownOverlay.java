@@ -9,6 +9,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.wagyourgui.elements.Button;
 import com.jsmacrosce.wagyourgui.elements.Scrollbar;
 
@@ -17,6 +18,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
 
+@DocletCategory("Screen and UI Elements")
 public class SelectorDropdownOverlay extends OverlayContainer {
     private final int lineHeight;
     private final Collection<Component> choices;

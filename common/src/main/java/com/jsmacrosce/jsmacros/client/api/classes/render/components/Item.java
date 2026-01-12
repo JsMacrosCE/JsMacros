@@ -8,6 +8,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
@@ -18,6 +19,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
  * @author Wagyourtail
  * @since 1.0.5
  */
+@DocletCategory("Rendering/Graphics")
 @SuppressWarnings("unused")
 public class Item implements RenderElement, Alignable<Item> {
 
@@ -360,6 +362,7 @@ public class Item implements RenderElement, Alignable<Item> {
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Rendering/Graphics")
     public static final class Builder extends RenderElementBuilder<Item> implements Alignable<Builder> {
         private int x = 0;
         private int y = 0;

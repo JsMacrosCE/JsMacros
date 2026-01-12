@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.displ
 
 import net.minecraft.world.entity.Display;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
@@ -9,6 +10,7 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * @author aMelonRind
  * @since 1.9.1
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class TextDisplayEntityHelper extends DisplayEntityHelper<Display.TextDisplay> {
 

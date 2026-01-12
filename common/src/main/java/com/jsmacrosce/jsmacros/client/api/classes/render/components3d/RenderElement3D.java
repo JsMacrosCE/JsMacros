@@ -3,8 +3,10 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import org.jetbrains.annotations.NotNull;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
 
+@DocletCategory("Rendering/Graphics")
 public interface RenderElement3D<T extends RenderElement3D<?>> extends Comparable<RenderElement3D<?>> {
 
     @DocletIgnore
