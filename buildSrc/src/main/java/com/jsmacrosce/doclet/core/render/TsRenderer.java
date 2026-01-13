@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
 
 public class TsRenderer implements Renderer {
     private static final Pattern HTML_LINK =
-        Pattern.compile("<a (?:\\n|.)*?href=\"([^\"]*)\"(?:\\n|.)*?>(.*?)</a>");
+        Pattern.compile("<a\\s[^>]*?href=\"([^\"]*)\"[^>]*?>(.*?)</a>", Pattern.DOTALL);
     private static final Pattern LINK_TAG =
         Pattern.compile("\\{@link\\s+([^}]+)}");
     private static final Set<String> TS_RESERVED_WORDS = Set.of(
@@ -248,7 +248,8 @@ public class TsRenderer implements Renderer {
             return;
         }
 
-        if (!clz.implementsTypes().isEmpty()) {
+        // Don't generate interface for Library classes (they're rendered as namespaces)
+        if (!clz.implementsTypes().isEmpty() && !"Library".equals(clz.group())) {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
             appendTypeParams(out, clz.typeParams(), null, false);
@@ -293,7 +294,18 @@ public class TsRenderer implements Renderer {
         appendTypeParams(out, member.typeParams(), member.replaceTypeParams(), false);
         out.append("(");
         if (member.replaceParams() != null && !member.replaceParams().isBlank()) {
-            out.append(member.replaceParams());
+            String replaced = member.replaceParams();
+            // Check if replaceParams contains complete declaration(s) with overloads
+            if (replaced.contains(");")) {
+                // It's a complete declaration with overloads, output as-is
+                out.append(replaced);
+                if (!replaced.endsWith("\n")) {
+                    out.append("\n");
+                }
+                return;
+            }
+            // Otherwise it's just parameter replacement
+            out.append(replaced);
         } else {
             appendParams(out, member.params());
         }
@@ -459,7 +471,7 @@ public class TsRenderer implements Renderer {
     }
 
     private String buildAliasName(ClassDoc clz, boolean defaultToAny) {
-        StringBuilder out = new StringBuilder(clz.name());
+        StringBuilder out = new StringBuilder(clz.name().replace(".", "$"));
         if (clz.typeParams() != null && !clz.typeParams().isEmpty()) {
             out.append("<");
             boolean first = true;
@@ -741,7 +753,11 @@ public class TsRenderer implements Renderer {
         }
         indent(out, indent).append("/**\n");
         for (String line : lines) {
-            indent(out, indent).append(" * ").append(line).append("\n");
+            // Split on newlines to handle multi-line comments
+            String[] subLines = line.split("\n");
+            for (String subLine : subLines) {
+                indent(out, indent).append(" * ").append(subLine).append("\n");
+            }
         }
         indent(out, indent).append(" */\n");
     }
@@ -788,15 +804,28 @@ public class TsRenderer implements Renderer {
         }
         formatted = formatted.replaceAll("\n <p>", "\n")
             .replaceAll("</?pre>", "```");
-        formatted = HTML_LINK.matcher(formatted).replaceAll("[$2]($1)");
+        // Convert HTML links to Markdown, cleaning up newlines in link text
+        formatted = convertHtmlLinks(formatted);
         formatted = formatted.replace("&lt;", "<").replace("&gt;", ">");
-        formatted = formatted.replaceAll("(?<=[.,:;>]) ?\n", "  \n");
         formatted = convertLinkTags(formatted);
         String trimmed = formatted.trim();
         if (looksLikeSignature(trimmed)) {
             formatted = convertSignature(trimmed);
         }
         return formatted.trim();
+    }
+    
+    private String convertHtmlLinks(String text) {
+        java.util.regex.Matcher matcher = HTML_LINK.matcher(text);
+        StringBuffer buffer = new StringBuffer();
+        while (matcher.find()) {
+            String url = matcher.group(1);
+            String linkText = matcher.group(2);
+            String replacement = "[" + linkText + "](" + url + ")";
+            matcher.appendReplacement(buffer, java.util.regex.Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(buffer);
+        return buffer.toString();
     }
 
     private String convertLinkTags(String text) {

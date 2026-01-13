@@ -59,7 +59,7 @@ public class FReflection extends PerExecLibrary {
     @DocletReplaceParams(
             """
             name: C): GetJava.Type$Reflection<C>;
-            function getClass<C extends JavaTypeList | keyof GetJava.Primitives>(name: C"""
+            getClass<C extends JavaTypeList | keyof GetJava.Primitives>(name: C"""
     )
     @DocletReplaceReturn("GetJava.Type$Reflection<C>")
     public <T> Class<T> getClass(String name) throws ClassNotFoundException {
@@ -101,7 +101,7 @@ public class FReflection extends PerExecLibrary {
     @DocletReplaceParams(
             """
             name: C, name2: string): GetJava.Type$Reflection<C>;
-            function getClass<C extends JavaTypeList | keyof GetJava.Primitives>(name: C, name2: JavaTypeList | keyof GetJava.Primitives"""
+            getClass<C extends JavaTypeList | keyof GetJava.Primitives>(name: C, name2: JavaTypeList | keyof GetJava.Primitives"""
     )
     @DocletReplaceReturn("GetJava.Type$Reflection<C>")
     public <T> Class<T> getClass(String name, String name2) throws ClassNotFoundException {

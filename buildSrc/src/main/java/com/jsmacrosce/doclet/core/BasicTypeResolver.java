@@ -72,6 +72,13 @@ public class BasicTypeResolver implements TypeResolver {
             return new TypeRef(TypeKind.UNKNOWN, "unknown", "unknown", List.of(), false, false, null, false);
         }
         if (!resolving.add(type)) {
+            // Handle self-referential type parameters (e.g., B extends SomeClass<B, T>)
+            // by returning a TYPEVAR without bounds to avoid infinite recursion
+            if (type.getKind() == javax.lang.model.type.TypeKind.TYPEVAR) {
+                TypeVariable typeVar = (TypeVariable) type;
+                String name = typeVar.asElement().getSimpleName().toString();
+                return new TypeRef(TypeKind.TYPEVAR, name, name, List.of(), false, false, null, false);
+            }
             return new TypeRef(TypeKind.UNKNOWN, type.toString(), type.toString(), List.of(), false, false, null, false);
         }
         try {
