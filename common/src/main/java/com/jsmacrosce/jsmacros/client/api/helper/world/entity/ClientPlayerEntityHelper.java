@@ -196,16 +196,16 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
     }
 
     /**
-     * Wraps {@code targetYaw} into an equivalent angle that is
-     * closest to {@code lastYaw}, preventing large packet deltas.
+     * Wraps {@code targetAngle} into an equivalent angle that is
+     * closest to {@code lastAngle}, preventing large packet deltas.
      *
-     * @param lastYaw the yaw last sent to the server
-     * @param targetYaw the desired logical yaw
-     * @return a yaw value safe to send this tick
+     * @param lastAngle the angle last sent to the server
+     * @param targetAngle the desired logical angle
+     * @return an angle value safe to send this tick
      */
-    private static float safeWrapDegrees(float lastYaw, float targetYaw) {
-        float delta = Mth.wrapDegrees(targetYaw - lastYaw);
-        return lastYaw + delta;
+    private static float safeWrapDegrees(float lastAngle, float targetAngle) {
+        float delta = Mth.wrapDegrees(targetAngle - lastAngle);
+        return lastAngle + delta;
     }
 
     /**
