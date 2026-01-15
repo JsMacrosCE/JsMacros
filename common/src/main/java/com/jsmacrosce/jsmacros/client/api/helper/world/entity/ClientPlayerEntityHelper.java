@@ -199,7 +199,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
      * Wraps {@code targetAngle} into an equivalent angle that is
      * closest to {@code lastAngle}, preventing large packet deltas.
      *
-     * @param lastAngle the angle last sent to the server
+     * @param lastAngle the previous rotation value
      * @param targetAngle the desired logical angle
      * @return an angle value safe to send this tick
      */
@@ -219,6 +219,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
         base.yRotO = base.getYRot();
 
         float safeYaw = safeWrapDegrees(base.yRotO, (float) yaw);
+        // Pitch is wrapped relative to previous pitch, then clamped to valid range [-90, 90]
         float safePitch = Mth.clamp(safeWrapDegrees(base.xRotO, (float) pitch), -90.0F, 90.0F);
 
         base.setXRot(safePitch);
