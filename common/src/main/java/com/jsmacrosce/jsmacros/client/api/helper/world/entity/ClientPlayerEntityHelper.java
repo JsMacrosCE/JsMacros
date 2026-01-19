@@ -219,8 +219,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
         base.yRotO = base.getYRot();
 
         float safeYaw = safeWrapDegrees(base.yRotO, (float) yaw);
-        // Pitch is wrapped relative to previous pitch, then clamped to valid range [-90, 90]
-        float safePitch = Mth.clamp(safeWrapDegrees(base.xRotO, (float) pitch), -90.0F, 90.0F);
+        float safePitch = Mth.clamp((float) pitch, -90.0F, 90.0F);
 
         base.setXRot(safePitch);
         base.setYRot(safeYaw);
