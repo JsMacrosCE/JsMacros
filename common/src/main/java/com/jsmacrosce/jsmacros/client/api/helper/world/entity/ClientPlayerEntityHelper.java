@@ -196,17 +196,33 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
     }
 
     /**
+     * Wraps {@code targetAngle} into an equivalent angle that is
+     * closest to {@code lastAngle}, preventing large packet deltas.
+     *
+     * @param lastAngle the previous rotation value
+     * @param targetAngle the desired logical angle
+     * @return an angle value safe to send this tick
+     */
+    private static float safeWrapDegrees(float lastAngle, float targetAngle) {
+        float delta = Mth.wrapDegrees(targetAngle - lastAngle);
+        return lastAngle + delta;
+    }
+
+    /**
      * @param yaw   (was pitch prior to 1.2.6)
      * @param pitch (was yaw prior to 1.2.6)
      * @return
      * @since 1.0.3
      */
     public ClientPlayerEntityHelper<T> lookAt(double yaw, double pitch) {
-        pitch = Mth.clamp(pitch, -90.0F, 90.0F);
         base.xRotO = base.getXRot();
         base.yRotO = base.getYRot();
-        base.setXRot((float) pitch);
-        base.setYRot(Mth.wrapDegrees((float) yaw));
+
+        float safeYaw = safeWrapDegrees(base.yRotO, (float) yaw);
+        float safePitch = Mth.clamp((float) pitch, -90.0F, 90.0F);
+
+        base.setXRot(safePitch);
+        base.setYRot(safeYaw);
         if (base.getVehicle() != null) {
             base.getVehicle().onPassengerTurned(base);
         }
