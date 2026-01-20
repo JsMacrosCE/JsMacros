@@ -271,9 +271,7 @@ public class Text implements RenderElement, Alignable<Text> {
         *///?}
 
         setupMatrix(matrices, x, y, (float) scale, rotation, getWidth(), getHeight(), rotateCenter);
-        // TODO: This confuses me, do we render the string at 0, 0 because we've already translated the matrix?
-        //      That seems to be the case, but wagyourtail originally wrote it with the x and y passed in...
-        drawContext.drawString(mc.font, text, 0, 0, color, shadow);
+        drawContext.drawString(mc.font, text, x, y, color, shadow);
 
         //? if >1.21.5 {
         matrices.popMatrix();
