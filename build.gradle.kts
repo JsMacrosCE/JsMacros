@@ -400,3 +400,9 @@ tasks.register("printVersion") {
         println(project.version)
     }
 }
+
+stonecutter {
+    replacements.string(current.parsed >= "1.21.11") {
+        replacement("ResourceLocation", "Identifier")
+    }
+}
