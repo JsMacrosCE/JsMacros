@@ -77,8 +77,8 @@ val modId = modIdProvider.get()
 val channel = channelProvider.get()
 version = computedVersionProvider.get()
 
-val supportedVersions = listOf("1.21.5", "1.21.8", "1.21.10")
-val mcVersionsToBuild = if (IS_CI) supportedVersions else listOf("1.21.10")
+val supportedVersions = listOf("1.21.5", "1.21.8", "1.21.10", "1.21.11")
+val mcVersionsToBuild = if (IS_CI) supportedVersions else listOf("1.21.11")
 val mcVersion = mcVersionsToBuild.first() // for backward compatibility
 
 val loaders = listOf("fabric", "neoforge")

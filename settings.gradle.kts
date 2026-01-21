@@ -70,16 +70,16 @@ stonecutter {
     centralScript = "build.gradle.kts"
 
     create(rootProject) {
-        versions("1.21.5", "1.21.8", "1.21.10")
+        versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
 
         branch("common") {
-            versions("1.21.5", "1.21.8", "1.21.10")
+            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
         }
         branch("fabric") {
-            versions("1.21.5", "1.21.8", "1.21.10")
+            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
         }
         branch("neoforge") {
-            versions("1.21.5", "1.21.8", "1.21.10")
+            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
         }
     }
 }
