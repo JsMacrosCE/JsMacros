@@ -1,19 +1,23 @@
-package com.jsmacrosce.doclet.webdoclet;
+package com.jsmacrosce.doclet.core.webdoclet;
 
 import com.sun.source.util.DocTrees;
 import jdk.javadoc.doclet.Doclet;
 import jdk.javadoc.doclet.DocletEnvironment;
 import jdk.javadoc.doclet.Reporter;
 import com.jsmacrosce.FileHandler;
+import com.jsmacrosce.doclet.core.webdoclet.parsers.ClassParser;
 import com.jsmacrosce.doclet.options.IgnoredItem;
 import com.jsmacrosce.doclet.options.OutputDirectory;
 import com.jsmacrosce.doclet.options.Version;
 import com.jsmacrosce.doclet.webdoclet.options.Links;
 import com.jsmacrosce.doclet.webdoclet.options.McVersion;
-import com.jsmacrosce.doclet.webdoclet.parsers.ClassParser;
 
 import javax.lang.model.SourceVersion;
-import javax.lang.model.element.*;
+import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.AnnotationValue;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
@@ -40,7 +44,7 @@ public class Main implements Doclet {
 
     @Override
     public String getName() {
-        return "WebDoc Generator";
+        return "WebDoc Generator (Core)";
     }
 
     @Override
@@ -70,22 +74,26 @@ public class Main implements Doclet {
         elementUtils = environment.getElementUtils();
 
         File outDir = new File(OutputDirectory.outputDir, Version.version);
-
         try {
             if (!outDir.exists() && !outDir.mkdirs()) {
                 reporter.print(Diagnostic.Kind.ERROR, "Failed to create version dir\n");
                 return false;
             }
 
-            //create package-list
             StringBuilder pkgList = new StringBuilder();
-            elements.stream().filter(e -> e.getKind() == ElementKind.PACKAGE).map(e -> (PackageElement) e).forEach(e -> {
-                if (Links.externalPackages.containsKey(e.getQualifiedName().toString())) {
-                    return;
+            for (Element element : elements) {
+                if (element.getKind() != javax.lang.model.element.ElementKind.PACKAGE) {
+                    continue;
                 }
-                pkgList.append(e.getQualifiedName()).append("\n");
-            });
-            pkgList.setLength(pkgList.length() - 1);
+                String name = ((javax.lang.model.element.PackageElement) element).getQualifiedName().toString();
+                if (Links.externalPackages.containsKey(name)) {
+                    continue;
+                }
+                pkgList.append(name).append("\n");
+            }
+            if (pkgList.length() > 0) {
+                pkgList.setLength(pkgList.length() - 1);
+            }
             new FileHandler(new File(outDir, "package-list")).write(pkgList.toString());
 
             elements.stream().filter(e -> e instanceof TypeElement).map(e -> (TypeElement) e).forEach(e -> {

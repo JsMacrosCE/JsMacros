@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.core.event;
 
 import com.google.common.collect.ImmutableSet;
 import org.jetbrains.annotations.ApiStatus;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.config.ScriptTrigger;
 import com.jsmacrosce.jsmacros.core.library.impl.FJsMacros;
@@ -12,6 +13,7 @@ import java.util.*;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Events and Event Handling")
 public abstract class BaseEventRegistry {
     protected final Core runner;
     protected final Map<String, Set<IEventListener>> listeners = new LinkedHashMap<>();

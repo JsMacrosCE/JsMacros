@@ -6,6 +6,7 @@ import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
 
@@ -13,6 +14,7 @@ import com.jsmacrosce.jsmacros.client.util.ColorUtil;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Rendering/Graphics")
 @SuppressWarnings("unused")
 public class Line implements RenderElement, Alignable<Line> {
 
@@ -352,6 +354,7 @@ public class Line implements RenderElement, Alignable<Line> {
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Rendering/Graphics")
     public static class Builder extends RenderElementBuilder<Line> implements Alignable<Builder> {
 
         private int x1 = 0;

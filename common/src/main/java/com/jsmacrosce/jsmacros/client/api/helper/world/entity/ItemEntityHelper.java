@@ -1,8 +1,10 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity;
 
 import net.minecraft.world.entity.item.ItemEntity;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class ItemEntityHelper extends EntityHelper<ItemEntity> {
     public ItemEntityHelper(ItemEntity e) {

@@ -1,12 +1,14 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive;
 
 import net.minecraft.world.entity.animal.horse.Llama;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class LlamaEntityHelper<T extends Llama> extends DonkeyEntityHelper<T> {
 

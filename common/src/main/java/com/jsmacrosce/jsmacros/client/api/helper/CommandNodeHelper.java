@@ -1,8 +1,10 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
 import com.mojang.brigadier.tree.CommandNode;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
+@DocletCategory("Commands")
 public class CommandNodeHelper extends BaseHelper<CommandNode> {
     public final CommandNode<?> fabric;
 

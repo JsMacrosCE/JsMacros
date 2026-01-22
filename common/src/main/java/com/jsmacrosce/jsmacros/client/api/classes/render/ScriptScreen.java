@@ -6,6 +6,7 @@ import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.access.IScreenInternal;
@@ -20,6 +21,7 @@ import com.jsmacrosce.wagyourgui.BaseScreen;
  * @see IScreen
  * @since 1.0.5
  */
+@DocletCategory("Screen and UI Elements")
 public class ScriptScreen extends BaseScreen {
     public boolean drawTitle;
     /**

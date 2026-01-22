@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.screen;
 
 import net.minecraft.client.gui.components.LockIconButton;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IScreen;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
@@ -12,6 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Screen and UI Elements")
 @SuppressWarnings("unused")
 public class LockButtonWidgetHelper extends ClickableWidgetHelper<LockButtonWidgetHelper, LockIconButton> {
 
@@ -50,6 +52,7 @@ public class LockButtonWidgetHelper extends ClickableWidgetHelper<LockButtonWidg
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Screen and UI Elements")
     public static class LockButtonBuilder extends AbstractWidgetBuilder<LockButtonBuilder, LockIconButton, LockButtonWidgetHelper> {
 
         private boolean locked = false;

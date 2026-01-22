@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.event.impl.player;
 
 import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IScreen;
@@ -12,6 +13,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Render/UI")
 @Event(value = "OpenScreen", oldName = "OPEN_SCREEN")
 public class EventOpenScreen extends BaseEvent {
     @Nullable

@@ -2,11 +2,13 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.monster.ZombieVillager;
+import com.jsmacrosce.doclet.DocletCategory;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class ZombieVillagerEntityHelper extends ZombieEntityHelper<ZombieVillager> {
 

@@ -31,6 +31,14 @@ val distDirFile = distDir.asFile
 val docsBuildDir = layout.buildDirectory.dir("docs").get().asFile
 val docletJarFile = layout.projectDirectory.file("buildSrc/build/libs/buildSrc.jar").asFile
 
+repositories {
+    mavenCentral()
+}
+
+val docletClasspath = configurations.detachedConfiguration(
+    dependencies.create("com.google.code.gson:gson:2.9.0")
+)
+
 // Root-level properties (available in root gradle.properties)
 val modIdProvider = providers.gradleProperty("mod_id")
 val channelProvider = providers.gradleProperty("channel").orElse("release")
@@ -109,8 +117,8 @@ if (isVersionedProject && hasMinecraftVersion) {
             source(documentationSources)
             classpath = documentationClasspath
             destinationDir = File(docsBuildDir, "python/JsMacrosAC")
-            options.doclet = "com.jsmacrosce.doclet.pydoclet.Main"
-            options.docletpath = mutableListOf(docletJarFile)
+            options.doclet = "com.jsmacrosce.doclet.core.pydoclet.Main"
+            options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
             (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
         }
 
@@ -128,8 +136,8 @@ if (isVersionedProject && hasMinecraftVersion) {
             source(documentationSources)
             classpath = documentationClasspath
             destinationDir = File(docsBuildDir, "typescript/headers")
-            options.doclet = "com.jsmacrosce.doclet.tsdoclet.Main"
-            options.docletpath = mutableListOf(docletJarFile)
+            options.doclet = "com.jsmacrosce.doclet.core.tsdoclet.Main"
+            options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
             (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
         }
 
@@ -147,8 +155,8 @@ if (isVersionedProject && hasMinecraftVersion) {
             source(documentationSources)
             classpath = documentationClasspath
             destinationDir = File(docsBuildDir, "web")
-            options.doclet = "com.jsmacrosce.doclet.webdoclet.Main"
-            options.docletpath = mutableListOf(docletJarFile)
+            options.doclet = "com.jsmacrosce.doclet.core.webdoclet.Main"
+            options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
             (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
             (options as CoreJavadocOptions).addStringOption("mcv", mcVersion)
             (options as StandardJavadocDocletOptions).links(
@@ -170,10 +178,39 @@ if (isVersionedProject && hasMinecraftVersion) {
             }
         }
 
+        tasks.register("generateVitepressDoc", Javadoc::class.java) {
+            group = "documentation"
+            description = "Generates the vitepress documentation for the project"
+            source(documentationSources)
+            classpath = documentationClasspath
+            destinationDir = File(docsBuildDir, "vitepress")
+            options.doclet = "com.jsmacrosce.doclet.core.mddoclet.Main"
+            options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
+            (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
+            (options as CoreJavadocOptions).addStringOption("mcv", mcVersion)
+            (options as StandardJavadocDocletOptions).links(
+                "https://docs.oracle.com/javase/8/docs/api/",
+                "https://www.javadoc.io/doc/org.slf4j/slf4j-api/1.7.30/",
+                "https://javadoc.io/doc/com.neovisionaries/nv-websocket-client/latest/"
+            )
+        }
+
+        tasks.register("copyVitepressDoc", Copy::class.java) {
+            group = "documentation"
+            description = "Copies the vitepress documentation to the build folder"
+            dependsOn("generateVitepressDoc")
+            from(rootProject.file("docs/vitepress"))
+            into(File(docsBuildDir, "vitepress"))
+            inputs.property("version", project.version.toString())
+            filesMatching("index.md") {
+                expand(mapOf("version" to project.version.toString()))
+            }
+        }
+
         tasks.register("createDistDocs", Copy::class.java) {
             group = "distribution"
             description = "Packages generated documentation into the dist directory"
-            dependsOn("prepareDist", "copyPyDoc", "copyTSDoc", "copyWebDoc")
+            dependsOn("prepareDist", "copyPyDoc", "copyTSDoc", "copyWebDoc", "copyVitepressDoc")
             from(docsBuildDir)
             into(distDirFile)
         }

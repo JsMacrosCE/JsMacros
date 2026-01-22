@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.player;
 
 import net.minecraft.world.damagesource.DamageSource;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletDeclareType;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
@@ -11,6 +12,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author FlareStormGaming
  * @since 1.6.5
  */
+@DocletCategory("Player/Stats")
 @Event("Heal")
 public class EventHeal extends BaseEvent {
     @DocletReplaceReturn("HealSource")

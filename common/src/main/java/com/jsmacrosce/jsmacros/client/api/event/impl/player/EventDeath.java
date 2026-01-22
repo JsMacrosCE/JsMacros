@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.client.api.event.impl.player;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.player.Inventory;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
@@ -16,6 +17,7 @@ import java.util.List;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Player/Stats")
 @Event(value = "Death", oldName = "DEATH")
 public class EventDeath extends BaseEvent {
 

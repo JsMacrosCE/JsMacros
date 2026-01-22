@@ -17,7 +17,13 @@ repositories {
     mavenCentral()
 }
 
+// Get minecraft version from stonecutter.active file
+val minecraftVersion = rootProject.file("stonecutter.active").readText().trim()
+
 dependencies {
+    // Compile against shared common code for tests
+    testImplementation(project(":common:${minecraftVersion}"))
+    
     // Extension system dependencies
     implementation("org.slf4j:slf4j-api:2.0.16")
     implementation("com.google.guava:guava:31.1-jre")

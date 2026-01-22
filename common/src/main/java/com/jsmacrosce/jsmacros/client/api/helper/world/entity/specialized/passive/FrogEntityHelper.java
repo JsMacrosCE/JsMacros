@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.animal.frog.Frog;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 
@@ -11,6 +12,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class FrogEntityHelper extends AnimalEntityHelper<Frog> {
     Minecraft mc = Minecraft.getInstance();

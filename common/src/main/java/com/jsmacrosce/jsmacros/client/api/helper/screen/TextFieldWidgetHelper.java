@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.EditBox;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IScreen;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinTextFieldWidget;
@@ -17,6 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Wagyourtail
  * @since 1.0.5
  */
+@DocletCategory("Screen and UI Elements")
 @SuppressWarnings("unused")
 public class TextFieldWidgetHelper extends ClickableWidgetHelper<TextFieldWidgetHelper, EditBox> {
     public TextFieldWidgetHelper(EditBox t) {
@@ -231,6 +233,7 @@ public class TextFieldWidgetHelper extends ClickableWidgetHelper<TextFieldWidget
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Screen and UI Elements")
     public static class TextFieldBuilder extends AbstractWidgetBuilder<TextFieldBuilder, EditBox, TextFieldWidgetHelper> {
 
         private String suggestion = "";

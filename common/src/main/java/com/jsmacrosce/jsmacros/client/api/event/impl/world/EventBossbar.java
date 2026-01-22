@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.event.impl.world;
 
 import net.minecraft.client.gui.components.LerpingBossEvent;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletDeclareType;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
@@ -15,6 +16,7 @@ import java.util.UUID;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Render/UI")
 @Event(value = "Bossbar", oldName = "BOSSBAR_UPDATE")
 public class EventBossbar extends BaseEvent {
     @Nullable

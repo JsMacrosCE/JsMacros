@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.logical;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.BasicFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
 
@@ -7,6 +8,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilte
  * @author Etheradon
  * @since 1.6.5
  */
+@DocletCategory("Filters/Predicates")
 public class AndFilter<T> extends BasicFilter<T> {
 
     private final IFilter<T> filterOne;

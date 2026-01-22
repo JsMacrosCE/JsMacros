@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity;
 
 import net.minecraft.world.entity.player.Abilities;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
 /**

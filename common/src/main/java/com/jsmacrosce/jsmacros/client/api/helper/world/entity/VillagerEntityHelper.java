@@ -1,11 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity;
 
 import net.minecraft.world.entity.npc.Villager;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 
 /**
  * @since 1.6.3
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class VillagerEntityHelper extends MerchantEntityHelper<Villager> {
 

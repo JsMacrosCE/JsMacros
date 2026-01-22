@@ -8,12 +8,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public class GrindStoneInventory extends Inventory<GrindstoneScreen> {
 

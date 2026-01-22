@@ -1,12 +1,14 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive;
 
 import net.minecraft.world.entity.animal.Panda;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class PandaEntityHelper extends AnimalEntityHelper<Panda> {
 

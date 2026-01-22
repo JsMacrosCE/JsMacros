@@ -1,11 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.player;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockDataHelper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
+@DocletCategory("Inputs/Interactions")
 @Event("AttackBlock")
 public class EventAttackBlock extends BaseEvent {
     public final BlockDataHelper block;

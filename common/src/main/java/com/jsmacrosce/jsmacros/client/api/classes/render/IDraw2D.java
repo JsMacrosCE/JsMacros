@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render;
 
 import net.minecraft.client.gui.GuiGraphics;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.jsmacros.client.api.classes.render.components.*;
@@ -16,6 +17,7 @@ import java.util.function.Consumer;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Rendering/Graphics")
 public interface IDraw2D<T> {
 
     /**

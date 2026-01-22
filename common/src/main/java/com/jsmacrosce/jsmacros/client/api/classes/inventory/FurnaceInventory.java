@@ -6,6 +6,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractFurnaceScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.Item;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinAbstractFurnaceScreenHandler;
 
@@ -15,6 +16,7 @@ import java.util.Map;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> {
 

@@ -1,11 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity;
 
 import net.minecraft.world.entity.Mob;
+import com.jsmacrosce.doclet.DocletCategory;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class MobEntityHelper<T extends Mob> extends LivingEntityHelper<T> {
 

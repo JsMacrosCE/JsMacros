@@ -2,12 +2,14 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.decor
 
 import net.minecraft.core.Rotations;
 import net.minecraft.world.entity.decoration.ArmorStand;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.LivingEntityHelper;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class ArmorStandEntityHelper extends LivingEntityHelper<ArmorStand> {
 

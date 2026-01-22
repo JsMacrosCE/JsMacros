@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.player;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.StatusEffectHelper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
@@ -9,6 +10,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Player/Stats")
 @Event(value = "StatusEffectUpdate")
 public class EventStatusEffectUpdate extends BaseEvent {
 

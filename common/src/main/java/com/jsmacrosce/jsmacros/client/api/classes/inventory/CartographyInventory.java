@@ -2,11 +2,13 @@ package com.jsmacrosce.jsmacros.client.api.classes.inventory;
 
 import net.minecraft.client.gui.screens.inventory.CartographyTableScreen;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
+import com.jsmacrosce.doclet.DocletCategory;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public class CartographyInventory extends Inventory<CartographyTableScreen> {
 

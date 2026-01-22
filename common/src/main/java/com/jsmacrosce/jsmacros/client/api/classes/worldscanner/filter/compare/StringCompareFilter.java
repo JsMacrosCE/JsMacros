@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.compare;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.ICompare;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
 
@@ -7,6 +8,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilte
  * @author Etheradon
  * @since 1.6.5
  */
+@DocletCategory("Filters/Predicates")
 public class StringCompareFilter implements IFilter<String> {
 
     private final String compareTo;
@@ -23,6 +25,7 @@ public class StringCompareFilter implements IFilter<String> {
         return filter.compare(val, compareTo);
     }
 
+    @DocletCategory("Filters/Predicates")
     public enum FilterMethod {
         CONTAINS(String::contains),
         EQUALS(String::equals),

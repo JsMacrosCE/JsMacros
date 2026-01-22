@@ -1,12 +1,14 @@
 package com.jsmacrosce.jsmacros.client.api.classes.inventory;
 
 import net.minecraft.client.gui.screens.inventory.SmithingScreen;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public class SmithingInventory extends Inventory<SmithingScreen> {
 

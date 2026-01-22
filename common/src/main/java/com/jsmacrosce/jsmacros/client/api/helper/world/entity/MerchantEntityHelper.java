@@ -2,11 +2,13 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity;
 
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.item.trading.MerchantOffer;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.access.IMerchantEntity;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class MerchantEntityHelper<T extends AbstractVillager> extends LivingEntityHelper<T> {
 

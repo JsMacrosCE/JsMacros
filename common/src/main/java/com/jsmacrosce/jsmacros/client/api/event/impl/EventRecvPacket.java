@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.client.api.event.impl;
 import net.minecraft.network.protocol.Packet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.event.filterer.FiltererRecvPacket;
@@ -14,6 +15,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Network/Chat")
 @Event(value = "RecvPacket", cancellable = true, filterer = FiltererRecvPacket.class)
 @SuppressWarnings("unused")
 public class EventRecvPacket extends BaseEvent {

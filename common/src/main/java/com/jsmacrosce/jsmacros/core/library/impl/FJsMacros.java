@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.core.library.impl;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.doclet.DocletReplaceTypeParams;
@@ -910,6 +911,7 @@ public class FJsMacros extends PerExecLibrary {
         BaseScriptContext<?> getCtx();
     }
 
+    @DocletCategory("Events and Event Handling")
     public static class EventAndContext<E extends BaseEvent> {
         public final E event;
         public final EventContainer<?> context;

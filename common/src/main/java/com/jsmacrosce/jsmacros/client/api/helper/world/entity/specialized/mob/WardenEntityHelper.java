@@ -2,12 +2,14 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob;
 
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.monster.warden.Warden;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class WardenEntityHelper extends MobEntityHelper<Warden> {
 

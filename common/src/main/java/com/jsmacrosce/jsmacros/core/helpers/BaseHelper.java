@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.core.helpers;
 
+
 public abstract class BaseHelper<T> {
     protected T base;
 
