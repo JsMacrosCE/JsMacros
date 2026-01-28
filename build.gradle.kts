@@ -15,9 +15,68 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.Properties
 
 plugins {
     id("me.modmuss50.mod-publish-plugin") version "1.1.0"
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Sponge"
+                url = uri("https://repo.spongepowered.org/repository/maven-public")
+            }
+        }
+        filter {
+            includeGroupAndSubgroups("org.spongepowered")
+        }
+    }
+
+    exclusiveContent {
+        forRepositories(
+            maven {
+                name = "ParchmentMC"
+                url = uri("https://maven.parchmentmc.org/")
+            },
+            maven {
+                name = "NeoForge"
+                url = uri("https://maven.neoforged.net/releases")
+            }
+        )
+        filter {
+            includeGroup("org.parchmentmc.data")
+        }
+    }
+
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "TerraformersMC"
+                url = uri("https://maven.terraformersmc.com/releases/")
+            }
+        }
+        filter {
+            includeGroupAndSubgroups("com.terraformersmc")
+        }
+    }
+
+    maven {
+        name = "BlameJared"
+        url = uri("https://maven.blamejared.com")
+    }
+    maven {
+        name = "NeoForge"
+        url = uri("https://maven.neoforged.net/releases")
+    }
+    maven {
+        name = "Fabric"
+        url = uri("https://maven.fabricmc.net")
+    }
 }
 
 // Check if this is a Stonecutter versioned project by looking at the project path
@@ -101,13 +160,67 @@ if (isVersionedProject && hasMinecraftVersion) {
         }
 
         val documentationSources = files(mainSourceSets.map { it.allJava })
-        val documentationClasspath = files(mainSourceSets.map { it.compileClasspath })
+        val documentationClasspath = configurations.maybeCreate("documentationClasspath").apply {
+            isCanBeResolved = true
+            isCanBeConsumed = false
+        }
+
+        docsProjects.forEach { project ->
+            val compileClasspath = project.configurations.findByName("compileClasspath") ?: return@forEach
+            compileClasspath.allDependencies.forEach { dependency ->
+                if (dependency.group == "net.neoforged" && dependency.name == "neoform") {
+                    return@forEach
+                }
+                if (dependency.group == "net.neoforged" && dependency.name == "minecraft-dependencies") {
+                    return@forEach
+                }
+                dependencies.add(documentationClasspath.name, dependency)
+            }
+
+            if (project.tasks.names.contains("createMinecraftArtifacts")) {
+                val mergedJars = project.files(project.provider {
+                    val artifactsDir = project.layout.buildDirectory.dir("moddev/artifacts").get().asFile
+                    if (!artifactsDir.exists()) {
+                        return@provider emptyList<File>()
+                    }
+                    artifactsDir.listFiles { file -> file.name.endsWith("-merged.jar") }
+                        ?.toList()
+                        ?: emptyList()
+                })
+                dependencies.add(documentationClasspath.name, mergedJars)
+
+                val manifest = project.layout.buildDirectory.file(
+                    "tmp/createMinecraftArtifacts/nfrt_artifact_manifest.properties"
+                )
+                val manifestFiles = project.files(project.provider {
+                    val manifestFile = manifest.get().asFile
+                    if (!manifestFile.exists()) {
+                        return@provider emptyList<File>()
+                    }
+                    val props = Properties()
+                    manifestFile.inputStream().use(props::load)
+                    props.values.mapNotNull { value ->
+                        (value as? String)?.let { File(it) }
+                    }
+                })
+                dependencies.add(documentationClasspath.name, manifestFiles)
+            }
+        }
+
+        val minecraftArtifactTasks = docsProjects.mapNotNull { project ->
+            if (project.tasks.names.contains("createMinecraftArtifacts")) {
+                project.tasks.named("createMinecraftArtifacts")
+            } else {
+                null
+            }
+        }
 
         tasks.register("generatePyDoc", Javadoc::class.java) {
             group = "documentation"
             description = "Generates the python documentation for the project"
             source(documentationSources)
             classpath = documentationClasspath
+            dependsOn(minecraftArtifactTasks)
             destinationDir = File(docsBuildDir, "python/JsMacrosAC")
             options.doclet = "com.jsmacrosce.doclet.pydoclet.Main"
             options.docletpath = mutableListOf(docletJarFile)
@@ -127,6 +240,7 @@ if (isVersionedProject && hasMinecraftVersion) {
             description = "Generates the typescript documentation for the project"
             source(documentationSources)
             classpath = documentationClasspath
+            dependsOn(minecraftArtifactTasks)
             destinationDir = File(docsBuildDir, "typescript/headers")
             options.doclet = "com.jsmacrosce.doclet.tsdoclet.Main"
             options.docletpath = mutableListOf(docletJarFile)
@@ -146,6 +260,7 @@ if (isVersionedProject && hasMinecraftVersion) {
             description = "Generates the web documentation for the project"
             source(documentationSources)
             classpath = documentationClasspath
+            dependsOn(minecraftArtifactTasks)
             destinationDir = File(docsBuildDir, "web")
             options.doclet = "com.jsmacrosce.doclet.webdoclet.Main"
             options.docletpath = mutableListOf(docletJarFile)
