@@ -10,6 +10,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
@@ -168,6 +169,14 @@ public class LivingEntityHelper<T extends LivingEntity> extends EntityHelper<T> 
      */
     public int getArmor() {
         return base.getArmorValue();
+    }
+
+    /**
+     * @return the entity's armor toughness.
+     * @since 2.1.0
+     */
+    public double getArmorToughness() {
+        return base.getAttributeValue(Attributes.ARMOR_TOUGHNESS);
     }
 
     /**
