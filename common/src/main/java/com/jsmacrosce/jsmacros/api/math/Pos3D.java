@@ -1,7 +1,8 @@
 package com.jsmacrosce.jsmacros.api.math;
 
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
-import com.jsmacrosce.jsmacros.api.coordinate.ICoordinateConverter;
 
 import java.util.Objects;
 
@@ -13,14 +14,8 @@ public class Pos3D extends Pos2D {
     public static final Pos3D ZERO = new Pos3D(0, 0, 0);
     public double z;
 
-    /**
-     * Creates a Pos3D from a platform-specific vector using the converter
-     * @param vec3d native vector object
-     * @param converter platform coordinate converter
-     * @return converted position
-     */
-    public static Pos3D fromVec3d(Object vec3d, ICoordinateConverter converter) {
-        return converter.convertFromVec3d(vec3d);
+    public Pos3D(Vec3 vec) {
+        this(vec.x(), vec.y(), vec.z());
     }
 
     public Pos3D(double x, double y, double z) {
@@ -193,39 +188,19 @@ public class Pos3D extends Pos2D {
 //    }
 
     /**
-     * Convert to platform-specific block position
-     * @param converter platform coordinate converter
-     * @return native block position object
+     * @return
      * @since 1.8.0
      */
-    public Object toRawBlockPos(ICoordinateConverter converter) {
-        return converter.convertToBlockPos(this);
+    public BlockPos toRawBlockPos() {
+        return new BlockPos((int)Math.floor(x), (int)Math.floor(y), (int)Math.floor(z));
     }
 
     /**
-     * Convert to platform-specific vector
-     * @param converter platform coordinate converter
-     * @return native vector object
+     * @return the raw minecraft double vector with the same coordinates as this position.
      * @since 1.8.4
      */
-    public Object toMojangDoubleVector(ICoordinateConverter converter) {
-        return converter.convertToVec3d(this);
-    }
-
-    /**
-     * @deprecated Use {@link #toRawBlockPos(ICoordinateConverter)} with platform-specific converter
-     */
-    @Deprecated
-    public Object toRawBlockPos() {
-        throw new UnsupportedOperationException("Use toRawBlockPos(ICoordinateConverter) with platform-specific converter");
-    }
-
-    /**
-     * @deprecated Use {@link #toMojangDoubleVector(ICoordinateConverter)} with platform-specific converter
-     */
-    @Deprecated
-    public Object toMojangDoubleVector() {
-        throw new UnsupportedOperationException("Use toMojangDoubleVector(ICoordinateConverter) with platform-specific converter");
+    public Vec3 toMojangDoubleVector() {
+        return new Vec3(x, y, z);
     }
 
     @Override
