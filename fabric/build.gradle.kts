@@ -1,8 +1,11 @@
 import org.gradle.language.jvm.tasks.ProcessResources
 
 plugins {
+    kotlin("jvm") version "2.2.10"
+    id("com.google.devtools.ksp") version "2.2.10-2.0.2"
     id("fabric-loom")
     id("multiloader-loader")
+    id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.22"
 }
 
 val mod_id = commonMod.prop("mod_id")
@@ -75,33 +78,47 @@ tasks.named<ProcessResources>("processResources") {
     filesMatching("jsmacrosce.extension.json") {
         expand(mapOf("dependencies" to getExtensionJarPaths()))
     }
-    
-    // Expand fabric.mod.json with minecraft version
-    filesMatching("fabric.mod.json") {
-        expand(mapOf(
-            "version" to mod_version,
-            "minecraft_version" to minecraft_version
-        ))
+
+    // Expand fabric.mod.json5 with minecraft version
+    filesMatching("fabric.mod.json5") {
+        expand(
+            mapOf(
+                "version" to mod_version,
+                "minecraft_version" to minecraft_version
+            )
+        )
     }
 }
 
 // Copy the version-specific access widener and rename it for the jar
-tasks.named<ProcessResources>("processResources") {
-    val awFile = project(":common").file("src/main/resources/accesswideners/$minecraft_version-$mod_id.accesswidener")
-    
-    from(awFile.parentFile) {
-        include(awFile.name)
-        rename(awFile.name, "$mod_id.accesswidener")
-        into("")
-    }
-}
-
 loom {
     // Use the version-specific access widener
     accessWidenerPath.set(project(":common").file("src/main/resources/accesswideners/$minecraft_version-$mod_id.accesswidener"))
 
     mixin {
         defaultRefmapName.set("$mod_id.refmap.json")
+    }
+}
+
+fletchingTable {
+    fabric {
+        applyMixinConfig = false
+    }
+    mixins.register(sourceSets.main) {
+        mixin("default", "jsmacrosce-common.mixins.json5") {
+            env("CLIENT")
+        }
+        mixin("fabric", "jsmacrosce-fabric.mixins.json5") {
+            env("CLIENT")
+        }
+    }
+    j52j.register(sourceSets.main) {
+        extension(
+            "json",
+            "fabric.mod.json5",
+            "jsmacrosce-common.mixins.json5",
+            "jsmacrosce-fabric.mixins.json5"
+        )
     }
 }
 

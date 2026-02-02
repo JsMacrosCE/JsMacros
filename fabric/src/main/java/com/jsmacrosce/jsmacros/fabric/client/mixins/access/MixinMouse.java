@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.fabric.client.mixins.access;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import dev.kikugie.fletching_table.annotation.MixinEnvironment;
 import net.minecraft.client.MouseHandler;
 import net.minecraft.client.gui.screens.Screen;
 //? if >1.21.8 {
@@ -11,6 +12,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import com.jsmacrosce.jsmacros.client.access.IScreenInternal;
 
+@MixinEnvironment("fabric")
 @Mixin(MouseHandler.class)
 public class MixinMouse {
 

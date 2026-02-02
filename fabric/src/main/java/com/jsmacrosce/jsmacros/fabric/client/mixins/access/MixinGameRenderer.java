@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.fabric.client.mixins.access;
 
+import dev.kikugie.fletching_table.annotation.MixinEnvironment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -15,6 +16,7 @@ import com.jsmacrosce.jsmacros.client.access.IScreenInternal;
 import com.jsmacrosce.jsmacros.client.api.classes.InteractionProxy;
 import com.jsmacrosce.jsmacros.client.api.classes.render.ScriptScreen;
 
+@MixinEnvironment("fabric")
 @Mixin(value = GameRenderer.class)
 public class MixinGameRenderer {
     @Shadow
