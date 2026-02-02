@@ -10,6 +10,7 @@ import com.jsmacrosce.jsmacros.core.config.ScriptTrigger;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.extensions.Extension;
 import com.jsmacrosce.jsmacros.core.language.BaseLanguage;
+import com.jsmacrosce.jsmacros.core.library.impl.FReflection;
 import com.jsmacrosce.jsmacros.core.language.EventContainer;
 import com.jsmacrosce.jsmacros.core.library.BaseLibrary;
 import com.jsmacrosce.jsmacros.graal.GraalConfig;
@@ -23,6 +24,7 @@ import java.util.Map;
 public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptContext> {
     private static volatile Engine engine = null;
     public static final boolean isJsInstalled;
+    private static final ClassLoader REDIRECTING_CLASS_LOADER = new RedirectingClassLoader(FReflection.classLoader);
 
     static {
         // Create a temporary engine just to check available languages
@@ -68,7 +70,9 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
                 .engine(engine)
                 .allowAllAccess(true)
                 .allowNativeAccess(true)
-                .allowExperimentalOptions(true);
+                .allowExperimentalOptions(true)
+                .allowHostClassLookup(name -> true)
+                .hostClassLoader(REDIRECTING_CLASS_LOADER);
 
         for (Map.Entry<String, String> e : extraLangOptions.entrySet()) {
             try {
@@ -202,6 +206,25 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
     @Override
     public GraalScriptContext createContext(BaseEvent event, File file) {
         return new GraalScriptContext(runner, event, file);
+    }
+
+    private static final class RedirectingClassLoader extends ClassLoader {
+        private RedirectingClassLoader(ClassLoader parent) {
+            super(parent);
+        }
+
+        @Override
+        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+            try {
+                return super.loadClass(name, resolve);
+            } catch (ClassNotFoundException e) {
+                String redirected = FReflection.redirectWagYourTail(name);
+                if (!redirected.equals(name)) {
+                    return super.loadClass(redirected, resolve);
+                }
+                throw e;
+            }
+        }
     }
 
 }
