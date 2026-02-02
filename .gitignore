@@ -41,3 +41,6 @@ docs/web/[0-9]*
 # Affinity Photo
 *.af~lock~
 *.af~lock~:com.dropbox.ignored
+
+# General working dir for anything that is needed during development
+working/

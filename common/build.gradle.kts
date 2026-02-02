@@ -1,21 +1,21 @@
+import java.io.FilterReader
+import java.nio.file.Path
+
 plugins {
     id("multiloader-common")
     id("net.neoforged.moddev")
+    id("dev.kikugie.fletching-table") version "0.1.0-alpha.22"
 }
 
-neoForge {
-    val mod_id = commonMod.prop("mod_id")
-    val minecraft_version = project.name
-    val commonProject = project(":common")
+val mod_id = commonMod.prop("mod_id")
+val minecraft_version = commonMod.mc
 
+neoForge {
     neoFormVersion = commonMod.prop("neo_form_version")
 
-    // Use version-specific AccessTransformer
-    val at = commonProject.file("src/main/resources/accesstransformers/$minecraft_version-$mod_id.cfg")
-    if (!at.exists()) {
-        throw GradleException("Failed to locate src/main/resources/accesstransformers/$minecraft_version-$mod_id.cfg")
-    }
-    accessTransformers.from(at.absolutePath)
+    accessTransformers.from(
+        layout.buildDirectory.file("generated/access-transformer/accesstransformer.cfg")
+    )
 
     parchment {
         minecraftVersion = commonMod.prop("parchment_minecraft")
@@ -67,6 +67,35 @@ artifacts {
 tasks.named("createMinecraftArtifacts") {
     val mcVersion = project.name  // The project name is the minecraft version (e.g., "1.21.8")
     dependsOn(":common:${mcVersion}:stonecutterGenerate")
+}
+
+val accessTransformerFile = layout.buildDirectory.file("generated/access-transformer/accesstransformer.cfg")
+val accessWidenerFile = rootProject.file(
+    "common/src/main/resources/accesswideners/$minecraft_version-$mod_id.accesswidener"
+)
+val generateAccessTransformer by tasks.registering(Copy::class) {
+    from(accessWidenerFile)
+    into(accessTransformerFile.map { it.asFile.parentFile })
+    rename { "accesstransformer.cfg" }
+    val transformerClass = Class.forName(
+        "dev.kikugie.fletching_table.transformer.Aw2AtFileTransformer"
+    ) as Class<out FilterReader>
+    val argsClass = Class.forName(
+        "dev.kikugie.fletching_table.transformer.Aw2AtFileTransformer\$TransformArgs"
+    )
+    val args = argsClass.getDeclaredConstructor(Path::class.java)
+        .newInstance(accessWidenerFile.toPath())
+    filter(mapOf("args" to args), transformerClass)
+}
+
+tasks.named("createMinecraftArtifacts") {
+    dependsOn(generateAccessTransformer)
+}
+
+fletchingTable {
+    accessConverter.register(sourceSets.main) {
+        add("accesswideners/$minecraft_version-$mod_id.accesswidener")
+    }
 }
 
 stonecutter {

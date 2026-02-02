@@ -1,8 +1,8 @@
 {
   "required": true,
-  "package": "com.jsmacrosce.jsmacros.neoforge.client.mixins",
+  "package": "com.jsmacrosce.jsmacros.fabric.client.mixins",
   "compatibilityLevel": "JAVA_21",
-  "refmap": "jsmacrosce-neoforge.refmap.json",
+  "refmap": "jsmacrosce-fabric.refmap.json",
   "client": [],
   "mixins": [],
   "injectors": {

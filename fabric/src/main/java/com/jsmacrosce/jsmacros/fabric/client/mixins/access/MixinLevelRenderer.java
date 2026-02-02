@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.fabric.client.mixins.access;
 
 import com.google.common.collect.ImmutableSet;
+import dev.kikugie.fletching_table.annotation.MixinEnvironment;
 //? if >1.21.5 {
 import com.mojang.blaze3d.buffers.GpuBufferSlice;
 //?}
@@ -26,6 +27,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FHud;
 
+@MixinEnvironment("fabric")
 @Mixin(value = LevelRenderer.class)
 public class MixinLevelRenderer {
 
