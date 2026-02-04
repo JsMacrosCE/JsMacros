@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.core.library.impl;
 
 import com.google.common.collect.ImmutableList;
+import com.jsmacrosce.doclet.DocletIgnore;
 import javassist.CannotCompileException;
 import javassist.NotFoundException;
 import org.joor.Reflect;
@@ -448,6 +449,13 @@ public class FReflection extends PerExecLibrary {
         }
     }
 
+    /**
+     * Replaces the package prefix of a given string from "xyz.wagyourtail." to "com.jsmacrosce.".
+     *
+     * @param name the fully qualified name or a string containing "xyz.wagyourtail." to be replaced
+     * @return a new string with the package prefix "xyz.wagyourtail." replaced by "com.jsmacrosce."
+     */
+    @DocletIgnore
     public static String redirectWagYourTail(String name) {
         return name.replace("xyz.wagyourtail.", "com.jsmacrosce.");
     }
