@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public abstract class BaseScriptContext<T> {
     public final Core<?, ?> runner;
+    protected boolean preventLog = false;
     protected boolean closed = false;
     public final long startTime = System.currentTimeMillis();
 
@@ -179,6 +180,14 @@ public abstract class BaseScriptContext<T> {
             }
         }
         return closed;
+    }
+
+    /**
+     * @param preventLog Whether to prevent the "Context execution was cancelled." from being logged.
+     */
+    public synchronized void closeContext(boolean preventLog) {
+        this.preventLog = preventLog;
+        closeContext();
     }
 
     public synchronized void closeContext() {
