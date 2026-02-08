@@ -9,6 +9,7 @@ import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.external.javadoc.CoreJavadocOptions
 import org.gradle.external.javadoc.StandardJavadocDocletOptions
 import org.gradle.internal.extensions.stdlib.capitalized
+import org.gradle.api.GradleException
 import java.io.File
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -164,6 +165,32 @@ tasks.register("printVersion") {
     description = "Prints the computed project version for CI workflows"
     doLast {
         println(project.version)
+    }
+}
+
+if (project == rootProject) {
+    val activeStonecutterVersion = providers.fileContents(layout.projectDirectory.file("stonecutter.active"))
+        .asText
+        .map { text ->
+            text.trim().ifEmpty {
+                throw GradleException("stonecutter.active is empty; set an active version first")
+            }
+        }
+
+    val activeVersion = activeStonecutterVersion.get()
+    val fabricRunClientPath = ":fabric:$activeVersion:runClient"
+    val neoforgeRunClientPath = ":neoforge:$activeVersion:runClient"
+
+    tasks.register("runFabricClient") {
+        group = "run"
+        description = "Runs the Fabric client for the active Stonecutter version"
+        dependsOn(fabricRunClientPath)
+    }
+
+    tasks.register("runNeoforgeClient") {
+        group = "run"
+        description = "Runs the NeoForge client for the active Stonecutter version"
+        dependsOn(neoforgeRunClientPath)
     }
 }
 
