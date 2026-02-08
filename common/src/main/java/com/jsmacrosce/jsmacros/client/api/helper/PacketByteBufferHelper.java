@@ -16,6 +16,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
@@ -93,11 +94,21 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         base.markWriterIndex();
 
         // get the PacketCodec static field and use it to write
+        // Note: Some packets like ClientboundBundlePacket don't have a codec and can't be serialized
         try {
             Class<?> packetClass = packet.getClass();
-            Field f = Arrays.stream(packetClass.getFields()).filter(e -> e.getType().isAssignableFrom(StreamCodec.class)).findFirst().orElseThrow();
-            StreamCodec<FriendlyByteBuf, Packet<?>> codec = (StreamCodec<FriendlyByteBuf, Packet<?>>) f.get(null);
-            codec.encode(base, packet);
+            Optional<Field> codecField = Arrays.stream(packetClass.getFields())
+                    .filter(field -> StreamCodec.class.isAssignableFrom(field.getType()))
+                    .findFirst();
+
+            if (codecField.isPresent()) {
+                StreamCodec<FriendlyByteBuf, Packet<?>> codec =
+                        (StreamCodec<FriendlyByteBuf, Packet<?>>) codecField.get().get(null);
+                codec.encode(base, packet);
+            }
+            // If no codec found, leave buffer empty - some packets like BundlePacket don't support direct serialization
+            // TODO: This should be handled more properly in the future, but I'm not certain how we should go about it.
+            //  Perhaps something like getPackets() which lets players get the sub-packets automatically?
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -105,9 +116,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         this.original = base.copy();
     }
 
-    private static FriendlyByteBuf getBuffer(Packet<?> packet) {
+    private static RegistryFriendlyByteBuf getBuffer(Packet<?> packet) {
         ByteBuf buffer = Unpooled.buffer();
-        return new FriendlyByteBuf(buffer);
+        return new RegistryFriendlyByteBuf(buffer, mc.getConnection().registryAccess());
     }
 
     /**
