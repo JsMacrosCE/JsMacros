@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
 import com.google.common.collect.ImmutableList;
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -100,6 +101,15 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     @Shadow
     @Final
     private List<GuiEventListener> children;
+
+    @Shadow
+    protected static void defaultHandleGameClickEvent(ClickEvent clickEvent,
+            Minecraft minecraft,
+            @Nullable Screen screen)
+    {
+    }
+
+    ;
 
     //? if <1.21.11 {
     @Shadow
@@ -919,8 +929,15 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
         }
     }
 
-    // TODO: What does this code even do?
+    /**
+     * This is called from MixinMouse right before the Screen has it's `mouseClicked` called.
+     *
+     * @param mouseX The x coordinate of the mouse click
+     * @param mouseY The y coordinate of the mouse click
+     * @param button The mouse button that was clicked with 0 being left, 1 being right, 2 being middle among others
+     */
     @Override
+    @DocletIgnore
     public void jsmacros_mouseClicked(double mouseX, double mouseY, int button) {
         if (onMouseDown != null) {
             try {
@@ -931,22 +948,32 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
         }
         Text hoverText = null;
 
+        // TODO: (1.21.11) Move this to use ActiveTextCollector.ClickableStyleFinder
         synchronized (elements) {
             for (RenderElement e : elements) {
-                if (e instanceof Text) {
-                    Text t = (Text) e;
+                if (e instanceof Text t) {
                     if (mouseX > t.x && mouseX < t.x + t.width && mouseY > t.y && mouseY < t.y + font.lineHeight) {
                         hoverText = t;
+                        break;
                     }
                 }
             }
         }
 
         if (hoverText != null) {
-            // TODO: (1.21.11) Support for clicking text components in screens currently is broken and needs a significant rework.
+            Style style = TextUtil.componentStyleAtWidth(font, hoverText.text, (int) mouseX - hoverText.x);
             //? if <1.21.11 {
-            handleComponentClicked(TextUtil.componentStyleAtWidth(font, hoverText.text, (int) mouseX - hoverText.x));
-            //? }
+            handleComponentClicked(style);
+            //? } else {
+            /*if (style != null) {
+                ClickEvent clickEvent = style.getClickEvent();
+                // If you're reading this debugging, This is bare reimplementation of handleComponentClicked from
+                // 1.21.10 that doesn't include the seemingly ChatScreen specific text insertion.
+                if (clickEvent != null) {
+                    defaultHandleGameClickEvent(clickEvent, minecraft, (Screen) (Object) this);
+                }
+            }
+            *///? }
         }
     }
 
@@ -1029,7 +1056,6 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     }
 
     //TODO: switch to enum extension with mixin 9.0 or whenever Mumfrey gets around to it
-    // TODO: (1.21.11) This was moved from handleComponentClicked, I'm unsure if it's the same
     //? if >=1.21.11 {
     /*@Inject(method = "defaultHandleGameClickEvent", at = @At("HEAD"), cancellable = true)
     private static void onHandleTextClick(ClickEvent clickEvent, Minecraft minecraft, Screen screen, CallbackInfo ci) {
