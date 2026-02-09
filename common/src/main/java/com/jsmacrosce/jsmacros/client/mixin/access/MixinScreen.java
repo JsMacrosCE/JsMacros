@@ -109,7 +109,10 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     {
     }
 
-    ;
+    @Shadow
+    protected static void defaultHandleClickEvent(ClickEvent clickEvent, Minecraft minecraft, @Nullable Screen screen)
+    {
+    }
 
     //? if <1.21.11 {
     @Shadow
@@ -970,7 +973,11 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
                 // If you're reading this debugging, This is bare reimplementation of handleComponentClicked from
                 // 1.21.10 that doesn't include the seemingly ChatScreen specific text insertion.
                 if (clickEvent != null) {
-                    defaultHandleGameClickEvent(clickEvent, minecraft, (Screen) (Object) this);
+                    if (minecraft.player != null) {
+                        defaultHandleGameClickEvent(clickEvent, minecraft, (Screen) (Object) this);
+                    } else {
+                        defaultHandleClickEvent(clickEvent, minecraft, (Screen) (Object) this);
+                    }
                 }
             }
             *///? }
