@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 
 import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
 import com.jsmacrosce.doclet.DocletIgnore;
@@ -109,33 +110,57 @@ public class Line3D implements RenderElement3D<Line3D> {
         return pos.compareTo(o.pos);
     }
 
+    // TODO(1.21.11-ish): Refactor to use ShapeRenderer
+    private void addLine(VertexConsumer consumer,
+            PoseStack.Pose pose,
+            float x,
+            float y,
+            float z,
+            int color,
+            float normalX,
+            float normalY,
+            float normalZ)
+    {
+        consumer.addVertex(pose, x, y, z).setColor(color)
+                //? if >=1.21.11 {
+                /*// 2.5F is from GizmoStyle.DEFAULT_WIDTH which is private and I didn't wanna access widen because I'm
+                // lazy.
+                .setLineWidth(2.5F)
+                 *///? }
+                .setNormal(pose, normalX, normalY, normalZ);
+    }
+
     @Override
     @DocletIgnore
     public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
         boolean seeThrough = !this.cull;
         //? if >=1.21.11 {
-        /*var consumer = consumers.getBuffer(RenderTypes.lines());
+        /*RenderType lineType = seeThrough ? RenderTypes.linesTranslucent() : RenderTypes.lines();
+        VertexConsumer consumer = consumers.getBuffer(lineType);
         *///? } else {
-        var consumer = consumers.getBuffer(RenderType.lines());
+        VertexConsumer consumer = consumers.getBuffer(RenderType.lines());
         //? }
 
+        //? if <1.21.11 {
         try {
             if (seeThrough) {
                 lineDepthTestFunction.set(RenderPipelines.LINES, DepthTestFunction.NO_DEPTH_TEST);
             }
+            //? }
             PoseStack.Pose entry = matrixStack.last();
 
             // Draw 3 lines in each of the normals for consistency
-            consumer.addVertex(entry, (float) pos.x1, (float) pos.y1, (float) pos.z1).setColor(color).setNormal(entry, 1, 0, 0);
-            consumer.addVertex(entry, (float) pos.x2, (float) pos.y2, (float) pos.z2).setColor(color).setNormal(entry, 1, 0, 0);
-            consumer.addVertex(entry, (float) pos.x1, (float) pos.y1, (float) pos.z1).setColor(color).setNormal(entry, 0, 1, 0);
-            consumer.addVertex(entry, (float) pos.x2, (float) pos.y2, (float) pos.z2).setColor(color).setNormal(entry, 0, 1, 0);
-            consumer.addVertex(entry, (float) pos.x1, (float) pos.y1, (float) pos.z1).setColor(color).setNormal(entry, 0, 0, 1);
-            consumer.addVertex(entry, (float) pos.x2, (float) pos.y2, (float) pos.z2).setColor(color).setNormal(entry, 0, 0, 1);
+            addLine(consumer, entry, (float) pos.x1, (float) pos.y1, (float) pos.z1, color, 1, 0, 0);
+            addLine(consumer, entry, (float) pos.x2, (float) pos.y2, (float) pos.z2, color, 1, 0, 0);
+            addLine(consumer, entry, (float) pos.x1, (float) pos.y1, (float) pos.z1, color, 0, 1, 0);
+            addLine(consumer, entry, (float) pos.x2, (float) pos.y2, (float) pos.z2, color, 0, 1, 0);
+            addLine(consumer, entry, (float) pos.x1, (float) pos.y1, (float) pos.z1, color, 0, 0, 1);
+            addLine(consumer, entry, (float) pos.x2, (float) pos.y2, (float) pos.z2, color, 0, 0, 1);
 
           if (seeThrough && consumer instanceof MultiBufferSource.BufferSource immediate) {
             immediate.endBatch();
           }
+            //? if <1.21.11 {
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } finally {
@@ -147,6 +172,7 @@ public class Line3D implements RenderElement3D<Line3D> {
                 }
             }
         }
+        //? }
     }
 
     /**
