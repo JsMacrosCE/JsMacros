@@ -102,7 +102,8 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     @Final
     private List<GuiEventListener> children;
 
-    @Shadow
+    //? if >=1.21.11 {
+    /*@Shadow
     protected static void defaultHandleGameClickEvent(ClickEvent clickEvent,
             Minecraft minecraft,
             @Nullable Screen screen)
@@ -113,6 +114,7 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     protected static void defaultHandleClickEvent(ClickEvent clickEvent, Minecraft minecraft, @Nullable Screen screen)
     {
     }
+    *///? }
 
     //? if <1.21.11 {
     @Shadow
