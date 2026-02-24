@@ -16,7 +16,8 @@ import java.lang.reflect.Field;
 import java.util.Objects;
 
 //? if >=1.21.11 {
-/*import net.minecraft.client.renderer.rendertype.RenderTypes;
+/*import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
 *///? } else {
 import net.minecraft.client.renderer.RenderType;
 //?}
