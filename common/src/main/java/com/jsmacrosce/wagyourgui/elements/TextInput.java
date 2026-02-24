@@ -222,20 +222,25 @@ public class TextInput extends Button {
     @Override
     //? if >1.21.8 {
     /*public boolean charTyped(CharacterEvent characterEvent) {
-    String chr = characterEvent.codepointAsString();
-        *///?} else {
+        int codePoint = characterEvent.codepoint();
+        String inserted = new String(Character.toChars(codePoint));
+        int advance = Character.charCount(codePoint);
+    *///?} else {
     public boolean charTyped(char chr, int modifiers) {
+        String inserted = String.valueOf(chr);
+        int advance = 1;
         //?}
         if (selEndIndex < selStartIndex) {
             swapStartEnd();
         }
-        String newContent = content.substring(0, selStartIndex) + chr + content.substring(selEndIndex);
+
+        String newContent = content.substring(0, selStartIndex) + inserted + content.substring(selEndIndex);
         if (newContent.matches(mask)) {
             content = newContent;
             if (onChange != null) {
                 onChange.accept(content);
             }
-            updateSelStart(selStartIndex + 1);
+            updateSelStart(selStartIndex + advance);
             arrowCursor = selStartIndex;
             updateSelEnd(arrowCursor);
         }
