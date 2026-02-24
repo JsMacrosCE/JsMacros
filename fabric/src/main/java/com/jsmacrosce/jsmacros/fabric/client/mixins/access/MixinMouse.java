@@ -17,21 +17,27 @@ import com.jsmacrosce.jsmacros.client.access.IScreenInternal;
 public class MixinMouse {
 
 //? if >1.21.8 {
-    /*@WrapOperation(method = "onButton", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;mouseClicked(Lnet/minecraft/client/input/MouseButtonEvent;Z)Z"))
-    private boolean onMouseClicked(Screen instance, MouseButtonEvent buttonEvent, boolean debounce, Operation<Boolean> original) {
+    /*@WrapOperation(method = "onButton", at = @At(value = "INVOKE", target =
+    "Lnet/minecraft/client/gui/screens/Screen;mouseClicked(Lnet/minecraft/client/input/MouseButtonEvent;Z)Z"))
+    private boolean onMouseClicked(Screen instance, MouseButtonEvent buttonEvent, boolean doubleClick,
+    Operation<Boolean> original) {
         ((IScreenInternal) instance).jsmacros_mouseClicked(buttonEvent.x(), buttonEvent.y(), buttonEvent.button());
-        return original.call(instance, buttonEvent, debounce);
+        return original.call(instance, buttonEvent, doubleClick);
     }
 
-    @WrapOperation(method = "onButton", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;mouseReleased(Lnet/minecraft/client/input/MouseButtonEvent;)Z"))
+    @WrapOperation(method = "onButton", at = @At(value = "INVOKE", target =
+    "Lnet/minecraft/client/gui/screens/Screen;mouseReleased(Lnet/minecraft/client/input/MouseButtonEvent;)Z"))
     private boolean onMouseReleased(Screen instance, MouseButtonEvent buttonEvent, Operation<Boolean> original) {
         ((IScreenInternal) instance).jsmacros_mouseReleased(buttonEvent.x(), buttonEvent.y(), buttonEvent.button());
         return original.call(instance, buttonEvent);
     }
 
-    @WrapOperation(method = "handleAccumulatedMovement", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;mouseDragged(Lnet/minecraft/client/input/MouseButtonEvent;DD)Z"))
-    private boolean onMouseDragged(Screen instance, MouseButtonEvent buttonEvent, double dx, double dy, Operation<Boolean> original) {
-        ((IScreenInternal) instance).jsmacros_mouseDragged(buttonEvent.x(), buttonEvent.y(), buttonEvent.button(), dx, dy);
+    @WrapOperation(method = "handleAccumulatedMovement", at = @At(value = "INVOKE", target =
+    "Lnet/minecraft/client/gui/screens/Screen;mouseDragged(Lnet/minecraft/client/input/MouseButtonEvent;DD)Z"))
+    private boolean onMouseDragged(Screen instance, MouseButtonEvent buttonEvent, double dx, double dy,
+    Operation<Boolean> original) {
+        ((IScreenInternal) instance).jsmacros_mouseDragged(buttonEvent.x(), buttonEvent.y(), buttonEvent.button(),
+        dx, dy);
         return original.call(instance, buttonEvent, dx, dy);
     }
 *///?} else {

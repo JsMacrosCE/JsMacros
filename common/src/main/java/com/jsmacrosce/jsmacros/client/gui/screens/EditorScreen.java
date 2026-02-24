@@ -780,9 +780,9 @@ public class EditorScreen extends BaseScreen {
 
     @Override
     //? if >1.21.8 {
-    /*public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean debounce) {
+    /*public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean doubleClick) {
         setFocused(null);
-        boolean handled = super.mouseClicked(buttonEvent, debounce);
+        boolean handled = super.mouseClicked(buttonEvent, doubleClick);
         double mouseX = buttonEvent.x();
         double mouseY = buttonEvent.y();
         int button = buttonEvent.button();

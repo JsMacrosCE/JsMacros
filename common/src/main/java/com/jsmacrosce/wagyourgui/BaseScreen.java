@@ -176,11 +176,11 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
 
     //? if >1.21.8 {
     /*@Override
-    public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean debounce) {
+    public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean doubleClick) {
         if (overlay != null) {
-            overlay.onClick(buttonEvent, debounce);
+            overlay.onClick(buttonEvent, doubleClick);
         }
-        return super.mouseClicked(buttonEvent, debounce);
+        return super.mouseClicked(buttonEvent, doubleClick);
     }
     *///?} else {
     @Override

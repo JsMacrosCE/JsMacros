@@ -117,7 +117,7 @@ public class Button extends AbstractButton {
     // as the target key.
     @Override
     //? if >1.21.8 {
-    /*public void onClick(MouseButtonEvent buttonEvent, boolean debounce) {
+    /*public void onClick(MouseButtonEvent buttonEvent, boolean doubleClick) {
     }
     *///?} else {
     public void onClick(double mouseX, double mouseY) {

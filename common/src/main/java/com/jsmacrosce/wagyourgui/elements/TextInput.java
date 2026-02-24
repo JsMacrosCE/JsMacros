@@ -59,7 +59,7 @@ public class TextInput extends Button {
 
     @Override
     //? if >1.21.8 {
-    /*public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean debounce) {
+    /*public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean doubleClick) {
         double mouseX = buttonEvent.x();
     *///?} else {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
@@ -71,7 +71,7 @@ public class TextInput extends Button {
             arrowCursor = pos;
         }
         //? if >1.21.8 {
-        /*return super.mouseClicked(buttonEvent, debounce);
+        /*return super.mouseClicked(buttonEvent, doubleClick);
         *///?} else {
         return super.mouseClicked(mouseX, mouseY, button);
         //?}
