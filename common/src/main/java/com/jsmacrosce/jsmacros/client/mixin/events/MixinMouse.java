@@ -22,7 +22,7 @@ class MixinMouse {
     private Minecraft minecraft;
 
     @Inject(at = @At("HEAD"), method = "onScroll", cancellable = true)
-    private void onMouseScroll(long window, double horizontal, double vertical, CallbackInfo ci) {
+    private void onScroll(long window, double horizontal, double vertical, CallbackInfo ci) {
         //? if >1.21.8 {
         /*if (window != minecraft.getWindow().handle()) return;
         *///?} else {
@@ -51,7 +51,7 @@ class MixinMouse {
     }
     *///?} else {
     @Inject(at = @At("HEAD"), method = "onPress", cancellable = true)
-    private void onMouseButton(long window, int key, int action, int mods, final CallbackInfo info) {
+    private void onPress(long window, int key, int action, int mods, final CallbackInfo info) {
         if (window != minecraft.getWindow().getWindow()) {
             return;
         }

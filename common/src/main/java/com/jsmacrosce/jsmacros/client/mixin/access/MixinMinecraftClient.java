@@ -77,8 +77,10 @@ class MixinMinecraftClient {
     }
 
     @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;removed()V"), method = "setScreen")
-    public void onCloseScreen(Screen screen, CallbackInfo ci) {
-        if (screen == null) return;
+    public void onCloseScreen(Screen closedScreen, CallbackInfo ci) {
+        if (closedScreen == null) {
+            return;
+        }
         Consumer<IScreen> onClose = ((IScreen) screen).getOnClose();
         try {
             if (onClose != null) {

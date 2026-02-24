@@ -1615,12 +1615,10 @@ public class OptionsHelper extends BaseHelper<Options> {
         @DocletReplaceReturn("JavaList<KeyCategory>")
         public List<String> getCategories() {
             return Arrays.stream(base.keyMappings)
-                    .map(KeyMapping::getCategory)
+                    .map(KeyMapping::getCategory).distinct()
                     //? if >1.21.8 {
-                    /*.map(KeyMapping.Category::id)
-                    .map(ResourceLocation::toString)
+                    /*.map(c -> c.id().toLanguageKey())
                     *///?}
-                    .distinct()
                     .collect(Collectors.toList());
         }
 

@@ -39,7 +39,7 @@ public class MixinGameRenderer {
         }
     }
 
-    @Inject(at = @At("HEAD"), method = "pick", cancellable = true)
+    @Inject(at = @At("HEAD"), method = "pick(F)V", cancellable = true)
     public void onTargetUpdate(float tickDelta, CallbackInfo ci) {
         if (InteractionProxy.Target.onUpdate(tickDelta)) {
             ci.cancel();

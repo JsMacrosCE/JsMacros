@@ -128,7 +128,7 @@ public class Button extends AbstractButton {
     //? if >1.21.8 {
     /*public void onRelease(MouseButtonEvent buttonEvent) {
         if (this.isActive()) {
-            super.onClick(buttonEvent, true);
+            super.onClick(buttonEvent, false);
         }
     }
     *///?} else {

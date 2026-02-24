@@ -574,9 +574,6 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         return chunk == null ? null : new ChunkHelper(chunk);
     }
 
-    // TODO: These methods were removed in 1.21.9 or 1.21.10
-    //? if <=1.21.8 {
-    /*
     /**
      * @param chunkX the x coordinate of the chunk to store
      * @param y      the y coordinate to store
@@ -585,7 +582,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public PacketByteBufferHelper writeChunkSectionPos(int chunkX, int y, int chunkZ) {
+        //? if <=1.21.8 {
         base.writeSectionPos(SectionPos.of(chunkX, y, chunkZ));
+        //? } else {
+        /*SectionPos.STREAM_CODEC.encode(base, SectionPos.of(chunkX, y, chunkZ));
+         *///? }
         return this;
     }
 
@@ -596,7 +597,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public PacketByteBufferHelper writeChunkSectionPos(ChunkHelper chunk, int y) {
+        //? if <=1.21.8 {
         base.writeSectionPos(SectionPos.of(chunk.getRaw().getPos(), y));
+        //? } else {
+        /*SectionPos.STREAM_CODEC.encode(base, SectionPos.of(chunk.getRaw().getPos(), y));
+         *///? }
         return this;
     }
 
@@ -605,10 +610,13 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public BlockPosHelper readChunkSectionPos() {
+        //? if <=1.21.8 {
         SectionPos pos = base.readSectionPos();
+        //? } else {
+        /*SectionPos pos = SectionPos.STREAM_CODEC.decode(base);
+         *///? }
         return new BlockPosHelper(pos.x(), pos.y(), pos.z());
     }
-    //?}
 
     /**
      * @param dimension the dimension, vanilla default are {@code overworld}, {@code the_nether},
