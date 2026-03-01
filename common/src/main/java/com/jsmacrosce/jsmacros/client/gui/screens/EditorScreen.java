@@ -753,6 +753,10 @@ public class EditorScreen extends BaseScreen {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         assert minecraft != null;
 
+        //? if <=1.21.5 {
+        this.renderBackground(drawContext, mouseX, mouseY, delta);
+        //?}
+
         drawContext.drawString(font, fileName, 2, 2, 0xFFFFFFFF);
 
         drawContext.drawString(font, String.format("%d ms", (int) textRenderTime), 2, height - 10, 0xFFFFFFFF);
@@ -795,7 +799,9 @@ public class EditorScreen extends BaseScreen {
             }
         }
 
-        super.render(drawContext, mouseX, mouseY, delta);
+        if (overlay != null) {
+            overlay.render(drawContext, mouseX, mouseY, delta);
+        }
     }
 
     private FormattedCharSequence trim(Component text) {
