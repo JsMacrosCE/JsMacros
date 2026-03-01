@@ -71,9 +71,10 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
     public void init() {
         super.init();
         int w = width - 12;
-        enableBtn = addRenderableWidget(new Button(x + 1, y + 1, w / 12 - 1, height - 2, textRenderer, macro.enabled ? 0x7000FF00 : 0x70FF0000, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.translatable(macro.enabled ? "jsmacrosce.enabled" : "jsmacrosce.disabled"), (btn) -> {
+        enableBtn = addRenderableWidget(new Button(x + 1, y + 1, w / 12 - 1, height - 2, textRenderer, macro.enabled ? 0x7000FF00 : 0x70FF0000, 0xFF000000, macro.enabled ? 0x70007000 : 0x70700000, 0xFFFFFFFF, Component.translatable(macro.enabled ? "jsmacrosce.enabled" : "jsmacrosce.disabled"), (btn) -> {
             macro.enabled = !macro.enabled;
             btn.setColor(macro.enabled ? 0x7000FF00 : 0x70FF0000);
+            btn.setHighlightColor(macro.enabled ? 0x70007000 : 0x70700000);
             btn.setMessage(Component.translatable(macro.enabled ? "jsmacrosce.enabled" : "jsmacrosce.disabled"));
         }));
 
