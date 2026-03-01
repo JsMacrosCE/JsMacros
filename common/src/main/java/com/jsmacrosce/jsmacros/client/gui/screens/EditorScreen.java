@@ -754,8 +754,8 @@ public class EditorScreen extends BaseScreen {
         assert minecraft != null;
 
         //? if <=1.21.5 {
-        this.renderBackground(drawContext, mouseX, mouseY, delta);
-        //?}
+        /*this.renderBackground(drawContext, mouseX, mouseY, delta);
+        *///?}
 
         drawContext.drawString(font, fileName, 2, 2, 0xFFFFFFFF);
 
