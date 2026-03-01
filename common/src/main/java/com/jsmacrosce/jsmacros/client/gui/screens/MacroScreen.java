@@ -204,6 +204,10 @@ public class MacroScreen extends BaseScreen {
             return;
         }
 
+        //? if <=1.21.5 {
+        this.renderBackground(drawContext, mouseX, mouseY, delta);
+        //?}
+
         topbar.render(drawContext, mouseX, mouseY, delta);
 
         for (GuiEventListener b : ImmutableList.copyOf(this.children())) {
@@ -222,7 +226,9 @@ public class MacroScreen extends BaseScreen {
         drawContext.fill(0, 20, width, 22, 0xFFFFFFFF);
         drawContext.drawCenteredString(this.font, JsMacrosClient.clientCore.profile.getCurrentProfileName(), this.width * 8 / 12, 5, 0xFF7F7F7F);
 
-        super.render(drawContext, mouseX, mouseY, delta);
+        if (overlay != null) {
+            overlay.render(drawContext, mouseX, mouseY, delta);
+        }
     }
 
     @Override

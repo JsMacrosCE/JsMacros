@@ -49,6 +49,8 @@ import net.minecraft.network.chat.FontDescription;
 
 public class EditorScreen extends BaseScreen {
     private static final FormattedCharSequence ellipses = Component.literal("...").withStyle(ChatFormatting.DARK_GRAY).getVisualOrderText();
+    /** Pixels scrolled per wheel click */
+    private static final double SCROLL_WHEEL_SENSITIVITY = 50.0;
     public static final List<String> langs = Lists.newArrayList(
             "javascript",
             "lua",
@@ -83,6 +85,8 @@ public class EditorScreen extends BaseScreen {
     protected int lineSpread = 0;
     protected int firstLine = 0;
     protected int lastLine;
+    /** Pixel width of the line-number gutter (divider x). Content starts at lineNumWidth + 2. */
+    protected int lineNumWidth = 28;
     public boolean blockFirst = false;
     public long textRenderTime = 0;
     public char prevChar = '\0';
@@ -206,13 +210,18 @@ public class EditorScreen extends BaseScreen {
     }
 
     public void setScroll(double pages) {
-        scroll = (int) ((height - 24) * pages);
-        int add = lineSpread - scroll % lineSpread;
-        if (add == lineSpread) {
-            add = 0;
+        final double viewportHeight = height - 24;
+        final int totalLines = codeCompiler == null ? history.current.split("\n", -1).length : codeCompiler.getRenderedText().length;
+        final double contentHeight = totalLines * (double) lineSpread;
+        final double maxScroll = Math.max(0, contentHeight - viewportHeight);
+
+        scroll = (int) Mth.clamp(pages * viewportHeight, 0, maxScroll);
+        firstLine = scroll / lineSpread; // floor: include partially-visible top line
+        lastLine = (int) Math.ceil((scroll + viewportHeight) / lineSpread) - 1; // include partially-visible bottom line
+        // Gutter width: measure the widest line number visible (lastLine+1, 1-indexed) plus 4px padding.
+        if (lineSpread > 0) {
+            lineNumWidth = font.width(Component.literal((lastLine + 1) + ".").withStyle(defaultStyle)) + 4;
         }
-        firstLine = (int) Math.ceil(scroll / (double) lineSpread);
-        lastLine = (int) (firstLine + (height - 24 - add) / (double) lineSpread) - 1;
     }
 
     public synchronized void setLanguage(String language) {
@@ -364,7 +373,6 @@ public class EditorScreen extends BaseScreen {
         }
         String startSpaces;
         int index;
-        double currentPage;
         switch (keyCode) {
             case GLFW.GLFW_KEY_BACKSPACE:
                 if (cursor.startIndex != cursor.endIndex) {
@@ -544,11 +552,14 @@ public class EditorScreen extends BaseScreen {
                 }
                 return true;
             case GLFW.GLFW_KEY_Y:
-                int i = history.redo();
+                if (hasCtrl) {
+                    int i = history.redo();
 
-                if (i != -1) {
-                    compileRenderedText();
+                    if (i != -1) {
+                        compileRenderedText();
+                    }
                 }
+                return true;
             case GLFW.GLFW_KEY_S:
                 if (hasCtrl) {
                     save();
@@ -574,13 +585,22 @@ public class EditorScreen extends BaseScreen {
                 compileRenderedText();
                 return true;
             case GLFW.GLFW_KEY_PAGE_UP:
-                currentPage = scroll / (height - 24.0D);
-                scrollbar.scrollToPercent(Mth.clamp((currentPage - 1) / (calcTotalPages() - 1), 0, 1));
-                break;
-            case GLFW.GLFW_KEY_PAGE_DOWN:
-                currentPage = scroll / (height - 24.0D);
-                scrollbar.scrollToPercent(Mth.clamp((currentPage + 1) / (calcTotalPages() - 1), 0, 1));
+            case GLFW.GLFW_KEY_PAGE_DOWN: {
+                final double viewportHeight = Math.max(1D, height - 24);
+                final int totalLines = codeCompiler == null ? history.current.split("\n", -1).length : codeCompiler.getRenderedText().length;
+                final double contentHeight = totalLines * (double) lineSpread;
+                final double maxScroll = Math.max(0, contentHeight - viewportHeight);
+                if (maxScroll > 0) {
+                    // Step by (visibleLines - 1) lines so one line of context is preserved at the edge.
+                    int visibleLines = lastLine - firstLine + 1;
+                    int pageStep = Math.max(1, visibleLines - 1) * lineSpread;
+                    double newScroll = Mth.clamp(
+                            scroll + (keyCode == GLFW.GLFW_KEY_PAGE_DOWN ? pageStep : -pageStep),
+                            0, maxScroll);
+                    scrollbar.scrollToPercent(newScroll / maxScroll);
+                }
                 return true;
+            }
             case GLFW.GLFW_KEY_RIGHT_BRACKET:
                 if (hasCtrl) {
                     history.tabLinesKeepCursor(cursor.startLine, cursor.startLineIndex, cursor.endLineIndex, cursor.endLine - cursor.startLine + 1, false);
@@ -638,14 +658,11 @@ public class EditorScreen extends BaseScreen {
             }
             String[] lines = history.current.substring(0, startIndex).split("\n", -1);
             int startCol = font.width(Component.literal(lines[lines.length - 1]).setStyle(defaultStyle));
-            int add = lineSpread - scroll % lineSpread;
-            if (add == lineSpread) {
-                add = 0;
-            }
+            int add = -(scroll % lineSpread);
             int startRow = (lines.length - firstLine + 1) * lineSpread + add;
 
             openOverlay(
-                    new SelectorDropdownOverlay(startCol + 30, startRow, maxWidth + 8, suggestionList.size() * lineSpread + 4, displayList, font, this, (i) -> {
+                    new SelectorDropdownOverlay(startCol + lineNumWidth + 2, startRow, maxWidth + 8, suggestionList.size() * lineSpread + 4, displayList, font, this, (i) -> {
                         if (i == -1) {
                             return;
                         }
@@ -665,10 +682,23 @@ public class EditorScreen extends BaseScreen {
     public void scrollToCursor() {
         int cursorLine = cursor.arrowEnd ? cursor.endLine : cursor.startLine;
         if (cursorLine < firstLine || cursorLine > lastLine) {
+            // Center the cursor in the viewport (in lines), then convert to a scroll percent
+            // using the same pixel-based units that calcTotalPages() and setScroll() use.
             int pagelength = lastLine - firstLine;
-            double scrollLines = history.current.split("\n", -1).length - pagelength;
-            cursorLine -= pagelength / 2;
-            scrollbar.scrollToPercent(Mth.clamp(cursorLine, 0, scrollLines) / scrollLines);
+            int targetLine = cursorLine - pagelength / 2;
+
+            final double viewportHeight = Math.max(1D, height - 24);
+            final int totalLines = codeCompiler == null ? history.current.split("\n", -1).length : codeCompiler.getRenderedText().length;
+            final double contentHeight = totalLines * (double) lineSpread;
+            final double maxScroll = Math.max(0, contentHeight - viewportHeight);
+
+            if (maxScroll <= 0) {
+                scrollbar.scrollToPercent(0);
+                return;
+            }
+
+            double targetScroll = Mth.clamp(targetLine * (double) lineSpread, 0, maxScroll);
+            scrollbar.scrollToPercent(targetScroll / maxScroll);
         }
     }
 
@@ -676,7 +706,11 @@ public class EditorScreen extends BaseScreen {
         if (history == null) {
             return 1;
         }
-        return (history.current.split("\n", -1).length) / (Math.floor((height - 24) / (double) lineSpread) - 1D);
+        final double viewportHeight = Math.max(1D, height - 24);
+        final int totalLines = codeCompiler == null ? history.current.split("\n", -1).length : codeCompiler.getRenderedText().length;
+        final double contentHeight = totalLines * (double) lineSpread;
+        // Keep scrollbar in sync with actual content pixels: percent=1 should land at (contentHeight - viewportHeight).
+        return Math.max(contentHeight / viewportHeight, 1D);
     }
 
     public void save() {
@@ -686,7 +720,7 @@ public class EditorScreen extends BaseScreen {
                 handler.write(current);
                 savedString = current;
                 saveBtn.setColor(0xFF00A000);
-                saveBtn.setHighlightColor(0xFF707000);
+                saveBtn.setHighlightColor(0xFF007000);
             } catch (IOException e) {
                 openOverlay(new ConfirmOverlay(this.width / 4, height / 4, this.width / 2, height / 2, font, Component.translatable("jsmacrosce.errorsaving").append(Component.literal("\n\n" + e.getMessage())), this, null));
             }
@@ -700,12 +734,17 @@ public class EditorScreen extends BaseScreen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horiz, double vert) {
         if (overlay == null && scrollbar != null) {
-            // TODO: This doesn't make sense? Why would we trigger a drag event when we scrolL??
-            //  If this is *really* what we want, we'll need to make a fake event
-            //  Later note: I believe this is how scrolling is done in the editor?
-            //? if <=1.21.8 {
-            scrollbar.mouseDragged(mouseX, mouseY, 0, 0, -vert * 2);
-            //?}
+            // Scroll by a fixed number of pixels per wheel unit, just like Monaco.
+            // `vert` is ~1.0 per physical click, so this gives ~40px per click regardless of content length.
+            final double viewportHeight = Math.max(1D, height - 24);
+            final int totalLines = codeCompiler == null ? history.current.split("\n", -1).length : codeCompiler.getRenderedText().length;
+            final double contentHeight = totalLines * (double) lineSpread;
+            final double maxScroll = Math.max(0, contentHeight - viewportHeight);
+            if (maxScroll > 0) {
+                double newScroll = Mth.clamp(scroll - vert * SCROLL_WHEEL_SENSITIVITY, 0, maxScroll);
+                scrollbar.scrollToPercent(newScroll / maxScroll);
+                return true;
+            }
         }
         return super.mouseScrolled(mouseX, mouseY, horiz, vert);
     }
@@ -714,41 +753,45 @@ public class EditorScreen extends BaseScreen {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         assert minecraft != null;
 
+        //? if <=1.21.5 {
+        this.renderBackground(drawContext, mouseX, mouseY, delta);
+        //?}
+
         drawContext.drawString(font, fileName, 2, 2, 0xFFFFFFFF);
 
         drawContext.drawString(font, String.format("%d ms", (int) textRenderTime), 2, height - 10, 0xFFFFFFFF);
         drawContext.drawString(font, lineCol, (int) (width - font.width(lineCol) - (width - 10) / 4F - 2), height - 10, 0xFFFFFFFF);
 
         drawContext.fill(0, 12, width - 10, height - 12, 0xFF2B2B2B);
-        drawContext.fill(28, 12, 29, height - 12, 0xFF707070);
+        drawContext.fill(lineNumWidth, 12, lineNumWidth + 1, height - 12, 0xFF707070);
         drawContext.fill(0, 12, 1, height - 12, 0xFF707070);
         drawContext.fill(width - 11, 12, width - 10, height - 12, 0xFF707070);
         drawContext.fill(1, 12, width - 11, 13, 0xFF707070);
         drawContext.fill(1, height - 13, width - 11, height - 12, 0xFF707070);
 
         Style lineNumStyle = defaultStyle.withColor(TextColor.fromRgb(0xFFD8D8D8));
-        int add = lineSpread - scroll % lineSpread;
-        if (add == lineSpread) {
-            add = 0;
-        }
+        // Negative offset: firstLine's top edge relative to the viewport top (may be < 0 for partial top line).
+        int add = -(scroll % lineSpread);
         int y = 13;
 
         final Component[] renderedText = codeCompiler.getRenderedText();
 
+        drawContext.enableScissor(0, 13, width - 10, height - 12);
         for (int i = 0, j = firstLine; j <= lastLine && j < renderedText.length; ++i, ++j) {
             if (cursor.startLine == j && cursor.endLine == j) {
-                drawContext.fill(30 + cursor.startCol, y + add + i * lineSpread, 30 + cursor.endCol, y + add + (i + 1) * lineSpread, 0xFF33508F);
+                drawContext.fill(lineNumWidth + 2 + cursor.startCol, y + add + i * lineSpread, lineNumWidth + 2 + cursor.endCol, y + add + (i + 1) * lineSpread, 0xFF33508F);
             } else if (cursor.startLine == j) {
-                drawContext.fill(30 + cursor.startCol, y + add + i * lineSpread, width - 10, y + add + (i + 1) * lineSpread, 0xFF33508F);
+                drawContext.fill(lineNumWidth + 2 + cursor.startCol, y + add + i * lineSpread, width - 10, y + add + (i + 1) * lineSpread, 0xFF33508F);
             } else if (j > cursor.startLine && j < cursor.endLine) {
-                drawContext.fill(29, y + add + i * lineSpread, width - 10, y + add + (i + 1) * lineSpread, 0xFF33508F);
+                drawContext.fill(lineNumWidth + 1, y + add + i * lineSpread, width - 10, y + add + (i + 1) * lineSpread, 0xFF33508F);
             } else if (cursor.endLine == j) {
-                drawContext.fill(29, y + add + i * lineSpread, 30 + cursor.endCol, y + add + (i + 1) * lineSpread, 0xFF33508F);
+                drawContext.fill(lineNumWidth + 1, y + add + i * lineSpread, lineNumWidth + 2 + cursor.endCol, y + add + (i + 1) * lineSpread, 0xFF33508F);
             }
             Component lineNum = Component.literal(String.format("%d.", j + 1)).setStyle(lineNumStyle);
-            drawContext.drawString(minecraft.font, lineNum, 28 - minecraft.font.width(lineNum), y + add + i * lineSpread, 0xFFFFFFFF, false);
-            drawContext.drawString(minecraft.font, trim(renderedText[j]), 30, y + add + i * lineSpread, 0xFFFFFFFF, false);
+            drawContext.drawString(minecraft.font, lineNum, lineNumWidth - 2 - minecraft.font.width(lineNum), y + add + i * lineSpread, 0xFFFFFFFF, false);
+            drawContext.drawString(minecraft.font, trim(renderedText[j]), lineNumWidth + 2, y + add + i * lineSpread, 0xFFFFFFFF, false);
         }
+        drawContext.disableScissor();
 
         for (GuiEventListener b : ImmutableList.copyOf(this.children())) {
             if (b instanceof Renderable) {
@@ -756,13 +799,16 @@ public class EditorScreen extends BaseScreen {
             }
         }
 
-        super.render(drawContext, mouseX, mouseY, delta);
+        if (overlay != null) {
+            overlay.render(drawContext, mouseX, mouseY, delta);
+        }
     }
 
     private FormattedCharSequence trim(Component text) {
         assert minecraft != null;
-        if (minecraft.font.width(text) > width - 30) {
-            FormattedCharSequence trimmed = Language.getInstance().getVisualOrder(minecraft.font.substrByWidth(text, width - 40 - ellipsesWidth));
+        int contentWidth = width - 10 - (lineNumWidth + 2); // total minus scrollbar minus gutter
+        if (minecraft.font.width(text) > contentWidth) {
+            FormattedCharSequence trimmed = Language.getInstance().getVisualOrder(minecraft.font.substrByWidth(text, contentWidth - 10 - ellipsesWidth));
             return FormattedCharSequence.composite(trimmed, ellipses);
         } else {
             return text.getVisualOrderText();
@@ -794,7 +840,7 @@ public class EditorScreen extends BaseScreen {
         boolean hasShift = Screen.hasShiftDown();
     //?}
         if (!handled && overlay == null) {
-            int index = getIndexPosition(mouseX - 30, mouseY - 12 + 1);
+            int index = getIndexPosition(mouseX - (lineNumWidth + 2), mouseY - 12 + 1);
             if (button != 1 || (cursor.startIndex > index || cursor.endIndex < index)) {
                 if (hasShift) {
                     if (index < cursor.dragStartIndex) {
@@ -840,10 +886,7 @@ public class EditorScreen extends BaseScreen {
 
     private int getIndexPosition(double x, double y) {
         assert minecraft != null;
-        int add = lineSpread - scroll % lineSpread;
-        if (add == lineSpread) {
-            add = 0;
-        }
+        int add = -(scroll % lineSpread);
         int line = firstLine + (int) ((y - add) / (double) lineSpread);
         if (line < 0) {
             line = 0;
@@ -879,11 +922,11 @@ public class EditorScreen extends BaseScreen {
     //? if >1.21.8 {
     /*public boolean mouseDragged(MouseButtonEvent buttonEvent, double deltaX, double deltaY) {
         if (!(getFocused() instanceof Scrollbar) && buttonEvent.isLeft() && overlay == null) {
-            int index = getIndexPosition(buttonEvent.x() - 30, buttonEvent.y() - 12);
+            int index = getIndexPosition(buttonEvent.x() - (lineNumWidth + 2), buttonEvent.y() - 12);
     *///?} else {
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
         if (!(getFocused() instanceof Scrollbar) && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && overlay == null) {
-            int index = getIndexPosition(mouseX - 30, mouseY - 12);
+            int index = getIndexPosition(mouseX - (lineNumWidth + 2), mouseY - 12);
     //?}
             if (index == cursor.dragStartIndex) {
                 cursor.updateStartIndex(index, history.current);

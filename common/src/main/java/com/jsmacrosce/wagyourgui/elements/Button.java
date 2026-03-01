@@ -84,7 +84,7 @@ public class Button extends AbstractButton {
     protected void renderMessage(GuiGraphics drawContext) {
         for (int i = 0; i < visibleLines; ++i) {
             int w = textRenderer.width(textLines.get(i));
-            drawContext.drawString(textRenderer, textLines.get(i), (int) (horizCenter ? getX() + width / 2F - w / 2F : getX() + 1), getY() + 2 + verticalCenter + (i * textRenderer.lineHeight), textColor, false);
+            drawContext.drawString(textRenderer, textLines.get(i), (int) (horizCenter ? getX() + width / 2F - w / 2F : getX() + 2), getY() + 2 + verticalCenter + (i * textRenderer.lineHeight), textColor, false);
         }
     }
 
@@ -96,7 +96,7 @@ public class Button extends AbstractButton {
     //? }
         if (this.visible) {
             // fill
-            if (mouseX - getX() >= 0 && mouseX - getX() - width <= 0 && mouseY - getY() >= 0 && mouseY - getY() - height <= 0 && this.active || forceHover) {
+            if (mouseX - getX() >= 0 && mouseX - getX() - width < 0 && mouseY - getY() >= 0 && mouseY - getY() - height < 0 && this.active || forceHover) {
                 hovering = true;
                 drawContext.fill(getX() + 1, getY() + 1, getX() + width - 1, getY() + height - 1, highlightColor);
             } else {

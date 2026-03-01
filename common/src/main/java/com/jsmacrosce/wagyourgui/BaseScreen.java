@@ -194,6 +194,9 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
 
     @Override
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+        //? if <=1.21.5 {
+        this.renderBackground(drawContext, mouseX, mouseY, delta);
+        //?}
         if (overlay != null) {
             overlay.render(drawContext, mouseX, mouseY, delta);
         }

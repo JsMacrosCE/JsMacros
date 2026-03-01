@@ -27,7 +27,7 @@ public class CategoryTreeContainer extends MultiElementContainer<ICategoryTreePa
         this.isHead = false;
         this.showChildren = false;
         this.category = category;
-        this.btnHeight = textRenderer.lineHeight + 2;
+        this.btnHeight = textRenderer.lineHeight + 3;
     }
 
     public CategoryTreeContainer(int x, int y, int width, int height, Font textRenderer, ICategoryTreeParent parent) {
