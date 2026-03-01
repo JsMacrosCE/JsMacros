@@ -689,7 +689,7 @@ public class EditorScreen extends BaseScreen {
                 handler.write(current);
                 savedString = current;
                 saveBtn.setColor(0xFF00A000);
-                saveBtn.setHighlightColor(0xFF707000);
+                saveBtn.setHighlightColor(0xFF007000);
             } catch (IOException e) {
                 openOverlay(new ConfirmOverlay(this.width / 4, height / 4, this.width / 2, height / 2, font, Component.translatable("jsmacrosce.errorsaving").append(Component.literal("\n\n" + e.getMessage())), this, null));
             }
