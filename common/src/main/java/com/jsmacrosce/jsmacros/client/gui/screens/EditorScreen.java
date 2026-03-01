@@ -544,11 +544,14 @@ public class EditorScreen extends BaseScreen {
                 }
                 return true;
             case GLFW.GLFW_KEY_Y:
-                int i = history.redo();
+                if (hasCtrl) {
+                    int i = history.redo();
 
-                if (i != -1) {
-                    compileRenderedText();
+                    if (i != -1) {
+                        compileRenderedText();
+                    }
                 }
+                return true;
             case GLFW.GLFW_KEY_S:
                 if (hasCtrl) {
                     save();
