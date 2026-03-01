@@ -96,7 +96,7 @@ public class Button extends AbstractButton {
     //? }
         if (this.visible) {
             // fill
-            if (mouseX - getX() >= 0 && mouseX - getX() - width <= 0 && mouseY - getY() >= 0 && mouseY - getY() - height <= 0 && this.active || forceHover) {
+            if (mouseX - getX() >= 0 && mouseX - getX() - width < 0 && mouseY - getY() >= 0 && mouseY - getY() - height < 0 && this.active || forceHover) {
                 hovering = true;
                 drawContext.fill(getX() + 1, getY() + 1, getX() + width - 1, getY() + height - 1, highlightColor);
             } else {
