@@ -59,21 +59,19 @@ public class AnnotatedCheckBox extends Button {
         if (this.visible) {
             this.renderMessage(drawContext);
 
+            boolean hovered = (mouseX - getX() >= 0 && mouseX - getX() - width <= 0 && mouseY - getY() >= 0 && mouseY - getY() - height <= 0 && this.active) || forceHover;
+            hovering = hovered;
             // fill
-            if (mouseX - getX() >= 0 && mouseX - getX() - width <= 0 && mouseY - getY() >= 0 && mouseY - getY() - height <= 0 && this.active || forceHover) {
-                hovering = true;
-                drawContext.fill(getX() + width - height + 1, getY() + 1, getX() + width - 1, getY() + height - 1, highlightColor);
-            } else {
-                hovering = false;
-                if (value) {
-                    drawContext.fill(getX() + width - height + 1, getY() + 1, getX() + width - 1, getY() + height - 1, color);
-                }
+            if (value) {
+                // checked: use highlightColor fill on hover, color fill when idle
+                drawContext.fill(getX() + width - height + 1, getY() + 1, getX() + width - 1, getY() + height - 1, hovered ? highlightColor : color);
             }
-            // outline
-            drawContext.fill(getX() + width - height, getY(), getX() + width - height + 1, getY() + height, borderColor);
-            drawContext.fill(getX() + width - 1, getY(), getX() + width, getY() + height, borderColor);
-            drawContext.fill(getX() + width - height + 1, getY(), getX() + width - 1, getY() + 1, borderColor);
-            drawContext.fill(getX() + width - height + 1, getY() + height - 1, getX() + width - 1, getY() + height, borderColor);
+            // outline: use highlightColor border on hover when unchecked, borderColor otherwise
+            int outlineColor = (!value && hovered) ? highlightColor : borderColor;
+            drawContext.fill(getX() + width - height, getY(), getX() + width - height + 1, getY() + height, outlineColor);
+            drawContext.fill(getX() + width - 1, getY(), getX() + width, getY() + height, outlineColor);
+            drawContext.fill(getX() + width - height + 1, getY(), getX() + width - 1, getY() + 1, outlineColor);
+            drawContext.fill(getX() + width - height + 1, getY() + height - 1, getX() + width - 1, getY() + height, outlineColor);
         }
     }
 
