@@ -59,7 +59,7 @@ public class AnnotatedCheckBox extends Button {
         if (this.visible) {
             this.renderMessage(drawContext);
 
-            boolean hovered = (mouseX - getX() >= 0 && mouseX - getX() - width <= 0 && mouseY - getY() >= 0 && mouseY - getY() - height <= 0 && this.active) || forceHover;
+            boolean hovered = (mouseX - getX() >= 0 && mouseX - getX() - width < 0 && mouseY - getY() >= 0 && mouseY - getY() - height < 0 && this.active) || forceHover;
             hovering = hovered;
             // fill
             if (value) {
