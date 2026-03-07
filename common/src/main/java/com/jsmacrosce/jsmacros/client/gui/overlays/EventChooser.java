@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.wagyourgui.elements.Button;
@@ -70,7 +71,15 @@ public class EventChooser extends OverlayContainer {
     }
 
     public void addEvent(String eventName) {
-        EventObj e = new EventObj(eventName, new Button(x + 3 + (events.size() % 5 * (width - 12) / 5), topScroll + (events.size() / 5 * 12), (width - 12) / 5, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacrosce.event." + eventName.toLowerCase(Locale.ROOT)), (btn) -> {
+        String lowerCaseName = eventName.toLowerCase(Locale.ROOT);
+        Component translatedName;
+        if (Language.getInstance().has("jsmacrosce.event." + lowerCaseName)) {
+            translatedName = Component.translatable("jsmacrosce.event." + lowerCaseName);
+        } else {
+            translatedName = Component.literal(eventName);
+        }
+
+        EventObj e = new EventObj(eventName, new Button(x + 3 + (events.size() % 5 * (width - 12) / 5), topScroll + (events.size() / 5 * 12), (width - 12) / 5, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, translatedName, (btn) -> {
             selectEvent(eventName);
         }));
 
