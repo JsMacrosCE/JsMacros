@@ -44,6 +44,7 @@ public class Item implements RenderElement, Alignable<Item> {
 
     private static final int DEFAULT_ITEM_SIZE = 16;
     private static final float FLAT_ITEM_DEPTH_SCALE = 0.001f;
+    private static final float OVERLAY_TEXT_Z_OFFSET = 0.1f;
     private static final Minecraft mc = Minecraft.getInstance();
 
     @Nullable
@@ -345,17 +346,21 @@ public class Item implements RenderElement, Alignable<Item> {
         matrixStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
         mc.getItemRenderer().renderStatic(item, ItemDisplayContext.GUI, light, OverlayTexture.NO_OVERLAY, matrixStack, consumers, null, 0);
         matrixStack.popPose();
+        //?}
+
         if (overlay) {
-            // Render overlay text using font.drawInBatch for the count/durability label.
             String text = ovText != null ? ovText : (item.getCount() > 1 ? String.valueOf(item.getCount()) : null);
             if (text != null) {
                 Font font = mc.font;
-                float tx = DEFAULT_ITEM_SIZE - font.width(text);
-                float ty = DEFAULT_ITEM_SIZE - font.lineHeight;
-                font.drawInBatch(text, tx, ty, 0xFFFFFF, true, matrixStack.last().pose(), consumers, net.minecraft.client.gui.Font.DisplayMode.NORMAL, 0, light);
+                // Text offset
+                float tx = DEFAULT_ITEM_SIZE + 1 - font.width(text);
+                float ty = 9;
+                matrixStack.pushPose();
+                matrixStack.translate(0, 0, OVERLAY_TEXT_Z_OFFSET);
+                font.drawInBatch(text, tx, ty, 0xFFFFFF, true, matrixStack.last().pose(), consumers, Font.DisplayMode.POLYGON_OFFSET, 0, light);
+                matrixStack.popPose();
             }
         }
-        //?}
 
         matrixStack.popPose();
     }
