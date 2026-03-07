@@ -404,7 +404,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
             vc.addVertex(pose, x1, y2, 0).setColor(r, g, b, a);
 
             //? if <1.21.11 {
-            if (seeThrough && vc instanceof MultiBufferSource.BufferSource immediate) {
+            if (seeThrough && consumers instanceof MultiBufferSource.BufferSource immediate) {
                 immediate.endBatch();
             }
         } catch (IllegalAccessException e) {

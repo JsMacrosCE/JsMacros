@@ -447,7 +447,7 @@ public class Image implements RenderElement, Alignable<Image> {
                     .setNormal(pose, 0, 0, 1);
 
             //? if <1.21.11 {
-            if (seeThrough && vc instanceof MultiBufferSource.BufferSource immediate) {
+            if (seeThrough && consumers instanceof MultiBufferSource.BufferSource immediate) {
                 immediate.endBatch();
             }
         } catch (IllegalAccessException e) {

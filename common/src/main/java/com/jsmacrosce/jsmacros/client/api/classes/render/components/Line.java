@@ -376,7 +376,7 @@ public class Line implements RenderElement, Alignable<Line> {
             PoseStack.Pose pose = matrixStack.last();
             vc.addVertex(pose, x1, y1, 0).setColor(r, g, b, a).setNormal(pose, nx, ny, 0);
             vc.addVertex(pose, x2, y2, 0).setColor(r, g, b, a).setNormal(pose, nx, ny, 0);
-            if (seeThrough && vc instanceof MultiBufferSource.BufferSource immediate) {
+            if (seeThrough && consumers instanceof MultiBufferSource.BufferSource immediate) {
                 immediate.endBatch();
             }
         } catch (IllegalAccessException e) {
