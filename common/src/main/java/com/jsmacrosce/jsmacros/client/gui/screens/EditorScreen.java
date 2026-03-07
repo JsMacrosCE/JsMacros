@@ -921,7 +921,8 @@ public class EditorScreen extends BaseScreen {
     @Override
     //? if >1.21.8 {
     /*public boolean mouseDragged(MouseButtonEvent buttonEvent, double deltaX, double deltaY) {
-        if (!(getFocused() instanceof Scrollbar) && buttonEvent.isLeft() && overlay == null) {
+        if (!(getFocused() instanceof Scrollbar) && buttonEvent.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT && overlay ==
+        null) {
             int index = getIndexPosition(buttonEvent.x() - (lineNumWidth + 2), buttonEvent.y() - 12);
     *///?} else {
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
