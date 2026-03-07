@@ -475,8 +475,8 @@ public class Draw3D implements Registrable<Draw3D> {
                 y + radius,
                 z + radius,
                 color,
-                color,
                 alpha,
+                color,
                 alpha,
                 true,
                 cull

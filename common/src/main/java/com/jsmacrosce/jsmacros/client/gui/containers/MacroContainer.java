@@ -156,7 +156,7 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
         reg.removeScriptTrigger(macro);
         macro.event = type;
         reg.addScriptTrigger(macro);
-        keyBtn.setMessage(Component.translatable("jsmacrosce.event." + macro.event.toLowerCase(Locale.ROOT)));
+        keyBtn.setMessage(getTranslatedEventName(macro.event));
     }
 
     public void setFile(File f) {
