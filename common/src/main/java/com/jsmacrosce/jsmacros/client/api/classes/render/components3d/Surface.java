@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 
+import com.jsmacrosce.jsmacros.client.JsMacros;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -60,7 +61,11 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         this.pos = pos;
         this.rotations = rotations;
         this.sizes = sizes;
-        this.minSubdivisions = minSubdivisions;
+        this.minSubdivisions = Math.max(minSubdivisions, 1);
+        if (minSubdivisions != this.minSubdivisions) {
+            JsMacros.LOGGER.warn("Surface instantiated with invalid minSubdivisions: {}, defaulting to 1",
+                    minSubdivisions);
+        }
         this.renderBack = renderBack;
         this.cull = cull;
         init();
