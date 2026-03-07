@@ -43,6 +43,7 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinItemStackRenderStateLaye
 public class Item implements RenderElement, Alignable<Item> {
 
     private static final int DEFAULT_ITEM_SIZE = 16;
+    private static final float FLAT_ITEM_DEPTH_SCALE = 0.001f;
     private static final Minecraft mc = Minecraft.getInstance();
 
     @Nullable
@@ -310,6 +311,7 @@ public class Item implements RenderElement, Alignable<Item> {
             matrixStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
             matrixStack.scale(1, -1, 1);
             matrixStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
+            matrixStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
             ItemTransform transform = layerAccessor.jsmacros$getTransform();
             if (transform != null) {
                 transform.apply(false, matrixStack.last());
@@ -340,6 +342,7 @@ public class Item implements RenderElement, Alignable<Item> {
         matrixStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
         matrixStack.scale(1, -1, 1);
         matrixStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
+        matrixStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
         mc.getItemRenderer().renderStatic(item, ItemDisplayContext.GUI, light, OverlayTexture.NO_OVERLAY, matrixStack, consumers, null, 0);
         matrixStack.popPose();
         if (overlay) {
