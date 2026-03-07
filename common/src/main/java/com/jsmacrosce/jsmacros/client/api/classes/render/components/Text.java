@@ -35,7 +35,7 @@ public class Text implements RenderElement, Alignable<Text> {
     public int x;
     public int y;
     public int color;
-    public int width;
+    private volatile int width = -1;
     public boolean shadow;
     public int zIndex;
 
@@ -48,7 +48,6 @@ public class Text implements RenderElement, Alignable<Text> {
         this.x = x;
         this.y = y;
         setColor(color);
-        this.width = mc.font.width(this.text);
         this.shadow = shadow;
         this.scale = scale;
         this.rotation = Mth.wrapDegrees(rotation);
@@ -110,7 +109,7 @@ public class Text implements RenderElement, Alignable<Text> {
      */
     public Text setText(String text) {
         this.text = net.minecraft.network.chat.Component.literal(text);
-        this.width = mc.font.width(text);
+        this.width = -1;
         return this;
     }
 
@@ -121,7 +120,7 @@ public class Text implements RenderElement, Alignable<Text> {
      */
     public Text setText(TextHelper text) {
         this.text = text.getRaw();
-        this.width = mc.font.width(this.text);
+        this.width = -1;
         return this;
     }
 
@@ -138,6 +137,9 @@ public class Text implements RenderElement, Alignable<Text> {
      * @since 1.0.5
      */
     public int getWidth() {
+        if (this.width < 0) {
+            this.width = mc.font.width(this.text);
+        }
         return this.width;
     }
 
