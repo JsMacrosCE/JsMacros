@@ -13,7 +13,7 @@ import java.lang.reflect.InvocationTargetException;
 public class DoubleField extends AbstractSettingField<Double> {
 
     public DoubleField(int x, int y, int width, Font textRenderer, AbstractSettingContainer parent, SettingsOverlay.SettingField<Double> field) {
-        super(x, y, width, textRenderer.lineHeight + 2, textRenderer, parent, field);
+        super(x, y, width, textRenderer.lineHeight + 3, textRenderer, parent, field);
     }
 
     @Override
@@ -46,7 +46,7 @@ public class DoubleField extends AbstractSettingField<Double> {
 
     @Override
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-        drawContext.drawString(textRenderer, BaseScreen.trimmed(textRenderer, settingName, width / 2), x, y + 1, 0xFFFFFFFF, false);
+        drawContext.drawString(textRenderer, BaseScreen.trimmed(textRenderer, settingName, width / 2), x + 2, y + 1, 0xFFFFFFFF, false);
     }
 
 }

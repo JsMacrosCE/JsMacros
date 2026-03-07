@@ -12,7 +12,7 @@ import java.lang.reflect.InvocationTargetException;
 public class BooleanField extends AbstractSettingField<Boolean> {
 
     public BooleanField(int x, int y, int width, Font textRenderer, AbstractSettingContainer parent, SettingsOverlay.SettingField<Boolean> field) {
-        super(x, y, width, textRenderer.lineHeight + 2, textRenderer, parent, field);
+        super(x, y, width, textRenderer.lineHeight + 3, textRenderer, parent, field);
     }
 
     @Override

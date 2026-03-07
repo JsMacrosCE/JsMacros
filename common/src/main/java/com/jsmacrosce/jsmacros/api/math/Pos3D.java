@@ -18,6 +18,10 @@ public class Pos3D extends Pos2D {
         this(vec.x(), vec.y(), vec.z());
     }
 
+    public Pos3D(Pos3D pos) {
+        this(pos.getX(), pos.getY(), pos.getZ());
+    }
+
     public Pos3D(double x, double y, double z) {
         super(x, y);
         this.z = z;
