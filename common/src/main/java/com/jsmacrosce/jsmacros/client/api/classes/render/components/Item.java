@@ -357,7 +357,7 @@ public class Item implements RenderElement, Alignable<Item> {
                 float ty = 9;
                 matrixStack.pushPose();
                 matrixStack.translate(0, 0, OVERLAY_TEXT_Z_OFFSET);
-                font.drawInBatch(text, tx, ty, 0xFFFFFF, true, matrixStack.last().pose(), consumers, Font.DisplayMode.POLYGON_OFFSET, 0, light);
+                font.drawInBatch(text, tx, ty, 0xFFFFFFFF, true, matrixStack.last().pose(), consumers, Font.DisplayMode.POLYGON_OFFSET, 0, light);
                 matrixStack.popPose();
             }
         }
