@@ -347,16 +347,16 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
      * @since 1.2.8, was a {@link String} until 1.5.0
      */
     public NBTElementHelper.NBTCompoundHelper getNBT() {
-        CompoundTag nbt = new CompoundTag();
         //? if >1.21.5 {
         ValueOutput view = TagValueOutput.createWithContext(
                 ProblemReporter.DISCARDING,
                 Objects.requireNonNull(Minecraft.getInstance().getConnection()).registryAccess()
         );
         base.saveWithoutId(view);
-        CompoundTag result = ((TagValueOutput) view).buildResult();
+        CompoundTag nbt = ((TagValueOutput) view).buildResult();
         //?} else {
-        /*base.saveWithoutId(nbt);
+        /*CompoundTag nbt = new CompoundTag();
+        base.saveWithoutId(nbt);
         *///?}
 
         return NBTElementHelper.wrapCompound(nbt);
