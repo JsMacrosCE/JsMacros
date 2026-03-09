@@ -1,6 +1,7 @@
 package com.jsmacrosce.doclet.core.render;
 
 import com.jsmacrosce.FileHandler;
+import com.jsmacrosce.MarkdownBuilder;
 import com.jsmacrosce.doclet.core.TargetLanguage;
 import com.jsmacrosce.doclet.core.TypeResolver;
 import com.jsmacrosce.doclet.core.model.ClassDoc;
@@ -128,56 +129,53 @@ public class MarkdownWriter {
     }
 
     private String renderOverview(Map<String, List<ClassDoc>> grouped, String version, String mcVersion) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("---\noutline: false\n---\n\n");
-        builder.append("# JsMacros API Reference\n\n");
-        builder.append("Version: `").append(version).append("`  \n");
-        builder.append("Minecraft: `").append(mcVersion).append("`\n\n");
-        builder.append("- [Libraries](./libraries.md) (").append(grouped.getOrDefault("Library", List.of()).size()).append(")\n");
-        builder.append("- [Events](./events.md) (").append(grouped.getOrDefault("Event", List.of()).size()).append(")\n");
-        builder.append("- [Classes](./classes.md) (").append(grouped.getOrDefault("Class", List.of()).size()).append(")\n\n");
-        builder.append("Use the sidebar to browse packages and classes.\n");
-        return builder.toString();
+        MarkdownBuilder md = new MarkdownBuilder();
+        md.frontmatter(Map.of("outline", "false"));
+        md.heading(1, "JsMacros API Reference");
+        md.paragraph(
+            "Version: " + MarkdownBuilder.codeSpan(version) + "  \n"
+            + "Minecraft: " + MarkdownBuilder.codeSpan(mcVersion)
+        );
+        md.bulletItem(MarkdownBuilder.link("Libraries", "./libraries.md") + " (" + grouped.getOrDefault("Library", List.of()).size() + ")");
+        md.bulletItem(MarkdownBuilder.link("Events", "./events.md") + " (" + grouped.getOrDefault("Event", List.of()).size() + ")");
+        md.bulletItem(MarkdownBuilder.link("Classes", "./classes.md") + " (" + grouped.getOrDefault("Class", List.of()).size() + ")");
+        md.paragraph("Use the sidebar to browse packages and classes.");
+        return md.toString();
     }
 
     private String renderGroupPage(String title, List<ClassDoc> classes, boolean preferAlias, Map<String, List<ClassDoc>> categories) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("---\noutline: false\n---\n\n");
-        builder.append("# ").append(title).append("\n\n");
+        MarkdownBuilder md = new MarkdownBuilder();
+        md.frontmatter(Map.of("outline", "false"));
+        md.heading(1, title);
         if ((categories == null || categories.isEmpty()) && classes.isEmpty()) {
-            builder.append("No entries found.\n");
-            return builder.toString();
+            md.paragraph("No entries found.");
+            return md.toString();
         }
         if (categories != null && !categories.isEmpty()) {
             for (Map.Entry<String, List<ClassDoc>> entry : categories.entrySet()) {
-                builder.append("### ").append(entry.getKey()).append("\n\n");
-                renderGroupEntries(entry.getValue(), preferAlias, builder);
-                builder.append("\n");
+                md.heading(3, entry.getKey());
+                renderGroupEntries(entry.getValue(), preferAlias, md);
             }
-            return builder.toString();
+            return md.toString();
         }
-        renderGroupEntries(classes, preferAlias, builder);
-        return builder.toString();
+        renderGroupEntries(classes, preferAlias, md);
+        return md.toString();
     }
 
-    private void renderGroupEntries(List<ClassDoc> entries, boolean preferAlias, StringBuilder builder) {
+    private void renderGroupEntries(List<ClassDoc> entries, boolean preferAlias, MarkdownBuilder md) {
         if (entries == null || entries.isEmpty()) {
-            builder.append("No entries found.\n");
+            md.paragraph("No entries found.");
             return;
         }
         for (ClassDoc clz : entries) {
             String linkText = preferAlias && hasAlias(clz)
                 ? clz.alias()
                 : clz.qualifiedName();
-            builder.append("- [")
-                .append(linkText)
-                .append("](./")
-                .append(classPath(clz))
-                .append(".md)");
+            String item = MarkdownBuilder.link(linkText, "./" + classPath(clz) + ".md");
             if (preferAlias && hasAlias(clz) && !linkText.equals(clz.qualifiedName())) {
-                builder.append(" (").append(renderCodeSpan(clz.qualifiedName())).append(")");
+                item += " (" + MarkdownBuilder.codeSpan(clz.qualifiedName()) + ")";
             }
-            builder.append("\n");
+            md.bulletItem(item);
         }
     }
 
@@ -238,22 +236,23 @@ public class MarkdownWriter {
     private record SidebarData(String version, List<SidebarCategory> classes, List<SidebarCategory> events, List<SidebarCategory> libraries) {}
 
     private String renderClass(ClassDoc clz) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("---\noutline: deep\n---\n\n");
-        builder.append("# ").append(displayTitle(clz)).append("\n\n");
-        builder.append(clz.qualifiedName()).append("\n\n");
+        MarkdownBuilder md = new MarkdownBuilder();
+        md.frontmatter(Map.of("outline", "deep"));
+        md.heading(1, displayTitle(clz));
+        md.paragraph(clz.qualifiedName());
+
         String desc = formatDescription(clz.docComment(), clz);
-        builder.append(desc.isEmpty() ? "TODO: No description supplied" : desc);
+        String descText = desc.isEmpty() ? "TODO: No description supplied" : desc;
         if ("Library".equals(clz.group())) {
             String accessName = clz.alias() == null || clz.alias().isEmpty() ? clz.name() : clz.alias();
-            builder.append("\nAccessible in scripts via the global ").append(renderCodeSpan(accessName)).append(" variable.");
+            descText += "\nAccessible in scripts via the global " + MarkdownBuilder.codeSpan(accessName) + " variable.";
         }
-        builder.append("\n\n");
+        md.paragraph(descText);
 
-        renderMemberSection(builder, clz, MemberKind.CONSTRUCTOR, "Constructors");
-        renderMemberSection(builder, clz, MemberKind.FIELD, "Fields");
-        renderMemberSection(builder, clz, MemberKind.METHOD, "Methods");
-        return builder.toString();
+        renderMemberSection(md, clz, MemberKind.CONSTRUCTOR, "Constructors");
+        renderMemberSection(md, clz, MemberKind.FIELD, "Fields");
+        renderMemberSection(md, clz, MemberKind.METHOD, "Methods");
+        return md.toString();
     }
 
     private String displayTitle(ClassDoc clz) {
@@ -263,50 +262,53 @@ public class MarkdownWriter {
         return clz.name();
     }
 
-    private void renderMemberSection(StringBuilder builder, ClassDoc clz, MemberKind kind, String title) {
+    private void renderMemberSection(MarkdownBuilder md, ClassDoc clz, MemberKind kind, String title) {
         List<MemberDoc> members = clz.members().stream()
             .filter(member -> member.kind() == kind)
             .toList();
         if (members.isEmpty()) {
             return;
         }
-        builder.append("## ").append(title).append("\n\n");
+        md.heading(2, title);
         for (MemberDoc member : members) {
             boolean hasLinkRef = member.anchorId() != null && !member.anchorId().isBlank();
-            builder.append("### ").append(renderMemberTitle(member)).append(hasLinkRef ? " {#" + clz.qualifiedName() + "_" + member.anchorId() + "}" : "").append("\n\n");
+            if (hasLinkRef) {
+                md.heading(3, renderMemberTitle(member), clz.qualifiedName() + "_" + member.anchorId());
+            } else {
+                md.heading(3, renderMemberTitle(member));
+            }
 
-            String signature = renderSignature(member);
-            builder.append("**Signature:** ").append(signature).append("\n\n");
+            md.paragraph("**Signature:** " + MarkdownBuilder.codeSpan(renderSignature(member)));
 
             String desc = formatDescription(member.docComment(), clz);
             if (!desc.isEmpty()) {
-                builder.append(desc).append("\n\n");
+                md.paragraph(desc);
             }
 
+            // TODO: Make this a badge
             String since = getTagText(member.docComment(), DocTagKind.SINCE);
             if (!since.isEmpty()) {
-                builder.append("**Since:** ").append(formatDocText(since, clz)).append("\n\n");
+                md.paragraph("**Since:** " + since);
             }
 
             if (hasDeprecatedTag(member.docComment())) {
                 String deprecated = getTagText(member.docComment(), DocTagKind.DEPRECATED);
-                builder.append("**Deprecated:** ").append(formatDocText(deprecated, clz)).append("\n\n");
+                md.paragraph("**Deprecated:** " + formatDocText(deprecated, clz));
             }
 
-            appendParamDocs(builder, member, clz);
+            appendParamDocs(md, member, clz);
 
             if (member.kind() == MemberKind.METHOD) {
                 String ret = getTagText(member.docComment(), DocTagKind.RETURN);
                 if (ret.isEmpty()) {
                     ret = convertLinkTags("{@link " + renderType(member) + "}", clz);
                 }
-
                 if (!ret.isEmpty()) {
-                    builder.append("**Returns:** ").append(formatDocText(ret, clz)).append("\n\n");
+                    md.paragraph("**Returns:** " + formatDocText(ret, clz));
                 }
             }
 
-            appendSeeDocs(builder, member.docComment(), clz);
+            appendSeeDocs(md, member.docComment(), clz);
         }
     }
 
@@ -396,24 +398,23 @@ public class MarkdownWriter {
         return comment.tags().stream().anyMatch(tag -> tag.kind() == DocTagKind.DEPRECATED);
     }
 
-    private void appendParamDocs(StringBuilder builder, MemberDoc member, ClassDoc context) {
+    private void appendParamDocs(MarkdownBuilder md, MemberDoc member, ClassDoc context) {
         List<ParamDoc> params = member.params();
         boolean hasDocs = params.stream().anyMatch(param -> param.description() != null && !param.description().isBlank());
         if (!hasDocs) {
             return;
         }
-        builder.append("**Parameters:**\n");
+        md.boldHeader("Parameters:");
         for (ParamDoc param : params) {
             String desc = param.description() == null ? "" : formatDocText(param.description(), context);
             if (desc.isBlank()) {
                 continue;
             }
-            builder.append("- ").append(renderCodeSpan(param.name())).append(": ").append(formatDocText(desc, context)).append("\n");
+            md.bulletItem(MarkdownBuilder.codeSpan(param.name()) + ": " + formatDocText(desc, context));
         }
-        builder.append("\n");
     }
 
-    private void appendSeeDocs(StringBuilder builder, DocComment comment, ClassDoc context) {
+    private void appendSeeDocs(MarkdownBuilder md, DocComment comment, ClassDoc context) {
         if (comment == null) {
             return;
         }
@@ -426,11 +427,10 @@ public class MarkdownWriter {
         if (sees.isEmpty()) {
             return;
         }
-        builder.append("**See:**\n");
+        md.boldHeader("See:");
         for (String see : sees) {
-            builder.append("- ").append(see).append("\n");
+            md.bulletItem(see);
         }
-        builder.append("\n");
     }
 
     private String formatDocText(String text, ClassDoc context) {
@@ -451,7 +451,7 @@ public class MarkdownWriter {
         formatted = convertLinkTags(formatted, context);
         String trimmed = formatted.trim();
         if (looksLikeSignature(trimmed)) {
-            formatted = renderCodeSpan(convertSignature(trimmed));
+            formatted = MarkdownBuilder.codeSpan(convertSignature(trimmed));
         }
         return formatted.trim();
     }
@@ -799,33 +799,6 @@ public class MarkdownWriter {
     private String simpleName(String name) {
         int idx = name.lastIndexOf('.');
         return idx == -1 ? name : name.substring(idx + 1);
-    }
-
-    private String renderSignatureValue(String signature) {
-        if (signature == null) {
-            return "";
-        }
-        return renderCodeSpan(signature);
-    }
-
-    private String renderCodeSpan(String text) {
-        if (text == null) {
-            return "";
-        }
-        int maxTicks = 0;
-        int current = 0;
-        for (int i = 0; i < text.length(); i++) {
-            if (text.charAt(i) == '`') {
-                current++;
-                if (current > maxTicks) {
-                    maxTicks = current;
-                }
-            } else {
-                current = 0;
-            }
-        }
-        String fence = "`".repeat(maxTicks + 1);
-        return fence + text + fence;
     }
 
     private record LinkSignature(String className, String memberName, List<String> paramTypes) {}
