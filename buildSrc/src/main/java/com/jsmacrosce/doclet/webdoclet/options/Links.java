@@ -39,16 +39,43 @@ public class Links implements Doclet.Option {
 
     @Override
     public boolean process(String option, List<String> arguments) {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new URL(arguments.get(0) + "package-list").openStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                externalPackages.put(line, arguments.get(0) + "index.html?" + line.replaceAll("\\.", "/") + "/");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+        String baseUrl = arguments.getFirst();
+        if (!baseUrl.endsWith("/")) {
+            baseUrl += "/";
         }
-        return true;
+
+        Exception lastException = null;
+        for (String listFile : new String[] { "package-list", "element-list" }) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(new URL(baseUrl + listFile).openStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+
+                    if (line.isEmpty()) {
+                        continue;
+                    }
+
+                    // element-list may contain module entries like "module:java.base"
+                    if (line.startsWith("module:")) {
+                        continue;
+                    }
+
+                    externalPackages.put(
+                            line,
+                            baseUrl + "index.html?" + line.replace(".", "/") + "/");
+                }
+
+                // Return early if possible
+                return true;
+            } catch (Exception e) {
+                lastException = e;
+            }
+        }
+
+        if (lastException != null) {
+            lastException.printStackTrace();
+        }
+        return false;
     }
 
 }
