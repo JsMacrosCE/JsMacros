@@ -1,9 +1,6 @@
 package com.jsmacrosce.doclet.core.render;
 
-import com.jsmacrosce.doclet.core.BasicTypeResolver;
-import com.jsmacrosce.doclet.core.Renderer;
-import com.jsmacrosce.doclet.core.TargetLanguage;
-import com.jsmacrosce.doclet.core.TypeResolver;
+import com.jsmacrosce.doclet.core.*;
 import com.jsmacrosce.doclet.core.model.ClassDoc;
 import com.jsmacrosce.doclet.core.model.ClassKind;
 import com.jsmacrosce.doclet.core.model.DeclaredTypeDoc;
@@ -61,8 +58,8 @@ public class TsRenderer implements Renderer {
         Map<String, String> tsAliases = buildTypeScriptAliases(model);
         applyTypeScriptAliases(tsAliases);
 
-        List<ClassDoc> events = collectByGroup(model, "Event");
-        List<ClassDoc> libraries = collectByGroup(model, "Library");
+        List<ClassDoc> events = collectByGroup(model, ClassGroup.Event);
+        List<ClassDoc> libraries = collectByGroup(model, ClassGroup.Library);
 
         StringBuilder out = new StringBuilder();
         appendGlobalDeclarations(out);
@@ -178,13 +175,13 @@ public class TsRenderer implements Renderer {
     private String renderPackages(DocletModel model) {
         PackageNode root = buildTree(model);
         PackageNode current = root;
-        String name = root.name;
+        StringBuilder name = new StringBuilder(root.name);
         while (current.classes.isEmpty() && current.children.size() == 1) {
             PackageNode child = current.children.values().iterator().next();
             if (isReservedWord(child.name)) {
                 break;
             }
-            name = name + "." + child.name;
+            name.append(".").append(child.name);
             current = child;
         }
         StringBuilder out = new StringBuilder();
@@ -207,16 +204,16 @@ public class TsRenderer implements Renderer {
     private void renderPackageNode(StringBuilder out, PackageNode node, int indent) {
         for (PackageNode child : node.children.values()) {
             PackageNode current = child;
-            String mergedName = child.name;
+            StringBuilder mergedName = new StringBuilder(child.name);
             while (current.classes.isEmpty() && current.children.size() == 1) {
                 PackageNode onlyChild = current.children.values().iterator().next();
                 if (isReservedWord(onlyChild.name)) {
                     break;
                 }
-                mergedName = mergedName + "." + onlyChild.name;
+                mergedName.append(".").append(onlyChild.name);
                 current = onlyChild;
             }
-            String namespaceName = escapePackageName(mergedName);
+            String namespaceName = escapePackageName(mergedName.toString());
             indent(out, indent).append("export namespace ").append(namespaceName).append(" {\n");
             renderPackageNode(out, current, indent + 1);
             indent(out, indent).append("}\n");
@@ -249,7 +246,7 @@ public class TsRenderer implements Renderer {
         }
 
         // Don't generate interface for Library classes (they're rendered as namespaces)
-        if (!clz.implementsTypes().isEmpty() && !"Library".equals(clz.group())) {
+        if (!clz.implementsTypes().isEmpty() && clz.group() != ClassGroup.Library) {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
             appendTypeParams(out, clz.typeParams(), null, false);
@@ -532,11 +529,11 @@ public class TsRenderer implements Renderer {
         }
     }
 
-    private List<ClassDoc> collectByGroup(DocletModel model, String group) {
+    private List<ClassDoc> collectByGroup(DocletModel model, ClassGroup group) {
         List<ClassDoc> result = new ArrayList<>();
         for (PackageDoc pkg : model.packages()) {
             for (ClassDoc clz : pkg.classes()) {
-                if (group.equals(clz.group())) {
+                if (clz.group() == group) {
                     result.add(clz);
                 }
             }
@@ -550,9 +547,9 @@ public class TsRenderer implements Renderer {
         aliases.put("com.jsmacrosce.jsmacros.core.event.BaseEvent", "Events.BaseEvent");
         for (PackageDoc pkg : model.packages()) {
             for (ClassDoc clz : pkg.classes()) {
-                if ("Event".equals(clz.group()) && clz.alias() != null) {
+                if (clz.group() == ClassGroup.Event && clz.alias() != null) {
                     aliases.put(clz.qualifiedName(), "Events." + clz.alias());
-                } else if ("Library".equals(clz.group()) && clz.alias() != null) {
+                } else if (clz.group() == ClassGroup.Library && clz.alias() != null) {
                     aliases.put(clz.qualifiedName(), "typeof " + clz.alias());
                 }
             }
@@ -620,7 +617,7 @@ public class TsRenderer implements Renderer {
         if (clz.extendsTypes().isEmpty()) {
             extendsType = "java.lang.Object";
         } else {
-            extendsType = formatHeritageType(clz.extendsTypes().get(0), true);
+            extendsType = formatHeritageType(clz.extendsTypes().getFirst(), true);
         }
         out.append(" extends ").append(extendsType);
     }
@@ -817,7 +814,7 @@ public class TsRenderer implements Renderer {
     
     private String convertHtmlLinks(String text) {
         java.util.regex.Matcher matcher = HTML_LINK.matcher(text);
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         while (matcher.find()) {
             String url = matcher.group(1);
             String linkText = matcher.group(2);
@@ -830,7 +827,7 @@ public class TsRenderer implements Renderer {
 
     private String convertLinkTags(String text) {
         java.util.regex.Matcher matcher = LINK_TAG.matcher(text);
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         while (matcher.find()) {
             String sig = matcher.group(1).trim();
             String mapped = mapSimpleLinkSignature(sig);

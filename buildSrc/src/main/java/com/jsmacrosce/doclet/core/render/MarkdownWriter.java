@@ -2,6 +2,7 @@ package com.jsmacrosce.doclet.core.render;
 
 import com.jsmacrosce.FileHandler;
 import com.jsmacrosce.MarkdownBuilder;
+import com.jsmacrosce.doclet.core.ClassGroup;
 import com.jsmacrosce.doclet.core.TargetLanguage;
 import com.jsmacrosce.doclet.core.TypeResolver;
 import com.jsmacrosce.doclet.core.model.ClassDoc;
@@ -57,9 +58,9 @@ public class MarkdownWriter {
     public void write(DocletModel model, File outDir, String version, String mcVersion) throws IOException {
         this.version = version;
         indexClasses(model);
-        Map<String, List<ClassDoc>> classCategories = groupByCategory(model, "Class");
-        Map<String, List<ClassDoc>> eventCategories = groupByCategory(model, "Event");
-        Map<String, List<ClassDoc>> libraryCategories = groupByCategory(model, "Library");
+        Map<String, List<ClassDoc>> classCategories = groupByCategory(model, ClassGroup.Class);
+        Map<String, List<ClassDoc>> eventCategories = groupByCategory(model, ClassGroup.Event);
+        Map<String, List<ClassDoc>> libraryCategories = groupByCategory(model, ClassGroup.Library);
         SidebarData sidebarData = new SidebarData(
             version,
             mapToSidebarCategories(classCategories, version),
@@ -92,10 +93,9 @@ public class MarkdownWriter {
 
     private String groupPathPrefix(ClassDoc clz) {
         return switch (clz.group()) {
-            case "Event" -> "events";
-            case "Class" -> "classes";
-            case "Library" -> "libraries";
-            default -> "";
+            case Event -> "events";
+            case Class -> "classes";
+            case Library -> "libraries";
         };
     }
 
@@ -111,7 +111,7 @@ public class MarkdownWriter {
         Map<String, List<ClassDoc>> grouped = new java.util.HashMap<>();
         for (PackageDoc pkg : model.packages()) {
             for (ClassDoc clz : pkg.classes()) {
-                grouped.computeIfAbsent(clz.group(), key -> new ArrayList<>()).add(clz);
+                grouped.computeIfAbsent(clz.group().toString(), key -> new ArrayList<>()).add(clz);
             }
         }
         grouped.values().forEach(list ->
@@ -183,11 +183,11 @@ public class MarkdownWriter {
         return clz.alias() != null && !clz.alias().isBlank();
     }
 
-    private Map<String, List<ClassDoc>> groupByCategory(DocletModel model, String targetGroup) {
+    private Map<String, List<ClassDoc>> groupByCategory(DocletModel model, ClassGroup targetGroup) {
         Map<String, List<ClassDoc>> categories = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (PackageDoc pkg : model.packages()) {
             for (ClassDoc clz : pkg.classes()) {
-                if (!targetGroup.equals(clz.group())) {
+                if (clz.group() != targetGroup) {
                     continue;
                 }
                 String category = clz.category();
@@ -243,11 +243,12 @@ public class MarkdownWriter {
 
         String desc = formatDescription(clz.docComment(), clz);
         String descText = desc.isEmpty() ? "TODO: No description supplied" : desc;
-        if ("Library".equals(clz.group())) {
+        if (clz.group() == ClassGroup.Library) {
             String accessName = clz.alias() == null || clz.alias().isEmpty() ? clz.name() : clz.alias();
             descText += "\nAccessible in scripts via the global " + MarkdownBuilder.codeSpan(accessName) + " variable.";
         }
         md.paragraph(descText);
+
 
         renderMemberSection(md, clz, MemberKind.CONSTRUCTOR, "Constructors");
         renderMemberSection(md, clz, MemberKind.FIELD, "Fields");
@@ -256,7 +257,7 @@ public class MarkdownWriter {
     }
 
     private String displayTitle(ClassDoc clz) {
-        if ("Event".equals(clz.group()) && hasAlias(clz)) {
+        if (clz.group() == ClassGroup.Event && hasAlias(clz)) {
             return clz.alias();
         }
         return clz.name();

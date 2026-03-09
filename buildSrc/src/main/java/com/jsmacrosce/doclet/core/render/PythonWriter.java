@@ -1,6 +1,7 @@
 package com.jsmacrosce.doclet.core.render;
 
 import com.jsmacrosce.FileHandler;
+import com.jsmacrosce.doclet.core.ClassGroup;
 import com.jsmacrosce.doclet.core.model.ClassDoc;
 import com.jsmacrosce.doclet.core.model.DocComment;
 import com.jsmacrosce.doclet.core.model.DocletModel;
@@ -274,9 +275,9 @@ public class PythonWriter {
             for (ClassDoc clz : pkg.classes()) {
                 String name = clz.name();
                 String key;
-                if ("Library".equalsIgnoreCase(clz.group())) {
+                if (clz.group() == ClassGroup.Library) {
                     key = "libraries";
-                } else if ("Event".equalsIgnoreCase(clz.group())) {
+                } else if (clz.group() == ClassGroup.Event) {
                     key = "events";
                 } else if (name.contains("Helper")) {
                     key = "helpers";

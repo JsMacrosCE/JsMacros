@@ -1,5 +1,7 @@
 package com.jsmacrosce.doclet.core.model;
 
+import com.jsmacrosce.doclet.core.ClassGroup;
+
 import java.util.List;
 
 public record ClassDoc(
@@ -7,7 +9,7 @@ public record ClassDoc(
     String qualifiedName,
     String packageName,
     ClassKind kind,
-    String group,
+    ClassGroup group,
     String alias,
     String category,
     boolean eventCancellable,

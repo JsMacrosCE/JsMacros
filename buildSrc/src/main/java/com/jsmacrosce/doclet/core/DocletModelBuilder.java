@@ -86,7 +86,7 @@ public class DocletModelBuilder {
             String displayName = ElementNameUtils.getDisplayClassName(type);
             String qualifiedName = ElementNameUtils.getQualifiedName(type);
 
-            String group = "Class";
+            ClassGroup group = ClassGroup.Class;
             String alias = null;
             boolean eventCancellable = false;
             String eventFilterer = null;
@@ -94,10 +94,10 @@ public class DocletModelBuilder {
             AnnotationMirror library = findAnnotation(type, "Library");
             AnnotationMirror event = findAnnotation(type, "Event");
             if (library != null) {
-                group = "Library";
+                group = ClassGroup.Library;
                 alias = String.valueOf(getAnnotationValue(library, "value"));
             } else if (event != null) {
-                group = "Event";
+                group = ClassGroup.Event;
                 alias = String.valueOf(getAnnotationValue(event, "value"));
                 Object cancellableValue = getAnnotationValue(event, "cancellable");
                 eventCancellable = Boolean.TRUE.equals(cancellableValue);
@@ -190,7 +190,7 @@ public class DocletModelBuilder {
             List<ExecutableElement> instanceMethods = new ArrayList<>();
 
             Set<String> eventSkipNames = new HashSet<>();
-            if ("Event".equals(group)) {
+            if (group == ClassGroup.Event) {
                 Map<String, List<ExecutableElement>> eventMethodsByName = new HashMap<>();
                 for (Element enclosed : type.getEnclosedElements()) {
                     if (enclosed.getKind() != ElementKind.METHOD) {
@@ -234,10 +234,10 @@ public class DocletModelBuilder {
                 } else if (enclosed.getKind() == ElementKind.METHOD) {
                     ExecutableElement method = (ExecutableElement) enclosed;
                     String methodName = method.getSimpleName().toString();
-                    if ("Event".equals(group) && eventSkipNames.contains(methodName)) {
+                    if (group == ClassGroup.Event && eventSkipNames.contains(methodName)) {
                         continue;
                     }
-                    if (!"Event".equals(group) && isObjectMethod(method, type)) {
+                    if (group != ClassGroup.Event && isObjectMethod(method, type)) {
                         continue;
                     }
                     if (isObfuscated(method, type, superMcTypes)) {
@@ -252,7 +252,7 @@ public class DocletModelBuilder {
                 }
             }
 
-            if (!"Event".equals(group)) {
+            if (group != ClassGroup.Event) {
                 addSuperMethods(type, superTypes, superMcTypes, instanceMethods, members);
             }
 
