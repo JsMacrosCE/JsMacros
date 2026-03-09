@@ -192,6 +192,7 @@ public class BasicTypeResolver implements TypeResolver {
         if (type == null) {
             return "any";
         }
+
         return switch (target) {
             case TYPESCRIPT -> formatTypeScript(type, paramType);
             case PYTHON -> formatPython(type);

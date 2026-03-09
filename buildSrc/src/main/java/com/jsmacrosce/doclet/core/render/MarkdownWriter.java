@@ -175,7 +175,7 @@ public class MarkdownWriter {
                 .append(classPath(clz))
                 .append(".md)");
             if (preferAlias && hasAlias(clz) && !linkText.equals(clz.qualifiedName())) {
-                builder.append(" (`").append(clz.qualifiedName()).append("`)");
+                builder.append(" (").append(renderCodeSpan(clz.qualifiedName())).append(")");
             }
             builder.append("\n");
         }
@@ -246,7 +246,7 @@ public class MarkdownWriter {
         builder.append(desc.isEmpty() ? "TODO: No description supplied" : desc);
         if ("Library".equals(clz.group())) {
             String accessName = clz.alias() == null || clz.alias().isEmpty() ? clz.name() : clz.alias();
-            builder.append("\nAccessible in scripts via the global `").append(accessName).append("` variable.");
+            builder.append("\nAccessible in scripts via the global ").append(renderCodeSpan(accessName)).append(" variable.");
         }
         builder.append("\n\n");
 
@@ -272,31 +272,40 @@ public class MarkdownWriter {
         }
         builder.append("## ").append(title).append("\n\n");
         for (MemberDoc member : members) {
-            if (member.anchorId() != null && !member.anchorId().isBlank()) {
-                builder.append("<a id=\"").append(member.anchorId()).append("\"></a>\n");
-            }
-            builder.append("### ").append(renderMemberTitle(member)).append("\n\n");
+            boolean hasLinkRef = member.anchorId() != null && !member.anchorId().isBlank();
+            builder.append("### ").append(renderMemberTitle(member)).append(hasLinkRef ? " {#" + clz.qualifiedName() + "_" + member.anchorId() + "}" : "").append("\n\n");
+
             String signature = renderSignature(member);
-            builder.append("**Signature:** ").append(renderSignatureValue(signature)).append("\n\n");
+            builder.append("**Signature:** ").append(signature).append("\n\n");
+
             String desc = formatDescription(member.docComment(), clz);
             if (!desc.isEmpty()) {
                 builder.append(desc).append("\n\n");
             }
+
             String since = getTagText(member.docComment(), DocTagKind.SINCE);
             if (!since.isEmpty()) {
                 builder.append("**Since:** ").append(formatDocText(since, clz)).append("\n\n");
             }
+
             if (hasDeprecatedTag(member.docComment())) {
                 String deprecated = getTagText(member.docComment(), DocTagKind.DEPRECATED);
                 builder.append("**Deprecated:** ").append(formatDocText(deprecated, clz)).append("\n\n");
             }
+
             appendParamDocs(builder, member, clz);
+
             if (member.kind() == MemberKind.METHOD) {
                 String ret = getTagText(member.docComment(), DocTagKind.RETURN);
+                if (ret.isEmpty()) {
+                    ret = convertLinkTags("{@link " + renderType(member) + "}", clz);
+                }
+
                 if (!ret.isEmpty()) {
                     builder.append("**Returns:** ").append(formatDocText(ret, clz)).append("\n\n");
                 }
             }
+
             appendSeeDocs(builder, member.docComment(), clz);
         }
     }
@@ -325,6 +334,7 @@ public class MarkdownWriter {
         if (member.kind() == MemberKind.FIELD) {
             return member.name() + ": " + renderType(member);
         }
+
         StringBuilder builder = new StringBuilder();
         if (member.kind() == MemberKind.CONSTRUCTOR) {
             builder.append("new ");
@@ -355,6 +365,7 @@ public class MarkdownWriter {
         if (member.replaceReturn() != null && !member.replaceReturn().isBlank()) {
             return member.replaceReturn();
         }
+
         return typeResolver.format(member.returnType(), TargetLanguage.MARKDOWN);
     }
 
@@ -397,7 +408,7 @@ public class MarkdownWriter {
             if (desc.isBlank()) {
                 continue;
             }
-            builder.append("- `").append(param.name()).append("`: ").append(desc).append("\n");
+            builder.append("- ").append(renderCodeSpan(param.name())).append(": ").append(formatDocText(desc, context)).append("\n");
         }
         builder.append("\n");
     }
@@ -426,26 +437,28 @@ public class MarkdownWriter {
         if (text == null) {
             return "";
         }
+
         String formatted = text.trim();
         if (formatted.isEmpty()) {
             return "";
         }
+
         formatted = formatted.replaceAll("\n <p>", "\n")
             .replaceAll("</?pre>", "```");
         formatted = HTML_LINK.matcher(formatted).replaceAll("[$2]($1)");
-        formatted = formatted.replace("&lt;", "<").replace("&gt;", ">");
+//        formatted = formatted.replace("&lt;", "<").replace("&gt;", ">");
         formatted = formatted.replaceAll("(?<=[.,:;>]) ?\n", "  \n");
         formatted = convertLinkTags(formatted, context);
         String trimmed = formatted.trim();
         if (looksLikeSignature(trimmed)) {
-            formatted = convertSignature(trimmed);
+            formatted = renderCodeSpan(convertSignature(trimmed));
         }
         return formatted.trim();
     }
 
     private String convertLinkTags(String text, ClassDoc context) {
         java.util.regex.Matcher matcher = LINK_TAG.matcher(text);
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder buffer = new StringBuilder();
         while (matcher.find()) {
             String sig = matcher.group(1).trim();
             String mapped = mapSimpleLinkSignature(sig);
