@@ -25,7 +25,7 @@ dependencies {
     testImplementation(project(":common:${minecraftVersion}"))
     
     // Extension system dependencies
-    implementation("org.slf4j:slf4j-api:2.0.16")
+    implementation("org.slf4j:slf4j-api:2.0.17")
     implementation("com.google.guava:guava:31.1-jre")
 
     // Test dependencies

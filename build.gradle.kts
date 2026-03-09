@@ -276,8 +276,8 @@ if (isVersionedProject && hasMinecraftVersion) {
             (options as CoreJavadocOptions).addStringOption("mcv", mcVersion)
             (options as StandardJavadocDocletOptions).links(
                 "https://docs.oracle.com/javase/8/docs/api/",
-                "https://www.javadoc.io/doc/org.slf4j/slf4j-api/1.7.30/",
-                "https://javadoc.io/doc/com.neovisionaries/nv-websocket-client/latest/"
+                "https://www.slf4j.org/apidocs-2.0.17/",
+                "https://takahikokawasaki.github.io/nv-websocket-client/"
             )
         }
 
@@ -305,8 +305,8 @@ if (isVersionedProject && hasMinecraftVersion) {
             (options as CoreJavadocOptions).addStringOption("mcv", mcVersion)
             (options as StandardJavadocDocletOptions).links(
                 "https://docs.oracle.com/javase/8/docs/api/",
-                "https://www.javadoc.io/doc/org.slf4j/slf4j-api/1.7.30/",
-                "https://javadoc.io/doc/com.neovisionaries/nv-websocket-client/latest/"
+                "https://www.slf4j.org/apidocs-2.0.17/",
+                "https://takahikokawasaki.github.io/nv-websocket-client/"
             )
         }
 
