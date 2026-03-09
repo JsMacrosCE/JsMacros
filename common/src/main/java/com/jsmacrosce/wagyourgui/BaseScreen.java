@@ -176,11 +176,11 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
 
     //? if >1.21.8 {
     /*@Override
-    public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean debounce) {
+    public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean doubleClick) {
         if (overlay != null) {
-            overlay.onClick(buttonEvent, debounce);
+            overlay.onClick(buttonEvent, doubleClick);
         }
-        return super.mouseClicked(buttonEvent, debounce);
+        return super.mouseClicked(buttonEvent, doubleClick);
     }
     *///?} else {
     @Override
@@ -194,6 +194,9 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
 
     @Override
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+        //? if <=1.21.5 {
+        /*this.renderBackground(drawContext, mouseX, mouseY, delta);
+        *///?}
         if (overlay != null) {
             overlay.render(drawContext, mouseX, mouseY, delta);
         }

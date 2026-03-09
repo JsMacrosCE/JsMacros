@@ -9,17 +9,77 @@ import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.external.javadoc.CoreJavadocOptions
 import org.gradle.external.javadoc.StandardJavadocDocletOptions
 import org.gradle.internal.extensions.stdlib.capitalized
+import org.gradle.api.GradleException
 import java.io.File
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.Properties
 
 plugins {
     id("dev.kikugie.stonecutter")
     id("net.neoforged.moddev") version "2.0.139" apply false
     id("fabric-loom") version "1.13-SNAPSHOT" apply false
     id("me.modmuss50.mod-publish-plugin") version "1.1.0"
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Sponge"
+                url = uri("https://repo.spongepowered.org/repository/maven-public")
+            }
+        }
+        filter {
+            includeGroupAndSubgroups("org.spongepowered")
+        }
+    }
+
+    exclusiveContent {
+        forRepositories(
+            maven {
+                name = "ParchmentMC"
+                url = uri("https://maven.parchmentmc.org/")
+            },
+            maven {
+                name = "NeoForge"
+                url = uri("https://maven.neoforged.net/releases")
+            }
+        )
+        filter {
+            includeGroup("org.parchmentmc.data")
+        }
+    }
+
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "TerraformersMC"
+                url = uri("https://maven.terraformersmc.com/releases/")
+            }
+        }
+        filter {
+            includeGroupAndSubgroups("com.terraformersmc")
+        }
+    }
+
+    maven {
+        name = "BlameJared"
+        url = uri("https://maven.blamejared.com")
+    }
+    maven {
+        name = "NeoForge"
+        url = uri("https://maven.neoforged.net/releases")
+    }
+    maven {
+        name = "Fabric"
+        url = uri("https://maven.fabricmc.net")
+    }
 }
 
 val IS_CI = System.getenv("CI") == "true"
@@ -85,8 +145,8 @@ val modId = modIdProvider.get()
 val channel = channelProvider.get()
 version = computedVersionProvider.get()
 
-val supportedVersions = listOf("1.21.5", "1.21.8", "1.21.10")
-val mcVersionsToBuild = if (IS_CI) supportedVersions else listOf("1.21.10")
+val supportedVersions = listOf("1.21.5", "1.21.8", "1.21.10", "1.21.11")
+val mcVersionsToBuild = if (IS_CI) supportedVersions else listOf("1.21.11")
 val mcVersion = mcVersionsToBuild.first() // for backward compatibility
 
 val loaders = listOf("fabric", "neoforge")
@@ -113,6 +173,32 @@ tasks.register("printVersion") {
     description = "Prints the computed project version for CI workflows"
     doLast {
         println(project.version)
+    }
+}
+
+if (project == rootProject) {
+    val activeStonecutterVersion = providers.fileContents(layout.projectDirectory.file("stonecutter.active"))
+        .asText
+        .map { text ->
+            text.trim().ifEmpty {
+                throw GradleException("stonecutter.active is empty; set an active version first")
+            }
+        }
+
+    val activeVersion = activeStonecutterVersion.get()
+    val fabricRunClientPath = ":fabric:$activeVersion:runClient"
+    val neoforgeRunClientPath = ":neoforge:$activeVersion:runClient"
+
+    tasks.register("runFabricClient") {
+        group = "run"
+        description = "Runs the Fabric client for the active Stonecutter version"
+        dependsOn(fabricRunClientPath)
+    }
+
+    tasks.register("runNeoforgeClient") {
+        group = "run"
+        description = "Runs the NeoForge client for the active Stonecutter version"
+        dependsOn(neoforgeRunClientPath)
     }
 }
 
@@ -146,13 +232,67 @@ gradle.projectsEvaluated {
     }
 
     val documentationSources = files(mainSourceSets.map { it.allJava })
-    val documentationClasspath = files(mainSourceSets.map { it.compileClasspath })
+    val documentationClasspath = configurations.maybeCreate("documentationClasspath").apply {
+        isCanBeResolved = true
+        isCanBeConsumed = false
+    }
+
+    docsProjects.forEach { project ->
+        val compileClasspath = project.configurations.findByName("compileClasspath") ?: return@forEach
+        compileClasspath.allDependencies.forEach { dependency ->
+            if (dependency.group == "net.neoforged" && dependency.name == "neoform") {
+                return@forEach
+            }
+            if (dependency.group == "net.neoforged" && dependency.name == "minecraft-dependencies") {
+                return@forEach
+            }
+            dependencies.add(documentationClasspath.name, dependency)
+        }
+
+        if (project.tasks.names.contains("createMinecraftArtifacts")) {
+            val mergedJars = project.files(project.provider {
+                val artifactsDir = project.layout.buildDirectory.dir("moddev/artifacts").get().asFile
+                if (!artifactsDir.exists()) {
+                    return@provider emptyList<File>()
+                }
+                artifactsDir.listFiles { file -> file.name.endsWith("-merged.jar") }
+                    ?.toList()
+                    ?: emptyList()
+            })
+            dependencies.add(documentationClasspath.name, mergedJars)
+
+            val manifest = project.layout.buildDirectory.file(
+                "tmp/createMinecraftArtifacts/nfrt_artifact_manifest.properties"
+            )
+            val manifestFiles = project.files(project.provider {
+                val manifestFile = manifest.get().asFile
+                if (!manifestFile.exists()) {
+                    return@provider emptyList<File>()
+                }
+                val props = Properties()
+                manifestFile.inputStream().use(props::load)
+                props.values.mapNotNull { value ->
+                    (value as? String)?.let { File(it) }
+                }
+            })
+            dependencies.add(documentationClasspath.name, manifestFiles)
+        }
+    }
+
+    val minecraftArtifactTasks = docsProjects.mapNotNull { project ->
+        if (project.tasks.names.contains("createMinecraftArtifacts")) {
+            project.tasks.named("createMinecraftArtifacts")
+        } else {
+            null
+        }
+    }
 
     tasks.register("generatePyDoc", Javadoc::class.java) {
         group = "documentation"
         description = "Generates the python documentation for the project"
         source(documentationSources)
         classpath = documentationClasspath
+        dependsOn(minecraftArtifactTasks)
         destinationDir = File(docsBuildDir, "python/JsMacrosAC")
         options.doclet = "com.jsmacrosce.doclet.core.pydoclet.Main"
         options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
@@ -172,6 +312,7 @@ gradle.projectsEvaluated {
         description = "Generates the typescript documentation for the project"
         source(documentationSources)
         classpath = documentationClasspath
+        dependsOn(minecraftArtifactTasks)
         destinationDir = File(docsBuildDir, "typescript/headers")
         options.doclet = "com.jsmacrosce.doclet.core.tsdoclet.Main"
         options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
@@ -191,6 +332,7 @@ gradle.projectsEvaluated {
         description = "Generates the web documentation for the project"
         source(documentationSources)
         classpath = documentationClasspath
+        dependsOn(minecraftArtifactTasks)
         destinationDir = File(docsBuildDir, "web")
         options.doclet = "com.jsmacrosce.doclet.core.webdoclet.Main"
         options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()

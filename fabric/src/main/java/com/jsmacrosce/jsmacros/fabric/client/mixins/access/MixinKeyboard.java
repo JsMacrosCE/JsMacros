@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.fabric.client.mixins.access;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import dev.kikugie.fletching_table.annotation.MixinEnvironment;
 import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.gui.screens.Screen;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,6 +14,7 @@ import com.jsmacrosce.jsmacros.client.access.IScreenInternal;
 import net.minecraft.client.input.KeyEvent;
 *///?}
 
+@MixinEnvironment("fabric")
 @Mixin(KeyboardHandler.class)
 public class MixinKeyboard {
     //? if >1.21.8 {

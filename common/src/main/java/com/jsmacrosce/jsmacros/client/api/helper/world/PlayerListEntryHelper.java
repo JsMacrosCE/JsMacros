@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.world;
 
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.network.chat.RemoteChatSession;
 import net.minecraft.world.level.GameType;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
@@ -87,7 +88,8 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
      * @since 1.8.2
      */
     public byte[] getPublicKey() {
-        return base.getChatSession().profilePublicKey().data().key().getEncoded();
+        RemoteChatSession session = base.getChatSession();
+        return session == null ? null : session.profilePublicKey().data().key().getEncoded();
     }
 
     /**

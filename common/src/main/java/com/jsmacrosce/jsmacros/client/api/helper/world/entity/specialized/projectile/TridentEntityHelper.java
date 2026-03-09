@@ -1,9 +1,14 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.projectile;
 
-import net.minecraft.world.entity.projectile.ThrownTrident;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinTridentEntity;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
+*///? } else {
+import net.minecraft.world.entity.projectile.ThrownTrident;
+ //?}
 
 /**
  * @author Etheradon

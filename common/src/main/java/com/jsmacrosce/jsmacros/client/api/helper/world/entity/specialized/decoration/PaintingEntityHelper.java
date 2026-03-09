@@ -1,10 +1,15 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.decoration;
 
-import net.minecraft.world.entity.decoration.Painting;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.decoration.painting.Painting;
+*///? } else {
+import net.minecraft.world.entity.decoration.Painting;
+//? }
 
 /**
  * @author Etheradon
@@ -41,7 +46,15 @@ public class PaintingEntityHelper extends EntityHelper<Painting> {
     @Nullable
     @DocletReplaceReturn("PaintingId")
     public String getIdentifier() {
-        return base.getVariant().unwrapKey().map(paintingVariantRegistryKey -> paintingVariantRegistryKey.location().toString()).orElse(null);
+        return base.getVariant().unwrapKey().map(paintingVariantRegistryKey ->
+                paintingVariantRegistryKey
+                        //? if >=1.21.11 {
+                        /*.identifier()
+                        *///? } else {
+                        .location()
+                        //? }
+                        .toString()
+        ).orElse(null);
     }
 
 }

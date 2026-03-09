@@ -1,9 +1,14 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle;
 
-import net.minecraft.world.entity.vehicle.MinecartFurnace;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
+
+//?  if >=1.21.11 {
+/*import net.minecraft.world.entity.vehicle.minecart.MinecartFurnace;
+*///? } else {
+import net.minecraft.world.entity.vehicle.MinecartFurnace;
+//? }
 
 /**
  * @author Etheradon

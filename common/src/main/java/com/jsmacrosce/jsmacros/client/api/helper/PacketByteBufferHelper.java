@@ -16,6 +16,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
@@ -93,11 +94,21 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         base.markWriterIndex();
 
         // get the PacketCodec static field and use it to write
+        // Note: Some packets like ClientboundBundlePacket don't have a codec and can't be serialized
         try {
             Class<?> packetClass = packet.getClass();
-            Field f = Arrays.stream(packetClass.getFields()).filter(e -> e.getType().isAssignableFrom(StreamCodec.class)).findFirst().orElseThrow();
-            StreamCodec<FriendlyByteBuf, Packet<?>> codec = (StreamCodec<FriendlyByteBuf, Packet<?>>) f.get(null);
-            codec.encode(base, packet);
+            Optional<Field> codecField = Arrays.stream(packetClass.getFields())
+                    .filter(field -> StreamCodec.class.isAssignableFrom(field.getType()))
+                    .findFirst();
+
+            if (codecField.isPresent()) {
+                StreamCodec<FriendlyByteBuf, Packet<?>> codec =
+                        (StreamCodec<FriendlyByteBuf, Packet<?>>) codecField.get().get(null);
+                codec.encode(base, packet);
+            }
+            // If no codec found, leave buffer empty - some packets like BundlePacket don't support direct serialization
+            // TODO: This should be handled more properly in the future, but I'm not certain how we should go about it.
+            //  Perhaps something like getPackets() which lets players get the sub-packets automatically?
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
@@ -105,9 +116,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         this.original = base.copy();
     }
 
-    private static FriendlyByteBuf getBuffer(Packet<?> packet) {
+    private static RegistryFriendlyByteBuf getBuffer(Packet<?> packet) {
         ByteBuf buffer = Unpooled.buffer();
-        return new FriendlyByteBuf(buffer);
+        return new RegistryFriendlyByteBuf(buffer, mc.getConnection().registryAccess());
     }
 
     /**
@@ -563,9 +574,6 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         return chunk == null ? null : new ChunkHelper(chunk);
     }
 
-    // TODO: These methods were removed in 1.21.9 or 1.21.10
-    //? if <=1.21.8 {
-    /*
     /**
      * @param chunkX the x coordinate of the chunk to store
      * @param y      the y coordinate to store
@@ -574,7 +582,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public PacketByteBufferHelper writeChunkSectionPos(int chunkX, int y, int chunkZ) {
+        //? if <=1.21.8 {
         base.writeSectionPos(SectionPos.of(chunkX, y, chunkZ));
+        //? } else {
+        /*SectionPos.STREAM_CODEC.encode(base, SectionPos.of(chunkX, y, chunkZ));
+         *///? }
         return this;
     }
 
@@ -585,7 +597,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public PacketByteBufferHelper writeChunkSectionPos(ChunkHelper chunk, int y) {
+        //? if <=1.21.8 {
         base.writeSectionPos(SectionPos.of(chunk.getRaw().getPos(), y));
+        //? } else {
+        /*SectionPos.STREAM_CODEC.encode(base, SectionPos.of(chunk.getRaw().getPos(), y));
+         *///? }
         return this;
     }
 
@@ -594,10 +610,13 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public BlockPosHelper readChunkSectionPos() {
+        //? if <=1.21.8 {
         SectionPos pos = base.readSectionPos();
+        //? } else {
+        /*SectionPos pos = SectionPos.STREAM_CODEC.decode(base);
+         *///? }
         return new BlockPosHelper(pos.x(), pos.y(), pos.z());
     }
-    //?}
 
     /**
      * @param dimension the dimension, vanilla default are {@code overworld}, {@code the_nether},
@@ -786,7 +805,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public PacketByteBufferHelper writeDate(Date date) {
+        //? if >=1.21.11 {
+        /*base.writeLong(date.getTime());
+        *///? } else {
         base.writeDate(date);
+        //? }
         return this;
     }
 
@@ -795,7 +818,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public Date readDate() {
+        //? if >=1.21.11 {
+        /*return new Date(base.readLong());
+        *///? } else {
         return base.readDate();
+        //? }
     }
 
     /**
@@ -1664,7 +1691,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         PACKETS.put("ProfilelessChatMessageS2CPacket", net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket.class);
         PACKETS.put("PlayerListS2CPacket", net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.class);
         PACKETS.put("EnterCombatS2CPacket", net.minecraft.network.protocol.game.ClientboundPlayerCombatEnterPacket.class);
+        //? if >=1.21.11 {
+        /*PACKETS.put("ClientboundMountScreenOpenPacket", net.minecraft.network.protocol.game.ClientboundMountScreenOpenPacket.class);
+        *///? } else {
         PACKETS.put("OpenHorseScreenS2CPacket", net.minecraft.network.protocol.game.ClientboundHorseScreenOpenPacket.class);
+        //? }
         PACKETS.put("CommandExecutionC2SPacket", net.minecraft.network.protocol.game.ServerboundChatCommandPacket.class);
         PACKETS.put("CraftRequestC2SPacket", net.minecraft.network.protocol.game.ServerboundPlaceRecipePacket.class);
         PACKETS.put("HandSwingC2SPacket", net.minecraft.network.protocol.game.ServerboundSwingPacket.class);

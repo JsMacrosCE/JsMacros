@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class OptionsField extends AbstractSettingField<Object> {
 
     public OptionsField(int x, int y, int width, Font textRenderer, AbstractSettingContainer parent, SettingsOverlay.SettingField<Object> field) {
-        super(x, y, width, textRenderer.lineHeight + 2, textRenderer, parent, field);
+        super(x, y, width, textRenderer.lineHeight + 3, textRenderer, parent, field);
     }
 
     @Override
@@ -51,7 +51,7 @@ public class OptionsField extends AbstractSettingField<Object> {
 
     @Override
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-        drawContext.drawString(textRenderer, BaseScreen.trimmed(textRenderer, settingName, width / 2), x, y + 1, 0xFFFFFFFF, false);
+        drawContext.drawString(textRenderer, BaseScreen.trimmed(textRenderer, settingName, width / 2), x + 2, y + 1, 0xFFFFFFFF, false);
     }
 
 }

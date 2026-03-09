@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.core.library.impl;
 
 import com.google.common.collect.ImmutableList;
+import com.jsmacrosce.doclet.DocletIgnore;
 import javassist.CannotCompileException;
 import javassist.NotFoundException;
 import org.joor.Reflect;
@@ -83,6 +84,7 @@ public class FReflection extends PerExecLibrary {
             case "void":
                 return (Class<T>) void.class;
             default:
+                name = redirectWagYourTail(name);
                 return (Class<T>) Class.forName(name, true, classLoader);
         }
     }
@@ -105,6 +107,9 @@ public class FReflection extends PerExecLibrary {
     )
     @DocletReplaceReturn("GetJava.Type$Reflection<C>")
     public <T> Class<T> getClass(String name, String name2) throws ClassNotFoundException {
+        name = redirectWagYourTail(name);
+        name2 = redirectWagYourTail(name2);
+
         try {
             return getClass(name);
         } catch (ClassNotFoundException e) {
@@ -320,6 +325,8 @@ public class FReflection extends PerExecLibrary {
      * @since 1.6.5
      */
     public <T> ClassBuilder<T> createClassBuilder(String cName, Class<T> clazz, Class<?>... interfaces) throws NotFoundException, CannotCompileException {
+        cName = redirectWagYourTail(cName);
+
         return new ClassBuilder<>(cName, clazz, interfaces);
     }
 
@@ -350,6 +357,7 @@ public class FReflection extends PerExecLibrary {
      * @since 1.8.4
      */
     public void createLibrary(String className, String javaCode) {
+        // TODO: Should we dynamically redirect xyz.wagyourtail to com.jsmacrosce in here?
         runner.libraryRegistry.addLibrary((Class<? extends BaseLibrary>) compileJavaClass(className, javaCode));
     }
 
@@ -368,6 +376,7 @@ public class FReflection extends PerExecLibrary {
      * @since 1.8.4
      */
     public Class<?> compileJavaClass(String className, String code) {
+        // TODO: Should we dynamically redirect xyz.wagyourtail to com.jsmacrosce in here?
         Class<?> clazz = Reflect.compile(className, code).type();
         JAVA_CLASS_CACHE.putIfAbsent(className, new ArrayList<>());
         JAVA_CLASS_CACHE.get(className).add(clazz);
@@ -380,6 +389,8 @@ public class FReflection extends PerExecLibrary {
      * @since 1.8.4
      */
     public Class<?> getCompiledJavaClass(String className) {
+        className = redirectWagYourTail(className);
+
         List<Class<?>> versions = JAVA_CLASS_CACHE.get(className);
         return versions == null ? null : versions.get(versions.size() - 1);
     }
@@ -390,6 +401,7 @@ public class FReflection extends PerExecLibrary {
      * @since 1.8.4
      */
     public List<Class<?>> getAllCompiledJavaClassVersions(String className) {
+        className = redirectWagYourTail(className);
         List<Class<?>> versions = JAVA_CLASS_CACHE.get(className);
         return versions == null ? Collections.emptyList() : ImmutableList.copyOf(versions);
     }
@@ -435,6 +447,17 @@ public class FReflection extends PerExecLibrary {
         } else {
             return o.getClass().getCanonicalName();
         }
+    }
+
+    /**
+     * Replaces the package prefix of a given string from "xyz.wagyourtail." to "com.jsmacrosce.".
+     *
+     * @param name the fully qualified name or a string containing "xyz.wagyourtail." to be replaced
+     * @return a new string with the package prefix "xyz.wagyourtail." replaced by "com.jsmacrosce."
+     */
+    @DocletIgnore
+    public static String redirectWagYourTail(String name) {
+        return name.replace("xyz.wagyourtail.", "com.jsmacrosce.");
     }
 
     /**

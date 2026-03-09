@@ -55,13 +55,17 @@ public class MixinHandledScreen<T extends AbstractContainerMenu> extends Screen 
     }
 
     @Inject(method = "renderSlot", at = @At("TAIL"))
-    private void onDrawSlot(GuiGraphics context, Slot slot, CallbackInfo ci) {
+    //? if >=1.21.11 {
+    /*private void onDrawSlot(GuiGraphics guiGraphics, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
+    *///? } else {
+    private void onDrawSlot(GuiGraphics guiGraphics, Slot slot, CallbackInfo ci) {
+    //? }
         if (!JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).showSlotIndexes) return;
 
         if (!slot.isActive()) return;
 
         int index = menu.slots.indexOf(slot);
-        context.drawString(Minecraft.getInstance().font, String.valueOf(index), slot.x, slot.y, 0xCCFFFFFF, false);
+        guiGraphics.drawString(Minecraft.getInstance().font, String.valueOf(index), slot.x, slot.y, 0xCCFFFFFF, false);
     }
 
 }

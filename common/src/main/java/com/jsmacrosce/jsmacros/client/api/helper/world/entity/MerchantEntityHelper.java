@@ -1,6 +1,10 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity;
 
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.npc.villager.AbstractVillager;
+*///? } else {
 import net.minecraft.world.entity.npc.AbstractVillager;
+//? }
 import net.minecraft.world.item.trading.MerchantOffer;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.access.IMerchantEntity;

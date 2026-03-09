@@ -2,6 +2,7 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
+        maven("https://maven.kikugie.dev/snapshots") { name = "KikuGie Snapshots" }
 
         exclusiveContent {
             forRepository {
@@ -50,7 +51,7 @@ pluginManagement {
 }
 
 plugins {
-	id("dev.kikugie.stonecutter") version "0.7.11"
+	id("dev.kikugie.stonecutter") version "0.8.3"
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
 
@@ -70,16 +71,16 @@ stonecutter {
     centralScript = "build.gradle.kts"
 
     create(rootProject) {
-        versions("1.21.5", "1.21.8", "1.21.10")
+        versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
 
         branch("common") {
-            versions("1.21.5", "1.21.8", "1.21.10")
+            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
         }
         branch("fabric") {
-            versions("1.21.5", "1.21.8", "1.21.10")
+            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
         }
         branch("neoforge") {
-            versions("1.21.5", "1.21.8", "1.21.10")
+            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
         }
     }
 }

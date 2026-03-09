@@ -46,8 +46,6 @@ public class JsMacrosClient extends JsMacros {
             e.printStackTrace();
         }
 
-        prevScreen = new KeyMacrosScreen(null);
-
         // Init MovementQueue
         MovementQueue.clear();
 

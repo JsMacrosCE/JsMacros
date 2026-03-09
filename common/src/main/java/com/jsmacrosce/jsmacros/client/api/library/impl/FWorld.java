@@ -600,7 +600,13 @@ public class FWorld extends BaseLibrary {
     public String getDimension() {
         ClientLevel world = mc.level;
         if (world == null) return null;
-        return world.dimension().location().toString();
+        return world.dimension()
+                //? if >=1.21.11 {
+                /*.identifier()
+                *///? } else {
+                .location()
+                //? }
+                .toString();
     }
 
     /**
@@ -737,7 +743,11 @@ public class FWorld extends BaseLibrary {
     public int getMoonPhase() {
         ClientLevel world = mc.level;
         if (world == null) return -1;
+        //? if >=1.21.11 {
+        /*return (int) (world.getDayTime() / 24000L % 8L + 8L) % 8;
+        *///? } else {
         return world.getMoonPhase();
+        //? }
     }
 
     /**

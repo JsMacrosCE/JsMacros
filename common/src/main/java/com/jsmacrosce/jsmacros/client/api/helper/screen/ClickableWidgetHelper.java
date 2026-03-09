@@ -16,6 +16,8 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
 //? if >1.21.8 {
 /*import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
+import org.lwjgl.glfw.GLFW;
 *///?}
 
 import java.util.ArrayList;
@@ -179,7 +181,10 @@ public class ClickableWidgetHelper<B extends ClickableWidgetHelper<B, T>, T exte
     public B click(boolean await) throws InterruptedException {
         if (JsMacrosClient.clientCore.profile.checkJoinedThreadStack()) {
             //? if >1.21.8 {
-            /*MouseButtonEvent fakeEvent = new MouseButtonEvent(base.getX(), base.getY(), null);
+            /*MouseButtonEvent fakeEvent = new MouseButtonEvent(
+                    base.getX(),
+                    base.getY(),
+                    new MouseButtonInfo(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0));
             base.mouseClicked(fakeEvent, false);
             base.mouseReleased(fakeEvent);
             *///?} else {
@@ -190,13 +195,15 @@ public class ClickableWidgetHelper<B extends ClickableWidgetHelper<B, T>, T exte
             final Semaphore waiter = new Semaphore(await ? 0 : 1);
             Minecraft.getInstance().execute(() -> {
                 //? if >1.21.8 {
-                /*MouseButtonEvent fakeEvent = new MouseButtonEvent(base.getX(), base.getY(), null);
+                /*MouseButtonEvent fakeEvent = new MouseButtonEvent(
+                        base.getX(),
+                        base.getY(),
+                        new MouseButtonInfo(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0));
                 base.mouseClicked(fakeEvent, false);
                 base.mouseReleased(fakeEvent);
                 *///?} else {
                 base.mouseClicked(base.getX(), base.getY(), 0);
                 base.mouseReleased(base.getX(), base.getY(), 0);
-
                 //?}
                 waiter.release();
             });

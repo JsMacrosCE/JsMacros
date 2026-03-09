@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import com.jsmacrosce.jsmacros.client.access.IChatHud;
+import org.spongepowered.asm.mixin.injection.Redirect;
 
 import java.util.List;
 
@@ -42,10 +43,27 @@ public abstract class MixinChatHud implements IChatHud {
         jsmacros$positionOverride.set(0);
     }
 
-    @ModifyArg(method = "addMessageToQueue(Lnet/minecraft/client/GuiMessage;)V", at = @At(value = "INVOKE", target = "Ljava/util/List;add(ILjava/lang/Object;)V", remap = false))
+    //? if >=1.21.11 {
+    /*@Redirect(
+            method = "addMessageToQueue(Lnet/minecraft/client/GuiMessage;)V",
+            at = @At(value = "INVOKE", target = "Ljava/util/List;addFirst(Ljava/lang/Object;)V")
+    )
+    public <E> void overrideMessagePos(List<GuiMessage> instance, E guiMessage) {
+        this.allMessages.add(jsmacros$positionOverride.get(), (GuiMessage) guiMessage);
+    }
+    *///? } else {
+    @ModifyArg(
+        method = "addMessageToQueue(Lnet/minecraft/client/GuiMessage;)V",
+        at = @At(
+            value = "INVOKE",
+            target = "Ljava/util/List;add(ILjava/lang/Object;)V",
+            remap = false
+        )
+    )
     public int overrideMessagePos(int pos) {
         return jsmacros$positionOverride.get();
     }
+    //? }
 
 
 }

@@ -2,9 +2,14 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passi
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.world.entity.animal.Cat;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.DyeColorHelper;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.animal.feline.Cat;
+*///? } else {
+import net.minecraft.world.entity.animal.Cat;
+//?}
 
 /**
  * @author Etheradon

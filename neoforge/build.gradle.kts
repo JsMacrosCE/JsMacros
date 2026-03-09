@@ -2,11 +2,16 @@ import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.gradle.language.jvm.tasks.ProcessResources
+import java.io.FilterReader
 import java.io.File
+import java.nio.file.Path
 
 plugins {
+    kotlin("jvm") version "2.2.10"
+    id("com.google.devtools.ksp") version "2.2.10-2.0.2"
     `multiloader-loader`
     id("net.neoforged.moddev")
+    id("dev.kikugie.fletching-table.neoforge") version "0.1.0-alpha.22"
 }
 
 val mod_id = commonMod.prop("mod_id")
@@ -27,11 +32,9 @@ val extensionJars by configurations.creating {
 neoForge {
     version = neoforge_version
 
-    // Automatically enable neoforge AccessTransformers if the file exists
-    val at = project(":common").file("src/main/resources/META-INF/accesstransformer.cfg")
-    if (at.exists()) {
-        accessTransformers.from(at.absolutePath)
-    }
+    accessTransformers.from(
+        layout.buildDirectory.file("generated/access-transformer/accesstransformer.cfg")
+    )
 
     val parchment_minecraft = commonMod.prop("parchment_minecraft")
     val parchment_version = commonMod.prop("parchment_version")
@@ -137,13 +140,68 @@ sourceSets.main {
     resources.srcDir("src/generated/resources")
 }
 
-tasks {
-    processResources {
-        exclude("$mod_id.accesswidener")
-        exclude("accesswideners/**")
-    }
+val accessTransformerFile = layout.buildDirectory.file("generated/access-transformer/accesstransformer.cfg")
+val accessWidenerFile = rootProject.file(
+    "common/src/main/resources/accesswideners/$minecraft_version-$mod_id.accesswidener"
+)
+val generateAccessTransformer by tasks.registering(Copy::class) {
+    from(accessWidenerFile)
+    into(accessTransformerFile.map { it.asFile.parentFile })
+    rename { "accesstransformer.cfg" }
+    val transformerClass = Class.forName(
+        "dev.kikugie.fletching_table.transformer.Aw2AtFileTransformer"
+    ) as Class<out FilterReader>
+    val argsClass = Class.forName(
+        "dev.kikugie.fletching_table.transformer.Aw2AtFileTransformer\$TransformArgs"
+    )
+    val args = argsClass.getDeclaredConstructor(Path::class.java)
+        .newInstance(accessWidenerFile.toPath())
+    filter(mapOf("args" to args), transformerClass)
 }
 
 tasks.named("createMinecraftArtifacts") {
-    dependsOn(":neoforge:$minecraft_version:processResources")
+    dependsOn(generateAccessTransformer)
+}
+
+fletchingTable {
+    neoforge {
+        applyMixinConfig = false
+    }
+    mixins.register(sourceSets.main) {
+        mixin("default", "jsmacrosce-common.mixins.json5") {
+            env("CLIENT")
+        }
+        mixin("neoforge", "jsmacrosce-neoforge.mixins.json5") {
+            env("CLIENT")
+        }
+    }
+    accessConverter.register(sourceSets.main) {
+        add("accesswideners/$minecraft_version-$mod_id.accesswidener")
+    }
+    j52j.register(sourceSets.main) {
+        extension(
+            "json",
+            "jsmacrosce-common.mixins.json5",
+            "jsmacrosce-neoforge.mixins.json5"
+        )
+    }
+}
+
+stonecutter {
+    replacements.string(current.parsed >= "1.21.11") {
+        replace("ResourceLocation", "Identifier")
+
+        // Conflicts
+        replace("parseIdentifier", "parseIdentifier")
+        replace("getAdvancementsForIdentifiers", "getAdvancementsForIdentifiers")
+        replace("suggestIdentifier", "suggestIdentifier")
+        replace("mapIdentifiers", "mapIdentifiers")
+        replace("getIdentifier", "getIdentifier")
+        replace("writeIdentifier", "writeIdentifier")
+        replace("readIdentifier", "readIdentifier")
+        replace("getWorldIdentifier", "getWorldIdentifier")
+        replace("base.readResourceLocation", "base.readIdentifier")
+        replace("base.writeResourceLocation", "base.writeIdentifier")
+        replace("@return the raw minecraft Identifier.", "@return the raw minecraft Identifier.")
+    }
 }

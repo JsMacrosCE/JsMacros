@@ -199,7 +199,6 @@ public class TextBuilder {
     @DocletReplaceParams("action: TextClickAction, value: string")
     public TextBuilder withClickEvent(String action, String value) {
         ClickEvent.Action clickAction = ClickEvent.Action.valueOf(action.toUpperCase(Locale.ROOT));
-        ResourceLocation id = ResourceLocation.parse(value);
         HolderLookup.Provider lookup = Objects
                 .requireNonNull(Minecraft.getInstance().getConnection())
                 .registryAccess();

@@ -9,7 +9,7 @@
     "wagyourtail"
   ],
   "contact": {
-    "homepage": "https://jsmacros.com/",
+    "homepage": "https://jsmacrosce.com/",
     "sources": "https://github.com/JsMacrosCE/JsMacros"
   },
   "license": "MPL-2.0",
@@ -30,7 +30,7 @@
     "jsmacrosce-common.mixins.json",
     "jsmacrosce-fabric.mixins.json"
   ],
-  "accessWidener": "jsmacrosce.accesswidener",
+  "accessWidener": "accesswideners/${minecraft_version}-${mod_id}.accesswidener",
   "depends": {
     "fabricloader": ">=0.15.0",
     "fabric-api": "*",

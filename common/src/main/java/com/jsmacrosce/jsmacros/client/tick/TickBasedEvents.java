@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.tick;
 
+import com.jsmacrosce.jsmacros.client.gui.screens.KeyMacrosScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ServerStatusPinger;
 import net.minecraft.core.component.DataComponentMap;
@@ -48,6 +49,9 @@ public class TickBasedEvents {
 
     public static void onTick(Minecraft mc) {
         if (JsMacrosClient.keyBinding.consumeClick() && mc.screen == null) {
+            if (JsMacrosClient.prevScreen == null) {
+                JsMacrosClient.prevScreen = new KeyMacrosScreen(null);
+            }
             mc.setScreen(JsMacrosClient.prevScreen);
         }
 

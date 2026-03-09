@@ -84,7 +84,13 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
      * @since 1.8.4
      */
     public String[] getLoot() {
-        return base.advancement().rewards().loot().stream().map(e -> e.location().toString()).toArray(String[]::new);
+        return base.advancement().rewards().loot().stream().map(e -> e
+                //? if >=1.21.11 {
+                /*.identifier()
+                *///? } else {
+                .location()
+                //? }
+                .toString()).toArray(String[]::new);
     }
 
     /**
@@ -98,7 +104,11 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
                 .rewards()
                 .recipes()
                 .stream()
+                //? if >=1.21.11 {
+                /*.map(ResourceKey::identifier)
+                *///? } else {
                 .map(ResourceKey::location)
+                //? }
                 .map(ResourceLocation::toString)
                 .toArray(String[]::new);
     }

@@ -1,10 +1,15 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob;
 
-import net.minecraft.world.entity.monster.SpellcasterIllager;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletDeclareType;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinSpellcastingIllagerEntityHelper;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.monster.illager.SpellcasterIllager;
+*///? } else {
+import net.minecraft.world.entity.monster.SpellcasterIllager;
+//? }
 
 /**
  * @author Etheradon

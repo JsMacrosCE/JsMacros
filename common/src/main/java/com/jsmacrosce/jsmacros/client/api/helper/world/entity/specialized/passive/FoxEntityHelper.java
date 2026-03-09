@@ -2,7 +2,6 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passi
 
 import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.animal.Fox;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
@@ -10,6 +9,12 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinFoxEntity;
 
 import java.util.UUID;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.animal.fox.Fox;
+*///? } else {
+import net.minecraft.world.entity.animal.Fox;
+//?}
 
 /**
  * @author Etheradon

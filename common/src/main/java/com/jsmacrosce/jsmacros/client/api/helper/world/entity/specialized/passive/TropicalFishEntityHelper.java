@@ -1,8 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive;
 
-import net.minecraft.world.entity.animal.TropicalFish;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.animal.fish.TropicalFish;
+*///? } else {
+import net.minecraft.world.entity.animal.TropicalFish;
+//?}
 
 /**
  * @author Etheradon
@@ -55,7 +60,11 @@ public class TropicalFishEntityHelper extends FishEntityHelper<TropicalFish> {
      * @since 1.8.4
      */
     public int getVarietyId() {
+        //? if >=1.21.11 {
+        /*return base.getPattern().getPackedId();
+        *///? } else {
         return base.getPackedVariant();
+        //?}
     }
 
 }

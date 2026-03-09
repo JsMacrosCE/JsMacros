@@ -18,6 +18,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+//? if >=1.21.11 {
+/*import net.minecraft.server.permissions.PermissionSet;
+*///? }
+
 /**
  * @author Etheradon
  * @since 1.8.4
@@ -27,7 +31,12 @@ public class FakeServerCommandSource extends CommandSourceStack {
     private final ClientSuggestionProvider source;
 
     public FakeServerCommandSource(ClientSuggestionProvider source, LocalPlayer player) {
+        // TODO: (1.21.11) These are specified as NotNull, will this fail?
+        //? if >=1.21.11 {
+        /*super(null, player.position(), player.getRotationVector(), null, PermissionSet.ALL_PERMISSIONS, player.getName().getString(), player.getDisplayName(), null, player);
+        *///? } else {
         super(null, player.position(), player.getRotationVector(), null, 100, player.getName().getString(), player.getDisplayName(), null, player);
+        //? }
         this.source = source;
     }
 

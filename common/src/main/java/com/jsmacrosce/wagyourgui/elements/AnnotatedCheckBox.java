@@ -46,30 +46,32 @@ public class AnnotatedCheckBox extends Button {
         int width = this.width - height;
         for (int i = 0; i < visibleLines; ++i) {
             int w = textRenderer.width(textLines.get(i));
-            drawContext.drawString(textRenderer, textLines.get(i), (int) (horizCenter ? getX() + width / 2F - w / 2F : getX() + 1), getY() + 2 + verticalCenter + (i * textRenderer.lineHeight), textColor, false);
+            drawContext.drawString(textRenderer, textLines.get(i), (int) (horizCenter ? getX() + width / 2F - w / 2F : getX() + 2), getY() + 2 + verticalCenter + (i * textRenderer.lineHeight), textColor, false);
         }
     }
 
     @Override
+    //? if >=1.21.11 {
+    /*public void renderContents(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    *///? } else {
     public void renderWidget(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //? }
         if (this.visible) {
             this.renderMessage(drawContext);
 
+            boolean hovered = (mouseX - getX() >= 0 && mouseX - getX() - width < 0 && mouseY - getY() >= 0 && mouseY - getY() - height < 0 && this.active) || forceHover;
+            hovering = hovered;
             // fill
-            if (mouseX - getX() >= 0 && mouseX - getX() - width <= 0 && mouseY - getY() >= 0 && mouseY - getY() - height <= 0 && this.active || forceHover) {
-                hovering = true;
-                drawContext.fill(getX() + width - height + 1, getY() + 1, getX() + width - 1, getY() + height - 1, highlightColor);
-            } else {
-                hovering = false;
-                if (value) {
-                    drawContext.fill(getX() + width - height + 1, getY() + 1, getX() + width - 1, getY() + height - 1, color);
-                }
+            if (value) {
+                // checked: use highlightColor fill on hover, color fill when idle
+                drawContext.fill(getX() + width - height + 1, getY() + 1, getX() + width - 1, getY() + height - 1, hovered ? highlightColor : color);
             }
-            // outline
-            drawContext.fill(getX() + width - height, getY(), getX() + width - height + 1, getY() + height, borderColor);
-            drawContext.fill(getX() + width - 1, getY(), getX() + width, getY() + height, borderColor);
-            drawContext.fill(getX() + width - height + 1, getY(), getX() + width - 1, getY() + 1, borderColor);
-            drawContext.fill(getX() + width - height + 1, getY() + height - 1, getX() + width - 1, getY() + height, borderColor);
+            // outline: use highlightColor border on hover when unchecked, borderColor otherwise
+            int outlineColor = (!value && hovered) ? highlightColor : borderColor;
+            drawContext.fill(getX() + width - height, getY(), getX() + width - height + 1, getY() + height, outlineColor);
+            drawContext.fill(getX() + width - 1, getY(), getX() + width, getY() + height, outlineColor);
+            drawContext.fill(getX() + width - height + 1, getY(), getX() + width - 1, getY() + 1, outlineColor);
+            drawContext.fill(getX() + width - height + 1, getY() + height - 1, getX() + width - 1, getY() + height, outlineColor);
         }
     }
 

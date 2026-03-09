@@ -128,7 +128,10 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
                         throw e;
                     }
                 } catch (Throwable f) {
-                    runner.profile.logError(f);
+                    // Skip logging if this is a result of `BaseScriptContext.closeContext(true)`
+                    if (!"Context execution was cancelled.".equals(f.getMessage()) || !ctx.getCtx().preventLog) {
+                        runner.profile.logError(f);
+                    }
                 }
             } finally {
                 ctx.getCtx().unbindThread(Thread.currentThread());

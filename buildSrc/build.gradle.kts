@@ -20,7 +20,7 @@ dependencies {
     implementation(gradleApi())
     implementation("com.google.code.gson:gson:2.9.0")
     implementation("commons-io:commons-io:2.7")
-    implementation("dev.kikugie:stonecutter:0.7.11")
+    implementation("dev.kikugie:stonecutter:0.8.3")
 }
 
 tasks.withType<JavaCompile>().configureEach {

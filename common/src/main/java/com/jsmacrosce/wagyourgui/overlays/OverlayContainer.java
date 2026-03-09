@@ -87,9 +87,9 @@ public abstract class OverlayContainer extends MultiElementContainer<IOverlayPar
     }
 
     //? if >1.21.8 {
-    /*public void onClick(MouseButtonEvent buttonEvent, boolean debounce) {
+    /*public void onClick(MouseButtonEvent buttonEvent, boolean doubleClick) {
         if (overlay != null) {
-            overlay.onClick(buttonEvent, debounce);
+            overlay.onClick(buttonEvent, doubleClick);
         }
     }
     *///?} else {

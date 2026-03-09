@@ -10,6 +10,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
@@ -173,11 +174,23 @@ public class LivingEntityHelper<T extends LivingEntity> extends EntityHelper<T> 
     }
 
     /**
-     * @return the entity's default health.
-     * @since 1.8.4
+     * @return the entity's armor toughness.
+     * @since 2.1.0
      */
-    public int getDefaultHealth() {
-        return base.invulnerableDuration;
+    public double getArmorToughness() {
+        return base.getAttributeValue(Attributes.ARMOR_TOUGHNESS);
+    }
+
+    /**
+     * @return the entity's default health.
+     * @since 1.8.4 (returns float since 2.1.1)
+     */
+    public float getDefaultHealth() {
+        //? if >=1.21.11 {
+        /*return base.getMaxHealth();
+        *///? } else {
+        return (float) base.invulnerableDuration;
+        //? }
     }
 
     /**

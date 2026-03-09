@@ -1,8 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle;
 
-import net.minecraft.world.entity.vehicle.MinecartTNT;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
+
+//?  if >=1.21.11 {
+/*import net.minecraft.world.entity.vehicle.minecart.MinecartTNT;
+*///? } else {
+import net.minecraft.world.entity.vehicle.MinecartTNT;
+//? }
 
 /**
  * @author Etheradon

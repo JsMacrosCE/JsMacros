@@ -103,6 +103,8 @@ public class CancelScreen extends BaseScreen {
             return;
         }
 
+        super.render(drawContext, mouseX, mouseY, delta);
+
         List<BaseScriptContext<?>> tl = new ArrayList<>(JsMacrosClient.clientCore.getContexts());
 
         for (RunningContextContainer r : ImmutableList.copyOf(this.running)) {

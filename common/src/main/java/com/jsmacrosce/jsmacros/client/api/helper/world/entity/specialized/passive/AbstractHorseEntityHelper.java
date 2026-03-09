@@ -2,10 +2,15 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passi
 
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.animal.horse.AbstractHorse;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinAbstractHorseEntity;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.animal.equine.AbstractHorse;
+*///? } else {
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
+//?}
 
 /**
  * @author Etheradon

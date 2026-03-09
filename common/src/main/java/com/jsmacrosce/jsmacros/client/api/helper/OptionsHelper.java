@@ -613,48 +613,48 @@ public class OptionsHelper extends BaseHelper<Options> {
             return this;
         }
 
-        /**
-         * @return the selected graphics mode.
-         * @since 1.8.4
-         */
+        //? if >=1.21.11 {
+        /*private OptionInstance<GraphicsPreset> graphicsOption() {
+            return base.graphicsPreset();
+        }
+
+        private GraphicsPreset parseGraphicsPreset(String mode) {
+            switch (mode.toUpperCase(Locale.ROOT)) {
+                case "FAST":      return GraphicsPreset.FAST;
+                case "FANCY":     return GraphicsPreset.FANCY;
+                case "FABULOUS":  return GraphicsPreset.FABULOUS;
+                default:          return graphicsOption().get();
+            }
+        }
+        *///?} else {
+        private OptionInstance<GraphicsStatus> graphicsOption() {
+            return base.graphicsMode();
+        }
+
+        private GraphicsStatus parseGraphicsPreset(String mode) {
+            switch (mode.toUpperCase(Locale.ROOT)) {
+                case "FAST":      return GraphicsStatus.FAST;
+                case "FANCY":     return GraphicsStatus.FANCY;
+                case "FABULOUS":  return GraphicsStatus.FABULOUS;
+                default:          return graphicsOption().get();
+            }
+        }
+        //?}
+
         @DocletReplaceReturn("GraphicsMode")
         public String getGraphicsMode() {
-            switch (base.graphicsMode().get()) {
-                case FAST:
-                    return "fast";
-                case FANCY:
-                    return "fancy";
-                case FABULOUS:
-                    return "fabulous";
-                default:
-                    throw new IllegalArgumentException();
+            switch (graphicsOption().get()) {
+                case FAST:     return "fast";
+                case FANCY:    return "fancy";
+                case FABULOUS: return "fabulous";
+                default:       throw new IllegalArgumentException();
             }
         }
 
-        /**
-         * @param mode the graphics mode to select. Must be either "fast", "fancy" or "fabulous"
-         * @return self for chaining.
-         * @since 1.8.4
-         */
         @DocletReplaceParams("mode: GraphicsMode")
         @DocletDeclareType(name = "GraphicsMode", type = "'fast' | 'fancy' | 'fabulous'")
         public VideoOptionsHelper setGraphicsMode(String mode) {
-            GraphicsStatus newMode;
-            switch (mode.toUpperCase(Locale.ROOT)) {
-                case "FAST":
-                    newMode = GraphicsStatus.FAST;
-                    break;
-                case "FANCY":
-                    newMode = GraphicsStatus.FANCY;
-                    break;
-                case "FABULOUS":
-                    newMode = GraphicsStatus.FABULOUS;
-                    break;
-                default:
-                    newMode = base.graphicsMode().get();
-                    break;
-            }
-            base.graphicsMode().set(newMode);
+            graphicsOption().set(parseGraphicsPreset(mode));
             return this;
         }
 
@@ -1621,12 +1621,10 @@ public class OptionsHelper extends BaseHelper<Options> {
         @DocletReplaceReturn("JavaList<KeyCategory>")
         public List<String> getCategories() {
             return Arrays.stream(base.keyMappings)
-                    .map(KeyMapping::getCategory)
+                    .map(KeyMapping::getCategory).distinct()
                     //? if >1.21.8 {
-                    /*.map(KeyMapping.Category::id)
-                    .map(ResourceLocation::toString)
+                    /*.map(c -> c.id().toLanguageKey())
                     *///?}
-                    .distinct()
                     .collect(Collectors.toList());
         }
 
@@ -1714,7 +1712,12 @@ public class OptionsHelper extends BaseHelper<Options> {
          */
         @DocletReplaceReturn("ChatVisibility")
         public String getChatVisibility() {
-            String chatVisibilityKey = base.chatVisibility().get().getKey();
+            String chatVisibilityKey = base.chatVisibility().get()
+                    //? if >=1.21.11 {
+                    /*.name();
+                    *///? } else {
+                    .getKey();
+                    //? }
             return chatVisibilityKey.substring(chatVisibilityKey.lastIndexOf('.'));
         }
 
@@ -2382,18 +2385,20 @@ public class OptionsHelper extends BaseHelper<Options> {
      */
     @Deprecated
     public int getGraphicsMode() {
-        switch (base.graphicsMode().get()) {
-            case FABULOUS:
+        switch (video.getGraphicsMode()) {
+            case "fabulous":
                 return 2;
-            case FANCY:
+            case "fancy":
                 return 1;
-            default:
+            case "fast":
                 return 0;
+            default:
+                return -1;
         }
     }
 
     /**
-     * @param mode 0: fast, 2: fabulous
+     * @param mode 0: fast, 1: fancy, 2: fabulous
      * @return
      * @since 1.1.7
      * @deprecated use {@link VideoOptionsHelper#setGraphicsMode(String)} instead.
@@ -2402,13 +2407,13 @@ public class OptionsHelper extends BaseHelper<Options> {
     public OptionsHelper setGraphicsMode(int mode) {
         switch (mode) {
             case 2:
-                base.graphicsMode().set(GraphicsStatus.FABULOUS);
+                this.getVideoOptions().setGraphicsMode("fabulous");
                 return this;
             case 1:
-                base.graphicsMode().set(GraphicsStatus.FANCY);
+                this.getVideoOptions().setGraphicsMode("fancy");
                 return this;
             default:
-                base.graphicsMode().set(GraphicsStatus.FAST);
+                this.getVideoOptions().setGraphicsMode("fast");
                 return this;
         }
     }

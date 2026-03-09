@@ -1,8 +1,12 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive;
 
-import net.minecraft.world.entity.animal.Rabbit;
 import com.jsmacrosce.doclet.DocletCategory;
-import com.jsmacrosce.doclet.DocletReplaceReturn;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.animal.rabbit.Rabbit;
+*///? } else {
+import net.minecraft.world.entity.animal.Rabbit;
+//?}
 
 /**
  * @author Etheradon

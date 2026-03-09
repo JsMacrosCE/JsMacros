@@ -1,0 +1,10 @@
+{
+  "required": true,
+  "package": "com.jsmacrosce.jsmacros.client.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "jsmacrosce-common.refmap.json",
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

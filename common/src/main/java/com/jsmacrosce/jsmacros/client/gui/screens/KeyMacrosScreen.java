@@ -58,7 +58,7 @@ public class KeyMacrosScreen extends MacroScreen {
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
     //?}
         String translationKey = EventKey.getKeyModifiers(modifiers);
-        if (!translationKey.equals("")) {
+        if (!translationKey.isEmpty()) {
             translationKey += "+";
         }
         //? if >1.21.8 {
@@ -103,7 +103,7 @@ public class KeyMacrosScreen extends MacroScreen {
             mods += 4;
         }
         String translationKey = EventKey.getKeyModifiers(mods);
-        if (!translationKey.equals("")) {
+        if (!translationKey.isEmpty()) {
             translationKey += "+";
         }
         translationKey += InputConstants.Type.MOUSE.getOrCreate(button).getName();

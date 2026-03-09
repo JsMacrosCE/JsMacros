@@ -14,10 +14,6 @@ import net.minecraft.world.entity.animal.allay.Allay;
 import net.minecraft.world.entity.animal.axolotl.Axolotl;
 import net.minecraft.world.entity.animal.frog.Frog;
 import net.minecraft.world.entity.animal.goat.Goat;
-import net.minecraft.world.entity.animal.horse.AbstractChestedHorse;
-import net.minecraft.world.entity.animal.horse.AbstractHorse;
-import net.minecraft.world.entity.animal.horse.Horse;
-import net.minecraft.world.entity.animal.horse.Llama;
 import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.animal.wolf.Wolf;
 import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
@@ -25,26 +21,16 @@ import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.decoration.ItemFrame;
-import net.minecraft.world.entity.decoration.Painting;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.*;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.warden.Warden;
-import net.minecraft.world.entity.npc.AbstractVillager;
-import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.*;
-import net.minecraft.world.entity.vehicle.Boat;
-import net.minecraft.world.entity.vehicle.MinecartFurnace;
-import net.minecraft.world.entity.vehicle.MinecartTNT;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-//? if >1.21.5 {
-import net.minecraft.world.level.storage.TagValueOutput;
-import net.minecraft.world.level.storage.ValueOutput;
-//?}
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.jetbrains.annotations.NotNull;
@@ -89,6 +75,65 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.vehicle.boat.Boat;
+import net.minecraft.world.entity.vehicle.minecart.MinecartFurnace;
+import net.minecraft.world.entity.vehicle.minecart.MinecartTNT;
+import net.minecraft.world.entity.npc.villager.AbstractVillager;
+import net.minecraft.world.entity.npc.villager.Villager;
+import net.minecraft.world.entity.animal.equine.AbstractChestedHorse;
+import net.minecraft.world.entity.animal.equine.AbstractHorse;
+import net.minecraft.world.entity.animal.equine.Horse;
+import net.minecraft.world.entity.animal.equine.Llama;
+import net.minecraft.world.entity.decoration.painting.Painting;
+import net.minecraft.world.entity.monster.zombie.Zombie;
+import net.minecraft.world.entity.monster.zombie.ZombieVillager;
+import net.minecraft.world.entity.monster.zombie.Drowned;
+import net.minecraft.world.entity.monster.illager.AbstractIllager;
+import net.minecraft.world.entity.monster.illager.Pillager;
+import net.minecraft.world.entity.monster.illager.SpellcasterIllager;
+import net.minecraft.world.entity.monster.illager.Vindicator;
+import net.minecraft.world.entity.monster.spider.Spider;
+import net.minecraft.world.entity.animal.bee.Bee;
+import net.minecraft.world.entity.animal.fox.Fox;
+import net.minecraft.world.entity.animal.cow.MushroomCow;
+import net.minecraft.world.entity.animal.parrot.Parrot;
+import net.minecraft.world.entity.animal.dolphin.Dolphin;
+import net.minecraft.world.entity.animal.golem.IronGolem;
+import net.minecraft.world.entity.animal.golem.SnowGolem;
+import net.minecraft.world.entity.animal.feline.Ocelot;
+import net.minecraft.world.entity.animal.panda.Panda;
+import net.minecraft.world.entity.animal.pig.Pig;
+import net.minecraft.world.entity.animal.rabbit.Rabbit;
+import net.minecraft.world.entity.animal.feline.Cat;
+import net.minecraft.world.entity.animal.fish.Pufferfish;
+import net.minecraft.world.entity.animal.fish.AbstractFish;
+import net.minecraft.world.entity.animal.fish.TropicalFish;
+import net.minecraft.world.entity.projectile.arrow.Arrow;
+import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
+import net.minecraft.world.entity.projectile.hurtingprojectile.WitherSkull;
+import net.minecraft.world.entity.animal.polarbear.PolarBear;
+*///? } else {
+import net.minecraft.world.entity.vehicle.Boat;
+import net.minecraft.world.entity.vehicle.MinecartFurnace;
+import net.minecraft.world.entity.vehicle.MinecartTNT;
+import net.minecraft.world.entity.npc.AbstractVillager;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.entity.animal.horse.AbstractChestedHorse;
+import net.minecraft.world.entity.animal.horse.AbstractHorse;
+import net.minecraft.world.entity.animal.horse.Horse;
+import net.minecraft.world.entity.animal.horse.Llama;
+import net.minecraft.world.entity.decoration.Painting;
+import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.entity.monster.ZombieVillager;
+import net.minecraft.world.entity.monster.Drowned;
+//? }
+
+//? if >1.21.5 {
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.ValueOutput;
+//?}
 
 /**
  * @author Wagyourtail
@@ -304,16 +349,16 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
      * @since 1.2.8, was a {@link String} until 1.5.0
      */
     public NBTElementHelper.NBTCompoundHelper getNBT() {
-        CompoundTag nbt = new CompoundTag();
         //? if >1.21.5 {
         ValueOutput view = TagValueOutput.createWithContext(
                 ProblemReporter.DISCARDING,
                 Objects.requireNonNull(Minecraft.getInstance().getConnection()).registryAccess()
         );
         base.saveWithoutId(view);
-        CompoundTag result = ((TagValueOutput) view).buildResult();
+        CompoundTag nbt = ((TagValueOutput) view).buildResult();
         //?} else {
-        /*base.saveWithoutId(nbt);
+        /*CompoundTag nbt = new CompoundTag();
+        base.saveWithoutId(nbt);
         *///?}
 
         return NBTElementHelper.wrapCompound(nbt);

@@ -1,8 +1,12 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive;
 
-import net.minecraft.world.entity.animal.horse.Llama;
-import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.animal.equine.Llama;
+*///? } else {
+import net.minecraft.world.entity.animal.horse.Llama;
+ //?}
 
 /**
  * @author Etheradon

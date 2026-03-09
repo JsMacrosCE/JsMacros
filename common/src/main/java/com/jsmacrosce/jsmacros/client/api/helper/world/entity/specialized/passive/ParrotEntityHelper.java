@@ -2,12 +2,17 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passi
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.UUIDUtil;
-import net.minecraft.world.entity.animal.Parrot;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 
 import java.util.Objects;
 import java.util.stream.Stream;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.animal.parrot.Parrot;
+*///? } else {
+import net.minecraft.world.entity.animal.Parrot;
+//?}
 
 /**
  * @author Etheradon
@@ -63,6 +68,8 @@ public class ParrotEntityHelper extends TameableEntityHelper<Parrot> {
     }
 
     /**
+     * @apiNote In 1.21.9 and beyond, parrot entities are removed when on player shoulders so this will always return
+     * false.
      * @return {@code true} if this parrot is sitting on any player's shoulder, {@code false}
      * otherwise.
      * @since 1.8.4
@@ -70,16 +77,7 @@ public class ParrotEntityHelper extends TameableEntityHelper<Parrot> {
     public boolean isSittingOnShoulder() {
         if (!isSitting()) return false;
         //? if >1.21.8 {
-        /*// TODO: Lots of this changed in 1.21.9/1.21.10, need to fix, this is just an estimation
-        /^return Minecraft.getInstance().level.players().stream()
-            .flatMap(e -> {
-                return Stream.of(e.getEntityData().get(e.DATA_SHOULDER_PARROT_LEFT), e.getEntityData().get(e.DATA_SHOULDER_PARROT_RIGHT));
-            })
-            .filter(Optional::isPresent)
-            .flatMap(n -> n.get().getIntArray("UUID").stream())
-            .map(UUIDUtil::uuidFromIntArray)
-            .anyMatch(base.getUUID()::equals);^/
-        return false;
+        /*return false;
         *///?} else {
         return Minecraft.getInstance().level.players().stream()
                 .flatMap(e -> Stream.of(e.getShoulderEntityRight(), e.getShoulderEntityLeft()))

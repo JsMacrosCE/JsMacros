@@ -1,6 +1,5 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
-import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -18,6 +17,12 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+
+//? if >=1.21.11 {
+/*import net.minecraft.util.Util;
+*///? } else {
+import net.minecraft.Util;
+//? }
 
 /**
  * @author Wagyourtail

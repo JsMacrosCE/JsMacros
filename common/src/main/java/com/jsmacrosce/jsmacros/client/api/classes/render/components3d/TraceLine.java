@@ -102,7 +102,11 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     @Override
     public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        //? if >=1.21.11 {
+        /*Vec3 p1 = camera.position().add(Vec3.directionFromRotation(camera.xRot(), camera.yRot()));
+        *///? } else {
         Vec3 p1 = camera.getPosition().add(Vec3.directionFromRotation(camera.getXRot(), camera.getYRot()));
+        //? }
 
         render.setPos(p1.x, p1.y, p1.z, render.pos.x2, render.pos.y2, render.pos.z2);
         render.render(matrixStack, consumers, tickDelta);

@@ -1,7 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.overlays;
 
 import com.google.common.collect.ImmutableList;
-import net.minecraft.Util;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -22,6 +21,12 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
+
+//? if >=1.21.11 {
+/*import net.minecraft.util.Util;
+*///? } else {
+import net.minecraft.Util;
+//? }
 
 @DocletCategory("Screen and UI Elements")
 public class FileChooser extends OverlayContainer {

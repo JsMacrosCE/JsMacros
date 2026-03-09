@@ -1,6 +1,5 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
-import net.minecraft.Util;
 import net.minecraft.world.level.block.state.StateHolder;
 import net.minecraft.world.level.block.state.properties.Property;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
@@ -8,6 +7,12 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+//? if >=1.21.11 {
+/*import net.minecraft.util.Util;
+*///? } else {
+import net.minecraft.Util;
+//? }
 
 /**
  * @author Etheradon

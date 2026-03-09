@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.api.math;
 
+import net.minecraft.world.phys.Vec2;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -12,6 +13,14 @@ public class Pos2D {
     public static final Pos2D ZERO = new Pos2D(0, 0);
     public double x;
     public double y;
+
+    public Pos2D(Vec2 vec) {
+        this(vec.x, vec.y);
+    }
+
+    public Pos2D(Pos2D pos) {
+        this(pos.getX(), pos.getY());
+    }
 
     public Pos2D(double x, double y) {
         this.x = x;

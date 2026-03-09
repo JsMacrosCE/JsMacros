@@ -5,9 +5,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.advancements.AdvancementNode;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.advancements.AdvancementTree;
-import net.minecraft.advancements.critereon.BlockPredicate;
-import net.minecraft.advancements.critereon.NbtPredicate;
-import net.minecraft.advancements.critereon.StatePropertiesPredicate;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
@@ -41,6 +38,16 @@ import com.jsmacrosce.jsmacros.core.language.BaseScriptContext;
 import com.jsmacrosce.jsmacros.core.language.BaseWrappedException;
 
 import java.util.Arrays;
+
+//? if >=1.21.11 {
+/*import net.minecraft.advancements.criterion.BlockPredicate;
+import net.minecraft.advancements.criterion.NbtPredicate;
+import net.minecraft.advancements.criterion.StatePropertiesPredicate;
+*///? } else {
+import net.minecraft.advancements.critereon.BlockPredicate;
+import net.minecraft.advancements.critereon.NbtPredicate;
+import net.minecraft.advancements.critereon.StatePropertiesPredicate;
+//? }
 
 @DocletCategory("Configuration/Profiles")
 public class ClientProfile extends BaseProfile {

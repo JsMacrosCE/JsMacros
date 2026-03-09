@@ -31,7 +31,7 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.core.BlockPos;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
-//?}
+//? }
 
 @Mixin(Minecraft.class)
 abstract
@@ -77,8 +77,10 @@ class MixinMinecraftClient {
     }
 
     @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;removed()V"), method = "setScreen")
-    public void onCloseScreen(Screen screen, CallbackInfo ci) {
-        if (screen == null) return;
+    public void onCloseScreen(Screen closedScreen, CallbackInfo ci) {
+        if (closedScreen == null) {
+            return;
+        }
         Consumer<IScreen> onClose = ((IScreen) screen).getOnClose();
         try {
             if (onClose != null) {
@@ -101,9 +103,15 @@ class MixinMinecraftClient {
 
     @Inject(
             at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;isLocalServer:Z", opcode = Opcodes.PUTFIELD, shift = At.Shift.AFTER),
+    //? if >=1.21.11 {
+            /*method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;ZZ)V"
+    )
+    public void onDisconnect(Screen nextScreen, boolean keepResourcePacks, boolean transferring, CallbackInfo ci) {
+    *///? } else {
             method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;Z)V"
     )
     public void onDisconnect(Screen disconnectionScreen, boolean transferring, CallbackInfo ci) {
+    //? }
         InteractionProxy.reset();
     }
 

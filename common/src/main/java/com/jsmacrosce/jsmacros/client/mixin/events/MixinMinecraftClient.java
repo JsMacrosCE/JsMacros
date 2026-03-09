@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.jsmacros.client.gui.screens.KeyMacrosScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.User;
 import net.minecraft.client.gui.screens.DisconnectedScreen;
@@ -53,7 +54,13 @@ public abstract class MixinMinecraftClient {
             //?}
             CallbackInfo ci) {
         if (world != null) {
-            new EventDimensionChange(world.dimension().location().toString()).trigger();
+            new EventDimensionChange(world.dimension()
+                    //? if >=1.21.11 {
+                    /*.identifier()
+                    *///? } else {
+                    .location()
+                    //? }
+                    .toString()).trigger();
         }
     }
 
@@ -62,6 +69,10 @@ public abstract class MixinMinecraftClient {
 
     @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;screen:Lnet/minecraft/client/gui/screens/Screen;", opcode = Opcodes.PUTFIELD), method = "setScreen")
     public void onOpenScreen(Screen newScreen, CallbackInfo info) {
+        if (jsmacros$prevScreen == null) {
+            jsmacros$prevScreen = new KeyMacrosScreen(null);
+        }
+
         if (newScreen != screen) {
             assert gameMode != null;
             jsmacros$prevScreen = screen;
@@ -85,10 +96,22 @@ public abstract class MixinMinecraftClient {
         jsmacros$prevScreen = null;
     }
 
-    @Inject(at = @At(value = "FIELD", target = "Lnet/minecraft/client/Minecraft;isLocalServer:Z", opcode = Opcodes.PUTFIELD, shift = At.Shift.AFTER), method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;Z)V")
-    public void onDisconnect(Screen s, boolean transferring, CallbackInfo ci) {
-        if (s instanceof DisconnectedScreen) {
-            new EventDisconnect(((MixinDisconnectedScreen) s).getInfo().reason()).trigger();
+    @Inject(
+            at = @At(
+                value = "FIELD",
+                target = "Lnet/minecraft/client/Minecraft;isLocalServer:Z",
+                opcode = Opcodes.PUTFIELD,
+                shift = At.Shift.AFTER
+            ),
+            //? if >=1.21.11 {
+            /*method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;ZZ)V")
+    public void onDisconnect(Screen nextScreen, boolean keepResourcePacks, boolean transferring, CallbackInfo ci) {
+            *///? } else {
+            method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;Z)V")
+    public void onDisconnect(Screen nextScreen, boolean transferring, CallbackInfo ci) {
+            //? }
+        if (nextScreen instanceof DisconnectedScreen) {
+            new EventDisconnect(((MixinDisconnectedScreen) nextScreen).getInfo().reason()).trigger();
         } else {
             new EventDisconnect(null).trigger();
         }

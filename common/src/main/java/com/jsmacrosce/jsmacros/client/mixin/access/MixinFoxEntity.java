@@ -2,11 +2,16 @@ package com.jsmacrosce.jsmacros.client.mixin.access;
 
 import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.animal.Fox;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 import java.util.stream.Stream;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.animal.fox.Fox;
+*///? } else {
+import net.minecraft.world.entity.animal.Fox;
+//? }
 
 /**
  * @author Etheradon

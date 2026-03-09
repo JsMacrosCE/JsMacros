@@ -4,6 +4,7 @@ import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
 import net.minecraft.client.gui.screens.Screen;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
+import com.jsmacrosce.jsmacros.client.gui.screens.KeyMacrosScreen;
 import com.jsmacrosce.wagyourgui.BaseScreen;
 
 public class ModMenuEntry implements ModMenuApi {
@@ -17,6 +18,10 @@ public class ModMenuEntry implements ModMenuApi {
     public static class JsMacroScreen implements ConfigScreenFactory<BaseScreen> {
         @Override
         public BaseScreen create(Screen parent) {
+            if (JsMacrosClient.prevScreen == null) {
+                JsMacrosClient.prevScreen = new KeyMacrosScreen(null);
+            }
+
             return JsMacrosClient.prevScreen;
         }
 

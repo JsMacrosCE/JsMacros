@@ -1,8 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob;
 
-import net.minecraft.world.entity.monster.Spider;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.monster.spider.Spider;
+*///? } else {
+import net.minecraft.world.entity.monster.Spider;
+//?}
 
 /**
  * @author Etheradon

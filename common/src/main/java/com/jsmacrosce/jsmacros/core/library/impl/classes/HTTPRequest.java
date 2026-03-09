@@ -71,7 +71,8 @@ public class HTTPRequest {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
         conn.setRequestMethod("GET");
-        InputStream stream = conn.getInputStream();
+        
+        InputStream stream = conn.getResponseCode() >= 400 ? conn.getErrorStream() : conn.getInputStream();
         return new Response(stream, conn.getResponseCode(), conn.getHeaderFields());
     }
 
@@ -96,7 +97,7 @@ public class HTTPRequest {
         os.flush();
         os.close();
 
-        InputStream stream = conn.getInputStream();
+        InputStream stream = conn.getResponseCode() >= 400 ? conn.getErrorStream() : conn.getInputStream();
         return new Response(stream, conn.getResponseCode(), conn.getHeaderFields());
     }
 
@@ -120,7 +121,7 @@ public class HTTPRequest {
         os.flush();
         os.close();
 
-        InputStream stream = conn.getInputStream();
+        InputStream stream = conn.getResponseCode() >= 400 ? conn.getErrorStream() : conn.getInputStream();
         return new Response(stream, conn.getResponseCode(), conn.getHeaderFields());
     }
 
@@ -145,7 +146,7 @@ public class HTTPRequest {
         os.flush();
         os.close();
 
-        InputStream stream = conn.getInputStream();
+        InputStream stream = conn.getResponseCode() >= 400 ? conn.getErrorStream() : conn.getInputStream();
         return new Response(stream, conn.getResponseCode(), conn.getHeaderFields());
     }
 
@@ -169,7 +170,7 @@ public class HTTPRequest {
         os.flush();
         os.close();
 
-        InputStream stream = conn.getInputStream();
+        InputStream stream = conn.getResponseCode() >= 400 ? conn.getErrorStream() : conn.getInputStream();
         return new Response(stream, conn.getResponseCode(), conn.getHeaderFields());
     }
 
@@ -184,7 +185,7 @@ public class HTTPRequest {
         }
         conn.setRequestMethod(method);
 
-        InputStream stream = conn.getInputStream();
+        InputStream stream = conn.getResponseCode() >= 400 ? conn.getErrorStream() : conn.getInputStream();
         return new Response(stream, conn.getResponseCode(), conn.getHeaderFields());
     }
 
@@ -210,7 +211,7 @@ public class HTTPRequest {
         os.flush();
         os.close();
 
-        InputStream stream = conn.getInputStream();
+        InputStream stream = conn.getResponseCode() >= 400 ? conn.getErrorStream() : conn.getInputStream();
         return new Response(stream, conn.getResponseCode(), conn.getHeaderFields());
     }
 
@@ -235,7 +236,7 @@ public class HTTPRequest {
         os.flush();
         os.close();
 
-        InputStream stream = conn.getInputStream();
+        InputStream stream = conn.getResponseCode() >= 400 ? conn.getErrorStream() : conn.getInputStream();
         return new Response(stream, conn.getResponseCode(), conn.getHeaderFields());
     }
 

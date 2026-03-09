@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.api.math;
 
+import net.minecraft.util.Mth;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
@@ -173,55 +174,18 @@ public class Vec3D extends Vec2D {
         return new Vec3D(x1 / mag, y1 / mag, z1 / mag, x2 / mag, y2 / mag, z2 / mag);
     }
 
-    public float getPitch(IMathHelper mathHelper) {
-        double dx = x2 - x1;
-        double dy = y2 - y1;
-        double dz = z2 - z1;
-        double xz = Math.sqrt(dx * dx + dz * dz);
-        return 90F - mathHelper.wrapDegrees((float) Math.toDegrees(Math.atan2(xz, -dy)));
-    }
-
-    public float getYaw(IMathHelper mathHelper) {
-        double dx = x2 - x1;
-        double dz = z2 - z1;
-        return -mathHelper.wrapDegrees((float) Math.toDegrees(Math.atan2(dx, dz)));
-    }
-
-    /**
-     * @deprecated Use {@link #getPitch(IMathHelper)} with a platform-specific math helper
-     */
-    @Deprecated
     public float getPitch() {
-        // Fallback implementation using simple math - less accurate than platform-specific version
         double dx = x2 - x1;
         double dy = y2 - y1;
         double dz = z2 - z1;
         double xz = Math.sqrt(dx * dx + dz * dz);
-        return 90F - (float) wrapDegreesSimple(Math.toDegrees(Math.atan2(xz, -dy)));
+        return 90F - (float) Mth.wrapDegrees(Math.toDegrees(Math.atan2(xz, -dy)));
     }
 
-    /**
-     * @deprecated Use {@link #getYaw(IMathHelper)} with a platform-specific math helper
-     */
-    @Deprecated
     public float getYaw() {
-        // Fallback implementation using simple math - less accurate than platform-specific version
         double dx = x2 - x1;
         double dz = z2 - z1;
-        return -(float) wrapDegreesSimple(Math.toDegrees(Math.atan2(dx, dz)));
-    }
-
-    /**
-     * Simple degree wrapping implementation as fallback
-     */
-    private static float wrapDegreesSimple(double degrees) {
-        degrees = degrees % 360.0;
-        if (degrees >= 180.0) {
-            degrees -= 360.0;
-        } else if (degrees < -180.0) {
-            degrees += 360.0;
-        }
-        return (float) degrees;
+        return -(float) Mth.wrapDegrees(Math.toDegrees(Math.atan2(dx, dz)));
     }
 
     public double dotProduct(Vec3D vec) {

@@ -1,9 +1,14 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
-import net.minecraft.advancements.critereon.StatePropertiesPredicate;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockStateHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.FluidStateHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
+
+//? if >=1.21.11 {
+/*import net.minecraft.advancements.criterion.StatePropertiesPredicate;
+*///? } else {
+import net.minecraft.advancements.critereon.StatePropertiesPredicate;
+//? }
 
 /**
  * @since 1.9.1

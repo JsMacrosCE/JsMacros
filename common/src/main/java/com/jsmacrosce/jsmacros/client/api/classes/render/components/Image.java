@@ -1,10 +1,8 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
@@ -14,6 +12,11 @@ import com.jsmacrosce.jsmacros.client.api.classes.CustomImage;
 import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+
+//? if <=1.21.5 {
+/*import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.renderer.RenderType;
+*///? }
 
 /**
  * @author Wagyourtail

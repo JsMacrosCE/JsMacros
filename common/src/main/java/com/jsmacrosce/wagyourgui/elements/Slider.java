@@ -7,8 +7,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -16,7 +14,11 @@ import org.lwjgl.glfw.GLFW;
 import com.jsmacrosce.doclet.DocletCategory;
 
 import java.util.function.Consumer;
+
+//? if <=1.21.5 {
+/*import net.minecraft.client.renderer.RenderType;
 import java.util.function.Function;
+*///? }
 
 //? if >1.21.8 {
 /*import net.minecraft.client.input.KeyEvent;
@@ -97,11 +99,11 @@ public class Slider extends AbstractWidget {
     }
 
     private ResourceLocation getTexture() {
-        return this.isFocused() && !this.isFocused() ? HIGHLIGHTED_TEXTURE : TEXTURE;
+        return (!this.isHovered && !this.isFocused()) ? HIGHLIGHTED_TEXTURE : TEXTURE;
     }
 
     private ResourceLocation getHandleTexture() {
-        return !this.isHovered && !this.isFocused() ? HANDLE_TEXTURE : HANDLE_HIGHLIGHTED_TEXTURE;
+        return (!this.isHovered && !this.isFocused()) ? HANDLE_TEXTURE : HANDLE_HIGHLIGHTED_TEXTURE;
     }
 
     @Override

@@ -20,7 +20,13 @@ public class MixinSoundEngine {
     *///?}
         String id = null;
         try {
-            id = instance.getLocation().toString();
+            id = instance
+                    //? if >=1.21.11 {
+                    /*.getIdentifier()
+                    *///? } else {
+                    .getLocation()
+                    //? }
+                    .toString();
         } catch (NullPointerException ignored) {
         }
         float volume = 1.0F;

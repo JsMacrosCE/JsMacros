@@ -1,9 +1,14 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive;
 
-import net.minecraft.world.entity.animal.Dolphin;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
+
+//? if >=1.21.11 {
+/*import net.minecraft.world.entity.animal.dolphin.Dolphin;
+*///? } else {
+import net.minecraft.world.entity.animal.Dolphin;
+//?}
 
 /**
  * @author Etheradon
