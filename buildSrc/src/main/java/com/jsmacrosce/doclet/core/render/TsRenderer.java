@@ -845,12 +845,12 @@ public class TsRenderer implements Renderer {
         if (text.startsWith("#")) {
             return true;
         }
-        return text.matches("^xyz\\.wagyourtail\\.[^#]+\\w$")
+        return text.matches("^com\\.jsmacrosce\\.[^#]+\\w$")
             || text.matches("^\\w+\\.(?:\\w+\\.)+[\\w$_]+$");
     }
 
     private String convertSignature(String sig) {
-        if (sig.matches("^xyz\\.wagyourtail\\.[^#]+\\w$")) {
+        if (sig.matches("^com\\.jsmacrosce\\.[^#]+\\w$")) {
             return sig.replaceFirst("^.+\\.(?=[^.]+$)", "");
         }
         if (sig.matches("^\\w+\\.(?:\\w+\\.)+[\\w$_]+$")) {
@@ -860,7 +860,7 @@ public class TsRenderer implements Renderer {
             return sig.substring(1);
         }
         return sig
-            .replaceFirst("^(?:xyz\\.wagyourtail\\.jsmacros\\.(?:client\\.api|core)\\.library\\.impl\\.)?F([A-Z]\\w+)#", "$1.")
+            .replaceFirst("^(?:com\\.jsmacrosce\\.jsmacros\\.(?:client\\.api|core)\\.library\\.impl\\.)?F([A-Z]\\w+)#", "$1.")
             .replaceFirst("#", ".");
     }
 
