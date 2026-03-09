@@ -1,5 +1,6 @@
 package com.jsmacrosce.doclet.core.webdoclet.parsers;
 
+import com.jsmacrosce.doclet.core.ClassGroup;
 import com.sun.source.doctree.*;
 import com.sun.source.util.DocTreePath;
 import com.jsmacrosce.Pair;
@@ -15,14 +16,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 public class ClassParser {
-    private final String group;
+    private final ClassGroup group;
     private final String alias;
     public TypeElement type;
 
-    public ClassParser(TypeElement type, String group, String alias) {
+    public ClassParser(TypeElement type, ClassGroup group, String alias) {
         this.type = type;
         this.group = group;
         this.alias = alias;
@@ -125,7 +125,7 @@ public class ClassParser {
                 return Main.types.isAssignable(e.asType(), Main.types.getDeclaredType(type)) && !e.equals(type);
             }
             return false;
-        }).collect(Collectors.toList())) {
+        }).toList()) {
             subClasses.append(parseType(subClass.asType()), " ");
         }
         // subclasses end
@@ -168,7 +168,7 @@ public class ClassParser {
         AtomicBoolean firstFlag = new AtomicBoolean(true);
         AtomicReference<XMLBuilder> constructors = new AtomicReference<>();
         //CONSTRUCTORS
-        if (!group.equals("Library")) {
+        if (group != ClassGroup.Library) {
             type.getEnclosedElements().stream().filter(e -> e.getKind() == ElementKind.CONSTRUCTOR).forEach(el -> {
                 if (!el.getModifiers().contains(Modifier.PUBLIC)) {
                     return;
@@ -280,7 +280,7 @@ public class ClassParser {
         ));
 
         List<? extends TypeParameterElement> params = element.getTypeParameters();
-        if (params.size() > 0) {
+        if (!params.isEmpty()) {
             methodTitle.append("<");
             for (TypeParameterElement param : params) {
                 methodTitle.append(parseType(param.asType()), ", ");
@@ -609,7 +609,7 @@ public class ClassParser {
                 for (VariableElement parameter : ((ExecutableElement) member).getParameters()) {
                     s.append(parameter.getSimpleName()).append(", ");
                 }
-                if (((ExecutableElement) member).getParameters().size() > 0) {
+                if (!((ExecutableElement) member).getParameters().isEmpty()) {
                     s.setLength(s.length() - 2);
                 }
                 s.append(")");

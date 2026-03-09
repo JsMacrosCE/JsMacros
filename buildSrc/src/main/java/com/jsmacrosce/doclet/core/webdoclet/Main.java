@@ -1,5 +1,6 @@
 package com.jsmacrosce.doclet.core.webdoclet;
 
+import com.jsmacrosce.doclet.core.ClassGroup;
 import com.sun.source.util.DocTrees;
 import jdk.javadoc.doclet.Doclet;
 import jdk.javadoc.doclet.DocletEnvironment;
@@ -91,7 +92,7 @@ public class Main implements Doclet {
                 }
                 pkgList.append(name).append("\n");
             }
-            if (pkgList.length() > 0) {
+            if (!pkgList.isEmpty()) {
                 pkgList.setLength(pkgList.length() - 1);
             }
             new FileHandler(new File(outDir, "package-list")).write(pkgList.toString());
@@ -100,18 +101,18 @@ public class Main implements Doclet {
                 AnnotationMirror mirror = e.getAnnotationMirrors().stream().filter(a -> a.getAnnotationType().asElement().getSimpleName().toString().equals("Event")).findFirst().orElse(null);
                 //Event
                 if (mirror != null) {
-                    internalClasses.put(e, new ClassParser(e, "Event", getAnnotationValue("value", mirror).toString()));
+                    internalClasses.put(e, new ClassParser(e, ClassGroup.Event, getAnnotationValue("value", mirror).toString()));
                     return;
                 }
 
                 mirror = e.getAnnotationMirrors().stream().filter(a -> a.getAnnotationType().asElement().getSimpleName().toString().equals("Library")).findFirst().orElse(null);
                 //Library
                 if (mirror != null) {
-                    internalClasses.put(e, new ClassParser(e, "Library", getAnnotationValue("value", mirror).toString()));
+                    internalClasses.put(e, new ClassParser(e, ClassGroup.Library, getAnnotationValue("value", mirror).toString()));
                     return;
                 }
 
-                internalClasses.put(e, new ClassParser(e, "Class", null));
+                internalClasses.put(e, new ClassParser(e, ClassGroup.Class, null));
             });
 
             StringBuilder searchList = new StringBuilder();

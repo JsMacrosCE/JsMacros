@@ -108,10 +108,10 @@ public class MarkdownWriter {
         Map<String, List<ClassDoc>> eventCategories,
         Map<String, List<ClassDoc>> libraryCategories
     ) throws IOException {
-        Map<String, List<ClassDoc>> grouped = new java.util.HashMap<>();
+        Map<ClassGroup, List<ClassDoc>> grouped = new java.util.HashMap<>();
         for (PackageDoc pkg : model.packages()) {
             for (ClassDoc clz : pkg.classes()) {
-                grouped.computeIfAbsent(clz.group().toString(), key -> new ArrayList<>()).add(clz);
+                grouped.computeIfAbsent(clz.group(), key -> new ArrayList<>()).add(clz);
             }
         }
         grouped.values().forEach(list ->
@@ -121,14 +121,14 @@ public class MarkdownWriter {
         new FileHandler(new File(outDir, "index.md"))
             .write(renderOverview(grouped, version, mcVersion));
         new FileHandler(new File(outDir, "libraries.md"))
-            .write(renderGroupPage("Libraries", grouped.getOrDefault("Library", List.of()), true, libraryCategories));
+            .write(renderGroupPage("Libraries", grouped.getOrDefault(ClassGroup.Library, List.of()), true, libraryCategories));
         new FileHandler(new File(outDir, "events.md"))
-            .write(renderGroupPage("Events", grouped.getOrDefault("Event", List.of()), true, eventCategories));
+            .write(renderGroupPage("Events", grouped.getOrDefault(ClassGroup.Event, List.of()), true, eventCategories));
         new FileHandler(new File(outDir, "classes.md"))
-            .write(renderGroupPage("Classes", grouped.getOrDefault("Class", List.of()), false, classCategories));
+            .write(renderGroupPage("Classes", grouped.getOrDefault(ClassGroup.Class, List.of()), false, classCategories));
     }
 
-    private String renderOverview(Map<String, List<ClassDoc>> grouped, String version, String mcVersion) {
+    private String renderOverview(Map<ClassGroup, List<ClassDoc>> grouped, String version, String mcVersion) {
         MarkdownBuilder md = new MarkdownBuilder();
         md.frontmatter(Map.of("outline", "false"));
         md.heading(1, "JsMacros API Reference");
@@ -136,9 +136,9 @@ public class MarkdownWriter {
             "Version: " + MarkdownBuilder.codeSpan(version) + "  \n"
             + "Minecraft: " + MarkdownBuilder.codeSpan(mcVersion)
         );
-        md.bulletItem(MarkdownBuilder.link("Libraries", "./libraries.md") + " (" + grouped.getOrDefault("Library", List.of()).size() + ")");
-        md.bulletItem(MarkdownBuilder.link("Events", "./events.md") + " (" + grouped.getOrDefault("Event", List.of()).size() + ")");
-        md.bulletItem(MarkdownBuilder.link("Classes", "./classes.md") + " (" + grouped.getOrDefault("Class", List.of()).size() + ")");
+        md.bulletItem(MarkdownBuilder.link("Libraries", "./libraries.md") + " (" + grouped.getOrDefault(ClassGroup.Library, List.of()).size() + ")");
+        md.bulletItem(MarkdownBuilder.link("Events", "./events.md") + " (" + grouped.getOrDefault(ClassGroup.Event, List.of()).size() + ")");
+        md.bulletItem(MarkdownBuilder.link("Classes", "./classes.md") + " (" + grouped.getOrDefault(ClassGroup.Class, List.of()).size() + ")");
         md.paragraph("Use the sidebar to browse packages and classes.");
         return md.toString();
     }
@@ -580,14 +580,14 @@ public class MarkdownWriter {
             return null;
         }
         if (matches.size() == 1 || context == null) {
-            return matches.get(0);
+            return matches.getFirst();
         }
         for (ClassDoc match : matches) {
             if (match.packageName().equals(context.packageName())) {
                 return match;
             }
         }
-        return matches.get(0);
+        return matches.getFirst();
     }
 
     private LinkSignature parseSignature(String signature) {
@@ -673,7 +673,7 @@ public class MarkdownWriter {
         }
         List<String> params = signature.paramTypes();
         if (params == null) {
-            return members.size() == 1 ? members.get(0).anchorId() : null;
+            return members.size() == 1 ? members.getFirst().anchorId() : null;
         }
         for (MemberDoc member : members) {
             if (paramsMatch(member, params)) {
@@ -704,7 +704,7 @@ public class MarkdownWriter {
 
     private String memberParamTypeName(TypeRef type, boolean varArgs) {
         String base = type.kind() == TypeKind.ARRAY
-            ? memberParamTypeName(type.typeArgs().get(0), false) + "[]"
+            ? memberParamTypeName(type.typeArgs().getFirst(), false) + "[]"
             : type.name();
         if (varArgs && type.kind() != TypeKind.ARRAY) {
             base = base + "[]";
@@ -737,11 +737,7 @@ public class MarkdownWriter {
             normalized = normalized.substring(0, genericIndex).trim();
         }
         normalized = stripPackageName(normalized);
-        StringBuilder builder = new StringBuilder(normalized);
-        for (int i = 0; i < arrayDepth; i++) {
-            builder.append("[]");
-        }
-        return builder.toString();
+        return normalized + "[]".repeat(Math.max(0, arrayDepth));
     }
 
     private String stripPackageName(String name) {
