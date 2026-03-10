@@ -363,21 +363,29 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         matrices.scale((float) scale, (float) scale, (float) scale);
 
         synchronized (elements) {
-            renderElements3D(matrices, consumers, tickDelta, resolveLightValue(), seeThrough, getElementsByZIndex());
+            renderElements3D(matrices,
+                    consumers,
+                    tickDelta,
+                    resolveLightValue(renderPos.toRawBlockPos()),
+                    seeThrough,
+                    getElementsByZIndex());
         }
         matrices.popPose();
     }
 
     private int resolveLightValue() {
+        return resolveLightValue(pos.toRawBlockPos());
+    }
+
+    private int resolveLightValue(BlockPos blockPos) {
         return switch (lightMode) {
             case FULL_BRIGHT -> 0xF000F0;
             case CUSTOM      -> customLight;
             case WORLD       -> {
                 ClientLevel level = Minecraft.getInstance().level;
                 if (level == null) yield 0xF000F0;
-                BlockPos bp = pos.toRawBlockPos();
-                int block = level.getBrightness(LightLayer.BLOCK, bp);
-                int sky   = level.getBrightness(LightLayer.SKY,   bp);
+                int block = level.getBrightness(LightLayer.BLOCK, blockPos);
+                int sky = level.getBrightness(LightLayer.SKY, blockPos);
                 yield LightTexture.pack(block, sky);
             }
         };
