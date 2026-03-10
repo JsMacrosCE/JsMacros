@@ -307,18 +307,12 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
 
     @Override
     @DocletIgnore
-    public void render(PoseStack matrices, MultiBufferSource consumers, float tickDelta) {
+    public void render(PoseStack matrices, MultiBufferSource consumers, float partialTicks) {
         boolean seeThrough = !this.cull;
         matrices.pushPose();
 
-        Pos3D renderPos = new Pos3D(pos);
-        if (boundEntity != null && boundEntity.isAlive()) {
-            Pos3D entityPos = boundEntity.getPos().add(boundOffset);
-            renderPos.x += (entityPos.x - pos.x) * tickDelta;
-            renderPos.y += (entityPos.y - pos.y) * tickDelta;
-            renderPos.z += (entityPos.z - pos.z) * tickDelta;
-        }
-
+        boolean isTrackingEntity = boundEntity != null && boundEntity.isAlive();
+        Pos3D renderPos = isTrackingEntity ? new Pos3D(boundEntity.getPos(partialTicks)) : pos;
         matrices.translate(renderPos.x, renderPos.y, renderPos.z);
 
         if (rotateToPlayer) {
@@ -365,7 +359,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         synchronized (elements) {
             renderElements3D(matrices,
                     consumers,
-                    tickDelta,
+                    partialTicks,
                     resolveLightValue(renderPos.toRawBlockPos()),
                     seeThrough,
                     getElementsByZIndex());
