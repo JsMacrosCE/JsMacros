@@ -190,7 +190,12 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     }
 
     public void setMinSubdivisions(int minSubdivisions) {
-        this.minSubdivisions = minSubdivisions;
+        this.minSubdivisions = Math.max(minSubdivisions, 1);
+        if (minSubdivisions != this.minSubdivisions) {
+            JsMacros.LOGGER.warn("Surface.setMinSubdivisions called with invalid minSubdivisions: {}, defaulting to 1",
+                    minSubdivisions);
+        }
+        
         recomputeScale();
     }
 
