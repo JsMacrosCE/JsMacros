@@ -24,10 +24,7 @@ import java.util.Comparator;
 import java.util.stream.Collectors;
 
 public class ForgeEvents {
-    private static final Minecraft client = Minecraft.getInstance();
-
     public static void init() {
-        NeoForge.EVENT_BUS.addListener(ForgeEvents::renderWorldListener);
         NeoForge.EVENT_BUS.addListener(ForgeEvents::onTick);
         NeoForge.EVENT_BUS.addListener(ForgeEvents::onRegisterCommands);
 
@@ -94,37 +91,6 @@ public class ForgeEvents {
         //?}
 
         ev.registerBelow(layer, ResourceLocation.parse("jsmacrosce:hud"), ForgeEvents::renderHudListener);
-    }
-
-    //? if >1.21.5 {
-    public static void renderWorldListener(RenderLevelStageEvent.AfterLevel e) {
-    //?} else {
-    /*public static void renderWorldListener(RenderLevelStageEvent e) {
-        if (e.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
-            return;
-        }
-    *///?}
-        var profiler = Profiler.get();
-        profiler.push("jsmacrosce_draw3d");
-        try {
-            MultiBufferSource.BufferSource consumers = Minecraft.getInstance().renderBuffers().bufferSource();
-            //? if >1.21.8 {
-            /*DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-            *///?} else {
-            DeltaTracker deltaTracker = e.getPartialTick();
-            //?}
-            float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(true);
-            PoseStack poseStack = new PoseStack();
-
-            for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
-                d.render(poseStack, consumers, tickDelta);
-            }
-
-            consumers.endBatch();
-        } catch (Throwable t) {
-            t.printStackTrace();
-        }
-        profiler.pop();
     }
 
     public static void onTick(ClientTickEvent.Post event) {

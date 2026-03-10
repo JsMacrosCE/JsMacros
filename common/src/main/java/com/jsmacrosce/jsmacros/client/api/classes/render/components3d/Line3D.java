@@ -159,7 +159,7 @@ public class Line3D implements RenderElement3D<Line3D> {
             addLine(consumer, entry, (float) pos.x2, (float) pos.y2, (float) pos.z2, color, 0, 0, 1);
 
             //? if <1.21.11 {
-            if (seeThrough && consumer instanceof MultiBufferSource.BufferSource immediate) {
+            if (seeThrough && consumers instanceof MultiBufferSource.BufferSource immediate) {
                 immediate.endBatch();
             }
         } catch (IllegalAccessException e) {

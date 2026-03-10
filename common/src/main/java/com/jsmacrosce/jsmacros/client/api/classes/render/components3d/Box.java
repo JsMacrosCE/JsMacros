@@ -126,7 +126,7 @@ public class Box implements RenderElement3D<Box> {
      * @since 1.0.6
      */
     public void setFillColor(int fillColor) {
-        this.fillColor = fillColor;
+        this.fillColor = ColorUtil.fixAlpha(fillColor);
     }
 
     /**
