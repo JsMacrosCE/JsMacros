@@ -1,4 +1,4 @@
-package com.jsmacrosce.doclet.mddoclet.options;
+package com.jsmacrosce.doclet.options;
 
 import jdk.javadoc.doclet.Doclet;
 

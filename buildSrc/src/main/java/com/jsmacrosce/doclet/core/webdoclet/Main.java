@@ -10,8 +10,8 @@ import com.jsmacrosce.doclet.core.webdoclet.parsers.ClassParser;
 import com.jsmacrosce.doclet.options.IgnoredItem;
 import com.jsmacrosce.doclet.options.OutputDirectory;
 import com.jsmacrosce.doclet.options.Version;
-import com.jsmacrosce.doclet.webdoclet.options.Links;
-import com.jsmacrosce.doclet.webdoclet.options.McVersion;
+import com.jsmacrosce.doclet.options.Links;
+import com.jsmacrosce.doclet.options.McVersion;
 
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.AnnotationMirror;

@@ -1,4 +1,4 @@
-package com.jsmacrosce.doclet.mddoclet.options;
+package com.jsmacrosce.doclet.options;
 
 import jdk.javadoc.doclet.Doclet;
 
@@ -37,5 +37,4 @@ public class McVersion implements Doclet.Option {
         mcVersion = arguments.get(0);
         return true;
     }
-
 }

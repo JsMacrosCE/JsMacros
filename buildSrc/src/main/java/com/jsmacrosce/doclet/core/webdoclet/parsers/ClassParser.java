@@ -6,7 +6,7 @@ import com.sun.source.util.DocTreePath;
 import com.jsmacrosce.Pair;
 import com.jsmacrosce.XMLBuilder;
 import com.jsmacrosce.doclet.core.webdoclet.Main;
-import com.jsmacrosce.doclet.webdoclet.options.Links;
+import com.jsmacrosce.doclet.options.Links;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
