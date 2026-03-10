@@ -44,7 +44,7 @@ public class Item implements RenderElement, Alignable<Item> {
 
     private static final int DEFAULT_ITEM_SIZE = 16;
     private static final float FLAT_ITEM_DEPTH_SCALE = 0.001f;
-    private static final float OVERLAY_TEXT_Z_OFFSET = 0.1f;
+    private static final float OVERLAY_TEXT_Z_OFFSET = 0.001f;
     private static final Minecraft mc = Minecraft.getInstance();
 
     @Nullable
