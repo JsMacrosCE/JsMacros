@@ -81,26 +81,70 @@ require_cmd() {
   }
 }
 
+is_git_ignored() {
+  local path="$1"
+  git check-ignore -q -- "$path"
+}
+
+wait_for_relevant_change() {
+  local changed_path
+
+  while :; do
+    changed_path="$(
+      inotifywait -qq -r \
+        -e modify,create,delete,move \
+        --format '%w%f' \
+        "${WATCH_DIRS[@]}"
+    )"
+
+    if is_git_ignored "$changed_path"; then
+      echo "==> Ignored by .gitignore: $changed_path"
+      continue
+    fi
+
+    echo "==> Relevant change: $changed_path"
+    return 0
+  done
+}
+
+wait_for_quiet_period() {
+  local changed_path
+
+  while :; do
+    changed_path="$(
+      inotifywait -qq -r \
+        -e modify,create,delete,move \
+        -t "$DEBOUNCE_SECONDS" \
+        --format '%w%f' \
+        "${WATCH_DIRS[@]}" || true
+    )"
+
+    [[ -z "$changed_path" ]] && return 0
+
+    if is_git_ignored "$changed_path"; then
+      echo "==> Ignored by .gitignore during debounce: $changed_path"
+      continue
+    fi
+
+    echo "==> More relevant changes detected, resetting debounce: $changed_path"
+  done
+}
+
 main() {
   require_cmd inotifywait
   require_cmd pnpm
+  require_cmd git
 
   initial_build
 
   echo "==> Watching for changes in: ${WATCH_DIRS[*]}"
   echo "==> Debounce window: ${DEBOUNCE_SECONDS}s"
+  echo "==> Respecting .gitignore via git check-ignore"
 
   while :; do
-    # Wait for the first event
-    inotifywait -qq -r -e modify,create,delete,move "${WATCH_DIRS[@]}"
-
-    echo "==> Changes detected, waiting for quiet period..."
-
-    # Keep extending the quiet window while more events arrive
-    while inotifywait -qq -r -e modify,create,delete,move -t "$DEBOUNCE_SECONDS" "${WATCH_DIRS[@]}"; do
-      :
-    done
-
+    wait_for_relevant_change
+    echo "==> Waiting for quiet period..."
+    wait_for_quiet_period
     run_build_loop
   done
 }
