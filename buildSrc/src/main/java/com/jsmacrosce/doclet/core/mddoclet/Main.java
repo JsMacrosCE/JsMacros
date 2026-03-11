@@ -65,7 +65,8 @@ public class Main implements Doclet {
             return false;
         }
 
-        MarkdownWriter writer = new MarkdownWriter(typeResolver);
+        MarkdownWriter writer = new MarkdownWriter();
+        writer.setExternalPackages(Links.externalPackages);
         try {
             writer.write(model, outDir, Version.version, McVersion.mcVersion);
         } catch (IOException e) {

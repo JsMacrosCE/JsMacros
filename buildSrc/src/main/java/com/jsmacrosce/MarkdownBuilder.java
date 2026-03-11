@@ -12,7 +12,7 @@ import java.util.Map;
  *
  * <p>Inline helpers ({@link #codeSpan} and {@link #link}) are static so they
  * can be used in contexts where only a {@code String} is needed, such as
- * inside {@link #renderSignature} in {@code MarkdownWriter}.
+ * inside {@code MarkdownWriter} signatures.
  */
 public class MarkdownBuilder {
 

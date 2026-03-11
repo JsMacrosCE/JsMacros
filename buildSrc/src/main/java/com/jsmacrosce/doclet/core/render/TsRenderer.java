@@ -558,6 +558,7 @@ public class TsRenderer implements Renderer {
     }
 
     private void applyTypeScriptAliases(Map<String, String> aliases) {
+        // TODO: This ignores all other aliases?
         if (typeResolver instanceof BasicTypeResolver basicTypeResolver) {
             basicTypeResolver.setTypeScriptAliases(aliases);
         }

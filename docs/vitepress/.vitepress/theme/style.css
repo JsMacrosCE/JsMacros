@@ -1,0 +1,185 @@
+/* ==========================================================================
+   JsMacros API Docs — custom styling
+   Extends the VitePress default theme; does not replace it.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Section headings (## Constructors / Fields / Methods)
+   -------------------------------------------------------------------------- */
+
+.vp-doc h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vp-c-text-2);
+  border-bottom: none;
+  margin-top: 2.5rem;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Member headings — H3 is the card header for every method/field/constructor.
+   The bare name sits here; the signature(s) live in overload-sig below.
+   -------------------------------------------------------------------------- */
+
+.vp-doc h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 2px solid var(--vp-c-divider);
+  margin-top: 1.5rem;
+  margin-bottom: 0;
+
+  font-size: 1.05rem;
+  font-family: var(--vp-font-family-mono);
+  font-weight: 600;
+
+  border-left: 3px solid var(--vp-c-brand-1);
+  background: var(--vp-c-bg-soft);
+  border-radius: 0 6px 6px 0;
+  padding: 0.55rem 0.75rem;
+
+  color: var(--vp-c-text-1);
+}
+
+.vp-doc h3 .header-anchor {
+  display: none;
+}
+
+/* Use ::after to render the anchor on the right (avoids # appearing in VitePress outline) */
+.vp-doc h3::after {
+  content: "#";
+  font-family: inherit;
+  font-size: 0.85em;
+  color: var(--vp-c-brand-2);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  margin-left: 0.5rem;
+}
+.vp-doc h3:hover::after {
+  opacity: 1;
+}
+
+/* First member card directly after a section heading — drop the top border */
+.vp-doc h2 + h3 {
+  border-top: none;
+  margin-top: 0.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   Class page header — qualified name as subdued subtitle
+   -------------------------------------------------------------------------- */
+
+.vp-doc h1 + p:not(:has(a)):not(:has(code)):not(:has(strong)) {
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.82rem;
+  color: var(--vp-c-text-3);
+  margin-top: -0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   Overload / member groups — rendered as raw HTML by the Java doclet.
+
+   Structure emitted for every member (solo or overloaded):
+
+     <div class="overload-list">
+       <div class="overload-item" id="QualifiedClass_anchorId">
+         <div class="overload-sig"><code>…full signature…</code></div>
+         <div class="overload-body">          (absent when no docs)
+           <p>description</p>
+           <p><strong>Since:</strong> …</p>
+           <p><strong>Parameters:</strong></p>
+           <ul>…</ul>
+           <p><strong>Returns:</strong> …</p>
+           <p><strong>See:</strong></p>
+           <ul>…</ul>
+         </div>
+       </div>
+       …
+     </div>
+   -------------------------------------------------------------------------- */
+
+.vp-doc .overload-list {
+  margin-top: 0;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 0 0 6px 6px;
+  overflow: hidden;
+}
+
+.vp-doc .overload-item + .overload-item {
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+/* Signature row */
+.vp-doc .overload-sig {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--vp-c-bg-alt);
+}
+
+.vp-doc .overload-sig code {
+  font-size: 0.88em;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  color: var(--vp-c-text-1);
+}
+
+/* Copy-able anchor link on hover, matching VitePress header anchor style */
+.vp-doc .overload-anchor {
+  font-size: 0.85em;
+  color: var(--vp-c-brand-2);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  margin-left: 0.5rem;
+}
+.vp-doc .overload-sig:hover .overload-anchor {
+  opacity: 1;
+}
+.vp-doc .overload-anchor:hover {
+  color: var(--vp-c-brand-1);
+}
+
+/* Documentation body below the signature */
+.vp-doc .overload-body {
+  padding: 0.55rem 0.75rem 0.65rem;
+  font-size: 0.92em;
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+.vp-doc .overload-body > *:first-child { margin-top: 0; }
+.vp-doc .overload-body > *:last-child  { margin-bottom: 0; }
+
+.vp-doc .overload-body p {
+  margin: 0 0;
+}
+
+.vp-doc .overload-body ul {
+  margin: 0.2rem 0 0.2rem 1.1rem;
+  padding: 0;
+}
+
+.vp-doc .overload-body li {
+  margin: 0.15rem 0;
+}
+
+/* Bold metadata labels (Since:, Parameters:, Returns:, See:, Deprecated:) */
+.vp-doc .overload-body strong {
+  color: var(--vp-c-text-2);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-right: 0.3rem;
+}
+
+.vp-doc .overload-body code {
+  font-size: 0.88em;
+}

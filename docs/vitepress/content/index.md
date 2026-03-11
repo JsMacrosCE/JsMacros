@@ -10,12 +10,6 @@ Use the sidebar to navigate through:
 - **Classes**: Helper classes and utilities
 - **Events**: Available events and their properties
 
-## Quick Links
-
-- [World API](/apis/World) - Interact with the Minecraft world
-- [Player API](/apis/Player) - Control the player
-- [Chat API](/apis/Chat) - Send and receive chat messages
-- [Hud API](/apis/Hud) - Manipulate the HUD
 
 ## Resources
 

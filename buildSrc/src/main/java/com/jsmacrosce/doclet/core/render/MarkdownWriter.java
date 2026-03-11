@@ -3,8 +3,6 @@ package com.jsmacrosce.doclet.core.render;
 import com.jsmacrosce.FileHandler;
 import com.jsmacrosce.MarkdownBuilder;
 import com.jsmacrosce.doclet.core.ClassGroup;
-import com.jsmacrosce.doclet.core.TargetLanguage;
-import com.jsmacrosce.doclet.core.TypeResolver;
 import com.jsmacrosce.doclet.core.model.ClassDoc;
 import com.jsmacrosce.doclet.core.model.DocComment;
 import com.jsmacrosce.doclet.core.model.DocTag;
@@ -19,11 +17,14 @@ import com.jsmacrosce.doclet.core.model.TypeRef;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -45,14 +46,22 @@ public class MarkdownWriter {
     );
     private static final String DEFAULT_CATEGORY = "Uncategorized";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-    private final TypeResolver typeResolver;
     private final Map<String, ClassDoc> classByQualifiedName = new HashMap<>();
     private final Map<String, List<ClassDoc>> classByName = new HashMap<>();
     private final Map<String, List<ClassDoc>> classByAlias = new HashMap<>();
+    /** Package name → base Javadoc URL for external (non-project) types, e.g. "java.util" → "https://…". */
+    private Map<String, String> externalPackages = Map.of();
     private String version;
 
-    public MarkdownWriter(TypeResolver typeResolver) {
-        this.typeResolver = typeResolver;
+    public MarkdownWriter() {
+    }
+
+    /**
+     * Provides a map of Java package names to their external Javadoc base URLs
+     * (as produced by the {@code -link} option).  Must be called before {@link #write}.
+     */
+    public void setExternalPackages(Map<String, String> externalPackages) {
+        this.externalPackages = externalPackages == null ? Map.of() : externalPackages;
     }
 
     public void write(DocletModel model, File outDir, String version, String mcVersion) throws IOException {
@@ -242,7 +251,7 @@ public class MarkdownWriter {
         md.paragraph(clz.qualifiedName());
 
         String desc = formatDescription(clz.docComment(), clz);
-        String descText = desc.isEmpty() ? "TODO: No description supplied" : desc;
+        String descText = desc.isEmpty() ? "TODO: No description supplied\n" : desc;
         if (clz.group() == ClassGroup.Library) {
             String accessName = clz.alias() == null || clz.alias().isEmpty() ? clz.name() : clz.alias();
             descText += "\nAccessible in scripts via the global " + MarkdownBuilder.codeSpan(accessName) + " variable.";
@@ -271,113 +280,217 @@ public class MarkdownWriter {
             return;
         }
         md.heading(2, title);
+
+        // Preserve declaration order while grouping by name so that overloads
+        // stay adjacent to where the first overload appears in the source.
+        LinkedHashMap<String, List<MemberDoc>> byName = new LinkedHashMap<>();
         for (MemberDoc member : members) {
-            boolean hasLinkRef = member.anchorId() != null && !member.anchorId().isBlank();
-            if (hasLinkRef) {
-                md.heading(3, renderMemberTitle(member), clz.qualifiedName() + "_" + member.anchorId());
+            byName.computeIfAbsent(member.name(), k -> new ArrayList<>()).add(member);
+        }
+
+        for (List<MemberDoc> group : byName.values()) {
+            renderMemberGroup(md, group, clz);
+        }
+    }
+
+    /**
+     * Renders a named group of one or more members (overloads) under a single
+     * H3 heading followed by a unified HTML block.
+     *
+     * <p>Every member — whether alone or part of a true overload set — is
+     * rendered identically: the H3 carries only the bare name (plus a
+     * group-level anchor), and each member's signature and documentation body
+     * live inside a self-contained {@code <div class="overload-item">} element.
+     * Solo members therefore look exactly like individual overloads.
+     *
+     * <p>In addition to the group anchor on the H3, each {@code overload-item}
+     * receives an {@code id} derived from the member's {@code anchorId} so that
+     * deep links to a specific overload are possible.
+     */
+    private void renderMemberGroup(MarkdownBuilder md, List<MemberDoc> members, ClassDoc clz) {
+        MemberDoc first = members.getFirst();
+        String groupName = first.kind() == MemberKind.CONSTRUCTOR
+            ? "new " + first.name()
+            : first.name();
+        // Use the first member's anchorId as the group anchor so that a field
+        // and a same-named method produce distinct H3 anchors ("joinable" vs
+        // "joinable-").  Fall back to the bare name only when anchorId is absent.
+        String groupSuffix = (first.anchorId() != null && !first.anchorId().isBlank())
+            ? first.anchorId()
+            : first.name();
+        String groupAnchor = clz.qualifiedName() + "_" + groupSuffix;
+        md.heading(3, groupName, groupAnchor);
+
+        StringBuilder html = new StringBuilder();
+        html.append("<div class=\"overload-list\">\n");
+        for (MemberDoc member : members) {
+            // Per-overload anchor for direct deep-linking.
+            String itemId = (member.anchorId() != null && !member.anchorId().isBlank())
+                ? clz.qualifiedName() + "_" + member.anchorId()
+                : null;
+            html.append("<div class=\"overload-item\"");
+            if (itemId != null) {
+                html.append(" id=\"").append(itemId).append("\"");
+            }
+            html.append(">\n");
+            html.append("<div class=\"overload-sig\">");
+            html.append("<code>").append(renderSignature(member)).append("</code>");
+            if (itemId != null) {
+                html.append("<a class=\"overload-anchor\" href=\"#").append(itemId).append("\">#</a>");
+            }
+            html.append("</div>\n");
+            String body = buildOverloadBody(member, clz);
+            if (!body.isBlank()) {
+                html.append("<div class=\"overload-body\">\n")
+                    .append(body)
+                    .append("</div>\n");
+            }
+            html.append("</div>\n");
+        }
+        html.append("</div>\n");
+        md.raw("\n" + html);
+    }
+
+    /**
+     * Builds the documentation body for a single overload as an HTML string.
+     * Each piece of metadata (description, {@code @since}, {@code @deprecated},
+     * parameter list, return, {@code @see}) is serialised to HTML directly so
+     * it can be embedded inside the overload's container element.
+     */
+    private String buildOverloadBody(MemberDoc member, ClassDoc clz) {
+        StringBuilder html = new StringBuilder();
+
+        String desc = formatDescription(member.docComment(), clz);
+        if (!desc.isEmpty()) {
+            html.append("<p>").append(desc).append("</p>\n");
+        }
+
+        // TODO: (docs) Make these badges inline with the name(?)
+        String since = getTagText(member.docComment(), DocTagKind.SINCE);
+        // TODO: (docs) Migrate the since tags containing descriptions to a note or similar.
+        // TODO: (docs) Verify all [citaiton needed] instances.
+        // Can be "1.2.3", "1.2.3 [citation needed]", or sometimes "1.2.3 (TextHelper since 2.3.4)"
+        if (!since.isEmpty()) {
+            html.append("<p><strong>Since:</strong> ").append(since).append("</p>\n");
+        }
+
+        if (hasDeprecatedTag(member.docComment())) {
+            String deprecated = getTagText(member.docComment(), DocTagKind.DEPRECATED);
+            html.append("<p><strong>Deprecated:</strong> ")
+                .append(formatDocText(deprecated, clz))
+                .append("</p>\n");
+        }
+
+        // Parameters
+        List<ParamDoc> params = member.params();
+        boolean hasParamDocs = params.stream()
+            .anyMatch(p -> p.description() != null && !p.description().isBlank());
+        if (hasParamDocs) {
+            html.append("<p><strong>Parameters:</strong></p>\n<ul>\n");
+            for (ParamDoc param : params) {
+                String desc2 = param.description() == null ? "" : formatDocText(param.description(), clz);
+                if (desc2.isBlank()) {
+                    continue;
+                }
+                html.append("<li><code>").append(param.name()).append("</code>: ")
+                    .append(desc2).append("</li>\n");
+            }
+            html.append("</ul>\n");
+        }
+
+        // Returns
+        if (member.kind() == MemberKind.METHOD) {
+            String retTag = getTagText(member.docComment(), DocTagKind.RETURN);
+            if (!retTag.isEmpty()) {
+                html.append("<p><strong>Returns:</strong> ")
+                    .append(formatDocText(retTag, clz))
+                    .append("</p>\n");
             } else {
-                md.heading(3, renderMemberTitle(member));
-            }
-
-            md.paragraph("**Signature:** " + MarkdownBuilder.codeSpan(renderSignature(member)));
-
-            String desc = formatDescription(member.docComment(), clz);
-            if (!desc.isEmpty()) {
-                md.paragraph(desc);
-            }
-
-            // TODO: Make this a badge
-            String since = getTagText(member.docComment(), DocTagKind.SINCE);
-            if (!since.isEmpty()) {
-                md.paragraph("**Since:** " + since);
-            }
-
-            if (hasDeprecatedTag(member.docComment())) {
-                String deprecated = getTagText(member.docComment(), DocTagKind.DEPRECATED);
-                md.paragraph("**Deprecated:** " + formatDocText(deprecated, clz));
-            }
-
-            appendParamDocs(md, member, clz);
-
-            if (member.kind() == MemberKind.METHOD) {
-                String ret = getTagText(member.docComment(), DocTagKind.RETURN);
-                if (ret.isEmpty()) {
-                    ret = convertLinkTags("{@link " + renderType(member) + "}", clz);
-                }
-                if (!ret.isEmpty()) {
-                    md.paragraph("**Returns:** " + formatDocText(ret, clz));
+                TypeRef returnType = member.returnType();
+                if (returnType != null && returnType.kind() != TypeKind.VOID) {
+                    html.append("<p><strong>Returns:</strong> <code>")
+                        .append(renderTypeAsHtml(returnType))
+                        .append("</code></p>\n");
                 }
             }
-
-            appendSeeDocs(md, member.docComment(), clz);
         }
+
+        // See
+        if (member.docComment() != null) {
+            List<String> sees = new ArrayList<>();
+            for (DocTag tag : member.docComment().tags()) {
+                if (tag.kind() == DocTagKind.SEE && tag.text() != null && !tag.text().isBlank()) {
+                    sees.add(resolveSeeHtmlLink(tag.text(), clz));
+                }
+            }
+            if (!sees.isEmpty()) {
+                html.append("<p><strong>See:</strong></p>\n<ul>\n");
+                for (String see : sees) {
+                    html.append("<li>").append(see).append("</li>\n");
+                }
+                html.append("</ul>\n");
+            }
+        }
+
+        return html.toString();
     }
 
-    private String renderMemberTitle(MemberDoc member) {
-        if (member.kind() == MemberKind.CONSTRUCTOR) {
-            return "new " + member.name() + "(" + renderParamNames(member) + ")";
-        } else if (member.kind() == MemberKind.FIELD) {
-            return member.name();
-        }
-        return member.name() + "(" + renderParamNames(member) + ")";
-    }
-
-    private String renderParamNames(MemberDoc member) {
-        StringBuilder builder = new StringBuilder();
-        for (ParamDoc param : member.params()) {
-            builder.append(param.name()).append(", ");
-        }
-        if (!member.params().isEmpty()) {
-            builder.setLength(builder.length() - 2);
-        }
-        return builder.toString();
-    }
-
+    /**
+     * Renders the signature as a plain-text HTML-safe string for embedding
+     * inside a {@code <code>} element.  Type names are rendered without {@code <a>}
+     * links (to avoid Vue template-compiler issues with mixed-content {@code <code>}
+     * blocks); generic angle brackets are HTML-entity-escaped.
+     *
+     * <p>When a {@code @DocletReplaceParams} or {@code @DocletReplaceReturn}
+     * annotation override is present the raw override string is HTML-escaped for
+     * safe embedding.
+     */
     private String renderSignature(MemberDoc member) {
         if (member.kind() == MemberKind.FIELD) {
-            return member.name() + ": " + renderType(member);
+            return member.name() + ": " + renderTypeAsText(member.returnType());
         }
 
-        StringBuilder builder = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
         if (member.kind() == MemberKind.CONSTRUCTOR) {
-            builder.append("new ");
+            sb.append("new ");
         }
-        builder.append(member.name()).append("(");
+        sb.append(member.name()).append("(");
         if (member.replaceParams() != null && !member.replaceParams().isBlank()) {
-            builder.append(member.replaceParams());
+            // Opaque override — escape angle brackets for safe HTML embedding.
+            sb.append(escapeHtml(member.replaceParams()));
         } else {
-            for (ParamDoc param : member.params()) {
-                builder.append(renderParam(param)).append(", ");
-            }
-            if (!member.params().isEmpty()) {
-                builder.setLength(builder.length() - 2);
+            List<ParamDoc> params = member.params();
+            for (int i = 0; i < params.size(); i++) {
+                if (i > 0) {
+                    sb.append(", ");
+                }
+                ParamDoc param = params.get(i);
+                sb.append(renderTypeAsText(param.type())).append(" ").append(param.name());
             }
         }
-        builder.append(")");
+        sb.append(")");
         if (member.kind() != MemberKind.CONSTRUCTOR) {
-            builder.append(": ").append(renderType(member));
+            sb.append(": ");
+            if (member.replaceReturn() != null && !member.replaceReturn().isBlank()) {
+                sb.append(escapeHtml(member.replaceReturn()));
+            } else {
+                sb.append(renderTypeAsText(member.returnType()));
+            }
         }
-        return builder.toString();
-    }
-
-    private String renderParam(ParamDoc param) {
-        return typeResolver.format(param.type(), TargetLanguage.MARKDOWN) + " " + param.name();
-    }
-
-    private String renderType(MemberDoc member) {
-        if (member.replaceReturn() != null && !member.replaceReturn().isBlank()) {
-            return member.replaceReturn();
-        }
-
-        return typeResolver.format(member.returnType(), TargetLanguage.MARKDOWN);
+        return sb.toString();
     }
 
     private String getTagText(DocComment comment, DocTagKind kind) {
+        if (comment == null) {
+            return "";
+        }
+
         for (DocTag tag : comment.tags()) {
             if (tag.kind() == kind) {
                 return tag.text();
             }
         }
+        
         return "";
     }
 
@@ -385,10 +498,12 @@ public class MarkdownWriter {
         if (comment == null) {
             return "";
         }
+        
         String text = comment.description();
         if (text == null || text.isBlank()) {
             text = comment.summary();
         }
+
         return text == null ? "" : formatDocText(text, context);
     }
 
@@ -399,39 +514,23 @@ public class MarkdownWriter {
         return comment.tags().stream().anyMatch(tag -> tag.kind() == DocTagKind.DEPRECATED);
     }
 
-    private void appendParamDocs(MarkdownBuilder md, MemberDoc member, ClassDoc context) {
-        List<ParamDoc> params = member.params();
-        boolean hasDocs = params.stream().anyMatch(param -> param.description() != null && !param.description().isBlank());
-        if (!hasDocs) {
-            return;
+    /**
+     * Resolves a {@code @see} tag signature to a plain HTML {@code <a>} tag
+     * wrapping a {@code <code>} label, for use inside raw HTML blocks.
+     */
+    private String resolveSeeHtmlLink(String signature, ClassDoc context) {
+        LinkSignature parsed = parseSignature(signature);
+        String label = "<code>" + linkLabel(signature) + "</code>";
+        if (parsed == null) {
+            return label;
         }
-        md.boldHeader("Parameters:");
-        for (ParamDoc param : params) {
-            String desc = param.description() == null ? "" : formatDocText(param.description(), context);
-            if (desc.isBlank()) {
-                continue;
-            }
-            md.bulletItem(MarkdownBuilder.codeSpan(param.name()) + ": " + formatDocText(desc, context));
+        ClassDoc targetClass = resolveClass(parsed.className(), context);
+        if (targetClass == null) {
+            return label;
         }
-    }
-
-    private void appendSeeDocs(MarkdownBuilder md, DocComment comment, ClassDoc context) {
-        if (comment == null) {
-            return;
-        }
-        List<String> sees = new ArrayList<>();
-        for (DocTag tag : comment.tags()) {
-            if (tag.kind() == DocTagKind.SEE && tag.text() != null && !tag.text().isBlank()) {
-                sees.add(formatDocText(tag.text(), context));
-            }
-        }
-        if (sees.isEmpty()) {
-            return;
-        }
-        md.boldHeader("See:");
-        for (String see : sees) {
-            md.bulletItem(see);
-        }
+        String anchor = resolveMemberAnchor(targetClass, parsed);
+        String url = buildLinkUrl(targetClass, anchor, context);
+        return "<a href=\"" + url + "\">" + label + "</a>";
     }
 
     private String formatDocText(String text, ClassDoc context) {
@@ -444,16 +543,26 @@ public class MarkdownWriter {
             return "";
         }
 
-        formatted = formatted.replaceAll("\n <p>", "\n")
+        // Strip Javadoc paragraph breaks and convert pre blocks before escaping
+        // so that the patterns still match the raw HTML tags.
+        System.out.println("Working on raw doc text: " + formatted + "\n---");
+        formatted = formatted.replaceAll("<br ?/?>", "\n");
+        formatted = formatted.replaceAll("\n ?<p>", "\n")
             .replaceAll("</?pre>", "```");
         formatted = HTML_LINK.matcher(formatted).replaceAll("[$2]($1)");
-//        formatted = formatted.replace("&lt;", "<").replace("&gt;", ">");
+
+        // Escape any remaining HTML angle brackets so they render as literal text
+        // when the output is embedded in HTML blocks (must come after HTML_LINK
+        // processing so that real hrefs are converted first).
+        formatted = formatted.replace("<", "&lt;").replace(">", "&gt;");
         formatted = formatted.replaceAll("(?<=[.,:;>]) ?\n", "  \n");
         formatted = convertLinkTags(formatted, context);
         String trimmed = formatted.trim();
         if (looksLikeSignature(trimmed)) {
             formatted = MarkdownBuilder.codeSpan(convertSignature(trimmed));
         }
+
+        System.out.println("Final doc text: " + formatted.trim() + "\n=====");
         return formatted.trim();
     }
 
@@ -527,6 +636,210 @@ public class MarkdownWriter {
         index.computeIfAbsent(key, name -> new ArrayList<>()).add(clz);
     }
 
+    // -------------------------------------------------------------------------
+    // HTML type rendering — produces linked HTML for a TypeRef tree.
+    // Each named type component becomes an <a> to its docs page (internal or
+    // external), and angle brackets are HTML-escaped so they render literally
+    // inside a <code> block in Markdown/VitePress.
+    // -------------------------------------------------------------------------
+
+    /**
+     * Renders a {@link TypeRef} as plain text with HTML-escaped angle brackets,
+     * suitable for embedding in a {@code <code>} element without any hyperlinks.
+     * Used for member signatures in the overload-sig block.
+     */
+    private String renderTypeAsText(TypeRef type) {
+        if (type == null) {
+            return "";
+        }
+        return switch (type.kind()) {
+            case PRIMITIVE, VOID -> escapeHtml(type.name());
+            case TYPEVAR -> {
+                String base = escapeHtml(type.name());
+                if (type.bounds() != null) {
+                    base = base + " extends " + renderTypeAsText(type.bounds());
+                }
+                yield base;
+            }
+            case ARRAY -> renderTypeAsText(type.typeArgs().get(0)) + "[]";
+            case WILDCARD -> {
+                if (type.bounds() != null) {
+                    yield "? extends " + renderTypeAsText(type.bounds());
+                }
+                yield "?";
+            }
+            case DECLARED -> {
+                String name = escapeHtml(type.name());
+                if (type.typeArgs().isEmpty()) {
+                    yield name;
+                }
+                StringBuilder sb = new StringBuilder(name);
+                sb.append("&lt;");
+                for (int i = 0; i < type.typeArgs().size(); i++) {
+                    if (i > 0) {
+                        sb.append(", ");
+                    }
+                    sb.append(renderTypeAsText(type.typeArgs().get(i)));
+                }
+                sb.append("&gt;");
+                yield sb.toString();
+            }
+            case INTERSECTION -> renderTypeArgListAsText(type.typeArgs(), " &amp; ");
+            case UNION -> renderTypeArgListAsText(type.typeArgs(), " | ");
+            default -> escapeHtml(type.name());
+        };
+    }
+
+    private String renderTypeArgListAsText(List<TypeRef> args, String separator) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < args.size(); i++) {
+            if (i > 0) {
+                sb.append(separator);
+            }
+            sb.append(renderTypeAsText(args.get(i)));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Renders a {@link TypeRef} as an HTML fragment where each declared type
+     * name is wrapped in an {@code <a>} tag pointing to its documentation
+     * (internal project page or external Javadoc).  Generic angle brackets are
+     * emitted as {@code &lt;} / {@code &gt;} so they render correctly inside a
+     * {@code <code>} element in the Markdown output.
+     */
+    private String renderTypeAsHtml(TypeRef type) {
+        if (type == null) {
+            return "";
+        }
+        return switch (type.kind()) {
+            case PRIMITIVE, VOID -> escapeHtml(type.name());
+            case TYPEVAR -> {
+                // Type variable: show its name; if it has a bound render "T extends Bound"
+                String base = escapeHtml(type.name());
+                if (type.bounds() != null) {
+                    base = base + " extends " + renderTypeAsHtml(type.bounds());
+                }
+                yield base;
+            }
+            case ARRAY -> renderTypeAsHtml(type.typeArgs().get(0)) + "[]";
+            case WILDCARD -> {
+                if (type.bounds() != null) {
+                    yield "? extends " + renderTypeAsHtml(type.bounds());
+                }
+                yield "?";
+            }
+            case DECLARED -> {
+                String linked = linkTypeName(type);
+                if (type.typeArgs().isEmpty()) {
+                    yield linked;
+                }
+                StringBuilder sb = new StringBuilder(linked);
+                sb.append("&lt;");
+                for (int i = 0; i < type.typeArgs().size(); i++) {
+                    if (i > 0) {
+                        sb.append(", ");
+                    }
+                    sb.append(renderTypeAsHtml(type.typeArgs().get(i)));
+                }
+                sb.append("&gt;");
+                yield sb.toString();
+            }
+            case INTERSECTION -> renderTypeArgListAsHtml(type.typeArgs(), " &amp; ");
+            case UNION -> renderTypeArgListAsHtml(type.typeArgs(), " | ");
+            default -> escapeHtml(type.name());
+        };
+    }
+
+    private String renderTypeArgListAsHtml(List<TypeRef> args, String separator) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < args.size(); i++) {
+            if (i > 0) {
+                sb.append(separator);
+            }
+            sb.append(renderTypeAsHtml(args.get(i)));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Returns the display name of a declared type wrapped in an {@code <a>} tag
+     * when a link target can be resolved, or just the plain name if not.
+     * Angle brackets in the display name are escaped to &lt;/&gt; so they render
+     * correctly when embedded inside HTML {@code <code>} elements.
+     */
+    private String linkTypeName(TypeRef type) {
+        String displayName = escapeHtml(type.name());
+        String url = resolveTypeUrl(type);
+        if (url == null) {
+            return displayName;
+        }
+        return "<a href=\"" + url + "\">" + displayName + "</a>";
+    }
+
+    /** Escapes < and > to HTML entities for safe embedding in HTML code elements. */
+    private String escapeHtml(String text) {
+        return text.replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    /**
+     * Resolves the URL for a declared type.
+     * <ol>
+     *   <li>Checks the internal project index (classByQualifiedName).</li>
+     *   <li>Falls back to the external Javadoc package index.</li>
+     * </ol>
+     * Returns {@code null} when no link can be determined.
+     */
+    private String resolveTypeUrl(TypeRef type) {
+        // 1. Internal project class?
+        ClassDoc internal = classByQualifiedName.get(type.qualifiedName());
+        if (internal != null) {
+            return "/" + version + "/" + classPath(internal);
+        }
+
+        // 2. External Javadoc?
+        String externalUrl = resolveExternalTypeUrl(type.qualifiedName());
+        if (externalUrl != null) {
+            return externalUrl;
+        }
+
+        return null;
+    }
+
+    /**
+     * Looks up a type's package in {@link #externalPackages} and builds the
+     * Javadoc URL for that type.  Returns {@code null} when the package is not
+     * in the external index.
+     *
+     * <p>The {@code -link} option stores entries in the form
+     * {@code "baseUrl/index.html?java/util/"} for package {@code java.util}.
+     * We append the simple class name ({@code List.html}) to produce the final
+     * URL: {@code "baseUrl/index.html?java/util/List.html"}.
+     */
+    @Nullable
+    private String resolveExternalTypeUrl(String qualifiedName) {
+        if (qualifiedName == null || qualifiedName.isBlank()) {
+            return null;
+        }
+        int lastDot = qualifiedName.lastIndexOf('.');
+        if (lastDot <= 0) {
+            return null;
+        }
+        String packageName = qualifiedName.substring(0, lastDot);
+        String simpleName = qualifiedName.substring(lastDot + 1);
+        String baseUrl = externalPackages.get(packageName);
+        if (baseUrl == null) {
+            return null;
+        }
+        // baseUrl is stored as e.g. "https://…/api/index.html?java/util/"
+        // Appending "List.html" gives "https://…/api/index.html?java/util/List.html".
+        // Strip any trailing slash first so we always end up with exactly one separator.
+        String trimmed = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        return trimmed + "/" + simpleName + ".html";
+    }
+
+    // -------------------------------------------------------------------------
+
     private String resolveLink(String signature, ClassDoc context) {
         LinkSignature parsed = parseSignature(signature);
         if (parsed == null) {
@@ -554,6 +867,7 @@ public class MarkdownWriter {
         return url;
     }
 
+    @Nullable
     private ClassDoc resolveClass(String name, ClassDoc context) {
         if (name == null || name.isBlank()) {
             return context;
@@ -590,6 +904,7 @@ public class MarkdownWriter {
         return matches.getFirst();
     }
 
+    @Nullable
     private LinkSignature parseSignature(String signature) {
         if (signature == null) {
             return null;
@@ -651,6 +966,7 @@ public class MarkdownWriter {
         return params;
     }
 
+    @Nullable
     private String resolveMemberAnchor(ClassDoc clz, LinkSignature signature) {
         if (signature.memberName() == null) {
             return null;

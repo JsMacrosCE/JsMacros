@@ -362,6 +362,7 @@ gradle.projectsEvaluated {
         description = "Generates the vitepress documentation for the project"
         source(documentationSources)
         classpath = documentationClasspath
+        dependsOn(minecraftArtifactTasks)
         destinationDir = File(docsBuildDir, "vitepress")
         options.doclet = "com.jsmacrosce.doclet.core.mddoclet.Main"
         options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()

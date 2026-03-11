@@ -88,7 +88,7 @@ public class BasicDocCommentParser implements DocCommentParser {
         for (DocTree tree : trees) {
             switch (tree.getKind()) {
                 case TEXT -> builder.append(((TextTree) tree).getBody());
-                case CODE -> builder.append("`").append(((LiteralTree) tree).getBody()).append("`");
+                case CODE -> builder.append("<code>").append(((LiteralTree) tree).getBody()).append("</code>");
                 case LINK, LINK_PLAIN -> {
                     String signature = ((LinkTree) tree).getReference().getSignature();
                     builder.append("{@link ").append(signature).append("}");
