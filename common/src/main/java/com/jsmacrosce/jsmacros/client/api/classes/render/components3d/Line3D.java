@@ -69,6 +69,30 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
 
     /**
+     * @return a new {@link Vec3D} containing the positions of the line
+     * @since 2.0.0
+     */
+    public Vec3D getPos() {
+        return new Vec3D(pos);
+    }
+
+    /**
+     * @return the first position of the line as a new {@link Pos3D}
+     * @since 2.0.0
+     */
+    public Pos3D getPos1() {
+        return new Pos3D(pos.x1, pos.y1, pos.z1);
+    }
+
+    /**
+     * @return the second position of the line as a new {@link Pos3D}
+     * @since 2.0.0
+     */
+    public Pos3D getPos2() {
+        return new Pos3D(pos.x2, pos.y2, pos.z2);
+    }
+
+    /**
      * @param color
      * @since 1.0.6
      */
@@ -86,11 +110,27 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
 
     /**
+     * @return the color of the line
+     * @since 2.0.0
+     */
+    public int getColor() {
+        return color & 0xFFFFFF;
+    }
+
+    /**
      * @param alpha
      * @since 1.1.8
      */
     public void setAlpha(int alpha) {
         this.color = (alpha << 24) | (color & 0xFFFFFF);
+    }
+
+    /**
+     * @return the alpha value of the line's color
+     * @since 2.0.0
+     */
+    public int getAlpha() {
+        return (color >> 24) & 0xFF;
     }
 
     @Override
@@ -147,7 +187,7 @@ public class Line3D implements RenderElement3D<Line3D> {
             if (seeThrough) {
                 lineDepthTestFunction.set(RenderPipelines.LINES, DepthTestFunction.NO_DEPTH_TEST);
             }
-            //? }
+        //? }
             PoseStack.Pose entry = matrixStack.last();
 
             // Draw 3 lines in each of the normals for consistency
@@ -158,7 +198,7 @@ public class Line3D implements RenderElement3D<Line3D> {
             addLine(consumer, entry, (float) pos.x1, (float) pos.y1, (float) pos.z1, color, 0, 0, 1);
             addLine(consumer, entry, (float) pos.x2, (float) pos.y2, (float) pos.z2, color, 0, 0, 1);
 
-            //? if <1.21.11 {
+        //? if <1.21.11 {
             if (seeThrough && consumers instanceof MultiBufferSource.BufferSource immediate) {
                 immediate.endBatch();
             }
@@ -226,11 +266,11 @@ public class Line3D implements RenderElement3D<Line3D> {
         }
 
         /**
-         * @return the first position of the line.
+         * @return a new {@link Pos3D} representing the first position of the line.
          * @since 1.8.4
          */
         public Pos3D getPos1() {
-            return pos1;
+            return new Pos3D(pos1);
         }
 
         /**
@@ -266,11 +306,11 @@ public class Line3D implements RenderElement3D<Line3D> {
         }
 
         /**
-         * @return the second position of the line.
+         * @return a new {@link Pos3D} representing the second position of the line.
          * @since 1.8.4
          */
         public Pos3D getPos2() {
-            return pos2;
+            return new Pos3D(pos2);
         }
 
         /**
