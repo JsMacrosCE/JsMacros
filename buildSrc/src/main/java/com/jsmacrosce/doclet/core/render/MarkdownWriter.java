@@ -4,6 +4,7 @@ import com.jsmacrosce.FileHandler;
 import com.jsmacrosce.MarkdownBuilder;
 import com.jsmacrosce.doclet.core.ClassGroup;
 import com.jsmacrosce.doclet.core.model.ClassDoc;
+import com.jsmacrosce.doclet.core.model.DocBodyNode;
 import com.jsmacrosce.doclet.core.model.DocComment;
 import com.jsmacrosce.doclet.core.model.DocTag;
 import com.jsmacrosce.doclet.core.model.DocTagKind;
@@ -14,6 +15,7 @@ import com.jsmacrosce.doclet.core.model.PackageDoc;
 import com.jsmacrosce.doclet.core.model.ParamDoc;
 import com.jsmacrosce.doclet.core.model.TypeKind;
 import com.jsmacrosce.doclet.core.model.TypeRef;
+import com.jsmacrosce.doclet.core.util.DocBodyRenderer;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -28,22 +30,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.regex.Pattern;
 
 public class MarkdownWriter {
-    private static final Pattern HTML_LINK =
-        Pattern.compile("<a (?:\\n|.)*?href=\"([^\"]*)\"(?:\\n|.)*?>(.*?)</a>");
-    private static final Pattern LINK_TAG = Pattern.compile("\\{@link\\s+([^}]+)}");
-    private static final Map<String, String> JAVA_NUMBER_TYPES = Map.of(
-        "java.lang.Integer", "int",
-        "java.lang.Float", "float",
-        "java.lang.Long", "long",
-        "java.lang.Short", "short",
-        "java.lang.Character", "char",
-        "java.lang.Byte", "byte",
-        "java.lang.Double", "double",
-        "java.lang.Number", "number"
-    );
     private static final String DEFAULT_CATEGORY = "Uncategorized";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private final Map<String, ClassDoc> classByQualifiedName = new HashMap<>();
@@ -258,7 +246,6 @@ public class MarkdownWriter {
         }
         md.paragraph(descText);
 
-
         renderMemberSection(md, clz, MemberKind.CONSTRUCTOR, "Constructors");
         renderMemberSection(md, clz, MemberKind.FIELD, "Fields");
         renderMemberSection(md, clz, MemberKind.METHOD, "Methods");
@@ -334,7 +321,8 @@ public class MarkdownWriter {
             }
             html.append(">\n");
             html.append("<div class=\"overload-sig\">");
-            html.append("<code>").append(renderSignature(member)).append("</code>");
+            // v-pre suppresses Vue template compilation so <a href> links inside <code> work.
+            html.append("<code v-pre>").append(renderSignatureAsHtml(member)).append("</code>");
             if (itemId != null) {
                 html.append("<a class=\"overload-anchor\" href=\"#").append(itemId).append("\">#</a>");
             }
@@ -360,35 +348,38 @@ public class MarkdownWriter {
     private String buildOverloadBody(MemberDoc member, ClassDoc clz) {
         StringBuilder html = new StringBuilder();
 
-        String desc = formatDescription(member.docComment(), clz);
+        // All content inside buildOverloadBody is placed inside raw HTML blocks.
+        // Use the HTML rendering variants so that links become <a href> elements —
+        // Markdown link syntax ([text](url)) is not processed inside raw HTML by VitePress.
+        String desc = formatDescriptionAsHtml(member.docComment(), clz);
         if (!desc.isEmpty()) {
             html.append("<p>").append(desc).append("</p>\n");
         }
 
-        // TODO: (docs) Make these badges inline with the name(?)
-        String since = getTagText(member.docComment(), DocTagKind.SINCE);
-        // TODO: (docs) Migrate the since tags containing descriptions to a note or similar.
-        // TODO: (docs) Verify all [citaiton needed] instances.
-        // Can be "1.2.3", "1.2.3 [citation needed]", or sometimes "1.2.3 (TextHelper since 2.3.4)"
-        if (!since.isEmpty()) {
-            html.append("<p><strong>Since:</strong> ").append(since).append("</p>\n");
-        }
-
         if (hasDeprecatedTag(member.docComment())) {
-            String deprecated = getTagText(member.docComment(), DocTagKind.DEPRECATED);
+            String deprecated = getTagTextAsHtml(member.docComment(), DocTagKind.DEPRECATED, clz);
             html.append("<p><strong>Deprecated:</strong> ")
-                .append(formatDocText(deprecated, clz))
+                .append(deprecated)
                 .append("</p>\n");
         }
 
-        // Parameters
+        // Parameters — render @param tag bodies via DocBodyRenderer so {@link} tags become <a> links.
         List<ParamDoc> params = member.params();
+        Map<String, String> paramDescriptions = new HashMap<>();
+        if (member.docComment() != null) {
+            for (DocTag tag : member.docComment().tags()) {
+                if (tag.kind() == DocTagKind.PARAM && tag.name() != null) {
+                    paramDescriptions.put(tag.name(),
+                        DocBodyRenderer.toHtml(tag.body(), link -> resolveLinkAsHtml(link, clz)));
+                }
+            }
+        }
         boolean hasParamDocs = params.stream()
-            .anyMatch(p -> p.description() != null && !p.description().isBlank());
+            .anyMatch(p -> paramDescriptions.containsKey(p.name()) && !paramDescriptions.get(p.name()).isBlank());
         if (hasParamDocs) {
             html.append("<p><strong>Parameters:</strong></p>\n<ul>\n");
             for (ParamDoc param : params) {
-                String desc2 = param.description() == null ? "" : formatDocText(param.description(), clz);
+                String desc2 = paramDescriptions.getOrDefault(param.name(), "");
                 if (desc2.isBlank()) {
                     continue;
                 }
@@ -400,10 +391,10 @@ public class MarkdownWriter {
 
         // Returns
         if (member.kind() == MemberKind.METHOD) {
-            String retTag = getTagText(member.docComment(), DocTagKind.RETURN);
+            String retTag = getTagTextAsHtml(member.docComment(), DocTagKind.RETURN, clz);
             if (!retTag.isEmpty()) {
                 html.append("<p><strong>Returns:</strong> ")
-                    .append(formatDocText(retTag, clz))
+                    .append(retTag)
                     .append("</p>\n");
             } else {
                 TypeRef returnType = member.returnType();
@@ -415,12 +406,21 @@ public class MarkdownWriter {
             }
         }
 
+        // TODO: (docs) Make these badges inline with the name(?)
+        String since = getTagTextAsHtml(member.docComment(), DocTagKind.SINCE, clz);
+        // TODO: (docs) Migrate the since tags containing descriptions to a note or similar.
+        // TODO: (docs) Verify all [citaiton needed] instances.
+        // Can be "1.2.3", "1.2.3 [citation needed]", or sometimes "1.2.3 (TextHelper since 2.3.4)"
+        if (!since.isEmpty()) {
+            html.append("<p><strong>Since:</strong> ").append(since).append("</p>\n");
+        }
+
         // See
         if (member.docComment() != null) {
             List<String> sees = new ArrayList<>();
             for (DocTag tag : member.docComment().tags()) {
-                if (tag.kind() == DocTagKind.SEE && tag.text() != null && !tag.text().isBlank()) {
-                    sees.add(resolveSeeHtmlLink(tag.text(), clz));
+                if (tag.kind() == DocTagKind.SEE && !tag.body().isEmpty()) {
+                    sees.add(resolveSeeTag(tag, clz));
                 }
             }
             if (!sees.isEmpty()) {
@@ -480,17 +480,59 @@ public class MarkdownWriter {
         return sb.toString();
     }
 
-    private String getTagText(DocComment comment, DocTagKind kind) {
+    /**
+     * Renders the signature as an HTML fragment with linked type names, for use
+     * inside {@code <code v-pre>} in the overload-sig block.
+     *
+     * <p>Type names become {@code <a href="...">} links (internal or external Javadoc).
+     * Generic angle brackets are HTML-entity-escaped. Punctuation and keywords are
+     * plain HTML-safe text. {@code v-pre} on the containing {@code <code>} element
+     * tells Vue's template compiler to skip the element, so the {@code <a>} tags
+     * are preserved as-is in the rendered output.
+     *
+     * <p>When a {@code @DocletReplaceParams} or {@code @DocletReplaceReturn}
+     * annotation override is present the raw override string is HTML-escaped
+     * (no link resolution is attempted for opaque overrides).
+     */
+    private String renderSignatureAsHtml(MemberDoc member) {
+        if (member.kind() == MemberKind.FIELD) {
+            return member.name() + ": " + renderTypeAsHtml(member.returnType());
+        }
+
+        StringBuilder sb = new StringBuilder();
+        if (member.kind() == MemberKind.CONSTRUCTOR) {
+            sb.append("new ");
+        }
+        sb.append(member.name()).append("(");
+        List<ParamDoc> params = member.params();
+        for (int i = 0; i < params.size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            ParamDoc param = params.get(i);
+            sb.append(renderTypeAsHtml(param.type())).append(" ").append(param.name());
+        }
+        sb.append(")");
+        if (member.kind() != MemberKind.CONSTRUCTOR) {
+            sb.append(": ").append(renderTypeAsHtml(member.returnType()));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Returns the rendered inline HTML for a single tag of the given kind,
+     * or an empty string when no matching tag is present.
+     * Use for content placed inside raw HTML blocks (overload-body, &lt;p&gt;, &lt;li&gt;).
+     */
+    private String getTagTextAsHtml(DocComment comment, DocTagKind kind, ClassDoc context) {
         if (comment == null) {
             return "";
         }
-
         for (DocTag tag : comment.tags()) {
             if (tag.kind() == kind) {
-                return tag.text();
+                return DocBodyRenderer.toHtml(tag.body(), link -> resolveLinkAsHtml(link, context));
             }
         }
-        
         return "";
     }
 
@@ -498,13 +540,19 @@ public class MarkdownWriter {
         if (comment == null) {
             return "";
         }
-        
-        String text = comment.description();
-        if (text == null || text.isBlank()) {
-            text = comment.summary();
-        }
+        List<DocBodyNode> nodes = comment.body().isEmpty() ? comment.summary() : comment.body();
+        return DocBodyRenderer.toMarkdown(nodes, link -> resolveLink(link, context));
+    }
 
-        return text == null ? "" : formatDocText(text, context);
+    /**
+     * Renders the description as inline HTML for embedding inside raw HTML blocks.
+     */
+    private String formatDescriptionAsHtml(DocComment comment, ClassDoc context) {
+        if (comment == null) {
+            return "";
+        }
+        List<DocBodyNode> nodes = comment.body().isEmpty() ? comment.summary() : comment.body();
+        return DocBodyRenderer.toHtml(nodes, link -> resolveLinkAsHtml(link, context));
     }
 
     private boolean hasDeprecatedTag(DocComment comment) {
@@ -515,102 +563,32 @@ public class MarkdownWriter {
     }
 
     /**
-     * Resolves a {@code @see} tag signature to a plain HTML {@code <a>} tag
-     * wrapping a {@code <code>} label, for use inside raw HTML blocks.
+     * Resolves a {@code @see} tag to an HTML {@code <a>} element wrapping a
+     * {@code <code>} label. The tag body is expected to contain a single
+     * {@link DocBodyNode.Link} node (as produced by {@link com.jsmacrosce.doclet.core.BasicDocCommentParser});
+     * if not, a plain-text fallback is used.
      */
-    private String resolveSeeHtmlLink(String signature, ClassDoc context) {
-        LinkSignature parsed = parseSignature(signature);
-        String label = "<code>" + linkLabel(signature) + "</code>";
-        if (parsed == null) {
-            return label;
+    private String resolveSeeTag(DocTag tag, ClassDoc context) {
+        for (DocBodyNode node : tag.body()) {
+            if (node instanceof DocBodyNode.Link link) {
+                String label = "<code>" + linkLabel(link.signature()) + "</code>";
+                LinkSignature parsed = parseSignature(link.signature());
+                if (parsed == null) {
+                    return label;
+                }
+                ClassDoc targetClass = resolveClass(parsed.className(), context);
+                if (targetClass == null) {
+                    return label;
+                }
+                String anchor = resolveMemberAnchor(targetClass, parsed);
+                String url = buildLinkUrl(targetClass, anchor, context);
+                return "<a href=\"" + url + "\">" + label + "</a>";
+            }
+            if (node instanceof DocBodyNode.Html html) {
+                return html.raw();
+            }
         }
-        ClassDoc targetClass = resolveClass(parsed.className(), context);
-        if (targetClass == null) {
-            return label;
-        }
-        String anchor = resolveMemberAnchor(targetClass, parsed);
-        String url = buildLinkUrl(targetClass, anchor, context);
-        return "<a href=\"" + url + "\">" + label + "</a>";
-    }
-
-    private String formatDocText(String text, ClassDoc context) {
-        if (text == null) {
-            return "";
-        }
-
-        String formatted = text.trim();
-        if (formatted.isEmpty()) {
-            return "";
-        }
-
-        // Strip Javadoc paragraph breaks and convert pre blocks before escaping
-        // so that the patterns still match the raw HTML tags.
-        System.out.println("Working on raw doc text: " + formatted + "\n---");
-        formatted = formatted.replaceAll("<br ?/?>", "\n");
-        formatted = formatted.replaceAll("\n ?<p>", "\n")
-            .replaceAll("</?pre>", "```");
-        formatted = HTML_LINK.matcher(formatted).replaceAll("[$2]($1)");
-
-        // Escape any remaining HTML angle brackets so they render as literal text
-        // when the output is embedded in HTML blocks (must come after HTML_LINK
-        // processing so that real hrefs are converted first).
-        formatted = formatted.replace("<", "&lt;").replace(">", "&gt;");
-        formatted = formatted.replaceAll("(?<=[.,:;>]) ?\n", "  \n");
-        formatted = convertLinkTags(formatted, context);
-        String trimmed = formatted.trim();
-        if (looksLikeSignature(trimmed)) {
-            formatted = MarkdownBuilder.codeSpan(convertSignature(trimmed));
-        }
-
-        System.out.println("Final doc text: " + formatted.trim() + "\n=====");
-        return formatted.trim();
-    }
-
-    private String convertLinkTags(String text, ClassDoc context) {
-        java.util.regex.Matcher matcher = LINK_TAG.matcher(text);
-        StringBuilder buffer = new StringBuilder();
-        while (matcher.find()) {
-            String sig = matcher.group(1).trim();
-            String mapped = mapSimpleLinkSignature(sig);
-            String replacement = mapped != null ? mapped : resolveLink(sig, context);
-            matcher.appendReplacement(buffer, java.util.regex.Matcher.quoteReplacement(replacement));
-        }
-        matcher.appendTail(buffer);
-        return buffer.toString();
-    }
-
-    private boolean looksLikeSignature(String text) {
-        if (text.startsWith("#")) {
-            return true;
-        }
-        return text.matches("^com\\.jsmacrosce\\.[^#]+\\w$")
-            || text.matches("^\\w+\\.(?:\\w+\\.)+[\\w$_]+$");
-    }
-
-    private String convertSignature(String sig) {
-        if (sig.matches("^com\\.jsmacrosce\\.[^#]+\\w$")) {
-            return sig.replaceFirst("^.+\\.(?=[^.]+$)", "");
-        }
-        if (sig.matches("^\\w+\\.(?:\\w+\\.)+[\\w$_]+$")) {
-            return "Packages." + sig;
-        }
-        if (sig.startsWith("#")) {
-            return sig.substring(1);
-        }
-        return sig
-            .replaceFirst("^(?:com\\.jsmacrosce\\.jsmacros\\.(?:client\\.api|core)\\.library\\.impl\\.)?F([A-Z]\\w+)#", "$1.")
-            .replaceFirst("#", ".");
-    }
-
-    private String mapSimpleLinkSignature(String sig) {
-        if (JAVA_NUMBER_TYPES.containsKey(sig)) {
-            return JAVA_NUMBER_TYPES.get(sig);
-        }
-        return switch (sig) {
-            case "java.lang.String" -> "string";
-            case "java.lang.Boolean" -> "boolean";
-            default -> null;
-        };
+        return DocBodyRenderer.toRawText(tag.body());
     }
 
     private void indexClasses(DocletModel model) {
@@ -839,29 +817,82 @@ public class MarkdownWriter {
     }
 
     // -------------------------------------------------------------------------
+    // Link resolution — called from the DocBodyRenderer linkResolver lambda.
+    // -------------------------------------------------------------------------
 
-    private String resolveLink(String signature, ClassDoc context) {
-        LinkSignature parsed = parseSignature(signature);
+    /**
+     * Resolves a {@link DocBodyNode.Link} to a Markdown link string.
+     * Falls back to a plain label when the target cannot be found.
+     */
+    private String resolveLink(DocBodyNode.Link link, ClassDoc context) {
+        String sig = link.signature();
+
+        // Check for simple Java type aliases first (String, Boolean, boxed numbers).
+        String mapped = DocBodyRenderer.mapSimpleLinkSignature(sig);
+        if (mapped != null) {
+            return mapped;
+        }
+
+        LinkSignature parsed = parseSignature(sig);
         if (parsed == null) {
-            return linkLabel(signature);
+            String label = link.label() != null ? link.label() : linkLabel(sig);
+            // If the bare sig looks like a signature, wrap it in a code span.
+            if (DocBodyRenderer.looksLikeSignature(sig)) {
+                return MarkdownBuilder.codeSpan(DocBodyRenderer.convertSignature(sig));
+            }
+            return label;
         }
         ClassDoc targetClass = resolveClass(parsed.className(), context);
         if (targetClass == null) {
-            return linkLabel(signature);
+            String label = link.label() != null ? link.label() : linkLabel(sig);
+            return label;
         }
         String anchor = resolveMemberAnchor(targetClass, parsed);
         String url = buildLinkUrl(targetClass, anchor, context);
-        return "[" + linkLabel(signature) + "](" + url + ")";
+        String label = link.label() != null ? link.label() : linkLabel(sig);
+        return "[" + label + "](" + url + ")";
+    }
+
+    /**
+     * Resolves a {@link DocBodyNode.Link} to an HTML {@code <a>} element string.
+     * Used when rendering inside raw HTML blocks (overload-body, param lists, etc.)
+     * where Markdown link syntax is not processed by VitePress.
+     */
+    private String resolveLinkAsHtml(DocBodyNode.Link link, ClassDoc context) {
+        String sig = link.signature();
+
+        String mapped = DocBodyRenderer.mapSimpleLinkSignature(sig);
+        if (mapped != null) {
+            return "<code>" + escapeHtml(mapped) + "</code>";
+        }
+
+        LinkSignature parsed = parseSignature(sig);
+        String label = link.label() != null ? link.label() : linkLabel(sig);
+        if (parsed == null) {
+            if (DocBodyRenderer.looksLikeSignature(sig)) {
+                return "<code>" + escapeHtml(DocBodyRenderer.convertSignature(sig)) + "</code>";
+            }
+            return escapeHtml(label);
+        }
+        ClassDoc targetClass = resolveClass(parsed.className(), context);
+        if (targetClass == null) {
+            return escapeHtml(label);
+        }
+        String anchor = resolveMemberAnchor(targetClass, parsed);
+        String url = buildLinkUrl(targetClass, anchor, context);
+        return "<a href=\"" + url + "\">" + escapeHtml(label) + "</a>";
     }
 
     private String buildLinkUrl(ClassDoc targetClass, String anchor, ClassDoc context) {
         String url;
-        if (context != null && targetClass.qualifiedName().equals(context.qualifiedName()) && anchor != null) {
-            url = "#" + anchor;
+        // Anchors on the page are qualified: "qualifiedName_anchorId" (e.g. "com.example.Foo_bar-String-").
+        String qualifiedAnchor = anchor != null ? targetClass.qualifiedName() + "_" + anchor : null;
+        if (context != null && targetClass.qualifiedName().equals(context.qualifiedName()) && qualifiedAnchor != null) {
+            url = "#" + qualifiedAnchor;
         } else {
             url = "/" + version + "/" + classPath(targetClass);
-            if (anchor != null) {
-                url = url + "#" + anchor;
+            if (qualifiedAnchor != null) {
+                url = url + "#" + qualifiedAnchor;
             }
         }
         return url;

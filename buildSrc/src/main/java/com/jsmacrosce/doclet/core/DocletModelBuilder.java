@@ -18,6 +18,7 @@ import com.jsmacrosce.doclet.core.model.MemberKind;
 import com.jsmacrosce.doclet.core.model.PackageDoc;
 import com.jsmacrosce.doclet.core.model.ParamDoc;
 import com.jsmacrosce.doclet.core.model.TypeRef;
+import com.jsmacrosce.doclet.core.util.DocBodyRenderer;
 import com.jsmacrosce.doclet.core.util.ElementNameUtils;
 
 import com.sun.source.util.DocTrees;
@@ -562,7 +563,7 @@ public class DocletModelBuilder {
         Map<String, String> paramDocs = new HashMap<>();
         for (DocTag tag : comment.tags()) {
             if (tag.kind() == DocTagKind.PARAM && tag.name() != null) {
-                paramDocs.put(tag.name(), tag.text());
+                paramDocs.put(tag.name(), DocBodyRenderer.toRawText(tag.body()));
             }
         }
 

@@ -3,13 +3,16 @@ package com.jsmacrosce.doclet.core.render;
 import com.jsmacrosce.FileHandler;
 import com.jsmacrosce.doclet.core.ClassGroup;
 import com.jsmacrosce.doclet.core.model.ClassDoc;
+import com.jsmacrosce.doclet.core.model.DocBodyNode;
 import com.jsmacrosce.doclet.core.model.DocComment;
+import com.jsmacrosce.doclet.core.model.DocTagKind;
 import com.jsmacrosce.doclet.core.model.DocletModel;
 import com.jsmacrosce.doclet.core.model.MemberDoc;
 import com.jsmacrosce.doclet.core.model.MemberKind;
 import com.jsmacrosce.doclet.core.model.PackageDoc;
 import com.jsmacrosce.doclet.core.model.ParamDoc;
 import com.jsmacrosce.doclet.core.model.TypeRef;
+import com.jsmacrosce.doclet.core.util.DocBodyRenderer;
 
 import java.io.File;
 import java.io.IOException;
@@ -151,12 +154,12 @@ public class PythonWriter {
         boolean includeReturn
     ) {
         String desc = formatDescription(comment);
-        String since = getTagText(comment, "SINCE");
+        String since = getTagText(comment, DocTagKind.SINCE);
         Map<String, String> tagDocs = new LinkedHashMap<>();
         if (comment != null) {
             comment.tags().stream()
-                .filter(tag -> tag.kind().name().equals("PARAM") && tag.name() != null)
-                .forEach(tag -> tagDocs.put(tag.name(), tag.text()));
+                .filter(tag -> tag.kind() == DocTagKind.PARAM && tag.name() != null)
+                .forEach(tag -> tagDocs.put(tag.name(), DocBodyRenderer.toPlainText(tag.body(), link -> link.label() != null ? link.label() : link.signature())));
         }
         Map<String, String> paramDocs = new LinkedHashMap<>();
         if (params != null) {
@@ -166,7 +169,7 @@ public class PythonWriter {
                 }
             }
         }
-        String ret = includeReturn ? getTagText(comment, "RETURN") : "";
+        String ret = includeReturn ? getTagText(comment, DocTagKind.RETURN) : "";
 
         if (desc.isEmpty() && since.isEmpty() && paramDocs.isEmpty() && ret.isEmpty()) {
             return;
@@ -354,17 +357,17 @@ public class PythonWriter {
         if (comment == null) {
             return "";
         }
-        String text = comment.description();
-        return text == null ? "" : text.trim();
+        List<DocBodyNode> nodes = comment.body().isEmpty() ? comment.summary() : comment.body();
+        return DocBodyRenderer.toPlainText(nodes, link -> link.label() != null ? link.label() : link.signature());
     }
 
-    private String getTagText(DocComment comment, String kind) {
+    private String getTagText(DocComment comment, DocTagKind kind) {
         if (comment == null) {
             return "";
         }
         return comment.tags().stream()
-            .filter(tag -> tag.kind().name().equals(kind))
-            .map(tag -> tag.text())
+            .filter(tag -> tag.kind() == kind)
+            .map(tag -> DocBodyRenderer.toPlainText(tag.body(), link -> link.label() != null ? link.label() : link.signature()))
             .findFirst()
             .orElse("");
     }

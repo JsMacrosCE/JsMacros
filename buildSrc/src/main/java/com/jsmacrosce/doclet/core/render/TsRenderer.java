@@ -4,6 +4,7 @@ import com.jsmacrosce.doclet.core.*;
 import com.jsmacrosce.doclet.core.model.ClassDoc;
 import com.jsmacrosce.doclet.core.model.ClassKind;
 import com.jsmacrosce.doclet.core.model.DeclaredTypeDoc;
+import com.jsmacrosce.doclet.core.model.DocBodyNode;
 import com.jsmacrosce.doclet.core.model.DocComment;
 import com.jsmacrosce.doclet.core.model.DocTag;
 import com.jsmacrosce.doclet.core.model.DocTagKind;
@@ -14,6 +15,7 @@ import com.jsmacrosce.doclet.core.model.PackageDoc;
 import com.jsmacrosce.doclet.core.model.ParamDoc;
 import com.jsmacrosce.doclet.core.model.TypeKind;
 import com.jsmacrosce.doclet.core.model.TypeRef;
+import com.jsmacrosce.doclet.core.util.DocBodyRenderer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -23,29 +25,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.regex.Pattern;
 
 
 public class TsRenderer implements Renderer {
-    private static final Pattern HTML_LINK =
-        Pattern.compile("<a\\s[^>]*?href=\"([^\"]*)\"[^>]*?>(.*?)</a>", Pattern.DOTALL);
-    private static final Pattern LINK_TAG =
-        Pattern.compile("\\{@link\\s+([^}]+)}");
     private static final Set<String> TS_RESERVED_WORDS = Set.of(
         "break", "case", "catch", "class", "const", "continue", "debugger", "default",
         "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for",
         "function", "if", "import", "in", "instanceof", "new", "null", "return", "super",
         "switch", "this", "throw", "true", "try", "typeof", "var", "void", "while", "with"
-    );
-    private static final Map<String, String> JAVA_NUMBER_TYPES = Map.of(
-        "java.lang.Integer", "int",
-        "java.lang.Float", "float",
-        "java.lang.Long", "long",
-        "java.lang.Short", "short",
-        "java.lang.Character", "char",
-        "java.lang.Byte", "byte",
-        "java.lang.Double", "double",
-        "java.lang.Number", "number"
     );
     private final TypeResolver typeResolver;
 
@@ -136,8 +123,7 @@ public class TsRenderer implements Renderer {
     }
 
     private void renderLibraryNamespace(StringBuilder out, ClassDoc library, int indent) {
-        DocComment libraryComment = sanitizeLibraryComment(library.docComment());
-        appendDocComment(out, libraryComment, List.of(), false, null, library, indent);
+        appendDocComment(out, library.docComment(), List.of(), false, null, library, indent);
         indent(out, indent).append("declare namespace ").append(library.alias()).append(" {\n");
         for (MemberDoc member : library.members()) {
             if (member.kind() != MemberKind.METHOD || hasModifier(member, "static")) {
@@ -684,7 +670,11 @@ public class TsRenderer implements Renderer {
         if (comment == null) {
             return;
         }
-        String desc = formatDocText(comment.description().isBlank() ? comment.summary() : comment.description());
+
+        // Render the body via DocBodyRenderer — links become {@link ConvertedSig}.
+        List<DocBodyNode> bodyNodes = comment.body().isEmpty() ? comment.summary() : comment.body();
+        String desc = DocBodyRenderer.toPlainText(bodyNodes, this::resolveLinkForJsDoc);
+
         List<String> lines = new ArrayList<>();
         if (!desc.isBlank()) {
             lines.add(desc);
@@ -693,7 +683,7 @@ public class TsRenderer implements Renderer {
         Map<String, String> paramDocs = new HashMap<>();
         for (DocTag tag : comment.tags()) {
             if (tag.kind() == DocTagKind.PARAM && tag.name() != null) {
-                paramDocs.put(tag.name(), formatDocText(tag.text()));
+                paramDocs.put(tag.name(), DocBodyRenderer.toPlainText(tag.body(), this::resolveLinkForJsDoc));
             }
         }
         for (ParamDoc param : params) {
@@ -704,7 +694,7 @@ public class TsRenderer implements Renderer {
         }
 
         if (includeReturn) {
-            String returnText = formatDocText(getTagText(comment, DocTagKind.RETURN));
+            String returnText = getTagText(comment, DocTagKind.RETURN);
             if (!returnText.isBlank()) {
                 if (returnText.startsWith("{")) {
                     returnText = "{*} " + returnText;
@@ -715,31 +705,33 @@ public class TsRenderer implements Renderer {
             }
         }
 
-        String since = formatDocText(getTagText(comment, DocTagKind.SINCE));
+        String since = getTagText(comment, DocTagKind.SINCE);
         if (!since.isBlank()) {
             lines.add("@since " + since);
         }
-        String deprecated = formatDocText(getTagText(comment, DocTagKind.DEPRECATED));
+        String deprecated = getTagText(comment, DocTagKind.DEPRECATED);
         if (hasDeprecatedTag(comment)) {
             lines.add(deprecated.isBlank() ? "@deprecated" : "@deprecated " + deprecated);
         }
-        for (String see : getTagTexts(comment, DocTagKind.SEE)) {
-            String formatted = formatDocText(see);
-            if (!formatted.isBlank()) {
-                lines.add("@see " + formatted);
+        for (DocTag tag : comment.tags()) {
+            if (tag.kind() == DocTagKind.SEE) {
+                String formatted = DocBodyRenderer.toPlainText(tag.body(), this::resolveLinkForJsDoc);
+                if (!formatted.isBlank()) {
+                    lines.add("@see " + formatted);
+                }
             }
         }
         for (DocTag tag : comment.tags()) {
             if (tag.kind() == DocTagKind.TEMPLATE && tag.name() != null) {
-                String text = formatDocText(tag.text());
+                String text = DocBodyRenderer.toPlainText(tag.body(), this::resolveLinkForJsDoc);
                 if (!text.isBlank()) {
                     lines.add("@template " + tag.name() + " " + text);
                 }
             }
         }
         for (DocTag tag : comment.tags()) {
-            if (tag.kind() == DocTagKind.OTHER && tag.text() != null) {
-                String text = formatDocText(tag.text());
+            if (tag.kind() == DocTagKind.OTHER) {
+                String text = DocBodyRenderer.toPlainText(tag.body(), this::resolveLinkForJsDoc);
                 if (!text.isBlank()) {
                     lines.add(text);
                 }
@@ -760,137 +752,46 @@ public class TsRenderer implements Renderer {
         indent(out, indent).append(" */\n");
     }
 
-    private boolean hasDeprecatedTag(DocComment comment) {
-        if (comment == null) {
-            return false;
+    /**
+     * Resolves a {@link DocBodyNode.Link} to the JSDoc {@code {@link}} format used
+     * in TypeScript declaration files.  Simple Java types map to their TS aliases;
+     * all other signatures are converted via {@link DocBodyRenderer#convertSignature}.
+     */
+    private String resolveLinkForJsDoc(DocBodyNode.Link link) {
+        String sig = link.signature();
+        String mapped = DocBodyRenderer.mapSimpleLinkSignature(sig);
+        if (mapped != null) {
+            return mapped;
         }
-        return comment.tags().stream().anyMatch(tag -> tag.kind() == DocTagKind.DEPRECATED);
+        String converted = DocBodyRenderer.convertSignature(sig);
+        String label = link.label();
+        if (label != null && !label.isBlank() && !label.equals(converted)) {
+            return "{@link " + converted + " " + label + "}";
+        }
+        return "{@link " + converted + "}";
     }
 
+    /**
+     * Returns the rendered plain-text of the first tag of {@code kind},
+     * or an empty string when absent.
+     */
     private String getTagText(DocComment comment, DocTagKind kind) {
         if (comment == null) {
             return "";
         }
         for (DocTag tag : comment.tags()) {
             if (tag.kind() == kind) {
-                return tag.text();
+                return DocBodyRenderer.toPlainText(tag.body(), this::resolveLinkForJsDoc);
             }
         }
         return "";
     }
 
-    private List<String> getTagTexts(DocComment comment, DocTagKind kind) {
+    private boolean hasDeprecatedTag(DocComment comment) {
         if (comment == null) {
-            return List.of();
+            return false;
         }
-        List<String> values = new ArrayList<>();
-        for (DocTag tag : comment.tags()) {
-            if (tag.kind() == kind) {
-                values.add(tag.text());
-            }
-        }
-        return values;
-    }
-
-    private String formatDocText(String text) {
-        if (text == null) {
-            return "";
-        }
-        String formatted = text.trim();
-        if (formatted.isEmpty()) {
-            return "";
-        }
-        formatted = formatted.replaceAll("\n <p>", "\n")
-            .replaceAll("</?pre>", "```");
-        // Convert HTML links to Markdown, cleaning up newlines in link text
-        formatted = convertHtmlLinks(formatted);
-        formatted = formatted.replace("&lt;", "<").replace("&gt;", ">");
-        formatted = convertLinkTags(formatted);
-        String trimmed = formatted.trim();
-        if (looksLikeSignature(trimmed)) {
-            formatted = convertSignature(trimmed);
-        }
-        return formatted.trim();
-    }
-    
-    private String convertHtmlLinks(String text) {
-        java.util.regex.Matcher matcher = HTML_LINK.matcher(text);
-        StringBuilder buffer = new StringBuilder();
-        while (matcher.find()) {
-            String url = matcher.group(1);
-            String linkText = matcher.group(2);
-            String replacement = "[" + linkText + "](" + url + ")";
-            matcher.appendReplacement(buffer, java.util.regex.Matcher.quoteReplacement(replacement));
-        }
-        matcher.appendTail(buffer);
-        return buffer.toString();
-    }
-
-    private String convertLinkTags(String text) {
-        java.util.regex.Matcher matcher = LINK_TAG.matcher(text);
-        StringBuilder buffer = new StringBuilder();
-        while (matcher.find()) {
-            String sig = matcher.group(1).trim();
-            String mapped = mapSimpleLinkSignature(sig);
-            String replacement = mapped != null ? mapped : "{@link " + convertSignature(sig) + "}";
-            matcher.appendReplacement(buffer, java.util.regex.Matcher.quoteReplacement(replacement));
-        }
-        matcher.appendTail(buffer);
-        return buffer.toString();
-    }
-
-    private boolean looksLikeSignature(String text) {
-        if (text.startsWith("#")) {
-            return true;
-        }
-        return text.matches("^com\\.jsmacrosce\\.[^#]+\\w$")
-            || text.matches("^\\w+\\.(?:\\w+\\.)+[\\w$_]+$");
-    }
-
-    private String convertSignature(String sig) {
-        if (sig.matches("^com\\.jsmacrosce\\.[^#]+\\w$")) {
-            return sig.replaceFirst("^.+\\.(?=[^.]+$)", "");
-        }
-        if (sig.matches("^\\w+\\.(?:\\w+\\.)+[\\w$_]+$")) {
-            return "Packages." + sig;
-        }
-        if (sig.startsWith("#")) {
-            return sig.substring(1);
-        }
-        return sig
-            .replaceFirst("^(?:com\\.jsmacrosce\\.jsmacros\\.(?:client\\.api|core)\\.library\\.impl\\.)?F([A-Z]\\w+)#", "$1.")
-            .replaceFirst("#", ".");
-    }
-
-    private String mapSimpleLinkSignature(String sig) {
-        if (JAVA_NUMBER_TYPES.containsKey(sig)) {
-            return JAVA_NUMBER_TYPES.get(sig);
-        }
-        return switch (sig) {
-            case "java.lang.String" -> "string";
-            case "java.lang.Boolean" -> "boolean";
-            default -> null;
-        };
-    }
-
-    private DocComment sanitizeLibraryComment(DocComment comment) {
-        if (comment == null) {
-            return null;
-        }
-        String summary = stripLibraryBoilerplate(comment.summary());
-        String description = stripLibraryBoilerplate(comment.description());
-        if (summary.equals(comment.summary()) && description.equals(comment.description())) {
-            return comment;
-        }
-        return new DocComment(summary, description, comment.tags());
-    }
-
-    private String stripLibraryBoilerplate(String text) {
-        if (text == null || text.isBlank()) {
-            return text == null ? "" : text;
-        }
-        return text.replaceAll("(?m)^\\s*An instance of this class is passed to scripts as the `\\w+` variable\\.?\\s*$", "")
-            .trim();
+        return comment.tags().stream().anyMatch(tag -> tag.kind() == DocTagKind.DEPRECATED);
     }
 
     private static class PackageNode {
