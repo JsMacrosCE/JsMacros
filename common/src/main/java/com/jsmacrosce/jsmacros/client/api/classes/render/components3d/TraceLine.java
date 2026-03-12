@@ -27,12 +27,20 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         render = new Line3D(0,0,0, x, y, z, color, alpha, false);
     }
 
+    public TraceLine(double x, double y, double z, int color, int alpha, boolean alwaysOnTop) {
+        render = new Line3D(0,0,0, x, y, z, color, alpha, !alwaysOnTop);
+    }
+
     public TraceLine(Pos3D pos, int color) {
         render = new Line3D(0, 0, 0, pos.getX(), pos.getY(), pos.getZ(), color, false);
     }
 
     public TraceLine(Pos3D pos, int color, int alpha) {
         render = new Line3D(0, 0, 0, pos.getX(), pos.getY(), pos.getZ(), color, alpha, false);
+    }
+
+    public TraceLine(Pos3D pos, int color, int alpha, boolean alwaysOnTop) {
+        render = new Line3D(0, 0, 0, pos.getX(), pos.getY(), pos.getZ(), color, alpha, !alwaysOnTop);
     }
 
     /**
@@ -54,6 +62,14 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
+     * @return the position of the line's target
+     * @since 2.0.0
+     */
+    public Pos3D getPos() {
+        return render.getPos2();
+    }
+
+    /**
      * @return self for chaining
      * @since 1.9.0
      */
@@ -72,11 +88,43 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
+     * @return the color of the line
+     * @since 2.0.0
+     */
+    public int getColor() {
+        return render.getColor();
+    }
+
+    /**
      * @return self for chaining
      * @since 1.9.0
      */
     public TraceLine setAlpha(int alpha) {
         return setColor(render.color, alpha);
+    }
+
+    /**
+     * @return the alpha value of the line's color
+     * @since 2.0.0
+     */
+    public int getAlpha() {
+        return render.getAlpha();
+    }
+
+    /**
+     * @param alwaysOnTop whether the line should be rendered on top of everything else or not
+     * @since 2.0.0
+     */
+    public void setAlwaysOnTop(boolean alwaysOnTop) {
+        render.setAlwaysOnTop(alwaysOnTop);
+    }
+
+    /**
+     * @return whether the line is rendered on top of everything else or not
+     * @since 2.0.0
+     */
+    public boolean isAlwaysOnTop() {
+        return render.isAlwaysOnTop();
     }
 
     @Override
@@ -116,6 +164,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         private Pos3D pos = new Pos3D(0.0, 0.0, 0.0);
         private int color = 0xFFFFFF;
         private int alpha = 0xFF;
+        private boolean alwaysOnTop = true;
 
         public Builder(Draw3D parent) {
             this.parent = parent;
@@ -228,6 +277,16 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
+         * @param alwaysOnTop whether the line should be rendered on top of everything else or not
+         * @return self for chaining
+         * @since 2.0.0
+         */
+        public Builder alwaysOnTop(boolean alwaysOnTop) {
+            this.alwaysOnTop = !alwaysOnTop;
+            return this;
+        }
+
+        /**
          * @return the alpha value of the line's color
          * @since 1.9.0
          */
@@ -254,7 +313,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
          * @since 1.9.0
          */
         public TraceLine build() {
-            return new TraceLine(pos, color, alpha);
+            return new TraceLine(pos, color, alpha, alwaysOnTop);
         }
 
     }

@@ -43,6 +43,7 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
     public Vec3D pos;
     public int color;
+    // TODO: deprecate in favor of "alwaysOnTop" (alwaysOnTop is technically the reverse of this)
     public boolean cull;
 
     public Line3D(double x1, double y1, double z1, double x2, double y2, double z2, int color, boolean cull) {
@@ -133,6 +134,22 @@ public class Line3D implements RenderElement3D<Line3D> {
      */
     public int getAlpha() {
         return (color >> 24) & 0xFF;
+    }
+
+    /**
+     * @param alwaysOnTop whether the line should be rendered on top of everything else or not
+     * @since 2.0.0
+     */
+    public void setAlwaysOnTop(boolean alwaysOnTop) {
+        this.cull = !alwaysOnTop;
+    }
+
+    /**
+     * @return whether the line is rendered on top of everything else
+     * @since 2.0.0
+     */
+    public boolean isAlwaysOnTop() {
+        return !cull;
     }
 
     @Override
