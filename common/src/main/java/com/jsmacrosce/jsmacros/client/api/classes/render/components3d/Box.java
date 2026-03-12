@@ -16,10 +16,11 @@ import java.lang.reflect.Field;
 import java.util.Objects;
 
 //? if >=1.21.11 {
-/*import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
-import org.joml.Matrix4f;
+/*import net.minecraft.gizmos.CuboidGizmo;
+import net.minecraft.gizmos.GizmoProperties;
+import net.minecraft.gizmos.GizmoStyle;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.world.phys.AABB;
 *///? } else {
 import net.minecraft.client.renderer.RenderType;
 //?}
@@ -192,92 +193,18 @@ public class Box implements RenderElement3D<Box> {
         return 0;
     }
 
-    //? if >=1.21.11 {
-    /*private static void addChainedFilledBoxVertices(
-            PoseStack.Pose pose, VertexConsumer vc,
-            float x1, float y1, float z1,
-            float x2, float y2, float z2,
-            float r, float g, float b, float a
-    ) {
-        float minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
-        float minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
-        float minZ = Math.min(z1, z2), maxZ = Math.max(z1, z2);
-
-        // -Z face
-        quad(vc, pose, minX, minY, minZ,  maxX, minY, minZ,  maxX, maxY, minZ,  minX, maxY, minZ, r, g, b, a);
-        // +Z face
-        quad(vc, pose, maxX, minY, maxZ,  minX, minY, maxZ,  minX, maxY, maxZ,  maxX, maxY, maxZ, r, g, b, a);
-
-        // -X face
-        quad(vc, pose, minX, minY, maxZ,  minX, minY, minZ,  minX, maxY, minZ,  minX, maxY, maxZ, r, g, b, a);
-        // +X face
-        quad(vc, pose, maxX, minY, minZ,  maxX, minY, maxZ,  maxX, maxY, maxZ,  maxX, maxY, minZ, r, g, b, a);
-
-        // -Y face
-        quad(vc, pose, minX, minY, maxZ,  maxX, minY, maxZ,  maxX, minY, minZ,  minX, minY, minZ, r, g, b, a);
-        // +Y face
-        quad(vc, pose, minX, maxY, minZ,  maxX, maxY, minZ,  maxX, maxY, maxZ,  minX, maxY, maxZ, r, g, b, a);
-    }
-
-    private static void quad(
-            VertexConsumer vc, PoseStack.Pose pose,
-            float x1, float y1, float z1,
-            float x2, float y2, float z2,
-            float x3, float y3, float z3,
-            float x4, float y4, float z4,
-            float r, float g, float b, float a
-    ) {
-        vc.addVertex(pose, x1, y1, z1).setColor(r, g, b, a);
-        vc.addVertex(pose, x2, y2, z2).setColor(r, g, b, a);
-        vc.addVertex(pose, x3, y3, z3).setColor(r, g, b, a);
-        vc.addVertex(pose, x4, y4, z4).setColor(r, g, b, a);
-    }
-    private static void renderLineBox(
-            PoseStack.Pose pose, VertexConsumer vc,
-            float x1, float y1, float z1,
-            float x2, float y2, float z2,
-            float r, float g, float b, float a
-    ) {
-        float minX = Math.min(x1, x2), maxX = Math.max(x1, x2);
-        float minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
-        float minZ = Math.min(z1, z2), maxZ = Math.max(z1, z2);
-
-        // Bottom rectangle (Y=min)
-        line(vc, pose, minX, minY, minZ,  maxX, minY, minZ, r, g, b, a, 1, 0, 0);
-        line(vc, pose, maxX, minY, minZ,  maxX, minY, maxZ, r, g, b, a, 0, 0, 1);
-        line(vc, pose, maxX, minY, maxZ,  minX, minY, maxZ, r, g, b, a, 1, 0, 0);
-        line(vc, pose, minX, minY, maxZ,  minX, minY, minZ, r, g, b, a, 0, 0, 1);
-
-        // Top rectangle (Y=max)
-        line(vc, pose, minX, maxY, minZ,  maxX, maxY, minZ, r, g, b, a, 1, 0, 0);
-        line(vc, pose, maxX, maxY, minZ,  maxX, maxY, maxZ, r, g, b, a, 0, 0, 1);
-        line(vc, pose, maxX, maxY, maxZ,  minX, maxY, maxZ, r, g, b, a, 1, 0, 0);
-        line(vc, pose, minX, maxY, maxZ,  minX, maxY, minZ, r, g, b, a, 0, 0, 1);
-
-        // Vertical edges
-        line(vc, pose, minX, minY, minZ,  minX, maxY, minZ, r, g, b, a, 0, 1, 0);
-        line(vc, pose, maxX, minY, minZ,  maxX, maxY, minZ, r, g, b, a, 0, 1, 0);
-        line(vc, pose, maxX, minY, maxZ,  maxX, maxY, maxZ, r, g, b, a, 0, 1, 0);
-        line(vc, pose, minX, minY, maxZ,  minX, maxY, maxZ, r, g, b, a, 0, 1, 0);
-    }
-
-    private static void line(
-            VertexConsumer vc, PoseStack.Pose pose,
-            float x1, float y1, float z1,
-            float x2, float y2, float z2,
-            float r, float g, float b, float a,
-            float nx, float ny, float nz
-    ) {
-        // 2.5F is from GizmoStyle.DEFAULT_WIDTH which is private and I didn't wanna access widen because I'm lazy.
-        vc.addVertex(pose, x1, y1, z1).setColor(r, g, b, a).setLineWidth(2.5F).setNormal(pose,
-                nx, ny, nz);
-        vc.addVertex(pose, x2, y2, z2).setColor(r, g, b, a).setLineWidth(2.5F).setNormal(pose, nx, ny, nz);
-    }
-    *///? }
-
     @Override
     @DocletIgnore
     public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
+        boolean seeThrough = !this.cull;
+        //? if >=1.21.11 {
+        /*AABB box = new AABB(pos.getStart().toMojangDoubleVector(), pos.getEnd().toMojangDoubleVector());
+        GizmoStyle style = new GizmoStyle(color, 2.5f, fillColor);
+        GizmoProperties gizmo = Gizmos.addGizmo(new CuboidGizmo(box, style, true));
+        if (seeThrough) {
+            gizmo.setAlwaysOnTop();
+        }
+        *///? } else {
         float x1 = (float) pos.x1;
         float y1 = (float) pos.y1;
         float z1 = (float) pos.z1;
@@ -285,61 +212,41 @@ public class Box implements RenderElement3D<Box> {
         float y2 = (float) pos.y2;
         float z2 = (float) pos.z2;
 
-        boolean seeThrough = !this.cull;
         MultiBufferSource.BufferSource immediate = (MultiBufferSource.BufferSource) consumers;
         try {
             if (seeThrough) {
                 lineDepthTestFunction.set(RenderPipelines.LINES, DepthTestFunction.NO_DEPTH_TEST);
                 boxDepthTestFunction.set(RenderPipelines.DEBUG_FILLED_BOX, DepthTestFunction.NO_DEPTH_TEST);
             }
-            //? if >=1.21.11 {
-            /*RenderType linesLayer = RenderTypes.lines();
-            RenderType fillLayer = RenderTypes.debugFilledBox();
-            *///? } else {
             RenderType linesLayer = RenderType.lines();
             RenderType fillLayer = RenderType.debugFilledBox();
-            //? }
 
             if (this.fill) {
-                float fa = ((fillColor >> 24) & 0xFF) / 255.0F;
-                float fr = ((fillColor >> 16) & 0xFF) / 255.0F;
-                float fg = ((fillColor >> 8) & 0xFF) / 255.0F;
-                float fb = (fillColor & 0xFF) / 255.0F;
-                //? if >=1.21.11 {
-                /*PoseStack.Pose pose = matrixStack.last();
-                VertexConsumer vertexConsumer = consumers.getBuffer(fillLayer);
-                addChainedFilledBoxVertices(pose, vertexConsumer, x1, y1, z1, x2, y2, z2, fr, fg, fb, fa);
-                *///? } else {
-                ShapeRenderer.addChainedFilledBoxVertices(matrixStack, consumers.getBuffer(fillLayer), x1, y1, z1, x2, y2, z2, fr, fg, fb, fa);
-                //? }
+                float fillAlpha = ((fillColor >> 24) & 0xFF) / 255.0F;
+                float fillRed = ((fillColor >> 16) & 0xFF) / 255.0F;
+                float fillGreen = ((fillColor >> 8) & 0xFF) / 255.0F;
+                float fillBlue = (fillColor & 0xFF) / 255.0F;
+                ShapeRenderer.addChainedFilledBoxVertices(
+                    matrixStack,
+                    consumers.getBuffer(fillLayer),
+                    x1, y1, z1,
+                    x2, y2, z2,
+                    fillRed, fillGreen, fillBlue, fillAlpha);
             }
 
             float r = ((color >> 16) & 0xFF) / 255.0F;
             float g = ((color >> 8) & 0xFF) / 255.0F;
             float b = (color & 0xFF) / 255.0F;
             float a = ((color >> 24) & 0xFF) / 255.0F;
-            //? if >=1.21.11 {
-            /*PoseStack.Pose pose = matrixStack.last();
-            VertexConsumer vertexConsumer = consumers.getBuffer(linesLayer);
-            renderLineBox(pose, vertexConsumer, x1, y1, z1, x2, y2, z2, r, g, b, a);
-            *///? } else {
             ShapeRenderer.renderLineBox(
                     //? if >1.21.8 {
                     /*matrixStack.last(),
                     *///?} else
                     matrixStack,
                     consumers.getBuffer(linesLayer),
-                    x1,
-                    y1,
-                    z1,
-                    x2,
-                    y2,
-                    z2,
-                    r,
-                    g,
-                    b,
-                    a);
-            //? }
+                    x1, y1, z1,
+                    x2, y2, z2,
+                    r, g, b, a);
 
             if (seeThrough) {
                 immediate.endBatch();
@@ -347,7 +254,6 @@ public class Box implements RenderElement3D<Box> {
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } finally {
-
             if (seeThrough) {
                 try {
                     lineDepthTestFunction.set(RenderPipelines.LINES, oldlineDepthTestFunction);
@@ -357,6 +263,7 @@ public class Box implements RenderElement3D<Box> {
                 }
             }
         }
+        //? }
     }
 
     /**
