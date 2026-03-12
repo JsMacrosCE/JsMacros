@@ -23,6 +23,7 @@ import com.google.gson.GsonBuilder;
 import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -322,7 +323,10 @@ public class MarkdownWriter {
             html.append(">\n");
             html.append("<div class=\"overload-sig\">");
             // v-pre suppresses Vue template compilation so <a href> links inside <code> work.
-            html.append("<code v-pre>").append(renderSignatureAsHtml(member)).append("</code>");
+            html.append("<code v-pre>").append(renderSignatureAsHtml(member, clz)).append("</code>");
+            if (hasDeprecatedTag(member.docComment())) {
+                html.append("<Badge type=\"danger\" text=\"deprecated\" />");
+            }
             if (itemId != null) {
                 html.append("<a class=\"overload-anchor\" href=\"#").append(itemId).append("\">#</a>");
             }
@@ -400,7 +404,7 @@ public class MarkdownWriter {
                 TypeRef returnType = member.returnType();
                 if (returnType != null && returnType.kind() != TypeKind.VOID) {
                     html.append("<p><strong>Returns:</strong> <code>")
-                        .append(renderTypeAsHtml(returnType))
+                        .append(renderTypeAsHtml(returnType, clz))
                         .append("</code></p>\n");
                 }
             }
@@ -494,9 +498,9 @@ public class MarkdownWriter {
      * annotation override is present the raw override string is HTML-escaped
      * (no link resolution is attempted for opaque overrides).
      */
-    private String renderSignatureAsHtml(MemberDoc member) {
+    private String renderSignatureAsHtml(MemberDoc member, ClassDoc context) {
         if (member.kind() == MemberKind.FIELD) {
-            return member.name() + ": " + renderTypeAsHtml(member.returnType());
+            return member.name() + ": " + renderTypeAsHtml(member.returnType(), context);
         }
 
         StringBuilder sb = new StringBuilder();
@@ -510,11 +514,11 @@ public class MarkdownWriter {
                 sb.append(", ");
             }
             ParamDoc param = params.get(i);
-            sb.append(renderTypeAsHtml(param.type())).append(" ").append(param.name());
+            sb.append(renderTypeAsHtml(param.type(), context)).append(" ").append(param.name());
         }
         sb.append(")");
         if (member.kind() != MemberKind.CONSTRUCTOR) {
-            sb.append(": ").append(renderTypeAsHtml(member.returnType()));
+            sb.append(": ").append(renderTypeAsHtml(member.returnType(), context));
         }
         return sb.toString();
     }
@@ -686,7 +690,7 @@ public class MarkdownWriter {
      * emitted as {@code &lt;} / {@code &gt;} so they render correctly inside a
      * {@code <code>} element in the Markdown output.
      */
-    private String renderTypeAsHtml(TypeRef type) {
+    private String renderTypeAsHtml(TypeRef type, @Nullable ClassDoc context) {
         if (type == null) {
             return "";
         }
@@ -696,19 +700,19 @@ public class MarkdownWriter {
                 // Type variable: show its name; if it has a bound render "T extends Bound"
                 String base = escapeHtml(type.name());
                 if (type.bounds() != null) {
-                    base = base + " extends " + renderTypeAsHtml(type.bounds());
+                    base = base + " extends " + renderTypeAsHtml(type.bounds(), context);
                 }
                 yield base;
             }
-            case ARRAY -> renderTypeAsHtml(type.typeArgs().get(0)) + "[]";
+            case ARRAY -> renderTypeAsHtml(type.typeArgs().get(0), context) + "[]";
             case WILDCARD -> {
                 if (type.bounds() != null) {
-                    yield "? extends " + renderTypeAsHtml(type.bounds());
+                    yield "? extends " + renderTypeAsHtml(type.bounds(), context);
                 }
                 yield "?";
             }
             case DECLARED -> {
-                String linked = linkTypeName(type);
+                String linked = linkTypeName(type, context);
                 if (type.typeArgs().isEmpty()) {
                     yield linked;
                 }
@@ -718,24 +722,24 @@ public class MarkdownWriter {
                     if (i > 0) {
                         sb.append(", ");
                     }
-                    sb.append(renderTypeAsHtml(type.typeArgs().get(i)));
+                    sb.append(renderTypeAsHtml(type.typeArgs().get(i), context));
                 }
                 sb.append("&gt;");
                 yield sb.toString();
             }
-            case INTERSECTION -> renderTypeArgListAsHtml(type.typeArgs(), " &amp; ");
-            case UNION -> renderTypeArgListAsHtml(type.typeArgs(), " | ");
+            case INTERSECTION -> renderTypeArgListAsHtml(type.typeArgs(), " &amp; ", context);
+            case UNION -> renderTypeArgListAsHtml(type.typeArgs(), " | ", context);
             default -> escapeHtml(type.name());
         };
     }
 
-    private String renderTypeArgListAsHtml(List<TypeRef> args, String separator) {
+    private String renderTypeArgListAsHtml(List<TypeRef> args, String separator, @Nullable ClassDoc context) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < args.size(); i++) {
             if (i > 0) {
                 sb.append(separator);
             }
-            sb.append(renderTypeAsHtml(args.get(i)));
+            sb.append(renderTypeAsHtml(args.get(i), context));
         }
         return sb.toString();
     }
@@ -746,9 +750,9 @@ public class MarkdownWriter {
      * Angle brackets in the display name are escaped to &lt;/&gt; so they render
      * correctly when embedded inside HTML {@code <code>} elements.
      */
-    private String linkTypeName(TypeRef type) {
+    private String linkTypeName(TypeRef type, @Nullable ClassDoc context) {
         String displayName = escapeHtml(type.name());
-        String url = resolveTypeUrl(type);
+        String url = resolveTypeUrl(type, context);
         if (url == null) {
             return displayName;
         }
@@ -768,11 +772,11 @@ public class MarkdownWriter {
      * </ol>
      * Returns {@code null} when no link can be determined.
      */
-    private String resolveTypeUrl(TypeRef type) {
+    private String resolveTypeUrl(TypeRef type, @Nullable ClassDoc context) {
         // 1. Internal project class?
         ClassDoc internal = classByQualifiedName.get(type.qualifiedName());
         if (internal != null) {
-            return "/" + version + "/" + classPath(internal);
+            return buildLinkUrl(internal, null, context);
         }
 
         // 2. External Javadoc?
@@ -884,16 +888,26 @@ public class MarkdownWriter {
     }
 
     private String buildLinkUrl(ClassDoc targetClass, String anchor, ClassDoc context) {
-        String url;
         // Anchors on the page are qualified: "qualifiedName_anchorId" (e.g. "com.example.Foo_bar-String-").
         String qualifiedAnchor = anchor != null ? targetClass.qualifiedName() + "_" + anchor : null;
-        if (context != null && targetClass.qualifiedName().equals(context.qualifiedName()) && qualifiedAnchor != null) {
-            url = "#" + qualifiedAnchor;
-        } else {
+        if (context != null && targetClass.qualifiedName().equals(context.qualifiedName())) {
+            return qualifiedAnchor == null ? "#" : "#" + qualifiedAnchor;
+        }
+
+        String url;
+        if (context == null) {
             url = "/" + version + "/" + classPath(targetClass);
-            if (qualifiedAnchor != null) {
-                url = url + "#" + qualifiedAnchor;
+        } else {
+            Path from = Path.of(classPath(context));
+            Path to = Path.of(classPath(targetClass));
+            Path fromParent = from.getParent();
+            url = (fromParent == null ? to : fromParent.relativize(to)).toString().replace(File.separatorChar, '/');
+            if (url.isBlank()) {
+                url = "#";
             }
+        }
+        if (qualifiedAnchor != null) {
+            url = url + "#" + qualifiedAnchor;
         }
         return url;
     }
