@@ -8,10 +8,11 @@ const versionPrefix = `/${versionDir}`
 const sidebarData = loadSidebarData(versionDir)
 
 export default defineConfig({
-  cleanUrls: true,
-  srcDir: './content',
+  lang: 'en-US',
   title: 'JsMacrosCE',
-  description: 'Minecraft Fabric mod for JavaScript based macros.',
+  description: 'Minecraft mod for JavaScript/polyglot macros.',
+  srcDir: './content',
+  cleanUrls: true,
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },

@@ -1,3 +1,7 @@
+---
+layout: home
+---
+
 # JsMacros Community Edition Documentation
 
 Welcome to the complete API documentation for JsMacros Community Edition - a Minecraft mod that allows you to write macros in various languages to automate and enhance your gameplay.

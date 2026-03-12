@@ -183,3 +183,7 @@
 .vp-doc .overload-body code {
   font-size: 0.88em;
 }
+
+.vp-doc .overload-sig .VPBadge {
+  margin-left: auto;
+}
