@@ -33,7 +33,7 @@ public class FileChooser extends OverlayContainer {
     private File directory;
     private Component dirname;
     private File selected;
-    public File rooback t = JsMacrosClient.clientCore.config.macroFolder;
+    public File root = JsMacrosClient.clientCore.config.macroFolder;
     private final List<fileObj> files = new ArrayList<>();
     private final Consumer<File> setFile;
     private final Consumer<File> editFile;
