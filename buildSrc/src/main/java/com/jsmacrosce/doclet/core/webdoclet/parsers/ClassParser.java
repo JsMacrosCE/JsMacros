@@ -1,5 +1,6 @@
 package com.jsmacrosce.doclet.core.webdoclet.parsers;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.core.ClassGroup;
 import com.sun.source.doctree.*;
 import com.sun.source.util.DocTreePath;
@@ -17,6 +18,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+@DocletIgnore
 public class ClassParser {
     private final ClassGroup group;
     private final String alias;

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -17,6 +18,7 @@ import java.util.regex.Pattern;
  * @since 1.0.8
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class TextHelper extends BaseHelper<Component> {
     private static final Minecraft mc = Minecraft.getInstance();
 

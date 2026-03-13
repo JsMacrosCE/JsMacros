@@ -1,5 +1,6 @@
 package com.jsmacrosce.doclet.core.webdoclet;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.core.ClassGroup;
 import com.sun.source.util.DocTrees;
 import jdk.javadoc.doclet.Doclet;
@@ -29,6 +30,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+@DocletIgnore
 public class Main implements Doclet {
     public static Reporter reporter;
     public static String mappingViewerURL;

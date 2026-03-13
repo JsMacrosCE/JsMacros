@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingfields;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -15,6 +16,7 @@ import com.jsmacrosce.wagyourgui.elements.Button;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 
+@DocletIgnore
 public class FileField extends AbstractSettingField<String> {
 
     public FileField(int x, int y, int width, Font textRenderer, AbstractSettingContainer parent, SettingsOverlay.SettingField<String> field) {
@@ -24,15 +26,11 @@ public class FileField extends AbstractSettingField<String> {
     public static File getTopLevel(SettingsOverlay.SettingField<?> setting) {
         for (String option : setting.option.type().options()) {
             if (option.startsWith("topLevel=")) {
-                switch (option.replace("topLevel=", "")) {
-                    case "MC":
-                        return Minecraft.getInstance().gameDirectory;
-                    case "CONFIG":
-                        return JsMacrosClient.clientCore.config.configFolder;
-                    case "MACRO":
-                    default:
-                        return JsMacrosClient.clientCore.config.macroFolder;
-                }
+                return switch (option.replace("topLevel=", "")) {
+                    case "MC" -> Minecraft.getInstance().gameDirectory;
+                    case "CONFIG" -> JsMacrosClient.clientCore.config.configFolder;
+                    default -> JsMacrosClient.clientCore.config.macroFolder;
+                };
             }
         }
         //default

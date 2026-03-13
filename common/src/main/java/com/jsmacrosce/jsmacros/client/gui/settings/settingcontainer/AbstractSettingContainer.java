@@ -1,10 +1,12 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingcontainer;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.Font;
 import com.jsmacrosce.jsmacros.client.gui.settings.SettingsOverlay;
 import com.jsmacrosce.wagyourgui.containers.MultiElementContainer;
 import com.jsmacrosce.wagyourgui.elements.Scrollbar;
 
+@DocletIgnore
 public abstract class AbstractSettingContainer extends MultiElementContainer<SettingsOverlay> {
     public final String[] group;
     public Scrollbar scroll;

@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.screens;
 
 import com.google.common.collect.ImmutableList;
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.screens.Screen;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.config.ClientConfigV2;
@@ -12,6 +13,7 @@ import com.jsmacrosce.jsmacros.core.event.IEventListener;
 import java.util.ArrayList;
 import java.util.List;
 
+@DocletIgnore
 public class EventMacrosScreen extends MacroScreen {
 
     public EventMacrosScreen(Screen parent) {

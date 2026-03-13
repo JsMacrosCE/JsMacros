@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.listeners;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.jsmacrosce.jsmacros.client.api.event.impl.EventKey;
 import com.jsmacrosce.jsmacros.core.Core;
@@ -8,6 +9,7 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.BaseListener;
 import com.jsmacrosce.jsmacros.core.language.EventContainer;
 
+@DocletIgnore
 public class KeyListener extends BaseListener {
     private int mods;
     private String key;
@@ -46,16 +48,11 @@ public class KeyListener extends BaseListener {
     private boolean check(EventKey event) {
         boolean keyState = event.action == 1;
         if (event.key.equals(key) && (EventKey.getModInt(event.mods) & mods) == mods) {
-            switch (getRawTrigger().triggerType) {
-                case KEY_FALLING:
-                    return !keyState;
-                case KEY_RISING:
-                    return keyState;
-                case EVENT:
-                case KEY_BOTH:
-                default:
-                    return true;
-            }
+            return switch (getRawTrigger().triggerType) {
+                case KEY_FALLING -> !keyState;
+                case KEY_RISING -> keyState;
+                default -> true;
+            };
         }
         return false;
     }

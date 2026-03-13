@@ -1,5 +1,6 @@
 package com.jsmacrosce.doclet.core.tsdoclet;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.sun.source.util.DocTrees;
 import jdk.javadoc.doclet.Doclet;
 import jdk.javadoc.doclet.DocletEnvironment;
@@ -19,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
+@DocletIgnore
 public class Main implements Doclet {
     public static Reporter reporter;
     public static DocTrees treeUtils;

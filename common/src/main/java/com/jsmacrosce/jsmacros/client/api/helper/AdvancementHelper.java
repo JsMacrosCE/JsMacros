@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementNode;
@@ -21,6 +22,7 @@ import java.util.stream.StreamSupport;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class AdvancementHelper extends BaseHelper<AdvancementNode> {
     private static final Minecraft mc = Minecraft.getInstance();
 

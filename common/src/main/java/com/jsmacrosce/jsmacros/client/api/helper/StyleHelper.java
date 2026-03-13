@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.HoverEvent;
@@ -17,6 +18,7 @@ import java.util.stream.Collectors;
  * @since 1.6.5
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class StyleHelper extends BaseHelper<Style> {
     public StyleHelper(Style base) {
         super(base);

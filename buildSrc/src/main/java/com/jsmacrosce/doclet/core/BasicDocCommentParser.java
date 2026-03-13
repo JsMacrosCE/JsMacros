@@ -1,5 +1,6 @@
 package com.jsmacrosce.doclet.core;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.sun.source.doctree.DocCommentTree;
 import com.sun.source.doctree.DocTree;
 import com.sun.source.doctree.LinkTree;
@@ -21,6 +22,7 @@ import javax.lang.model.element.Element;
 import java.util.ArrayList;
 import java.util.List;
 
+@DocletIgnore
 public class BasicDocCommentParser implements DocCommentParser {
     private final DocTrees docTrees;
 

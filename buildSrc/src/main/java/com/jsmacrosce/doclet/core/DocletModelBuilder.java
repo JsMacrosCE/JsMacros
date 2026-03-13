@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 
+@DocletIgnore
 public class DocletModelBuilder {
     private final TypeResolver typeResolver;
     private final DocCommentParser docCommentParser;

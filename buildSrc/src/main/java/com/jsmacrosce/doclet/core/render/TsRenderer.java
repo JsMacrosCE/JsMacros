@@ -1,5 +1,6 @@
 package com.jsmacrosce.doclet.core.render;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.core.*;
 import com.jsmacrosce.doclet.core.model.ClassDoc;
 import com.jsmacrosce.doclet.core.model.ClassKind;
@@ -27,6 +28,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 
+@DocletIgnore
 public class TsRenderer implements Renderer {
     private static final Set<String> TS_RESERVED_WORDS = Set.of(
         "break", "case", "catch", "class", "const", "continue", "debugger", "default",

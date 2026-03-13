@@ -1,5 +1,6 @@
 package com.jsmacrosce.doclet.options;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import jdk.javadoc.doclet.Doclet;
 
 import java.io.BufferedReader;
@@ -9,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@DocletIgnore
 public class Links implements Doclet.Option {
     public static Map<String, String> externalPackages = new HashMap<>();
 

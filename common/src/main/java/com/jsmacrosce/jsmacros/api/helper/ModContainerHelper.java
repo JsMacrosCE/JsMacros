@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.api.helper;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.List;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public abstract class ModContainerHelper<T> extends BaseHelper<T> {
 
     protected ModContainerHelper(T base) {

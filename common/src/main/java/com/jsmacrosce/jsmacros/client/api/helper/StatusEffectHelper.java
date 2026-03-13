@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
@@ -12,6 +13,7 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * @since 1.2.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
 
     public StatusEffectHelper(MobEffectInstance s) {

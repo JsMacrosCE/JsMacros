@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.helper.screen;
 
 import com.google.common.collect.ImmutableList;
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.PlayerScoreEntry;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
  * @since 1.2.9
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class ScoreboardObjectiveHelper extends BaseHelper<Objective> {
     private static final Comparator<PlayerScoreEntry> SCOREBOARD_ENTRY_COMPARATOR = Comparator.comparing(PlayerScoreEntry::value).reversed().thenComparing(PlayerScoreEntry::owner, String.CASE_INSENSITIVE_ORDER);
 

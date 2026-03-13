@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.state.BlockState;
@@ -12,6 +13,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
  * @since 1.6.5
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class BlockStateHelper extends StateHelper<BlockState> {
 
     public BlockStateHelper(BlockState base) {

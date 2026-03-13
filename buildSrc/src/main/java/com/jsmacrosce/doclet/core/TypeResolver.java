@@ -1,9 +1,11 @@
 package com.jsmacrosce.doclet.core;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.core.model.TypeRef;
 
 import javax.lang.model.type.TypeMirror;
 
+@DocletIgnore
 public interface TypeResolver {
     TypeRef resolve(TypeMirror type);
     String format(TypeRef type, TargetLanguage target);

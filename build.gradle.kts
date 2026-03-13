@@ -307,7 +307,8 @@ if (isVersionedProject && hasMinecraftVersion) {
             (options as StandardJavadocDocletOptions).links(
                 "https://docs.oracle.com/javase/8/docs/api/",
                 "https://www.slf4j.org/apidocs-2.0.17/",
-                "https://takahikokawasaki.github.io/nv-websocket-client/"
+                "https://takahikokawasaki.github.io/nv-websocket-client/",
+                "https://www.graalvm.org/sdk/javadoc/"
             )
         }
 

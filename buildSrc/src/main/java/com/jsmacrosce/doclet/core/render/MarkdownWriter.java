@@ -2,6 +2,7 @@ package com.jsmacrosce.doclet.core.render;
 
 import com.jsmacrosce.FileHandler;
 import com.jsmacrosce.MarkdownBuilder;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.core.ClassGroup;
 import com.jsmacrosce.doclet.core.model.ClassDoc;
 import com.jsmacrosce.doclet.core.model.DocBodyNode;
@@ -32,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+@DocletIgnore
 public class MarkdownWriter {
     private static final String DEFAULT_CATEGORY = "Uncategorized";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();

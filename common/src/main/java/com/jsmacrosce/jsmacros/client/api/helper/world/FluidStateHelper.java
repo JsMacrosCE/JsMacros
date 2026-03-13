@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.material.FluidState;
@@ -10,6 +11,7 @@ import com.jsmacrosce.jsmacros.api.math.Pos3D;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class FluidStateHelper extends StateHelper<FluidState> {
 
     public FluidStateHelper(FluidState base) {

@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class TradeOfferHelper extends BaseHelper<MerchantOffer> {
     private final VillagerInventory inv;
     private final int index;

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.core.library;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 
@@ -25,7 +26,7 @@ import com.jsmacrosce.jsmacros.core.MethodWrapper;
  * @author Wagyourtail
  * @since 1.2.5, re-named from {@code consumer} in 1.3.2
  */
-@Library("JavaWrapper")
+@DocletIgnore
 public interface IFWrapper<T> {
 
     /**

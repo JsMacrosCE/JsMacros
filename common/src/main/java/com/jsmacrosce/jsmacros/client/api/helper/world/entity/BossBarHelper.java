@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.ChatFormatting;
 import net.minecraft.world.BossEvent;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
@@ -14,6 +15,7 @@ import java.util.Locale;
  * @since 1.2.1
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class BossBarHelper extends BaseHelper<BossEvent> {
 
     public BossBarHelper(BossEvent b) {

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.library.impl;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.mojang.realmsclient.RealmsMainScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConnectScreen;
@@ -70,6 +71,7 @@ public class FClient extends PerExecLibrary {
     /**
      * Don't touch this plz xd.
      */
+    @DocletIgnore
     public static TickSync tickSynchronizer = new TickSync();
 
     public FClient(BaseScriptContext<?> context) {

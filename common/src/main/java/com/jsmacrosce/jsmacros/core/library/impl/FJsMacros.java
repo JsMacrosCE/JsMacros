@@ -910,7 +910,6 @@ public class FJsMacros extends PerExecLibrary {
         BaseScriptContext<?> getCtx();
     }
 
-    @DocletCategory("Events and Event Handling")
     public static class EventAndContext<E extends BaseEvent> {
         public final E event;
         public final EventContainer<?> context;

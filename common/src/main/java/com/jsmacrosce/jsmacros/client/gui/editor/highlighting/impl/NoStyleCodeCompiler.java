@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.editor.highlighting.impl;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import com.jsmacrosce.jsmacros.client.gui.editor.highlighting.AbstractRenderCodeCompiler;
@@ -11,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@DocletIgnore
 public class NoStyleCodeCompiler extends AbstractRenderCodeCompiler {
     private Component[] compiledText = new Component[0];
 
@@ -20,7 +22,7 @@ public class NoStyleCodeCompiler extends AbstractRenderCodeCompiler {
 
     @Override
     public void recompileRenderedText(@NotNull String text) {
-        if (text.length() == 0) {
+        if (text.isEmpty()) {
             compiledText = new Component[]{Component.literal("")};
         } else {
             String[] t2 = text.split("\n");

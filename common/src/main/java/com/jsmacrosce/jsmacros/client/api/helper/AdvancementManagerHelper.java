@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.advancements.AdvancementTree;
@@ -23,6 +24,7 @@ import java.util.stream.StreamSupport;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class AdvancementManagerHelper extends BaseHelper<AdvancementTree> {
 
     public AdvancementManagerHelper(AdvancementTree advancementManager) {

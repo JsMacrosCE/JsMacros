@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.BlockHitResult;
@@ -15,6 +16,7 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * @since 1.9.1
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
 
     @Nullable

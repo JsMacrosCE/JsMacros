@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.ChatFormatting;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
@@ -8,6 +9,7 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class FormattingHelper extends BaseHelper<ChatFormatting> {
 
     public FormattingHelper(ChatFormatting base) {

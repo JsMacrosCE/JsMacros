@@ -1,5 +1,6 @@
 package com.jsmacrosce.doclet.core.util;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.core.model.DocBodyNode;
 
 import java.util.List;
@@ -19,6 +20,7 @@ import java.util.regex.Pattern;
  * {@link #convertSignature}, {@link #mapSimpleLinkSignature}) are provided here
  * so they are not duplicated across renderers.
  */
+@DocletIgnore
 public final class DocBodyRenderer {
 
     // Java boxed number types that map to their primitive names in display text.

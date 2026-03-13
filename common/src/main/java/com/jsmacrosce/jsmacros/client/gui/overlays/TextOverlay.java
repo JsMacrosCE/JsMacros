@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.overlays;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -7,6 +8,7 @@ import com.jsmacrosce.wagyourgui.elements.Button;
 import com.jsmacrosce.wagyourgui.overlays.IOverlayParent;
 import com.jsmacrosce.wagyourgui.overlays.OverlayContainer;
 
+@DocletCategory("Screen and UI Elements")
 public class TextOverlay extends OverlayContainer {
     private final Component text;
     public boolean centered = true;

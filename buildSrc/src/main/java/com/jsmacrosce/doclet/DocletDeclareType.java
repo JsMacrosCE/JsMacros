@@ -2,6 +2,7 @@ package com.jsmacrosce.doclet;
 
 import java.lang.annotation.*;
 
+@DocletIgnore
 @Documented
 @Retention(RetentionPolicy.SOURCE)
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.TYPE})

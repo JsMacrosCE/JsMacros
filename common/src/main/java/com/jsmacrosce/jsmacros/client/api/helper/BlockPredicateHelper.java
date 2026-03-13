@@ -1,4 +1,5 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.block.state.pattern.BlockInWorld;
@@ -18,6 +19,7 @@ import net.minecraft.advancements.critereon.BlockPredicate;
 /**
  * @since 1.9.1
  */
+@DocletCategory("Misc Helpers")
 public class BlockPredicateHelper extends BaseHelper<BlockPredicate> {
     private static final Minecraft mc = Minecraft.getInstance();
 

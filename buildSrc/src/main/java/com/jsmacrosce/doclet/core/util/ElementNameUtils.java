@@ -1,5 +1,7 @@
 package com.jsmacrosce.doclet.core.util;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
@@ -11,6 +13,7 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 
+@DocletIgnore
 public final class ElementNameUtils {
     private ElementNameUtils() {
     }

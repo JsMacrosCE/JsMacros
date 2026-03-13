@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.containers;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -16,6 +17,7 @@ import com.jsmacrosce.wagyourgui.overlays.TextPrompt;
 
 import java.io.File;
 
+@DocletIgnore
 public class ServiceContainer extends MultiElementContainer<MacroScreen> {
     public String service;
     protected Button nameBtn;

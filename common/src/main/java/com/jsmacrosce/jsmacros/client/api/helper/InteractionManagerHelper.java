@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.core.BlockPos;
@@ -35,6 +36,7 @@ import java.util.concurrent.Semaphore;
  * @since 1.9.0
  */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
+@DocletCategory("Misc Helpers")
 public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     protected final Minecraft mc = Minecraft.getInstance();
 

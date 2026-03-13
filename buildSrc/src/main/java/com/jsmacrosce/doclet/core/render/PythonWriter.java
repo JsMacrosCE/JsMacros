@@ -1,6 +1,7 @@
 package com.jsmacrosce.doclet.core.render;
 
 import com.jsmacrosce.FileHandler;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.core.ClassGroup;
 import com.jsmacrosce.doclet.core.model.ClassDoc;
 import com.jsmacrosce.doclet.core.model.DocBodyNode;
@@ -26,6 +27,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+@DocletIgnore
 public class PythonWriter {
     private static final Set<String> PYTHON_KEYWORDS = new LinkedHashSet<>(Arrays.asList(
         "False", "await", "else", "import", "pass", "None", "break", "except",

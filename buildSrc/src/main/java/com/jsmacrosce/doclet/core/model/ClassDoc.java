@@ -1,9 +1,11 @@
 package com.jsmacrosce.doclet.core.model;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.core.ClassGroup;
 
 import java.util.List;
 
+@DocletIgnore
 public record ClassDoc(
     String name,
     String qualifiedName,

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
  * @since 1.2.9
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
 
     public ScoreboardsHelper(Scoreboard board) {

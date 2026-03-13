@@ -1,5 +1,6 @@
 package com.jsmacrosce.doclet.core;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.core.model.TypeKind;
 import com.jsmacrosce.doclet.core.model.TypeRef;
 
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@DocletIgnore
 public class BasicTypeResolver implements TypeResolver {
     private static final Set<String> JAVA_ALIASES = Set.of(
         "java.lang.Array",

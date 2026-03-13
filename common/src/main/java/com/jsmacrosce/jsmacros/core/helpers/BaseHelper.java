@@ -1,6 +1,9 @@
 package com.jsmacrosce.jsmacros.core.helpers;
 
 
+import com.jsmacrosce.doclet.DocletCategory;
+
+@DocletCategory("Misc Helpers")
 public abstract class BaseHelper<T> {
     protected T base;
 

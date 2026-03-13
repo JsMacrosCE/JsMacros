@@ -1,5 +1,7 @@
 package com.jsmacrosce.doclet.core.model;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import java.util.List;
 
 /**
@@ -11,5 +13,6 @@ import java.util.List;
  * raw strings so that each renderer can format links, code spans, and HTML
  * in its own target-specific way without regex re-parsing.
  */
+@DocletIgnore
 public record DocComment(List<DocBodyNode> summary, List<DocBodyNode> body, List<DocTag> tags) {
 }

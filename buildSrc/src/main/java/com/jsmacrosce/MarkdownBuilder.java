@@ -1,5 +1,7 @@
 package com.jsmacrosce;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import java.util.Map;
 
 /**
@@ -14,6 +16,7 @@ import java.util.Map;
  * can be used in contexts where only a {@code String} is needed, such as
  * inside {@code MarkdownWriter} signatures.
  */
+@DocletIgnore
 public class MarkdownBuilder {
 
     /** Tracks what the last emitted element was, to decide separators. */

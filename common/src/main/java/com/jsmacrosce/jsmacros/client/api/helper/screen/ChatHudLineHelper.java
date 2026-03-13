@@ -1,11 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.helper.screen;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.GuiMessage;
 import net.minecraft.client.gui.components.ChatComponent;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class ChatHudLineHelper extends BaseHelper<GuiMessage> {
     private ChatComponent hud;
 

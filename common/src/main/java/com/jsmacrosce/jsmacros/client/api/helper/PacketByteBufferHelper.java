@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.reflect.ClassPath;
+import com.jsmacrosce.doclet.DocletCategory;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -55,6 +56,7 @@ import java.util.stream.Stream;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     private static final Minecraft mc = Minecraft.getInstance();
 

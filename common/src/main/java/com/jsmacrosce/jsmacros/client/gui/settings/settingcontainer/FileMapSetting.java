@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingcontainer;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import com.jsmacrosce.jsmacros.client.gui.overlays.FileChooser;
@@ -10,6 +11,7 @@ import com.jsmacrosce.wagyourgui.elements.Button;
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 
+@DocletIgnore
 public class FileMapSetting extends AbstractMapSettingContainer<String, FileMapSetting.FileEntry> {
 
     public FileMapSetting(int x, int y, int width, int height, Font textRenderer, SettingsOverlay parent, String[] group) {

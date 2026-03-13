@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
@@ -21,6 +22,7 @@ import java.util.Set;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class UniversalBlockStateHelper extends BlockStateHelper {
 
     public UniversalBlockStateHelper(BlockState base) {

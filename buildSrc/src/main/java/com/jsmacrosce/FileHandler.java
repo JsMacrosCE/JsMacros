@@ -1,11 +1,14 @@
 package com.jsmacrosce;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import java.io.*;
 
 /**
  * @author Wagyourtail
  * @since 1.1.8
  */
+@DocletIgnore
 public class FileHandler {
     private final File f;
 

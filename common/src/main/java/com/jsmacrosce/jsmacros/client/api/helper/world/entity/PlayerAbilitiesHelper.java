@@ -9,6 +9,7 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * @since 1.0.3
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class PlayerAbilitiesHelper extends BaseHelper<Abilities> {
 
     public PlayerAbilitiesHelper(Abilities a) {

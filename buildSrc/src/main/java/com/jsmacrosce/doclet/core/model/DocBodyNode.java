@@ -1,5 +1,7 @@
 package com.jsmacrosce.doclet.core.model;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 /**
  * A single node in a structured javadoc body.
  *
@@ -16,6 +18,7 @@ package com.jsmacrosce.doclet.core.model;
  *   <li>{@link Html}  — raw HTML (block or inline) that doesn't fit the above</li>
  * </ul>
  */
+@DocletIgnore
 public sealed interface DocBodyNode
         permits DocBodyNode.Text, DocBodyNode.Code, DocBodyNode.Link, DocBodyNode.Html {
 

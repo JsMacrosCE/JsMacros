@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.overlays;
 
 import com.google.common.collect.ImmutableList;
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 
+@DocletCategory("Screen and UI Elements")
 public class EventChooser extends OverlayContainer {
     private String selected;
     private final List<EventObj> events = new ArrayList<>();

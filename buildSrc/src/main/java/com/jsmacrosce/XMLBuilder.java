@@ -1,7 +1,10 @@
 package com.jsmacrosce;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import java.util.*;
 
+@DocletIgnore
 public class XMLBuilder {
     public final Map<String, String> options = new HashMap<>();
     public final List<Object> children = new LinkedList<>();

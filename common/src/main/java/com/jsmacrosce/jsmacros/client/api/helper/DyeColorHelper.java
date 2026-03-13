@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.world.item.DyeColor;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
@@ -9,6 +10,7 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class DyeColorHelper extends BaseHelper<DyeColor> {
 
     public DyeColorHelper(DyeColor base) {

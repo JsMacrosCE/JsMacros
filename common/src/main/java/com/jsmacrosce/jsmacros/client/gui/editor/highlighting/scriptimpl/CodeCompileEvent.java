@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.editor.highlighting.scriptimpl;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import io.noties.prism4j.Prism4j;
 import com.jsmacrosce.StringHashTrie;
 import com.jsmacrosce.doclet.DocletCategory;
