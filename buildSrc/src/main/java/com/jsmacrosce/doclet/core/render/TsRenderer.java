@@ -521,12 +521,15 @@ public class TsRenderer implements Renderer {
         List<ClassDoc> result = new ArrayList<>();
         for (PackageDoc pkg : model.packages()) {
             for (ClassDoc clz : pkg.classes()) {
-                if (clz.group() == group) {
+                if (clz.group() == group && clz.alias() != null) {
                     result.add(clz);
                 }
             }
         }
-        result.sort(Comparator.comparing(ClassDoc::alias, String.CASE_INSENSITIVE_ORDER));
+        result.sort(
+            Comparator.comparing(ClassDoc::alias, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER))
+                .thenComparing(ClassDoc::name, String.CASE_INSENSITIVE_ORDER)
+        );
         return result;
     }
 
