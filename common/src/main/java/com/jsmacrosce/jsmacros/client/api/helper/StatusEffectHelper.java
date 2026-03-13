@@ -1,10 +1,11 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
-import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 

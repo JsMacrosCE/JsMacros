@@ -1,10 +1,11 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
-import com.jsmacrosce.doclet.DocletCategory;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FChat;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;

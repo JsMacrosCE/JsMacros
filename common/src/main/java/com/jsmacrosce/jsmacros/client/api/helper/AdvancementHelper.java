@@ -1,6 +1,5 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
-import com.jsmacrosce.doclet.DocletCategory;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementNode;
@@ -8,7 +7,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+
 import org.jetbrains.annotations.Nullable;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinClientAdvancementManager;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;

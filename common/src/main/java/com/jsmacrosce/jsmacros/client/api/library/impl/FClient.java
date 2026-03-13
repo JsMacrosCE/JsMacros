@@ -1,7 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.library.impl;
 
-import com.jsmacrosce.doclet.DocletIgnore;
 import com.mojang.realmsclient.RealmsMainScreen;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConnectScreen;
 import net.minecraft.client.gui.screens.GenericMessageScreen;
@@ -16,7 +16,10 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.world.level.storage.LevelStorageException;
 import net.minecraft.world.level.storage.LevelStorageSource;
+
 import org.jetbrains.annotations.Nullable;
+
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.api.helper.ModContainerHelper;

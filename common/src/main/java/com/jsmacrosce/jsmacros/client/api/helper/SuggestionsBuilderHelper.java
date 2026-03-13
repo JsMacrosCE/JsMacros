@@ -1,9 +1,10 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
-import com.jsmacrosce.doclet.DocletCategory;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.resources.ResourceLocation;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 

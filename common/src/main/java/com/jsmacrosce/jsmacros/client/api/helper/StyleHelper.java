@@ -1,11 +1,12 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
-import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.access.CustomClickEvent;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;

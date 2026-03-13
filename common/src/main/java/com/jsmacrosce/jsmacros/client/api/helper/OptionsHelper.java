@@ -1,7 +1,9 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
 import com.google.common.collect.ImmutableList;
+
 import com.mojang.blaze3d.platform.Window;
+
 import net.minecraft.client.*;
 import net.minecraft.client.resources.language.LanguageInfo;
 import net.minecraft.client.resources.language.LanguageManager;
@@ -17,8 +19,11 @@ import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.ChatVisiblity;
 import net.minecraft.world.entity.player.PlayerModelPart;
+
 import org.apache.commons.lang3.ArrayUtils;
+
 import org.lwjgl.glfw.GLFW;
+
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletDeclareType;
 import com.jsmacrosce.doclet.DocletReplaceParams;

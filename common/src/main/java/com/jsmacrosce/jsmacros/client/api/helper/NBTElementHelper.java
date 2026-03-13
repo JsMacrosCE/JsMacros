@@ -1,12 +1,15 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
-import com.jsmacrosce.doclet.DocletCategory;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+
 import net.minecraft.commands.arguments.NbtPathArgument;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.*;
+
 import org.jetbrains.annotations.Nullable;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 

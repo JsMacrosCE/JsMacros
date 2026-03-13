@@ -1,9 +1,12 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
-import com.jsmacrosce.doclet.DocletCategory;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Holder;
 import net.minecraft.world.level.block.state.pattern.BlockInWorld;
+
 import org.jetbrains.annotations.Nullable;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;

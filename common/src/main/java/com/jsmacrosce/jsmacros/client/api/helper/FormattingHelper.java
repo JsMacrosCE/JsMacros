@@ -1,7 +1,8 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
-import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.ChatFormatting;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
 /**
