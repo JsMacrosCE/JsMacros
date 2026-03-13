@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
@@ -58,8 +59,8 @@ public abstract class MixinClientPlayNetworkHandler extends ClientCommonPacketLi
         new EventPlayerJoin(entry.profileId(), playerListEntry).trigger();
     }
 
-    @Inject(at = @At(value = "INVOKE", target = "Ljava/util/Set;remove(Ljava/lang/Object;)Z", remap = false), method = "handlePlayerInfoRemove", locals = LocalCapture.CAPTURE_FAILHARD)
-    public void onPlayerListEnd(ClientboundPlayerInfoRemovePacket packet, CallbackInfo ci, Iterator var2, UUID uUID, PlayerInfo playerListEntry) {
+    @Inject(at = @At(value = "INVOKE", target = "Ljava/util/Set;remove(Ljava/lang/Object;)Z", remap = false), method = "handlePlayerInfoRemove")
+    public void onPlayerListEnd(ClientboundPlayerInfoRemovePacket packet, CallbackInfo ci, @Local(name = "uuid") UUID uUID, @Local(name = "playerinfo") PlayerInfo playerListEntry) {
         new EventPlayerLeave(uUID, playerListEntry).trigger();
     }
 

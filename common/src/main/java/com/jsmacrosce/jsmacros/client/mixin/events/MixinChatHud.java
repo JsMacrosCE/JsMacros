@@ -16,6 +16,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.jsmacrosce.jsmacros.client.api.event.impl.EventRecvMessage;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 
+import javax.annotation.Nullable;
+
 @Mixin(ChatComponent.class)
 class MixinChatHud {
     @Unique
@@ -28,7 +30,7 @@ class MixinChatHud {
             at = @At("HEAD"),
             cancellable = true
     )
-    private void onAddMessage1(Component message, MessageSignature signature, GuiMessageTag indicator, CallbackInfo ci) {
+    private void onAddMessage1(Component message, @Nullable MessageSignature signature, @Nullable GuiMessageTag indicator, CallbackInfo ci) {
         jsmacros$originalMessage = message;
         jsmacros$eventRecvMessage = new EventRecvMessage(message, signature, indicator);
         jsmacros$eventRecvMessage.trigger();
@@ -47,13 +49,11 @@ class MixinChatHud {
     )
     private Component modifyChatMessage(Component text) {
         jsmacros$modifiedEventRecieve = false;
-        if (text == null) {
+        if (text == null || jsmacros$eventRecvMessage == null) {
             return null;
         }
+
         final TextHelper result = jsmacros$eventRecvMessage.text;
-        if (result == null) {
-            return null;
-        }
         if (!result.getRaw().equals(text)) {
             jsmacros$modifiedEventRecieve = true;
             return result.getRaw();
@@ -71,17 +71,17 @@ class MixinChatHud {
             argsOnly = true
     )
     private GuiMessageTag modifyChatMessageSignature(GuiMessageTag signature) {
-        if (jsmacros$modifiedEventRecieve) {
-            MutableComponent text2 = Component.empty().append(MODIFIED_TEXT).append(CommonComponents.NEW_LINE);
-            if (signature != null && signature.text() != null) {
-                text2.append(jsmacros$originalMessage).append(CommonComponents.NEW_LINE).append(signature.text());
-            } else {
-                text2.append(jsmacros$originalMessage);
-            }
-            return new GuiMessageTag(15386724, GuiMessageTag.Icon.CHAT_MODIFIED, text2, "Modified");
-        } else {
+        if (!jsmacros$modifiedEventRecieve) {
             return signature;
         }
+
+        MutableComponent text = Component.empty().append(MODIFIED_TEXT).append(CommonComponents.NEW_LINE);
+        text.append(jsmacros$originalMessage);
+        if (signature != null && signature.text() != null) {
+            text.append(CommonComponents.NEW_LINE).append(signature.text());
+        }
+
+        return new GuiMessageTag(0xEAC864, GuiMessageTag.Icon.CHAT_MODIFIED, text, "Modified");
     }
 
     @Inject(
