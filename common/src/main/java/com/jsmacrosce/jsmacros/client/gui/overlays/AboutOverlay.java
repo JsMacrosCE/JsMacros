@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.overlays;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -16,6 +17,7 @@ import java.util.List;
 import net.minecraft.Util;
 //? }
 
+@DocletCategory("Screen and UI Elements")
 public class AboutOverlay extends OverlayContainer {
     private List<FormattedCharSequence> text;
     private int lines;

@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity;
 
 import net.minecraft.world.entity.player.Abilities;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
 /**
@@ -8,6 +9,7 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * @since 1.0.3
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class PlayerAbilitiesHelper extends BaseHelper<Abilities> {
 
     public PlayerAbilitiesHelper(Abilities a) {

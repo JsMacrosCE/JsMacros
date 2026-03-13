@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.core.event.impl;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.EventFilterer;
 
@@ -7,6 +8,7 @@ import com.jsmacrosce.jsmacros.core.event.EventFilterer;
  * @author aMelonRind
  * @since 1.9.1
  */
+@DocletCategory("Event Filterers")
 public class FiltererInverted implements EventFilterer.Compound {
     public final EventFilterer base;
 

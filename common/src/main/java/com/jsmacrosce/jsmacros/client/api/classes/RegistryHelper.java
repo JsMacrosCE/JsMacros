@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.Minecraft;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class RegistryHelper {
 
     private final Minecraft mc = Minecraft.getInstance();

@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.recipebook.RecipeBookComponent;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletDeclareType;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
@@ -22,6 +23,7 @@ import java.util.Set;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Inputs/Interactions")
 @Event(value = "Key", oldName = "KEY", cancellable = true)
 public class EventKey extends BaseEvent {
     static final Minecraft mc = Minecraft.getInstance();

@@ -1,11 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.world;
 
 import net.minecraft.world.entity.Entity;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
+@DocletCategory("World")
 @Event("EntityLoad")
 public class EventEntityLoad extends BaseEvent {
     public final EntityHelper<?> entity;

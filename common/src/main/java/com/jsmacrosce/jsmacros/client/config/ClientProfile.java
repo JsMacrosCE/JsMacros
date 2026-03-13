@@ -19,6 +19,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.world.item.DyeColor;
 import org.slf4j.Logger;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.access.CustomClickEvent;
 import com.jsmacrosce.jsmacros.api.library.FJavaUtils;
 import com.jsmacrosce.jsmacros.api.library.FUtils;
@@ -48,6 +49,7 @@ import net.minecraft.advancements.critereon.NbtPredicate;
 import net.minecraft.advancements.critereon.StatePropertiesPredicate;
 //? }
 
+@DocletCategory("Configuration/Profiles")
 public class ClientProfile extends BaseProfile {
     private static final Minecraft mc = Minecraft.getInstance();
 

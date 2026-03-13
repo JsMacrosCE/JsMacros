@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.inventory;
 
 import net.minecraft.client.gui.screens.inventory.AnvilScreen;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinAnvilScreen;
 
@@ -8,6 +9,7 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinAnvilScreen;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public class AnvilInventory extends Inventory<AnvilScreen> {
 

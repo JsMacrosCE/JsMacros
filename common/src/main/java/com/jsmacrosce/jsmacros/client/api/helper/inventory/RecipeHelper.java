@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.display.RecipeDisplayEntry;
 import net.minecraft.world.item.crafting.display.SlotDisplayContext;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
  * @author Wagyourtail
  * @since 1.3.1
  */
+@DocletCategory("Items/Enchantments")
 @SuppressWarnings("unused")
 public class RecipeHelper extends BaseHelper<RecipeDisplayEntry> {
     private static final Minecraft mc = Minecraft.getInstance();

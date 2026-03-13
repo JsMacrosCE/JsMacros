@@ -5,6 +5,7 @@ import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 import org.slf4j.Logger;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.Core;
 
 import java.io.File;
@@ -18,6 +19,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@DocletCategory("Configuration/Profiles")
 public class ConfigManager {
     protected final static Gson gson = new GsonBuilder()
         .registerTypeAdapter(File.class, new TypeAdapter<File>() {

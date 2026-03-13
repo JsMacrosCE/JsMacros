@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockStateHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.FluidStateHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
@@ -13,6 +14,7 @@ import net.minecraft.advancements.critereon.StatePropertiesPredicate;
 /**
  * @since 1.9.1
  */
+@DocletCategory("Misc Helpers")
 public class StatePredicateHelper extends BaseHelper<StatePropertiesPredicate> {
 
     public StatePredicateHelper(StatePropertiesPredicate base) {

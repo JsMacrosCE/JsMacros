@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.entity.AreaEffectCloud;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 
@@ -9,6 +10,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class AreaEffectCloudEntityHelper extends EntityHelper<AreaEffectCloud> {
 

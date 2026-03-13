@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -28,6 +29,7 @@ import net.minecraft.Util;
  * @author Wagyourtail
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class BlockDataHelper extends BaseHelper<BlockState> {
     private static final Minecraft mc = Minecraft.getInstance();
 

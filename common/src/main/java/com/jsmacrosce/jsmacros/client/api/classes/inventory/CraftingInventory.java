@@ -1,12 +1,14 @@
 package com.jsmacrosce.jsmacros.client.api.classes.inventory;
 
 import net.minecraft.client.gui.screens.inventory.CraftingScreen;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Inventory")
 public class CraftingInventory extends RecipeInventory<CraftingScreen> {
 
     protected CraftingInventory(CraftingScreen inventory) {

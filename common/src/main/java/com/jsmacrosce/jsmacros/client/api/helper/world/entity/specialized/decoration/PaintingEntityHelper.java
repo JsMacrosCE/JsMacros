@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.decoration;
 
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 
@@ -14,6 +15,7 @@ import net.minecraft.world.entity.decoration.Painting;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class PaintingEntityHelper extends EntityHelper<Painting> {
 

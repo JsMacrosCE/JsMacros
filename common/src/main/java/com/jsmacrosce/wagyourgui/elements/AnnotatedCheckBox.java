@@ -1,5 +1,6 @@
 package com.jsmacrosce.wagyourgui.elements;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 //? if >1.21.8 {
@@ -9,6 +10,7 @@ import net.minecraft.network.chat.Component;
 
 import java.util.function.Consumer;
 
+@DocletCategory("Screen and UI Elements")
 public class AnnotatedCheckBox extends Button {
     public boolean value;
 

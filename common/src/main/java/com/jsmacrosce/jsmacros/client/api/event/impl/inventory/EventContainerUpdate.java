@@ -2,12 +2,14 @@ package com.jsmacrosce.jsmacros.client.api.event.impl.inventory;
 
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.inventory.Inventory;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IScreen;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
+@DocletCategory("Inventory")
 @Event(value = "ContainerUpdate")
 public class EventContainerUpdate extends BaseEvent {
     public final Inventory<?> inventory;

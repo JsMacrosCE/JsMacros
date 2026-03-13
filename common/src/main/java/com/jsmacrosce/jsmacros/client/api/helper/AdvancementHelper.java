@@ -7,7 +7,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+
 import org.jetbrains.annotations.Nullable;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinClientAdvancementManager;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
@@ -21,6 +24,7 @@ import java.util.stream.StreamSupport;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class AdvancementHelper extends BaseHelper<AdvancementNode> {
     private static final Minecraft mc = Minecraft.getInstance();
 

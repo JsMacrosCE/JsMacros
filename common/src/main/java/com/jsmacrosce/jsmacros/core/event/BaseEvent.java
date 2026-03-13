@@ -1,7 +1,9 @@
 package com.jsmacrosce.jsmacros.core.event;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.Core;
 
+@DocletCategory("Events and Event Handling")
 public class BaseEvent {
     public final Core<?, ?> runner;
     protected boolean cancelled;

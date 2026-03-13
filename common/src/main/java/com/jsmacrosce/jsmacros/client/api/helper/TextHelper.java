@@ -4,6 +4,8 @@ import com.mojang.serialization.JsonOps;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FChat;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
@@ -17,6 +19,7 @@ import java.util.regex.Pattern;
  * @since 1.0.8
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class TextHelper extends BaseHelper<Component> {
     private static final Minecraft mc = Minecraft.getInstance();
 

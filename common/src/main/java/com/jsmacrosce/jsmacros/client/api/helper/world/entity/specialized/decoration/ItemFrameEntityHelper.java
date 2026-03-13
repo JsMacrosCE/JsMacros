@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.decor
 
 import net.minecraft.world.entity.decoration.GlowItemFrame;
 import net.minecraft.world.entity.decoration.ItemFrame;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 
@@ -9,6 +10,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class ItemFrameEntityHelper extends EntityHelper<ItemFrame> {
 

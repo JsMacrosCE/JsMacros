@@ -1,7 +1,9 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
 import com.google.common.collect.ImmutableList;
+
 import com.mojang.blaze3d.platform.Window;
+
 import net.minecraft.client.*;
 import net.minecraft.client.resources.language.LanguageInfo;
 import net.minecraft.client.resources.language.LanguageManager;
@@ -17,8 +19,12 @@ import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.ChatVisiblity;
 import net.minecraft.world.entity.player.PlayerModelPart;
+
 import org.apache.commons.lang3.ArrayUtils;
+
 import org.lwjgl.glfw.GLFW;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletDeclareType;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
@@ -39,6 +45,7 @@ import java.util.stream.Stream;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Configuration/Profiles")
 @SuppressWarnings("unused")
 public class OptionsHelper extends BaseHelper<Options> {
 
@@ -390,6 +397,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         return (MixinSimpleOption) (Object) option;
     }
 
+    @DocletCategory("Configuration/Profiles")
     public class SkinOptionsHelper {
 
         public final OptionsHelper parent;
@@ -567,6 +575,7 @@ public class OptionsHelper extends BaseHelper<Options> {
 
     }
 
+    @DocletCategory("Configuration/Profiles")
     public class VideoOptionsHelper {
 
         public final OptionsHelper parent;
@@ -1125,6 +1134,7 @@ public class OptionsHelper extends BaseHelper<Options> {
 
     }
 
+    @DocletCategory("Configuration/Profiles")
     public class MusicOptionsHelper {
 
         public final OptionsHelper parent;
@@ -1406,6 +1416,7 @@ public class OptionsHelper extends BaseHelper<Options> {
 
     }
 
+    @DocletCategory("Configuration/Profiles")
     public class ControlOptionsHelper {
 
         public final OptionsHelper parent;
@@ -1683,6 +1694,7 @@ public class OptionsHelper extends BaseHelper<Options> {
 
     }
 
+    @DocletCategory("Configuration/Profiles")
     public class ChatOptionsHelper {
 
         public final OptionsHelper parent;
@@ -2038,6 +2050,7 @@ public class OptionsHelper extends BaseHelper<Options> {
 
     }
 
+    @DocletCategory("Configuration/Profiles")
     public class AccessibilityOptionsHelper {
 
         public final OptionsHelper parent;

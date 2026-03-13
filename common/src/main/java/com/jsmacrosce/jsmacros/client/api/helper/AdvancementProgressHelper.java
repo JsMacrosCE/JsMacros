@@ -1,8 +1,11 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
 import com.google.common.collect.Iterables;
+
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.advancements.CriterionProgress;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinAdvancementProgress;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
@@ -15,6 +18,7 @@ import java.util.stream.Collectors;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class AdvancementProgressHelper extends BaseHelper<AdvancementProgress> {
 
     public AdvancementProgressHelper(AdvancementProgress base) {

@@ -1,11 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.classes.inventory;
 
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import com.jsmacrosce.doclet.DocletCategory;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public class ContainerInventory<T extends AbstractContainerScreen<?>> extends Inventory<T> {
 

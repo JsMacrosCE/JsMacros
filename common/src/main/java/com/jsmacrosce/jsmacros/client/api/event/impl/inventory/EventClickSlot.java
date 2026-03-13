@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.inventory;
 
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.inventory.Inventory;
@@ -13,11 +14,12 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author Wagyourtail
  * @since 1.6.4
  */
+@DocletCategory("Inventory")
 @Event(value = "ClickSlot", cancellable = true)
 public class EventClickSlot extends BaseEvent {
     protected final AbstractContainerScreen<?> screen;
     /**
-     * <a href="https://wiki.vg/Protocol#Click_Window" target="_blank">https://wiki.vg/Protocol#Click_Window</a>
+     * <a href="https://minecraft.wiki/w/Java_Edition_protocol/Packets#Click_Container" target="_blank">https://minecraft.wiki/w/Java_Edition_protocol/Packets#Click_Container</a>
      */
     public final int mode;
     @DocletReplaceReturn("ClickSlotButton")

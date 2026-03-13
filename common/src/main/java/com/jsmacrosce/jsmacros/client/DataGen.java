@@ -3,8 +3,11 @@ package com.jsmacrosce.jsmacros.client;
 //import com.jsmacrosce.jsmacros.client.api.helper.PacketByteBufferHelper;
 //import com.jsmacrosce.jsmacros.client.api.helper.world.UniversalBlockStateHelper;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import java.io.IOException;
 
+@DocletIgnore
 public class DataGen {
 
     public static void main(String[] args) throws IOException {

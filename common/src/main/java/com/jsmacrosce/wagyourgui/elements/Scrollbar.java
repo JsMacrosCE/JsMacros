@@ -4,6 +4,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import com.jsmacrosce.doclet.DocletCategory;
 
 import java.util.function.Consumer;
 
@@ -11,6 +12,7 @@ import java.util.function.Consumer;
 /*import net.minecraft.client.input.MouseButtonEvent;
 *///?}
 
+@DocletCategory("Screen and UI Elements")
 public class Scrollbar extends AbstractWidget {
     protected double scrollPages = 1;
     protected double scrollAmount = 0;

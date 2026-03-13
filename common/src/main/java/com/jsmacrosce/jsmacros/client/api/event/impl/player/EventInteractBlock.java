@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.player;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockDataHelper;
@@ -10,6 +11,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author Wagyourtail
  * @since 1.8.0
  */
+@DocletCategory("Inputs/Interactions")
 @Event("InteractBlock")
 public class EventInteractBlock extends BaseEvent {
     public final boolean offhand;

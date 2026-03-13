@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.core.config;
 
 import org.slf4j.Logger;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.EventLockWatchdog;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
@@ -21,6 +22,7 @@ import java.util.Set;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Configuration/Profiles")
 public abstract class BaseProfile {
     public final Core<?, ?> runner;
     public final Logger LOGGER;

@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passi
 import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.LivingEntity;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinFoxEntity;
@@ -19,6 +20,7 @@ import net.minecraft.world.entity.animal.Fox;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class FoxEntityHelper extends AnimalEntityHelper<Fox> {
 

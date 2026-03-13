@@ -8,6 +8,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.world.item.enchantment.Enchantment;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
@@ -20,6 +21,7 @@ import java.util.Objects;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Items/Enchantments")
 @SuppressWarnings("unused")
 public class EnchantmentHelper extends BaseHelper<Holder<Enchantment>> {
     private static final Minecraft mc = Minecraft.getInstance();

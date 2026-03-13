@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.screen;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
@@ -13,6 +14,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Screen and UI Elements")
 public abstract class AbstractWidgetBuilder<B extends AbstractWidgetBuilder<B, T, U>, T extends AbstractWidget, U extends ClickableWidgetHelper<U, T>> implements Alignable<B> {
 
     protected final IScreen screen;

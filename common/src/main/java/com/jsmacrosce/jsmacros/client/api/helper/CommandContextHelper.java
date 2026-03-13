@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.client.api.helper;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.context.StringRange;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientSuggestionProvider;
@@ -23,6 +24,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.block.state.pattern.BlockInWorld;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.FakeServerCommandSource;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.EnchantmentHelper;
@@ -39,6 +42,7 @@ import java.util.stream.Collectors;
 /**
  * @since 1.4.2
  */
+@DocletCategory("System/Lifecycle")
 @Event("CommandContext")
 @SuppressWarnings("unused")
 public class CommandContextHelper extends BaseEvent {

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.containers;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -14,6 +15,7 @@ import com.jsmacrosce.wagyourgui.overlays.TextPrompt;
 
 import java.nio.file.Path;
 
+@DocletIgnore
 public class ServiceListTopbar extends MultiElementContainer<ServiceScreen> {
 
     public ServiceListTopbar(ServiceScreen parent, int x, int y, int width, int height, Font textRenderer) {

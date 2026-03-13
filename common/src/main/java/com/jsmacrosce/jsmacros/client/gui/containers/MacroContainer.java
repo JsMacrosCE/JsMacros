@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.containers;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.minecraft.client.Minecraft;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
+@DocletIgnore
 public class MacroContainer extends MultiElementContainer<MacroScreen> {
     private static final ResourceLocation key_down_tex = ResourceLocation.fromNamespaceAndPath(JsMacros.MOD_ID, "resources/key_down.png");
     private static final ResourceLocation key_up_tex = ResourceLocation.fromNamespaceAndPath(JsMacros.MOD_ID, "resources/key_up.png");

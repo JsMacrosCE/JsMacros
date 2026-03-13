@@ -1,10 +1,12 @@
 package com.jsmacrosce.jsmacros.client.config;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.config.ScriptTrigger;
 
 import java.util.Comparator;
 
+@DocletIgnore
 public class Sorting {
     public enum MacroSortMethod {
         Enabled,

@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.library.impl;
 
 import net.minecraft.world.phys.Vec3;
+
 import com.jsmacrosce.jsmacros.api.math.Pos2D;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.api.math.Vec2D;

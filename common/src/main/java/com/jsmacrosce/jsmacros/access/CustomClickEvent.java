@@ -1,8 +1,10 @@
 package com.jsmacrosce.jsmacros.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.network.chat.ClickEvent;
 import org.jetbrains.annotations.NotNull;
 
+@DocletIgnore
 public record CustomClickEvent(Runnable event) implements ClickEvent {
 
     @NotNull

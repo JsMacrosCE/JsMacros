@@ -8,6 +8,7 @@ import net.minecraft.client.input.MouseButtonInfo;
 import org.lwjgl.glfw.GLFW;
 *///?}
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IScreen;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
@@ -18,6 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Screen and UI Elements")
 @SuppressWarnings("unused")
 public class CheckBoxWidgetHelper extends ClickableWidgetHelper<CheckBoxWidgetHelper, Checkbox> {
 
@@ -74,6 +76,7 @@ public class CheckBoxWidgetHelper extends ClickableWidgetHelper<CheckBoxWidgetHe
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Screen and UI Elements")
     public static class CheckBoxBuilder extends AbstractWidgetBuilder<CheckBoxBuilder, Checkbox, CheckBoxWidgetHelper> {
 
         private boolean checked = false;

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.RemoteChatSession;
@@ -22,6 +23,7 @@ import net.minecraft.client.resources.PlayerSkin;
  * @since 1.0.2
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
 
     public PlayerListEntryHelper(PlayerInfo p) {

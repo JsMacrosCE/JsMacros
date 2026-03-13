@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
@@ -13,6 +14,7 @@ import net.minecraft.advancements.critereon.NbtPredicate;
 /**
  * @since 1.9.1
  */
+@DocletCategory("Misc Helpers")
 public class NbtPredicateHelper extends BaseHelper<NbtPredicate> {
 
     public NbtPredicateHelper(NbtPredicate base) {

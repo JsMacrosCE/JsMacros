@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletDeclareType;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinSpellcastingIllagerEntityHelper;
@@ -14,6 +15,7 @@ import net.minecraft.world.entity.monster.SpellcasterIllager;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class SpellcastingIllagerEntityHelper<T extends SpellcasterIllager> extends IllagerEntityHelper<T> {
 

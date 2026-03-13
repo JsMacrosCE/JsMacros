@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
@@ -10,6 +11,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("World")
 @Event(value = "Sound", oldName = "SOUND", cancellable = true)
 public class EventSound extends BaseEvent {
     @DocletReplaceReturn("SoundId")

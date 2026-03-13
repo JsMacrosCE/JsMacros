@@ -5,6 +5,8 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.access.CustomClickEvent;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
  * @since 1.6.5
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class StyleHelper extends BaseHelper<Style> {
     public StyleHelper(Style base) {
         super(base);

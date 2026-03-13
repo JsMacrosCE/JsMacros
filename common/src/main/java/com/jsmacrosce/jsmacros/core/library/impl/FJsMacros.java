@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.core.library.impl;
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.doclet.DocletReplaceTypeParams;
@@ -245,12 +246,12 @@ public class FJsMacros extends PerExecLibrary {
         return new WrappedScript<>(runner, (e) -> (EventContainer<BaseScriptContext<?>>) runner.exec(language, script, file != null ? ctx.getContainedFolder().toPath().resolve(file).toFile() : null, e, null, null), true);
     }
 
+    // TODO: Migrate open and openUrl to client-only Utils library and deprecate these methods.
     /**
      * Opens a file with the default system program.
      *
      * @param path relative to the script's folder.
      * @since 1.1.8
-     * @deprecated use the Utils library instead.
      */
     @Deprecated
     public void open(String path) throws IOException {
@@ -261,7 +262,6 @@ public class FJsMacros extends PerExecLibrary {
      * @param url
      * @throws MalformedURLException
      * @since 1.6.0
-     * @deprecated use the Utils library instead.
      */
     @Deprecated
     public void openUrl(String url) throws IOException {

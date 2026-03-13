@@ -2,10 +2,14 @@ package com.jsmacrosce.jsmacros.client.api.helper;
 
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+
 import net.minecraft.commands.arguments.NbtPathArgument;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.*;
+
 import org.jetbrains.annotations.Nullable;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
@@ -16,6 +20,7 @@ import java.util.stream.Collectors;
  * @since 1.5.1
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class NBTElementHelper<T extends Tag> extends BaseHelper<T> {
     private static final LinkedHashMap<String, NbtPathArgument.NbtPath> nbtPaths = new LinkedHashMap<>(32, 0.75f, true) {
 

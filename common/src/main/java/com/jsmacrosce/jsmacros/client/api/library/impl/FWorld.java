@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.library.impl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.LerpingBossEvent;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -35,7 +36,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+
 import org.jetbrains.annotations.Nullable;
+
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.doclet.DocletReplaceTypeParams;
@@ -57,6 +60,7 @@ import com.jsmacrosce.jsmacros.core.library.BaseLibrary;
 import com.jsmacrosce.jsmacros.core.library.Library;
 
 import javax.sound.sampled.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.*;

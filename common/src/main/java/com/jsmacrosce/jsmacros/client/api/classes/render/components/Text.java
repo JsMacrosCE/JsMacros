@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import org.joml.Matrix4f;
 import org.lwjgl.system.MemoryStack;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.TextBuilder;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
@@ -22,6 +23,7 @@ import java.nio.FloatBuffer;
  * @author Wagyourtail
  * @since 1.0.5
  */
+@DocletCategory("Rendering/Graphics")
 @SuppressWarnings("unused")
 public class Text implements RenderElement, Alignable<Text> {
 
@@ -371,6 +373,7 @@ public class Text implements RenderElement, Alignable<Text> {
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Rendering/Graphics")
     public static class Builder extends RenderElementBuilder<Text> implements Alignable<Builder> {
         private int x = 0;
         private int y = 0;

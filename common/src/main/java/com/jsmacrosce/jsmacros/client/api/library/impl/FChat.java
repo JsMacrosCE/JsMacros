@@ -5,9 +5,12 @@ import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.components.toasts.ToastManager;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.network.chat.Component;
+
 import org.jetbrains.annotations.Nullable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.jsmacrosce.jsmacros.client.JsMacros;
 import com.jsmacrosce.jsmacros.client.access.IChatHud;
 import com.jsmacrosce.jsmacros.client.api.classes.TextBuilder;

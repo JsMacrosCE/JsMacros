@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.player;
 
 import net.minecraft.world.damagesource.DamageSource;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
@@ -11,6 +12,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Player/Stats")
 @Event(value = "Damage", oldName = "DAMAGE")
 public class EventDamage extends BaseEvent {
     /**

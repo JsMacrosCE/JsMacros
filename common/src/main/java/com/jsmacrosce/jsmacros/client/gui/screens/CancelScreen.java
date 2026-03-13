@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.screens;
 
 import com.google.common.collect.ImmutableList;
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+@DocletIgnore
 public class CancelScreen extends BaseScreen {
     private int topScroll;
     private Scrollbar s;

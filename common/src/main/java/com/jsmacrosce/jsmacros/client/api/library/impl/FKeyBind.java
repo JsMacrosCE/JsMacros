@@ -2,11 +2,15 @@ package com.jsmacrosce.jsmacros.client.api.library.impl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.InputConstants.Key;
+
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+
 import org.jetbrains.annotations.Nullable;
+
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.core.Core;

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.Block;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
  * @since 1.6.5
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class BlockHelper extends BaseHelper<Block> {
 
     public BlockHelper(Block base) {

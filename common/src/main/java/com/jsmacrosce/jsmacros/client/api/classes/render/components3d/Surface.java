@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.math.Pos2D;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
@@ -29,6 +30,7 @@ import java.util.Objects;
  * @author Wagyourtail
  * @since 1.6.5
  */
+@DocletCategory("Rendering/Graphics")
 @SuppressWarnings("unused")
 public class Surface extends Draw2D implements RenderElement, RenderElement3D<Surface> {
     public boolean rotateToPlayer;
@@ -420,6 +422,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
      * @author Etheradon
      * @since 1.8.4
      */
+    @DocletCategory("Rendering/Graphics")
     public static class Builder {
         private final Draw3D parent;
 

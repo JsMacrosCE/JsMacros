@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.screens;
 
 import com.google.common.collect.ImmutableList;
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
@@ -27,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+@DocletIgnore
 public class MacroScreen extends BaseScreen {
     protected MultiElementContainer<MacroScreen> topbar;
     protected Scrollbar macroScroll;

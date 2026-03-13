@@ -3,6 +3,8 @@ package com.jsmacrosce.jsmacros.client.api.helper;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.resources.ResourceLocation;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
@@ -14,6 +16,7 @@ import java.util.stream.Collectors;
  * @since 1.6.5
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class SuggestionsBuilderHelper extends BaseHelper<SuggestionsBuilder> {
     public SuggestionsBuilderHelper(SuggestionsBuilder base) {
         super(base);

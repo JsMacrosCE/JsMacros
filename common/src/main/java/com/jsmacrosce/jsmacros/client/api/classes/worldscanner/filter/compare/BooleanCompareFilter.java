@@ -1,11 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.compare;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
 
 /**
  * @author Etheradon
  * @since 1.6.5
  */
+@DocletCategory("Filters/Predicates")
 public class BooleanCompareFilter implements IFilter<Boolean> {
 
     private final boolean compareTo;

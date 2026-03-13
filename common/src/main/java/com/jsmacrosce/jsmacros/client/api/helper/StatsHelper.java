@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
 import com.google.common.collect.ImmutableSet;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -12,6 +13,8 @@ import net.minecraft.stats.Stat;
 import net.minecraft.stats.StatType;
 import net.minecraft.stats.Stats;
 import net.minecraft.stats.StatsCounter;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinStatHandler;
@@ -23,6 +26,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class StatsHelper extends BaseHelper<StatsCounter> {
     public StatsHelper(StatsCounter base) {
         super(base);

@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.player;
 
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
@@ -12,6 +13,7 @@ import java.util.List;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Inputs/Interactions")
 @Event(value = "SignEdit", oldName = "SIGN_EDIT", cancellable = true)
 public class EventSignEdit extends BaseEvent {
     public final Pos3D pos;

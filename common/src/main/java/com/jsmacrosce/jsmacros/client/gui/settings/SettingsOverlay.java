@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.settings;
 
 import com.google.common.collect.Lists;
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 //? if >1.21.8 {
@@ -26,6 +27,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+@DocletIgnore
 public class SettingsOverlay extends OverlayContainer implements ICategoryTreeParent {
     private final Component title = Component.translatable("jsmacrosce.settings");
     private CategoryTreeContainer sections;

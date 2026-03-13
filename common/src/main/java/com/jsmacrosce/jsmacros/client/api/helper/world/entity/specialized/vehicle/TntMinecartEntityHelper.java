@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 
 //?  if >=1.21.11 {
@@ -12,6 +13,7 @@ import net.minecraft.world.entity.vehicle.MinecartTNT;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class TntMinecartEntityHelper extends EntityHelper<MinecartTNT> {
 

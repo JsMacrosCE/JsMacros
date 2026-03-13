@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.classes.render;
 
 import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.api.math.Pos2D;
 import com.jsmacrosce.jsmacros.api.math.Vec2D;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
@@ -16,6 +17,7 @@ import java.util.function.Consumer;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Screen and UI Elements")
 public interface IScreen extends IDraw2D<IScreen> {
 
     /**

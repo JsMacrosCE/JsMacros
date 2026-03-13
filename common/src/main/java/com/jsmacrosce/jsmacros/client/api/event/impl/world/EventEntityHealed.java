@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.world;
 
 import net.minecraft.world.entity.Entity;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
@@ -11,6 +12,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @since 1.6.5
  */
 
+@DocletCategory("World")
 @Event("EntityHealed")
 public class EventEntityHealed extends BaseEvent {
     public final EntityHelper<?> entity;

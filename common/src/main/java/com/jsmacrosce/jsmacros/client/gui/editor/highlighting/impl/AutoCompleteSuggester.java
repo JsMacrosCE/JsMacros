@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.editor.highlighting.impl;
 
 import com.jsmacrosce.StringHashTrie;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.core.extensions.LanguageExtension;
 import com.jsmacrosce.jsmacros.core.language.BaseLanguage;
@@ -13,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+@DocletIgnore
 public class AutoCompleteSuggester {
     private final StringHashTrie suggestions = new StringHashTrie();
     private final String language;

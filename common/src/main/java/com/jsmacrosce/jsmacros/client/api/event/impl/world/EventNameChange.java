@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.client.api.event.impl.world;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
@@ -13,6 +14,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author aMelonRind
  * @since 1.9.1
  */
+@DocletCategory("Network/Chat")
 @Event(value = "NameChange", cancellable = true)
 public class EventNameChange extends BaseEvent {
     public final EntityHelper<?> entity;

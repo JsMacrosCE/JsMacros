@@ -4,6 +4,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.wagyourgui.containers.MultiElementContainer;
 import com.jsmacrosce.wagyourgui.elements.Scrollbar;
 
@@ -15,6 +16,7 @@ import java.util.Map;
 import net.minecraft.client.input.MouseButtonEvent;
 *///?}
 
+@DocletCategory("Screen and UI Elements")
 public abstract class OverlayContainer extends MultiElementContainer<IOverlayParent> implements IOverlayParent {
     public Map<AbstractWidget, Boolean> savedBtnStates = new HashMap<>();
     public Scrollbar scroll;

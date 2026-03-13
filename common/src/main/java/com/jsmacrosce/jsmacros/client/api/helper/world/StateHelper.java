@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.world.level.block.state.StateHolder;
 import net.minecraft.world.level.block.state.properties.Property;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
@@ -19,6 +20,7 @@ import net.minecraft.Util;
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public abstract class StateHelper<U extends StateHolder<?, ?>> extends BaseHelper<U> {
 
     public StateHelper(U base) {

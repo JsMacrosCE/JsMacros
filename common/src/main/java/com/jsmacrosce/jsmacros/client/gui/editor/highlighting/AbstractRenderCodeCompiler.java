@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.editor.highlighting;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
 import com.jsmacrosce.jsmacros.client.gui.screens.EditorScreen;
@@ -7,6 +8,7 @@ import com.jsmacrosce.jsmacros.client.gui.screens.EditorScreen;
 import java.util.List;
 import java.util.Map;
 
+@DocletIgnore
 public abstract class AbstractRenderCodeCompiler {
     protected final EditorScreen screen;
     protected final String language;

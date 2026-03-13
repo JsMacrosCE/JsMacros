@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.event.filterer;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
@@ -18,6 +19,7 @@ import java.util.Objects;
  * @author aMelonRind
  * @since 1.9.1
  */
+@DocletCategory("Event Filterers")
 @SuppressWarnings("unused")
 public class FiltererBlockUpdate implements EventFilterer {
     @Nullable

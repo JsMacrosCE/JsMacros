@@ -1,5 +1,6 @@
 package io.noties.prism4j.languages;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import io.noties.prism4j.Prism4j;
 import org.jetbrains.annotations.NotNull;
 
@@ -14,6 +15,7 @@ import static java.util.regex.Pattern.compile;
  * updated to match upstream
  */
 @SuppressWarnings("unused")
+@DocletIgnore
 public abstract class Prism_clike {
 
     @NotNull

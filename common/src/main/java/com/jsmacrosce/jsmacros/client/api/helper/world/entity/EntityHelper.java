@@ -35,6 +35,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.doclet.DocletReplaceTypeParams;
@@ -137,6 +138,7 @@ import net.minecraft.world.level.storage.ValueOutput;
 /**
  * @author Wagyourtail
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class EntityHelper<T extends Entity> extends BaseHelper<T> {
 

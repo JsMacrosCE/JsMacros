@@ -14,6 +14,9 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.function.Consumer;
 
+import com.jsmacrosce.doclet.DocletCategory;
+
+@DocletCategory("Screen and UI Elements")
 public class TextInput extends Button {
     public Consumer<String> onChange;
     public String mask = ".*";

@@ -11,7 +11,10 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+
 import org.jetbrains.annotations.Nullable;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletDeclareType;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
@@ -35,6 +38,7 @@ import java.util.concurrent.Semaphore;
  * @since 1.9.0
  */
 @SuppressWarnings({"unused", "UnusedReturnValue"})
+@DocletCategory("Misc Helpers")
 public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     protected final Minecraft mc = Minecraft.getInstance();
 

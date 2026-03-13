@@ -6,12 +6,14 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.wagyourgui.overlays.IOverlayParent;
 import com.jsmacrosce.wagyourgui.overlays.OverlayContainer;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@DocletCategory("Screen and UI Elements")
 public abstract class MultiElementContainer<T extends IContainerParent> implements IContainerParent {
     protected List<AbstractWidget> buttons = new ArrayList<>();
     protected Font textRenderer;

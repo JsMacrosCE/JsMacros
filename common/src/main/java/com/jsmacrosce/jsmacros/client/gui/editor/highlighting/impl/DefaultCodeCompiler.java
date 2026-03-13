@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.editor.highlighting.impl;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import io.noties.prism4j.Prism4j;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.NotNull;
@@ -15,6 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@DocletIgnore
 public class DefaultCodeCompiler extends AbstractRenderCodeCompiler {
     private final Map<String, short[]> themeData = JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).getThemeData();
     private final AutoCompleteSuggester suggester;
@@ -29,7 +31,7 @@ public class DefaultCodeCompiler extends AbstractRenderCodeCompiler {
     @Override
     public void recompileRenderedText(@NotNull String text) {
         // style compiler
-        if (text.length() == 0) {
+        if (text.isEmpty()) {
             compiledText = new Component[]{Component.literal("")};
         } else {
             final List<Prism4j.Node> nodes = Prism.getNodes(text, language);

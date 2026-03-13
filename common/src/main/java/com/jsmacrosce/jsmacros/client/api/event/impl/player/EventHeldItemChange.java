@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.player;
 
 import net.minecraft.world.item.ItemStack;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
@@ -10,6 +11,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Inventory")
 @Event(value = "HeldItemChange", oldName = "HELD_ITEM")
 public class EventHeldItemChange extends BaseEvent {
     public final boolean offHand;

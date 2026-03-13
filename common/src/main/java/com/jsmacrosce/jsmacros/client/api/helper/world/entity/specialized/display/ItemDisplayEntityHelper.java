@@ -2,12 +2,14 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.displ
 
 import net.minecraft.world.entity.Display;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
 /**
  * @author aMelonRind
  * @since 1.9.1
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class ItemDisplayEntityHelper extends DisplayEntityHelper<Display.ItemDisplay> {
 

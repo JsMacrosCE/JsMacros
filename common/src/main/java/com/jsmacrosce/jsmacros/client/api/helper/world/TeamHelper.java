@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.world.scores.PlayerTeam;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.helper.FormattingHelper;
@@ -14,6 +15,7 @@ import java.util.List;
  * @since 1.3.0
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class TeamHelper extends BaseHelper<PlayerTeam> {
     public TeamHelper(PlayerTeam t) {
         super(t);

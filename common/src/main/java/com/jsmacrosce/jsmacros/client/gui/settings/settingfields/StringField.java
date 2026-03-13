@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingfields;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -10,6 +11,7 @@ import com.jsmacrosce.wagyourgui.elements.TextInput;
 
 import java.lang.reflect.InvocationTargetException;
 
+@DocletIgnore
 public class StringField extends AbstractSettingField<String> {
 
     public StringField(int x, int y, int width, Font textRenderer, AbstractSettingContainer parent, SettingsOverlay.SettingField<String> field) {

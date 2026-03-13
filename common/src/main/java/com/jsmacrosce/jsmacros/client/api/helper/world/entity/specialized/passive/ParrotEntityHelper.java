@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passi
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.UUIDUtil;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 
 import java.util.Objects;
@@ -17,6 +18,7 @@ import net.minecraft.world.entity.animal.Parrot;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class ParrotEntityHelper extends TameableEntityHelper<Parrot> {
 

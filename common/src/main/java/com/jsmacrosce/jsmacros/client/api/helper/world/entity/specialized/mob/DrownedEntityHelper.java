@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob;
 
 import net.minecraft.world.item.Items;
+import com.jsmacrosce.doclet.DocletCategory;
 
 //? if >=1.21.11 {
 /*import net.minecraft.world.entity.monster.zombie.Drowned;
@@ -12,6 +13,7 @@ import net.minecraft.world.entity.monster.Drowned;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class DrownedEntityHelper extends ZombieEntityHelper<Drowned> {
 

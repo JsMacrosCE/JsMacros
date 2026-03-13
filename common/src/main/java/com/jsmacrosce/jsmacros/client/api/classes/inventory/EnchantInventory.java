@@ -5,6 +5,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.EnchantmentMenu;
 import net.minecraft.world.item.enchantment.Enchantment;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.EnchantmentHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
@@ -12,6 +13,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 /**
  * @since 1.3.1
  */
+@DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public class EnchantInventory extends Inventory<EnchantmentScreen> {
 

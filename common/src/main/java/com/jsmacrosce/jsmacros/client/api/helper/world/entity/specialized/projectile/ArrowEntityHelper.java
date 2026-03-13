@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.projectile;
 
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
+import com.jsmacrosce.doclet.DocletCategory;
 
 //? if >=1.21.11 {
 /*import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
@@ -14,6 +15,7 @@ import net.minecraft.world.entity.projectile.Arrow;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Entity Helpers")
 @SuppressWarnings("unused")
 public class ArrowEntityHelper extends EntityHelper<AbstractArrow> {
 

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 
 /**
@@ -7,6 +8,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Rendering/Graphics")
 public abstract class RenderElementBuilder<T extends RenderElement> {
 
     protected final IDraw2D<?> parent;

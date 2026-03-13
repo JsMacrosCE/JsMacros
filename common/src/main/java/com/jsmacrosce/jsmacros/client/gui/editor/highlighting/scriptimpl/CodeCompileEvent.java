@@ -1,7 +1,9 @@
 package com.jsmacrosce.jsmacros.client.gui.editor.highlighting.scriptimpl;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import io.noties.prism4j.Prism4j;
 import com.jsmacrosce.StringHashTrie;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.TextBuilder;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
@@ -27,6 +29,7 @@ import java.util.Map;
  * @author Wagyourtail
  * @since 1.3.1
  */
+@DocletCategory("Render/UI")
 @Event("CodeRender")
 @SuppressWarnings("unused")
 public class CodeCompileEvent extends BaseEvent {

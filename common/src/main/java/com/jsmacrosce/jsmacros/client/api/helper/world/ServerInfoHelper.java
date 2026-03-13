@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import com.jsmacrosce.jsmacros.client.api.helper.NBTElementHelper;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
  * @since 1.6.5
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class ServerInfoHelper extends BaseHelper<ServerData> {
 
     public ServerInfoHelper(ServerData base) {

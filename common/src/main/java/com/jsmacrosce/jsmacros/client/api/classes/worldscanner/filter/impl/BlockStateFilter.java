@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.impl;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.ClassWrapperFilter;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockStateHelper;
 
@@ -10,6 +11,7 @@ import java.util.Map;
  * @author Etheradon
  * @since 1.6.5
  */
+@DocletCategory("Filters/Predicates")
 public class BlockStateFilter extends ClassWrapperFilter<BlockStateHelper> {
 
     private static final Map<String, Method> METHOD_LOOKUP = getPublicNoParameterMethods(BlockStateHelper.class);
