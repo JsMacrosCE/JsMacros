@@ -78,7 +78,7 @@ public class DocletModelBuilder {
                 continue;
             }
 
-            if (type.getAnnotation(DocletIgnore.class) != null) {
+            if (hasDocletIgnore(type)) {
                 continue;
             }
 
@@ -115,6 +115,10 @@ public class DocletModelBuilder {
                         eventFilterer = name;
                     }
                 }
+            } else if (hasEnclosingAnnotation(type, "Library")) {
+                group = ClassGroup.Library;
+            } else if (hasEnclosingAnnotation(type, "Event")) {
+                group = ClassGroup.Event;
             }
             DocletCategory categoryAnnotation = type.getAnnotation(DocletCategory.class);
             if (categoryAnnotation != null) {
@@ -224,7 +228,7 @@ public class DocletModelBuilder {
             }
 
             for (Element enclosed : type.getEnclosedElements()) {
-                if (enclosed.getAnnotation(DocletIgnore.class) != null) {
+                if (hasDocletIgnore(enclosed)) {
                     continue;
                 }
                 addDeclaredType(enclosed);
@@ -448,7 +452,7 @@ public class DocletModelBuilder {
                 if (overridden) {
                     continue;
                 }
-                if (element.getAnnotation(DocletIgnore.class) != null) {
+                if (hasDocletIgnore(element)) {
                     continue;
                 }
                 if (isObfuscated(method, superType, superMcTypes)) {
@@ -489,7 +493,7 @@ public class DocletModelBuilder {
                     continue;
                 }
                 TypeElement ifaceElement = (TypeElement) ((DeclaredType) iface).asElement();
-                if (ifaceElement.getAnnotation(DocletIgnore.class) != null) {
+                if (hasDocletIgnore(ifaceElement)) {
                     continue;
                 }
                 mixinIfaces.add(iface);
@@ -520,6 +524,17 @@ public class DocletModelBuilder {
         if (declare != null) {
             declaredTypes.add(new DeclaredTypeDoc(declare.name(), declare.type()));
         }
+    }
+
+    private boolean hasDocletIgnore(Element element) {
+        Element current = element;
+        while (current != null) {
+            if (current.getAnnotation(DocletIgnore.class) != null) {
+                return true;
+            }
+            current = current.getEnclosingElement();
+        }
+        return false;
     }
 
     private MemberDoc buildField(Element element) {
@@ -637,6 +652,24 @@ public class DocletModelBuilder {
             if (simpleName.equals(name)) {
                 return mirror;
             }
+        }
+        return null;
+    }
+
+    private boolean hasEnclosingAnnotation(TypeElement type, String annotationName) {
+        TypeElement enclosing = enclosingType(type.getEnclosingElement());
+        while (enclosing != null) {
+            if (findAnnotation(enclosing, annotationName) != null) {
+                return true;
+            }
+            enclosing = enclosingType(enclosing.getEnclosingElement());
+        }
+        return false;
+    }
+
+    private TypeElement enclosingType(Element element) {
+        if (element instanceof TypeElement typeElement) {
+            return typeElement;
         }
         return null;
     }

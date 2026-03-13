@@ -190,10 +190,7 @@ public class MarkdownWriter {
                 if (clz.group() != targetGroup) {
                     continue;
                 }
-                String category = clz.category();
-                if (category == null || category.isBlank()) {
-                    category = DEFAULT_CATEGORY;
-                }
+                String category = resolveCategory(clz, targetGroup);
                 categories.computeIfAbsent(category, key -> new ArrayList<>()).add(clz);
             }
         }
@@ -203,6 +200,31 @@ public class MarkdownWriter {
         return categories;
     }
 
+    private String resolveCategory(ClassDoc clz, ClassGroup targetGroup) {
+        String category = clz.category();
+        if (category != null && !category.isBlank()) {
+            return category;
+        }
+
+        ClassDoc current = clz;
+        while (current != null) {
+            String parentQualifiedName = parentQualifiedName(current);
+            if (parentQualifiedName == null) {
+                break;
+            }
+            ClassDoc parent = classByQualifiedName.get(parentQualifiedName);
+            if (parent == null) {
+                break;
+            }
+            if (parent.group() == targetGroup && parent.category() != null && !parent.category().isBlank()) {
+                return parent.category();
+            }
+            current = parent;
+        }
+
+        return DEFAULT_CATEGORY;
+    }
+
     private String sidebarSortKey(ClassDoc clz) {
         return hasAlias(clz) ? clz.alias() : clz.name();
     }
@@ -210,14 +232,70 @@ public class MarkdownWriter {
     private List<SidebarCategory> mapToSidebarCategories(Map<String, List<ClassDoc>> categories, String version) {
         List<SidebarCategory> sections = new ArrayList<>();
         for (Map.Entry<String, List<ClassDoc>> entry : categories.entrySet()) {
-            List<SidebarItem> items = new ArrayList<>();
-            for (ClassDoc clz : entry.getValue()) {
-                String link = "/" + version + "/" + classPath(clz);
-                items.add(new SidebarItem(displayLabel(clz), link));
-            }
+            List<SidebarEntry> items = buildSidebarEntries(entry.getValue(), version);
             sections.add(new SidebarCategory(entry.getKey(), items));
         }
         return sections;
+    }
+
+    private List<SidebarEntry> buildSidebarEntries(List<ClassDoc> classes, String version) {
+        Map<String, SidebarEntryBuilder> builders = new LinkedHashMap<>();
+        for (ClassDoc clz : classes) {
+            builders.put(clz.qualifiedName(), new SidebarEntryBuilder(clz));
+        }
+
+        List<SidebarEntryBuilder> roots = new ArrayList<>();
+        for (SidebarEntryBuilder builder : builders.values()) {
+            String parentQualifiedName = parentQualifiedName(builder.classDoc());
+            SidebarEntryBuilder parent = parentQualifiedName == null ? null : builders.get(parentQualifiedName);
+            if (parent == null) {
+                roots.add(builder);
+                continue;
+            }
+            parent.children().add(builder);
+        }
+
+        sortSidebarBuilders(roots);
+
+        List<SidebarEntry> entries = new ArrayList<>();
+        for (SidebarEntryBuilder root : roots) {
+            entries.add(toSidebarEntry(root, version));
+        }
+        return entries;
+    }
+
+    @Nullable
+    private String parentQualifiedName(ClassDoc clz) {
+        String name = clz.name();
+        int split = name.lastIndexOf('.');
+        if (split < 0) {
+            return null;
+        }
+        String parentName = name.substring(0, split);
+        if (parentName.isBlank()) {
+            return null;
+        }
+        return clz.packageName().isBlank() ? parentName : clz.packageName() + "." + parentName;
+    }
+
+    private void sortSidebarBuilders(List<SidebarEntryBuilder> builders) {
+        builders.sort(Comparator.comparing(builder -> sidebarSortKey(builder.classDoc()), String.CASE_INSENSITIVE_ORDER));
+        for (SidebarEntryBuilder builder : builders) {
+            sortSidebarBuilders(builder.children());
+        }
+    }
+
+    private SidebarEntry toSidebarEntry(SidebarEntryBuilder builder, String version) {
+        String link = "/" + version + "/" + classPath(builder.classDoc());
+        if (builder.children().isEmpty()) {
+            return new SidebarItem(displayLabel(builder.classDoc()), link);
+        }
+
+        List<SidebarEntry> childEntries = new ArrayList<>();
+        for (SidebarEntryBuilder child : builder.children()) {
+            childEntries.add(toSidebarEntry(child, version));
+        }
+        return new SidebarNode(displayLabel(builder.classDoc()), link, childEntries);
     }
 
     private String displayLabel(ClassDoc clz) {
@@ -231,32 +309,42 @@ public class MarkdownWriter {
         new FileHandler(new File(outDir, "sidebar-data.json")).write(GSON.toJson(data));
     }
 
-    private record SidebarItem(String text, String link) {}
-    private record SidebarCategory(String name, List<SidebarItem> items) {}
+    private interface SidebarEntry {}
+    private record SidebarItem(String text, String link) implements SidebarEntry {}
+    private record SidebarNode(String name, String link, List<SidebarEntry> items) implements SidebarEntry {}
+    private record SidebarEntryBuilder(ClassDoc classDoc, List<SidebarEntryBuilder> children) {
+        private SidebarEntryBuilder(ClassDoc classDoc) {
+            this(classDoc, new ArrayList<>());
+        }
+    }
+    private record SidebarCategory(String name, List<SidebarEntry> items) {}
     private record SidebarData(String version, List<SidebarCategory> classes, List<SidebarCategory> events, List<SidebarCategory> libraries) {}
 
     private String renderClass(ClassDoc clz) {
         MarkdownBuilder md = new MarkdownBuilder();
         md.frontmatter(Map.of("outline", "deep"));
         md.heading(1, displayTitle(clz));
-        md.paragraph(clz.qualifiedName());
+        md.paragraph(wrapHtmlWithElemAndAttribs(clz.qualifiedName(), "span", "class=\"qualified-name\""));
 
         String desc = formatDescription(clz.docComment(), clz);
         String descText = desc.isEmpty() ? "TODO: No description supplied\n" : desc;
         if (clz.group() == ClassGroup.Library) {
             String accessName = clz.alias() == null || clz.alias().isEmpty() ? clz.name() : clz.alias();
-            descText += "\nAccessible in scripts via the global " + MarkdownBuilder.codeSpan(accessName) + " variable.";
+            descText += "<br>Accessible in scripts via the global " + MarkdownBuilder.codeSpan(accessName) + " variable.";
         }
         md.paragraph(descText);
 
-        renderMemberSection(md, clz, MemberKind.CONSTRUCTOR, "Constructors");
+        // Skip constructors for libraries
+        if (clz.group() != ClassGroup.Library) {
+            renderMemberSection(md, clz, MemberKind.CONSTRUCTOR, "Constructors");
+        }
         renderMemberSection(md, clz, MemberKind.FIELD, "Fields");
         renderMemberSection(md, clz, MemberKind.METHOD, "Methods");
         return md.toString();
     }
 
     private String displayTitle(ClassDoc clz) {
-        if (clz.group() == ClassGroup.Event && hasAlias(clz)) {
+        if ((clz.group() == ClassGroup.Event || clz.group() == ClassGroup.Library) && hasAlias(clz)) {
             return clz.alias();
         }
         return clz.name();
@@ -324,8 +412,9 @@ public class MarkdownWriter {
             }
             html.append(">\n");
             html.append("<div class=\"overload-sig\">");
-            // v-pre suppresses Vue template compilation so <a href> links inside <code> work.
-            html.append("<code v-pre>").append(renderSignatureAsHtml(member, clz)).append("</code>");
+            html.append("<code>")
+                .append(renderSignatureAsHtml(member, clz))
+                .append("</code>");
             if (hasDeprecatedTag(member.docComment())) {
                 html.append("<Badge type=\"danger\" text=\"deprecated\" />");
             }
@@ -442,57 +531,47 @@ public class MarkdownWriter {
     }
 
     /**
-     * Renders the signature as a plain-text HTML-safe string for embedding
-     * inside a {@code <code>} element.  Type names are rendered without {@code <a>}
-     * links (to avoid Vue template-compiler issues with mixed-content {@code <code>}
-     * blocks); generic angle brackets are HTML-entity-escaped.
-     *
-     * <p>When a {@code @DocletReplaceParams} or {@code @DocletReplaceReturn}
-     * annotation override is present the raw override string is HTML-escaped for
-     * safe embedding.
+     * Wraps the given text in an HTML element with optional attributes, for embedding inside raw
+     * HTML blocks. Use when the content is already fully rendered to HTML and just needs a
+     * wrapper element.
+     * @param inner the already-rendered HTML content to wrap
+     * @param elem the HTML element name, e.g. "div", "p", "li"
+     * @param attribs optional raw attributes to include in the opening tag, e.g. "class=\"foo\" id=\"bar\""
+     * @return the combined HTML string with the wrapper element and attributes around the inner content
      */
-    private String renderSignature(MemberDoc member) {
-        if (member.kind() == MemberKind.FIELD) {
-            return member.name() + ": " + renderTypeAsText(member.returnType());
-        }
-
+    private String wrapHtmlWithElemAndAttribs(String inner, String elem, String attribs) {
         StringBuilder sb = new StringBuilder();
-        if (member.kind() == MemberKind.CONSTRUCTOR) {
-            sb.append("new ");
-        }
-        sb.append(member.name()).append("(");
-        if (member.replaceParams() != null && !member.replaceParams().isBlank()) {
-            // Opaque override — escape angle brackets for safe HTML embedding.
-            sb.append(escapeHtml(member.replaceParams()));
+        if (attribs != null && !attribs.isBlank()) {
+            attribs = " " + attribs.trim();
         } else {
-            List<ParamDoc> params = member.params();
-            for (int i = 0; i < params.size(); i++) {
-                if (i > 0) {
-                    sb.append(", ");
-                }
-                ParamDoc param = params.get(i);
-                sb.append(renderTypeAsText(param.type())).append(" ").append(param.name());
-            }
+            attribs = "";
         }
-        sb.append(")");
-        if (member.kind() != MemberKind.CONSTRUCTOR) {
-            sb.append(": ");
-            if (member.replaceReturn() != null && !member.replaceReturn().isBlank()) {
-                sb.append(escapeHtml(member.replaceReturn()));
-            } else {
-                sb.append(renderTypeAsText(member.returnType()));
-            }
-        }
+        sb.append("<").append(elem).append(attribs).append(">");
+        sb.append(inner);
+        sb.append("</").append(elem).append(">");
         return sb.toString();
+    }
+    
+    /**
+     * Wraps the given text in an HTML element with optional attributes, for embedding inside raw
+     * HTML blocks. Use when the content is already fully rendered to HTML and just needs a
+     * wrapper element.
+     * @see #wrapHtmlWithElemAndAttribs(String, String, String) for the variant with attributes.
+     * @param inner the already-rendered HTML content to wrap
+     * @param elem the HTML element name, e.g. "div", "p", "li"
+     * @return the combined HTML string with the wrapper element around the inner content
+     */
+    private String wrapHtmlWithElem(String inner, String elem) {
+        return wrapHtmlWithElemAndAttribs(inner, elem, null);
     }
 
     /**
      * Renders the signature as an HTML fragment with linked type names, for use
-     * inside {@code <code v-pre>} in the overload-sig block.
+     * inside {@code <code>} in the overload-sig block.
      *
      * <p>Type names become {@code <a href="...">} links (internal or external Javadoc).
      * Generic angle brackets are HTML-entity-escaped. Punctuation and keywords are
-     * plain HTML-safe text. {@code v-pre} on the containing {@code <code>} element
+     * plain HTML-safe text. {@code} on the containing {@code <code>} element
      * tells Vue's template compiler to skip the element, so the {@code <a>} tags
      * are preserved as-is in the rendered output.
      *
@@ -507,20 +586,27 @@ public class MarkdownWriter {
 
         StringBuilder sb = new StringBuilder();
         if (member.kind() == MemberKind.CONSTRUCTOR) {
-            sb.append("new ");
+            sb.append(Syntax.keyword("new"));
+            sb.append(Syntax.raw(" "));
         }
-        sb.append(member.name()).append("(");
+        sb.append(Syntax.method(member.name()));
+        sb.append(Syntax.punctuation("("));
         List<ParamDoc> params = member.params();
         for (int i = 0; i < params.size(); i++) {
             if (i > 0) {
-                sb.append(", ");
+                sb.append(Syntax.punctuation(", "));
             }
+
             ParamDoc param = params.get(i);
-            sb.append(renderTypeAsHtml(param.type(), context)).append(" ").append(param.name());
+            sb.append(renderTypeAsHtml(param.type(), context))
+                .append(Syntax.raw(" "))
+                .append(Syntax.parameter(param.name()));
         }
-        sb.append(")");
+        sb.append(Syntax.punctuation(")"));
         if (member.kind() != MemberKind.CONSTRUCTOR) {
-            sb.append(": ").append(renderTypeAsHtml(member.returnType(), context));
+            sb.append(Syntax.punctuation(":"))
+                .append(Syntax.raw(" "))
+                .append(renderTypeAsHtml(member.returnType(), context));
         }
         return sb.toString();
     }
@@ -697,41 +783,54 @@ public class MarkdownWriter {
             return "";
         }
         return switch (type.kind()) {
-            case PRIMITIVE, VOID -> escapeHtml(type.name());
+            case PRIMITIVE, VOID -> Syntax.primative(escapeHtml(type.name()));
             case TYPEVAR -> {
                 // Type variable: show its name; if it has a bound render "T extends Bound"
-                String base = escapeHtml(type.name());
+                StringBuilder sb = new StringBuilder();
+                sb.append(Syntax.typeVar(escapeHtml(type.name())));
                 if (type.bounds() != null) {
-                    base = base + " extends " + renderTypeAsHtml(type.bounds(), context);
+                    sb.append(Syntax.raw(" "))
+                        .append(Syntax.keyword("extends"))
+                        .append(Syntax.raw(" "))
+                        .append(renderTypeAsHtml(type.bounds(), context));
                 }
-                yield base;
+                yield sb.toString();
             }
-            case ARRAY -> renderTypeAsHtml(type.typeArgs().get(0), context) + "[]";
+            case ARRAY -> renderTypeAsHtml(type.typeArgs().get(0), context) + Syntax.punctuation("[]");
             case WILDCARD -> {
+                StringBuilder sb = new StringBuilder();
+                sb.append(Syntax.wildcard("?"));
+                
                 if (type.bounds() != null) {
-                    yield "? extends " + renderTypeAsHtml(type.bounds(), context);
+                    sb.append(Syntax.raw(" "))
+                        .append(Syntax.keyword("extends"))
+                        .append(Syntax.raw(" "))
+                        .append(renderTypeAsHtml(type.bounds(), context));
                 }
-                yield "?";
+
+                yield sb.toString();
             }
             case DECLARED -> {
+                StringBuilder sb = new StringBuilder();
                 String linked = linkTypeName(type, context);
+                sb.append(linked);
                 if (type.typeArgs().isEmpty()) {
-                    yield linked;
+                    yield sb.toString();
                 }
-                StringBuilder sb = new StringBuilder(linked);
-                sb.append("&lt;");
+
+                sb.append(Syntax.punctuation("&lt;"));
                 for (int i = 0; i < type.typeArgs().size(); i++) {
                     if (i > 0) {
-                        sb.append(", ");
+                        sb.append(Syntax.punctuation(", "));
                     }
                     sb.append(renderTypeAsHtml(type.typeArgs().get(i), context));
                 }
-                sb.append("&gt;");
+                sb.append(Syntax.punctuation("&gt;"));
                 yield sb.toString();
             }
-            case INTERSECTION -> renderTypeArgListAsHtml(type.typeArgs(), " &amp; ", context);
-            case UNION -> renderTypeArgListAsHtml(type.typeArgs(), " | ", context);
-            default -> escapeHtml(type.name());
+            case INTERSECTION -> renderTypeArgListAsHtml(type.typeArgs(), Syntax.raw(" ") + Syntax.punctuation("&amp;") + Syntax.raw(" "), context);
+            case UNION -> renderTypeArgListAsHtml(type.typeArgs(), Syntax.raw(" ") + Syntax.punctuation("&amp;") + Syntax.raw(" "), context);
+            default -> Syntax.raw(escapeHtml(type.name()));
         };
     }
 
@@ -754,11 +853,23 @@ public class MarkdownWriter {
      */
     private String linkTypeName(TypeRef type, @Nullable ClassDoc context) {
         String displayName = escapeHtml(type.name());
-        String url = resolveTypeUrl(type, context);
-        if (url == null) {
-            return displayName;
+        ResolvedType resolved = resolveTypeUrl(type, context);
+        if (resolved == null || resolved.url() == null) {
+            return Syntax.type(displayName);
         }
-        return "<a href=\"" + url + "\">" + displayName + "</a>";
+
+        StringBuilder attribs = new StringBuilder();
+        attribs.append("href=\"").append(resolved.url()).append("\"");
+        if (resolved.isExternal()) {
+            attribs.append(" target=\"_blank\"");
+            attribs.append(" rel=\"noopener noreferrer\"");
+        }
+
+        return Syntax.linkedType(wrapHtmlWithElemAndAttribs(
+            displayName,
+            "a",
+            attribs.toString()
+        ));
     }
 
     /** Escapes < and > to HTML entities for safe embedding in HTML code elements. */
@@ -774,21 +885,23 @@ public class MarkdownWriter {
      * </ol>
      * Returns {@code null} when no link can be determined.
      */
-    private String resolveTypeUrl(TypeRef type, @Nullable ClassDoc context) {
+    private ResolvedType resolveTypeUrl(TypeRef type, @Nullable ClassDoc context) {
         // 1. Internal project class?
         ClassDoc internal = classByQualifiedName.get(type.qualifiedName());
         if (internal != null) {
-            return buildLinkUrl(internal, null, context);
+            return new ResolvedType(type.qualifiedName(), buildLinkUrl(internal, null, context), false);
         }
 
         // 2. External Javadoc?
         String externalUrl = resolveExternalTypeUrl(type.qualifiedName());
         if (externalUrl != null) {
-            return externalUrl;
+            return new ResolvedType(type.qualifiedName(), externalUrl, true);
         }
 
         return null;
     }
+
+    private record ResolvedType(String qualifiedName, String url, boolean isExternal) {}
 
     /**
      * Looks up a type's package in {@link #externalPackages} and builds the
@@ -1162,4 +1275,165 @@ public class MarkdownWriter {
     }
 
     private record LinkSignature(String className, String memberName, List<String> paramTypes) {}
+
+    /**
+     * 
+     */
+    private class Syntax {
+        /**
+         * Wraps the given text in an HTML element with optional attributes, for embedding inside raw
+         * HTML blocks. Use when the content is already fully rendered to HTML and just needs a
+         * wrapper element.
+         * @param inner the already-rendered HTML content to wrap
+         * @param elem the HTML element name, e.g. "div", "p", "li"
+         * @param attribs optional raw attributes to include in the opening tag, e.g. "class=\"foo\" id=\"bar\""
+         * @return the combined HTML string with the wrapper element and attributes around the inner content
+         */
+        private static String wrapHtmlWithElemAndAttribs(String inner, String elem, String attribs) {
+            StringBuilder sb = new StringBuilder();
+            if (attribs != null && !attribs.isBlank()) {
+                attribs = " " + attribs.trim();
+            } else {
+                attribs = "";
+            }
+            sb.append("<").append(elem).append(attribs).append(">");
+            sb.append(inner);
+            sb.append("</").append(elem).append(">");
+            return sb.toString();
+        }
+        
+        /**
+         * Wraps the given text in an HTML element with optional attributes, for embedding inside raw
+         * HTML blocks. Use when the content is already fully rendered to HTML and just needs a
+         * wrapper element.
+         * @see #wrapHtmlWithElemAndAttribs(String, String, String) for the variant with attributes.
+         * @param inner the already-rendered HTML content to wrap
+         * @param elem the HTML element name, e.g. "div", "p", "li"
+         * @return the combined HTML string with the wrapper element around the inner content
+         */
+        private static String wrapHtmlWithElem(String inner, String elem) {
+            return wrapHtmlWithElemAndAttribs(inner, elem, null);
+        }
+        
+        /**
+         * Wraps the given content in a <span> with class "syntax-token-{type}", for syntax highlighting.
+         * @param type the token type, e.g. "keyword", "class-name", "punctuation"
+         * @param content the already-rendered HTML content to wrap
+         * @return the combined HTML string with the <span> wrapper and token class around the inner content
+         */
+        public static String tok(String type, String content) {
+            return wrapHtmlWithElemAndAttribs(content, "span", "class=\"syntax-token-" + type + "\"");
+        }
+
+        /**
+         * Returns the given content wrapped in a "keyword" token span.
+         * Ex. "new", "extends", "implements"
+         * @param content the already-rendered HTML content to wrap
+         * @return the combined HTML string with the <span> wrapper and token class around the inner content
+         */
+        public static String keyword(String content) {
+            return tok("keyword", content);
+        }
+
+        /**
+         * Returns the given content wrapped in a "method" token span.
+         * Ex. method names, constructor names, field names
+         * @param content the already-rendered HTML content to wrap
+         * @return the combined HTML string with the <span> wrapper and token class around the inner content
+         */
+        public static String method(String content) {
+            return tok("method", content);
+        }
+
+        /**
+         * Returns the given content wrapped in a "class" token span.
+         * Ex. class names, interface names, enum names, annotation names
+         * @param content the already-rendered HTML content to wrap
+         * @return the combined HTML string with the <span> wrapper and token class around the inner content
+         */
+        public static String clazz(String content) {
+            return tok("class", content);
+        }
+
+        /**
+         * Returns the given content wrapped in a "type" token span.
+         * Ex. type parameters, type variable names
+         * @param content the already-rendered HTML content to wrap
+         * @return the combined HTML string with the <span> wrapper and token class around the inner content
+         */
+        public static String type(String content) {
+            return tok("type", content);
+        }
+
+        /**
+         * Returns the given content wrapped in a "linked-type" token span.
+         * Ex. type parameters, type variable
+         * @param content the already-rendered <a> wrapped HTML content to wrap
+         * @return the combined HTML string with the <span> wrapper and token class around the inner content
+         */
+        public static String linkedType(String content) {
+            return tok("linked-type", content);
+        }
+
+        /**
+         * Returns the given content wrapped in a "parameter" token span.
+         * Ex. parameter names in method signatures
+         * @param content the already-rendered HTML content to wrap
+         * @return the combined HTML string with the <span> wrapper and token class around the inner content
+         */
+        public static String parameter(String content) {
+            return tok("parameter", content);
+        }
+
+        /**
+         * Returns the given content wrapped in a "punctuation" token span.
+         * Ex. "(", ")", "{", "}", "[", "]", ";", ",", ".", "::", ":", "<", ">"
+         * @param content the already-rendered HTML content to wrap
+         * @return the combined HTML string with the <span> wrapper and token class around the inner content
+         */
+        public static String punctuation(String content) {
+            return tok("punctuation", content);
+        }
+
+        /**
+         * Returns the given content wrapped in a "wildcard" token span.
+         * Ex. "?"
+         * @param content the already-rendered HTML content to wrap
+         * @return the combined HTML string with the <span> wrapper and token class around the inner content
+         */
+        public static String wildcard(String content) {
+            return tok("wildcard", content);
+        }
+
+        /**
+         * Returns the given content wrapped in a "primative" token span.
+         * Ex. "?"
+         * @param content the already-rendered HTML content to wrap
+         * @return the combined HTML string with the <span> wrapper and token class around the inner content
+         */
+        public static String primative(String content) {
+            return tok("primative", content);
+        }
+
+        /**
+         * Returns the given content wrapped in a "typevar" token span.
+         * Ex. type variable names like "T" and "E"
+         * @param content the already-rendered HTML content to wrap
+         * @return the combined HTML string with the <span> wrapper and token class around the inner content
+         */
+        public static String typeVar(String content) {
+            return tok("typevar", content);
+        }
+
+        /**
+         * Returns the given raw HTML string wrapped in a <span> element, for embedding inside
+         * Shiki-highlighted code blocks where the content is already fully rendered to HTML
+         * and just needs a wrapper element.
+         * @param html the raw HTML string to wrap
+         * @return the combined HTML string with the <span> wrapper around the inner content
+         */
+        public static String raw(String html) {
+            return html;
+        }
+    }
 }

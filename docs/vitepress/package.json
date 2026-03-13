@@ -17,6 +17,7 @@
   "packageManager": "pnpm@10.25.0",
   "devDependencies": {
     "@types/node": "^25.0.3",
-    "vitepress": "2.0.0-alpha.15"
+    "vitepress": "2.0.0-alpha.15",
+    "shiki": "^4.0.2"
   }
 }

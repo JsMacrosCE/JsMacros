@@ -4,6 +4,7 @@
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
+   General headings (## Getting Started / Resources)
    Section headings (## Constructors / Fields / Methods)
    -------------------------------------------------------------------------- */
 
@@ -14,7 +15,7 @@
   text-transform: uppercase;
   color: var(--vp-c-text-2);
   border-bottom: none;
-  margin-top: 2.5rem;
+  margin-top: 1rem;
   margin-bottom: 0;
   padding-bottom: 0;
 }
@@ -77,8 +78,11 @@
   font-family: var(--vp-font-family-mono);
   font-size: 0.82rem;
   color: var(--vp-c-text-3);
-  margin-top: -0.5rem;
-  margin-bottom: 1.25rem;
+}
+
+.vp-doc h1 + p:has(> span.qualified-name:only-child) {
+  margin-top: -0.2rem;
+  margin-bottom: -0.75rem;
 }
 
 /* --------------------------------------------------------------------------
@@ -186,4 +190,110 @@
 
 .vp-doc .overload-sig .VPBadge {
   margin-left: auto;
+}
+
+
+/* --------------------------------------------------------------------------
+   Code block inline styling
+   -------------------------------------------------------------------------- */
+.vp-doc .inline-code-highlight.shiki {
+  display: inline;
+  white-space: normal;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: var(--vp-code-font-size);
+  background-color: var(--vp-code-block-bg);
+  border: 1px solid var(--vp-code-bg);
+}
+
+.vp-doc .inline-code-highlight.shiki code {
+  display: inline;
+  white-space: normal;
+  background: transparent;
+  padding: 0;
+  border: 0;
+}
+
+/* Let Shiki's dark variables win in dark mode */
+html.dark .vp-doc .inline-code-highlight.shiki,
+html.dark .vp-doc .inline-code-highlight.shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+/* github-light */
+.syntax-token-method {
+  color: #6f42c1;
+}
+
+.syntax-token-primative {
+  color: #d73a49;
+}
+
+.syntax-token-parameter {
+  color: #24292e;
+}
+
+.syntax-token-punctuation {
+  color: #24292e;
+}
+
+.syntax-token-linked-type > a {
+  /* Leave default styling */
+}
+
+.syntax-token-type {
+  color: #e36209;
+}
+
+.syntax-token-wildcard {
+  color: #d73a49;
+}
+
+.syntax-token-typevar {
+  color: #6f42c1;
+}
+
+.syntax-token-keyword {
+  color: #d73a49;
+}
+
+/* github-dark */
+html.dark .syntax-token-method {
+  color: #b392f0;
+}
+
+html.dark .syntax-token-primative {
+  color: #f97583;
+}
+
+html.dark .syntax-token-parameter {
+  color: #e1e4e8;
+}
+
+html.dark .syntax-token-punctuation {
+  color: #e1e4e8;
+}
+
+html.dark .syntax-token-linked-type > a {
+  /* Leave default styling */
+}
+
+html.dark .syntax-token-type {
+  color: #ffab70;
+}
+
+html.dark .syntax-token-wildcard {
+  color: #f97583;
+}
+
+html.dark .syntax-token-typevar {
+  color: #b392f0;
+}
+
+html.dark .syntax-token-keyword {
+  color: #f97583;
 }

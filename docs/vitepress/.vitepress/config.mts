@@ -1,11 +1,18 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { defineConfig } from 'vitepress'
+import { inlineHighlightPlugin } from './theme/inline-highlight'
+import { createHighlighter } from 'shiki'
 
 const contentDir = path.resolve(__dirname, '../content')
 const versionDir = resolveVersionDir(contentDir)
 const versionPrefix = `/${versionDir}`
 const sidebarData = loadSidebarData(versionDir)
+
+const highlighter = await createHighlighter({
+  themes: ['github-light', 'github-dark'],
+  langs: ['javascript', 'typescript', 'java', 'json']
+})
 
 export default defineConfig({
   lang: 'en-US',
@@ -33,6 +40,15 @@ export default defineConfig({
     },
     outline: {
       level: [2, 3],
+    },
+    docFooter: {
+      prev: false,
+      next: false
+    }
+  },
+  markdown: {
+    config: md => {
+      md.use(inlineHighlightPlugin, highlighter)
     }
   }
 })
@@ -51,12 +67,39 @@ function resolveVersionDir(dir: string): string {
   return entries[entries.length - 1]
 }
 
-type SidebarDataNode = Array<{ name: string; items: Array<{ text: string; link: string }> }>
+type SidebarItem = { text: string; link: string };
+type SidebarDataEntry = SidebarItem | SidebarDataNode;
+type SidebarDataNode = { name: string; link?: string; items: SidebarDataEntry[] };
+type SidebarConfigItem =
+  | { text: string; link: string }
+  | { text: string; link?: string; collapsed: true; items: SidebarConfigItem[] };
 type SidebarData = {
-  classes: SidebarDataNode;
-  events: SidebarDataNode;
-  libraries: SidebarDataNode;
+  classes: SidebarDataNode[];
+  events: SidebarDataNode[];
+  libraries: SidebarDataNode[];
 }
+
+function isSidebarDataNode(entry: SidebarDataEntry): entry is SidebarDataNode {
+  return 'name' in entry && 'items' in entry
+}
+
+function mapSidebarEntries(entries: SidebarDataEntry[]): SidebarConfigItem[] {
+  return entries.map((entry) => {
+    if (isSidebarDataNode(entry)) {
+      return {
+        text: entry.name,
+        link: entry.link,
+        collapsed: true,
+        items: mapSidebarEntries(entry.items ?? [])
+      }
+    }
+    return {
+      text: entry.text,
+      link: entry.link
+    }
+  })
+}
+
 function loadSidebarData(version: string): SidebarData {
   const dataPath = path.join(contentDir, version, 'sidebar-data.json')
   if (!fs.existsSync(dataPath)) {
@@ -70,16 +113,13 @@ function loadSidebarData(version: string): SidebarData {
   }
 }
 
-function buildSidebar(entries: SidebarDataNode, fallbackLink: string, mainTitle: string) {
+function buildSidebar(entries: SidebarDataNode[], fallbackLink: string, mainTitle: string) {
   if (Array.isArray(entries) && entries.length > 0) {
     // Flatten the sidebar on pages like "Libraries" where we don't categorize things
     if (entries.length === 1 && entries[0].name === 'Uncategorized') {
       return [{
         text: mainTitle,
-        items: entries[0].items.map((item) => ({
-          text: item.text,
-          link: item.link
-        }))
+        items: mapSidebarEntries(entries[0].items ?? [])
       }];
     }
 
@@ -93,10 +133,7 @@ function buildSidebar(entries: SidebarDataNode, fallbackLink: string, mainTitle:
       }).map((section) => ({
         text: section.name,
         collapsed: true,
-        items: (section.items ?? []).map((item) => ({
-          text: item.text,
-          link: item.link
-        }))
+        items: mapSidebarEntries(section.items ?? [])
       }))
     }];
   }
