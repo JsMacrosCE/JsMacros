@@ -1,10 +1,17 @@
 package com.jsmacrosce.jsmacros.client.api.library.impl;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.components.toasts.ToastManager;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.network.chat.MutableComponent;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -413,13 +420,21 @@ public class FChat extends BaseLibrary {
      *
      * @param json
      * @return a new {@link TextHelper TextHelper}
+     * @throws JsonParseException
      * @see TextHelper
      * @since 1.1.3
      */
     @Nullable
-    public TextHelper createTextHelperFromJSON(String json) {
-        Component jsonStr = Component.nullToEmpty(json);
-        return TextHelper.wrap(jsonStr);
+    public TextHelper createTextHelperFromJSON(String json) throws JsonParseException {
+        JsonElement jsonelement = JsonParser.parseString(json);
+        ClientPacketListener conn = mc.getConnection();
+        if (jsonelement == null || conn == null) {
+            return null;
+        }
+
+        MutableComponent component = (MutableComponent) ComponentSerialization.CODEC.parse(conn.registryAccess()
+                .createSerializationContext(JsonOps.INSTANCE), jsonelement).getOrThrow(JsonParseException::new);
+        return TextHelper.wrap(component);
     }
 
     /**
