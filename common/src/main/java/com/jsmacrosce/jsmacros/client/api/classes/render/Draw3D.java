@@ -401,6 +401,22 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
+     * @since 1.9.0
+     */
+    public EntityTraceLine addEntityTraceLine(EntityHelper<?> entity,
+            int color,
+            int alpha,
+            double yOffset,
+            boolean alwaysOnTop)
+    {
+        EntityTraceLine l = new EntityTraceLine(entity, color, alpha, yOffset, alwaysOnTop);
+        synchronized (elements) {
+            elements.add(l);
+        }
+        return l;
+    }
+
+    /**
      * @return self for chaining
      * @since 1.9.0
      */
@@ -475,8 +491,8 @@ public class Draw3D implements Registrable<Draw3D> {
                 y + radius,
                 z + radius,
                 color,
-                color,
                 alpha,
+                color,
                 alpha,
                 true,
                 cull

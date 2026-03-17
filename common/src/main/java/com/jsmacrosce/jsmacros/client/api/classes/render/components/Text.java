@@ -1,6 +1,5 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
-import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -8,15 +7,11 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
-import org.joml.Matrix4f;
-import org.lwjgl.system.MemoryStack;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.TextBuilder;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
-
-import java.nio.FloatBuffer;
 
 /**
  * @author Wagyourtail
@@ -35,7 +30,7 @@ public class Text implements RenderElement, Alignable<Text> {
     public int x;
     public int y;
     public int color;
-    public int width;
+    private volatile int width = -1;
     public boolean shadow;
     public int zIndex;
 
@@ -48,7 +43,6 @@ public class Text implements RenderElement, Alignable<Text> {
         this.x = x;
         this.y = y;
         setColor(color);
-        this.width = mc.font.width(this.text);
         this.shadow = shadow;
         this.scale = scale;
         this.rotation = Mth.wrapDegrees(rotation);
@@ -110,7 +104,7 @@ public class Text implements RenderElement, Alignable<Text> {
      */
     public Text setText(String text) {
         this.text = net.minecraft.network.chat.Component.literal(text);
-        this.width = mc.font.width(text);
+        this.width = -1;
         return this;
     }
 
@@ -121,7 +115,7 @@ public class Text implements RenderElement, Alignable<Text> {
      */
     public Text setText(TextHelper text) {
         this.text = text.getRaw();
-        this.width = mc.font.width(this.text);
+        this.width = -1;
         return this;
     }
 
@@ -138,6 +132,9 @@ public class Text implements RenderElement, Alignable<Text> {
      * @since 1.0.5
      */
     public int getWidth() {
+        if (this.width < 0) {
+            this.width = mc.font.width(this.text);
+        }
         return this.width;
     }
 
@@ -282,49 +279,32 @@ public class Text implements RenderElement, Alignable<Text> {
 
     @Override
     @DocletIgnore
-    public void render3D(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-        //? if >1.21.5 {
-        Matrix3x2fStack matrices = drawContext.pose();
-        matrices.pushMatrix();
-        //?} else {
-        /*PoseStack matrices = drawContext.pose();
-        matrices.pushPose();
-        *///?}
-
-        setupMatrix(matrices, x, y, (float) scale, rotation, getWidth(), getHeight(), rotateCenter);
-        //? if >1.21.5 {
-        Matrix4f matrix4f;
-        try (MemoryStack memoryStack = MemoryStack.stackPush()) {
-            FloatBuffer buf = memoryStack.mallocFloat(16);
-            matrices.get4x4(buf);
-            buf.rewind();
-            matrix4f = new Matrix4f().set(buf);
+    public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+        matrixStack.pushPose();
+        matrixStack.translate(x, y, 0);
+        matrixStack.scale((float) scale, (float) scale, 1);
+        if (rotateCenter) {
+            matrixStack.translate(getWidth() / 2d, getHeight() / 2d, 0);
         }
-        //?}
-        MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(new ByteBufferBuilder(1536));
+        matrixStack.mulPose(new org.joml.Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        if (rotateCenter) {
+            matrixStack.translate(-getWidth() / 2d, -getHeight() / 2d, 0);
+        }
+        matrixStack.translate(-x, -y, 0);
+
         mc.font.drawInBatch(
             text,
-            x,
-            y,
+            (float) x,
+            (float) y,
             color,
             shadow,
-            //? if >1.21.5 {
-            matrix4f,
-            //?} else {
-            /*matrices.last().pose(),
-            *///?}
-            buffer,
-            Font.DisplayMode.NORMAL,
+            matrixStack.last().pose(),
+            consumers,
+            seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL,
             0,
-            0xFFF000F0
+            light
         );
-        buffer.endBatch();
-
-        //? if >1.21.5 {
-        matrices.popMatrix();
-         //?} else {
-        /*matrices.popPose();
-        *///?}
+        matrixStack.popPose();
     }
 
     public Text setParent(IDraw2D<?> parent) {

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 
+import com.jsmacrosce.jsmacros.client.util.ColorUtil;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.entity.Entity;
@@ -25,12 +26,20 @@ public class EntityTraceLine extends TraceLine {
 
     public EntityTraceLine(@Nullable EntityHelper<?> entity, int color, double yOffset) {
         super(0, 0, 0, color);
-        setEntity(entity).setYOffset(yOffset);
+        setEntity(entity);
+        setYOffset(yOffset);
     }
 
     public EntityTraceLine(@Nullable EntityHelper<?> entity, int color, int alpha, double yOffset) {
         super(0, 0, 0, color, alpha);
-        setEntity(entity).setYOffset(yOffset);
+        setEntity(entity);
+        setYOffset(yOffset);
+    }
+
+    public EntityTraceLine(@Nullable EntityHelper<?> entity, int color, int alpha, double yOffset, boolean alwaysOnTop) {
+        super(0, 0, 0, color, alpha, alwaysOnTop);
+        setEntity(entity);
+        setYOffset(yOffset);
     }
 
     /**
@@ -74,6 +83,7 @@ public class EntityTraceLine extends TraceLine {
         private double yOffset = 0.5;
         private int color = 0xFFFFFF;
         private int alpha = 0xFF;
+        private boolean alwaysOnTop = true;
 
         public Builder(Draw3D parent) {
             this.parent = parent;
@@ -122,7 +132,7 @@ public class EntityTraceLine extends TraceLine {
          * @since 1.9.0
          */
         public Builder color(int color) {
-            this.color = color;
+            this.color = ColorUtil.fixAlpha(color);
             return this;
         }
 
@@ -182,6 +192,11 @@ public class EntityTraceLine extends TraceLine {
             return this;
         }
 
+        public Builder alwaysOnTop(boolean alwaysOnTop) {
+            this.alwaysOnTop = alwaysOnTop;
+            return this;
+        }
+
         /**
          * @return the alpha value of the line's color
          * @since 1.9.0
@@ -231,7 +246,7 @@ public class EntityTraceLine extends TraceLine {
          * @since 1.9.0
          */
         public EntityTraceLine build() {
-            return new EntityTraceLine(entity, color, alpha, yOffset);
+            return new EntityTraceLine(entity, color, alpha, yOffset, alwaysOnTop);
         }
 
     }

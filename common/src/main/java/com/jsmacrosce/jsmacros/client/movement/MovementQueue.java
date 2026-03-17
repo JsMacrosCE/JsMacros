@@ -31,7 +31,11 @@ public class MovementQueue {
         player = newPlayer;
 
         if (predictions.size() == queue.size() - queuePos + 1 && queuePos != 0) {
-            Vec3 diff = new Vec3(player.getX() - predictions.get(0).x(), player.getY() - predictions.get(0).y(), player.getZ() - predictions.get(0).z());
+            Vec3 firstPrediction = predictions.getFirst();
+            Vec3 diff = new Vec3(
+                    player.getX() - firstPrediction.x(),
+                    player.getY() - firstPrediction.y(),
+                    player.getZ() - firstPrediction.z());
             if (diff.length() > 0.01D) {
                 LOGGER.debug("Pred of by x={}, y={}, z={}", diff.x(), diff.y(), diff.z());
                 LOGGER.debug("Player pos x={}, y={}, z={}", player.getX(), player.getY(), player.getZ());
@@ -39,7 +43,7 @@ public class MovementQueue {
                 reCalcPredictions = true;
             } else {
                 LOGGER.debug("No Diff");
-                predictions.remove(0);
+                predictions.removeFirst();
             }
         } else {
             LOGGER.debug("No Pred");
@@ -52,8 +56,9 @@ public class MovementQueue {
             reCalcPredictions = false;
         }
 
-        if (predictions.size() > 0) {
-            LOGGER.debug("Predic pos x={}, y={}, z={}", predictions.get(0).x(), predictions.get(0).y(), predictions.get(0).z());
+        if (!predictions.isEmpty()) {
+            Vec3 firstPrediction = predictions.getFirst();
+            LOGGER.debug("Predic pos x={}, y={}, z={}", firstPrediction.x(), firstPrediction.y(), firstPrediction.z());
         }
 
         queuePos++;
@@ -96,9 +101,7 @@ public class MovementQueue {
     public synchronized static void clear() {
         queue.clear();
         predictions.clear();
-        if (FHud.renders.contains(predPoints)) {
-            FHud.renders.remove(predPoints);
-        }
+        FHud.renders.remove(predPoints);
         predPoints = new Draw3D();
         if (doDrawPredictions) {
             FHud.renders.add(predPoints);

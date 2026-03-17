@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.platform.DepthTestFunction;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
@@ -9,12 +13,36 @@ import org.joml.Quaternionf;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
 
+import java.lang.reflect.Field;
+
+//? if >=1.21.11 {
+/*import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+*///? } else {
+import net.minecraft.client.renderer.RenderType;
+//?}
+
 /**
  * @author Etheradon
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
 public class Line implements RenderElement, Alignable<Line> {
+
+    //? if <1.21.11 {
+    private static final Field lineDepthTestFunction;
+    private static final DepthTestFunction oldlineDepthTestFunction;
+
+    static {
+        try {
+            lineDepthTestFunction = RenderPipelines.LINES.getClass().getDeclaredField("depthTestFunction");
+            lineDepthTestFunction.setAccessible(true);
+            oldlineDepthTestFunction = (DepthTestFunction) lineDepthTestFunction.get(RenderPipelines.LINES);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            throw new RuntimeException("Failed to reflect into RenderLayer for Line", e);
+        }
+    }
+    //?}
 
     @Nullable
     public IDraw2D<?> parent;
@@ -306,6 +334,65 @@ public class Line implements RenderElement, Alignable<Line> {
         //?} else {
         /*matrices.popPose();
         *///?}
+    }
+
+    @Override
+    public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+        matrixStack.pushPose();
+        matrixStack.translate(x1, y1, 0);
+        if (rotateCenter) {
+            matrixStack.translate(getScaledWidth() / 2d, getScaledHeight() / 2d, 0);
+        }
+        matrixStack.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        if (rotateCenter) {
+            matrixStack.translate(-getScaledWidth() / 2d, -getScaledHeight() / 2d, 0);
+        }
+        matrixStack.translate(-x1, -y1, 0);
+
+        float brightness = RenderElement.lightBrightness(light);
+        float a = ((color >> 24) & 0xFF) / 255.0f;
+        float r = ((color >> 16) & 0xFF) / 255.0f * brightness;
+        float g = ((color >> 8)  & 0xFF) / 255.0f * brightness;
+        float b = (color         & 0xFF) / 255.0f * brightness;
+
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        float len = (float) Math.sqrt(dx * dx + dy * dy);
+        float nx = len > 0 ? dx / len : 0;
+        float ny = len > 0 ? dy / len : 0;
+
+        //? if >=1.21.11 {
+        /*RenderType lineLayer = seeThrough ? RenderTypes.linesTranslucent() : RenderTypes.lines();
+        VertexConsumer vc = consumers.getBuffer(lineLayer);
+        PoseStack.Pose pose = matrixStack.last();
+        vc.addVertex(pose, x1, y1, 0).setColor(r, g, b, a).setLineWidth(width).setNormal(pose, nx, ny, 0);
+        vc.addVertex(pose, x2, y2, 0).setColor(r, g, b, a).setLineWidth(width).setNormal(pose, nx, ny, 0);
+        *///? } else {
+        VertexConsumer vc = consumers.getBuffer(RenderType.lines());
+        try {
+            if (seeThrough) {
+                lineDepthTestFunction.set(RenderPipelines.LINES, DepthTestFunction.NO_DEPTH_TEST);
+            }
+            PoseStack.Pose pose = matrixStack.last();
+            vc.addVertex(pose, x1, y1, 0).setColor(r, g, b, a).setNormal(pose, nx, ny, 0);
+            vc.addVertex(pose, x2, y2, 0).setColor(r, g, b, a).setNormal(pose, nx, ny, 0);
+            if (seeThrough && consumers instanceof MultiBufferSource.BufferSource immediate) {
+                immediate.endBatch();
+            }
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } finally {
+            if (seeThrough) {
+                try {
+                    lineDepthTestFunction.set(RenderPipelines.LINES, oldlineDepthTestFunction);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        //?}
+
+        matrixStack.popPose();
     }
 
     public Line setParent(IDraw2D<?> parent) {
