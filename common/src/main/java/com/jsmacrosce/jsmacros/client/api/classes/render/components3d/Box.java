@@ -199,8 +199,9 @@ public class Box implements RenderElement3D<Box> {
         boolean seeThrough = !this.cull;
         //? if >=1.21.11 {
         /*AABB box = new AABB(pos.getStart().toMojangDoubleVector(), pos.getEnd().toMojangDoubleVector());
-        GizmoStyle style = new GizmoStyle(color, 2.5f, fillColor);
-        GizmoProperties gizmo = Gizmos.addGizmo(new CuboidGizmo(box, style, true));
+        int renderFillColor = fill ? 0 : fillColor;
+        GizmoStyle style = new GizmoStyle(color, 2.5f, renderFillColor);
+        GizmoProperties gizmo = Gizmos.addGizmo(new CuboidGizmo(box, style, false));
         if (seeThrough) {
             gizmo.setAlwaysOnTop();
         }
