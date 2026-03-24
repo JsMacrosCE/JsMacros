@@ -26,6 +26,12 @@ public class Vec3D extends Vec2D {
         this.z2 = end.z;
     }
 
+    public Vec3D(Vec3D vec) {
+        super(vec);
+        this.z1 = vec.z1;
+        this.z2 = vec.z2;
+    }
+
     public double getZ1() {
         return z1;
     }

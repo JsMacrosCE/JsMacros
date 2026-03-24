@@ -26,6 +26,14 @@ public class Vec2D {
         this.y2 = end.y;
     }
 
+    public Vec2D(Vec2D vec) {
+        this.x1 = vec.x1;
+        this.y1 = vec.y1;
+        
+        this.x2 = vec.x2;
+        this.y2 = vec.y2;
+    }
+
     public double getX1() {
         return x1;
     }

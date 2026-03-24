@@ -16,8 +16,10 @@ import java.lang.reflect.Field;
 import java.util.Objects;
 
 //? if >=1.21.11 {
-/*import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+/*import net.minecraft.gizmos.GizmoProperties;
+import net.minecraft.gizmos.GizmoStyle;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.gizmos.LineGizmo;
 *///? } else {
 import net.minecraft.client.renderer.RenderType;
 //?}
@@ -41,6 +43,7 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
     public Vec3D pos;
     public int color;
+    // TODO: deprecate in favor of "alwaysOnTop" (alwaysOnTop is technically the reverse of this)
     public boolean cull;
 
     public Line3D(double x1, double y1, double z1, double x2, double y2, double z2, int color, boolean cull) {
@@ -69,6 +72,30 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
 
     /**
+     * @return a new {@link Vec3D} containing the positions of the line
+     * @since 2.0.0
+     */
+    public Vec3D getPos() {
+        return new Vec3D(pos);
+    }
+
+    /**
+     * @return the first position of the line as a new {@link Pos3D}
+     * @since 2.0.0
+     */
+    public Pos3D getPos1() {
+        return new Pos3D(pos.x1, pos.y1, pos.z1);
+    }
+
+    /**
+     * @return the second position of the line as a new {@link Pos3D}
+     * @since 2.0.0
+     */
+    public Pos3D getPos2() {
+        return new Pos3D(pos.x2, pos.y2, pos.z2);
+    }
+
+    /**
      * @param color
      * @since 1.0.6
      */
@@ -86,11 +113,43 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
 
     /**
+     * @return the color of the line
+     * @since 2.0.0
+     */
+    public int getColor() {
+        return color & 0xFFFFFF;
+    }
+
+    /**
      * @param alpha
      * @since 1.1.8
      */
     public void setAlpha(int alpha) {
         this.color = (alpha << 24) | (color & 0xFFFFFF);
+    }
+
+    /**
+     * @return the alpha value of the line's color
+     * @since 2.0.0
+     */
+    public int getAlpha() {
+        return (color >> 24) & 0xFF;
+    }
+
+    /**
+     * @param alwaysOnTop whether the line should be rendered on top of everything else or not
+     * @since 2.0.0
+     */
+    public void setAlwaysOnTop(boolean alwaysOnTop) {
+        this.cull = !alwaysOnTop;
+    }
+
+    /**
+     * @return whether the line is rendered on top of everything else
+     * @since 2.0.0
+     */
+    public boolean isAlwaysOnTop() {
+        return !cull;
     }
 
     @Override
@@ -111,7 +170,7 @@ public class Line3D implements RenderElement3D<Line3D> {
         return pos.compareTo(o.pos);
     }
 
-    // TODO(1.21.11-ish): Refactor to use ShapeRenderer
+    //? if <1.21.11 {
     private void addLine(VertexConsumer consumer,
             PoseStack.Pose pose,
             float x,
@@ -122,32 +181,31 @@ public class Line3D implements RenderElement3D<Line3D> {
             float normalY,
             float normalZ)
     {
-        consumer.addVertex(pose, x, y, z).setColor(color)
-                //? if >=1.21.11 {
-                /*// 2.5F is from GizmoStyle.DEFAULT_WIDTH which is private and I didn't wanna access widen because I'm
-                // lazy.
-                .setLineWidth(2.5F)
-                 *///? }
+        consumer.addVertex(pose, x, y, z)
+                .setColor(color)
                 .setNormal(pose, normalX, normalY, normalZ);
     }
+    //? }
 
     @Override
     @DocletIgnore
     public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
-        boolean seeThrough = !this.cull;
+        boolean alwaysOnTop = !this.cull;
         //? if >=1.21.11 {
-        /*RenderType lineType = seeThrough ? RenderTypes.linesTranslucent() : RenderTypes.lines();
-        VertexConsumer consumer = consumers.getBuffer(lineType);
+        /*GizmoProperties gizmo = Gizmos.addGizmo(new LineGizmo(
+                pos.getStart().toMojangDoubleVector(),
+                pos.getEnd().toMojangDoubleVector(),
+                color,
+                /^ GizmoStyle.DEFAULT_WIDTH ^/ 2.5F));
+        if (alwaysOnTop) {
+            gizmo.setAlwaysOnTop();
+        }
         *///? } else {
         VertexConsumer consumer = consumers.getBuffer(RenderType.lines());
-        //? }
-
-        //? if <1.21.11 {
         try {
-            if (seeThrough) {
+            if (alwaysOnTop) {
                 lineDepthTestFunction.set(RenderPipelines.LINES, DepthTestFunction.NO_DEPTH_TEST);
             }
-            //? }
             PoseStack.Pose entry = matrixStack.last();
 
             // Draw 3 lines in each of the normals for consistency
@@ -157,15 +215,13 @@ public class Line3D implements RenderElement3D<Line3D> {
             addLine(consumer, entry, (float) pos.x2, (float) pos.y2, (float) pos.z2, color, 0, 1, 0);
             addLine(consumer, entry, (float) pos.x1, (float) pos.y1, (float) pos.z1, color, 0, 0, 1);
             addLine(consumer, entry, (float) pos.x2, (float) pos.y2, (float) pos.z2, color, 0, 0, 1);
-
-            //? if <1.21.11 {
-            if (seeThrough && consumer instanceof MultiBufferSource.BufferSource immediate) {
+            if (alwaysOnTop && consumers instanceof MultiBufferSource.BufferSource immediate) {
                 immediate.endBatch();
             }
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } finally {
-            if (seeThrough) {
+            if (alwaysOnTop) {
                 try {
                     lineDepthTestFunction.set(RenderPipelines.LINES, oldlineDepthTestFunction);
                 } catch (IllegalAccessException e) {
@@ -226,11 +282,11 @@ public class Line3D implements RenderElement3D<Line3D> {
         }
 
         /**
-         * @return the first position of the line.
+         * @return a new {@link Pos3D} representing the first position of the line.
          * @since 1.8.4
          */
         public Pos3D getPos1() {
-            return pos1;
+            return new Pos3D(pos1);
         }
 
         /**
@@ -266,11 +322,11 @@ public class Line3D implements RenderElement3D<Line3D> {
         }
 
         /**
-         * @return the second position of the line.
+         * @return a new {@link Pos3D} representing the second position of the line.
          * @since 1.8.4
          */
         public Pos3D getPos2() {
-            return pos2;
+            return new Pos3D(pos2);
         }
 
         /**

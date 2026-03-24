@@ -1,18 +1,39 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
+import org.joml.Quaternionf;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
+import java.util.List;
+
+//? if >=1.21.11 {
+/*import net.minecraft.client.renderer.rendertype.RenderType;
+*///?} else {
+import net.minecraft.client.renderer.RenderType;
+//?}
+
+//? if >=1.21.10 {
+/*import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.block.model.ItemTransform;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import com.jsmacrosce.jsmacros.client.mixin.access.MixinItemRenderer;
+import com.jsmacrosce.jsmacros.client.mixin.access.MixinItemStackRenderState;
+import com.jsmacrosce.jsmacros.client.mixin.access.MixinItemStackRenderStateLayer;
+*///? }
 
 /**
  * @author Wagyourtail
@@ -22,6 +43,8 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 public class Item implements RenderElement, Alignable<Item> {
 
     private static final int DEFAULT_ITEM_SIZE = 16;
+    private static final float FLAT_ITEM_DEPTH_SCALE = 0.001f;
+    private static final float OVERLAY_TEXT_Z_OFFSET = 0.001f;
     private static final Minecraft mc = Minecraft.getInstance();
 
     @Nullable
@@ -256,8 +279,90 @@ public class Item implements RenderElement, Alignable<Item> {
 
     @Override
     @DocletIgnore
-    public void render3D(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-        render(drawContext, mouseX, mouseY, delta, true);
+    public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+        if (item == null) {
+            return;
+        }
+        matrixStack.pushPose();
+        matrixStack.translate(x, y, 0);
+        matrixStack.scale((float) scale, (float) scale, 1);
+        if (rotateCenter) {
+            matrixStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
+            matrixStack.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+            matrixStack.translate(-DEFAULT_ITEM_SIZE / 2d, -DEFAULT_ITEM_SIZE / 2d, 0);
+        } else {
+            matrixStack.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        }
+
+        //? if >=1.21.10 {
+        /*ItemStackRenderState renderState = new ItemStackRenderState();
+        mc.getItemModelResolver().updateForTopItem(renderState, item, ItemDisplayContext.GUI, mc.level, mc.player, 0);
+
+        MixinItemRenderer itemRenderer = (MixinItemRenderer) mc.getItemRenderer();
+        MixinItemStackRenderState stateAccessor = (MixinItemStackRenderState) (Object) renderState;
+        ItemStackRenderState.LayerRenderState[] layers = stateAccessor.jsmacros$getLayers();
+        int layerCount = stateAccessor.jsmacros$getActiveLayerCount();
+
+        for (int i = 0; i < layerCount; i++) {
+            ItemStackRenderState.LayerRenderState layerState = layers[i];
+            MixinItemStackRenderStateLayer layerAccessor = (MixinItemStackRenderStateLayer) (Object) layerState;
+
+            matrixStack.pushPose();
+            // Cancel the surface's Y-flip and scale the unit model to fill a 16px slot.
+            matrixStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
+            matrixStack.scale(1, -1, 1);
+            matrixStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
+            matrixStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
+            ItemTransform transform = layerAccessor.jsmacros$getTransform();
+            if (transform != null) {
+                transform.apply(false, matrixStack.last());
+            }
+
+            RenderType renderType = layerAccessor.jsmacros$getRenderType();
+            List<BakedQuad> quads = layerAccessor.jsmacros$getQuads();
+            if (renderType != null && quads != null && !quads.isEmpty()) {
+                ItemStackRenderState.FoilType foilType = layerAccessor.jsmacros$getFoilType();
+                itemRenderer.jsmacros$renderItem(
+                        ItemDisplayContext.GUI,
+                        matrixStack,
+                        consumers,
+                        light,
+                        OverlayTexture.NO_OVERLAY,
+                        layerAccessor.jsmacros$getTintLayers(),
+                        quads,
+                        renderType,
+                        foilType != null ? foilType : ItemStackRenderState.FoilType.NONE
+                );
+            }
+            matrixStack.popPose();
+        }
+        *///?} else {
+        // Mirror GuiGraphics.renderItem transforms: renderStatic draws in GUI-model units,
+        // so scale by 16 to map to a 16x16 item slot in surface-pixel space.
+        matrixStack.pushPose();
+        matrixStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
+        matrixStack.scale(1, -1, 1);
+        matrixStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
+        matrixStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
+        mc.getItemRenderer().renderStatic(item, ItemDisplayContext.GUI, light, OverlayTexture.NO_OVERLAY, matrixStack, consumers, null, 0);
+        matrixStack.popPose();
+        //?}
+
+        if (overlay) {
+            String text = ovText != null ? ovText : (item.getCount() > 1 ? String.valueOf(item.getCount()) : null);
+            if (text != null) {
+                Font font = mc.font;
+                // Text offset
+                float tx = DEFAULT_ITEM_SIZE + 1 - font.width(text);
+                float ty = 9;
+                matrixStack.pushPose();
+                matrixStack.translate(0, 0, OVERLAY_TEXT_Z_OFFSET);
+                font.drawInBatch(text, tx, ty, 0xFFFFFFFF, true, matrixStack.last().pose(), consumers, Font.DisplayMode.POLYGON_OFFSET, 0, light);
+                matrixStack.popPose();
+            }
+        }
+
+        matrixStack.popPose();
     }
 
     @DocletIgnore
