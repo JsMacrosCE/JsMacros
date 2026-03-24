@@ -127,8 +127,7 @@ public class MixinWorldRenderer {
 
                 if (!alwaysOnTopGizmos.isEmpty()) {
                     com.mojang.blaze3d.pipeline.RenderTarget mainTarget = Minecraft.getInstance().getMainRenderTarget();
-                    RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(mainTarget.getDepthTexture(), 1
-                    .0);
+                    RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(mainTarget.getDepthTexture(), 1.0);
                     alwaysOnTopGizmos.render(matrixStack, consumers, capturedLevelState.cameraRenderState, viewMatrix);
                     consumers.endLastBatch();
                 }
