@@ -199,7 +199,7 @@ public class Box implements RenderElement3D<Box> {
         boolean seeThrough = !this.cull;
         //? if >=1.21.11 {
         /*AABB box = new AABB(pos.getStart().toMojangDoubleVector(), pos.getEnd().toMojangDoubleVector());
-        int renderFillColor = fill ? 0 : fillColor;
+        int renderFillColor = fill ? fillColor : 0;
         GizmoStyle style = new GizmoStyle(color, 2.5f, renderFillColor);
         GizmoProperties gizmo = Gizmos.addGizmo(new CuboidGizmo(box, style, false));
         if (seeThrough) {
