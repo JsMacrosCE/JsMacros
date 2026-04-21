@@ -65,6 +65,7 @@ include("extension")
 include("extension:graal")
 include("extension:graal:js")
 include("extension:graal:python")
+include("extension:ruby")
 
 stonecutter {
     kotlinController = true
