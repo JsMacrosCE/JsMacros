@@ -6,6 +6,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.commands.arguments.item.ItemParser;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
+//? if >=26.1 {
+/*import net.minecraft.commands.arguments.item.ItemInput;
+import net.minecraft.network.chat.Component;
+*///?}
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.item.*;
 import org.jetbrains.annotations.Nullable;
@@ -131,7 +135,11 @@ public class ItemHelper extends BaseHelper<Item> {
      * @since 1.8.4
      */
     public boolean hasRecipeRemainder() {
+        //? if >=26.1 {
+        /*return base.getCraftingRemainder() != null;
+        *///?} else {
         return !base.getCraftingRemainder().isEmpty();
+        //?}
     }
 
     /**
@@ -140,7 +148,12 @@ public class ItemHelper extends BaseHelper<Item> {
      */
     @Nullable
     public ItemStackHelper getRecipeRemainder() {
+        //? if >=26.1 {
+        /*var remainder = base.getCraftingRemainder();
+        return remainder == null ? null : new ItemStackHelper(remainder.create());
+        *///?} else {
         return new ItemStackHelper(base.getCraftingRemainder());
+        //?}
     }
 
     /**
@@ -162,7 +175,11 @@ public class ItemHelper extends BaseHelper<Item> {
      * @since 1.8.4
      */
     public String getName() {
+        //? if >=26.1 {
+        /*return Component.translatable(base.getDescriptionId()).getString();
+        *///?} else {
         return base.getName().getString();
+        //?}
     }
 
     /**
@@ -201,7 +218,11 @@ public class ItemHelper extends BaseHelper<Item> {
         if (types == null) {
             return false;
         }
+        //? if >=26.1 {
+        /*return types.types().unwrap().left().map(t -> t.equals(DamageTypeTags.IS_FIRE)).orElse(false);
+        *///?} else {
         return types.types() == DamageTypeTags.IS_FIRE;
+        //?}
     }
 
     /**
@@ -265,8 +286,13 @@ public class ItemHelper extends BaseHelper<Item> {
      */
     public ItemStackHelper getStackWithNbt(String nbt) throws CommandSyntaxException {
         ItemParser reader = new ItemParser(Objects.requireNonNull(mc.getConnection()).registryAccess());
+        //? if >=26.1 {
+        /*ItemInput itemInput = reader.parse(new StringReader(getId() + nbt));
+        return new ItemStackHelper(itemInput.createItemStack(1));
+        *///?} else {
         ItemParser.ItemResult itemResult = reader.parse(new StringReader(getId() + nbt));
         return new ItemStackHelper(new ItemStack(itemResult.item()));
+        //?}
     }
 
     @Override

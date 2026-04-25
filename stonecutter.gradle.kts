@@ -10,6 +10,7 @@ import org.gradle.external.javadoc.CoreJavadocOptions
 import org.gradle.external.javadoc.StandardJavadocDocletOptions
 import org.gradle.internal.extensions.stdlib.capitalized
 import org.gradle.api.GradleException
+import org.gradle.jvm.toolchain.JavaLanguageVersion
 import java.io.File
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -18,9 +19,14 @@ import java.util.Locale
 import java.util.Properties
 
 plugins {
+    // java-base is needed at the root so the aggregate javadoc tasks can
+    // resolve a JavaToolchainService for pinning to JDK 25 (required to read
+    // 26.1's class file version 69).
+    `java-base`
     id("dev.kikugie.stonecutter")
-    id("net.neoforged.moddev") version "2.0.139" apply false
-    id("fabric-loom") version "1.13-SNAPSHOT" apply false
+    id("net.neoforged.moddev") apply false
+    id("fabric-loom") apply false
+    id("net.fabricmc.fabric-loom") apply false
     id("me.modmuss50.mod-publish-plugin") version "1.1.0"
 }
 
@@ -41,16 +47,12 @@ repositories {
     }
 
     exclusiveContent {
-        forRepositories(
+        forRepository {
             maven {
                 name = "ParchmentMC"
                 url = uri("https://maven.parchmentmc.org/")
-            },
-            maven {
-                name = "NeoForge"
-                url = uri("https://maven.neoforged.net/releases")
             }
-        )
+        }
         filter {
             includeGroup("org.parchmentmc.data")
         }
@@ -137,11 +139,24 @@ val modId = modIdProvider.get()
 val channel = channelProvider.get()
 version = computedVersionProvider.get()
 
-val supportedVersions = listOf("1.21.5", "1.21.8", "1.21.10", "1.21.11")
+@Suppress("UNCHECKED_CAST")
+val supportedVersions = gradle.extra["fabricVersions"] as List<String>
+@Suppress("UNCHECKED_CAST")
+val neoforgeVersions = gradle.extra["neoforgeVersions"] as List<String>
 val mcVersionsToBuild = if (IS_CI) supportedVersions else listOf("1.21.11")
 val mcVersion = mcVersionsToBuild.first() // for backward compatibility
 
 val loaders = listOf("fabric", "neoforge")
+
+val neoforgeUnsupportedVersions = (supportedVersions - neoforgeVersions.toSet()).toSet()
+fun loadersFor(mcVersion: String): List<String> =
+    if (mcVersion in neoforgeUnsupportedVersions) loaders.filterNot { it == "neoforge" } else loaders
+
+// MC 26.1+ ships deobfuscated; the non-obfuscated Loom plugin skips remapping
+// and does not register a remapJar task, so packaging falls back to the plain
+// jar task on those versions.
+fun fabricArtifactTask(mcVersion: String): String =
+    if (mcVersion.startsWith("26.")) "jar" else "remapJar"
 
 data class ExtensionSpec(val path: String, val extId: String)
 val jsmExtensions: List<ExtensionSpec> = listOf(
@@ -279,6 +294,13 @@ gradle.projectsEvaluated {
         }
     }
 
+    // 26.1.x targets Java 25 bytecode, so the aggregate javadoc tasks must run
+    // on a JDK that can read class file version 69. Pin all three to JDK 25 via
+    // the toolchain service; foojay auto-provisions if missing.
+    val docsJavadocTool = javaToolchains.javadocToolFor {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    }
+
     tasks.register("generatePyDoc", Javadoc::class.java) {
         group = "documentation"
         description = "Generates the python documentation for the project"
@@ -286,6 +308,7 @@ gradle.projectsEvaluated {
         classpath = documentationClasspath
         dependsOn(minecraftArtifactTasks)
         destinationDir = File(docsBuildDir, "python/JsMacrosAC")
+        javadocTool.set(docsJavadocTool)
         options.doclet = "com.jsmacrosce.doclet.pydoclet.Main"
         options.docletpath = mutableListOf(docletJarFile)
         (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
@@ -306,6 +329,7 @@ gradle.projectsEvaluated {
         classpath = documentationClasspath
         dependsOn(minecraftArtifactTasks)
         destinationDir = File(docsBuildDir, "typescript/headers")
+        javadocTool.set(docsJavadocTool)
         options.doclet = "com.jsmacrosce.doclet.tsdoclet.Main"
         options.docletpath = mutableListOf(docletJarFile)
         (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
@@ -326,6 +350,7 @@ gradle.projectsEvaluated {
         classpath = documentationClasspath
         dependsOn(minecraftArtifactTasks)
         destinationDir = File(docsBuildDir, "web")
+        javadocTool.set(docsJavadocTool)
         options.doclet = "com.jsmacrosce.doclet.webdoclet.Main"
         options.docletpath = mutableListOf(docletJarFile)
         (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
@@ -359,10 +384,10 @@ gradle.projectsEvaluated {
 
     // Package loader-specific jars
     val baseJarTasks: Map<String, org.gradle.api.tasks.TaskProvider<Copy>> =
-        loaders.flatMap { loader ->
-            mcVersionsToBuild.map { version ->
+        mcVersionsToBuild.flatMap { version ->
+            loadersFor(version).map { loader ->
                 val loaderProject = project(":$loader:$version")
-                val sourceTaskName = if (loader == "fabric") "remapJar" else "jar"
+                val sourceTaskName = if (loader == "fabric") fabricArtifactTask(version) else "jar"
                 val taskName = "package${loader.replaceFirstChar { it.uppercase() }}ModJar${version.replace(".", "")}"
 
                 tasks.register(taskName, Copy::class.java) {
@@ -494,9 +519,9 @@ gradle.projectsEvaluated {
         if (publishModrinth) {
             mcVersionsToBuild.forEach { targetMcVersion ->
                 val mcSegment = targetMcVersion.replace(".", "")
-                loaders.forEach { loader ->
+                loadersFor(targetMcVersion).forEach { loader ->
                     val platformName = "modrinth${loader.replaceFirstChar { it.uppercase() }}$mcSegment"
-                    val sourceTaskName = if (loader == "fabric") "remapJar" else "jar"
+                    val sourceTaskName = if (loader == "fabric") fabricArtifactTask(targetMcVersion) else "jar"
                     val loaderProject = project(":$loader:$targetMcVersion")
 
                     modrinth(platformName) {

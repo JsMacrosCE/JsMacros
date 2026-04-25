@@ -1,7 +1,11 @@
 package com.jsmacrosce.wagyourgui.overlays;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import com.jsmacrosce.wagyourgui.elements.Button;
@@ -50,16 +54,28 @@ public class ConfirmOverlay extends OverlayContainer {
 
     }
 
+    //? if >=26.1 {
+    /*protected void renderMessage(GuiGraphicsExtractor drawContext) {
+    *///?} else {
     protected void renderMessage(GuiGraphics drawContext) {
+    //?}
         for (int i = 0; i < lines; ++i) {
             int w = textRenderer.width(text.get(i));
             int centeredX = (int) (hcenter ? x + width / 2F - w / 2F : x + 3);
+            //? if >=26.1 {
+            /*drawContext.text(textRenderer, text.get(i), centeredX, y + 2 + vcenter + (i * textRenderer.lineHeight), 0xFFFFFFFF, false);
+            *///?} else {
             drawContext.drawString(textRenderer, text.get(i), centeredX, y + 2 + vcenter + (i * textRenderer.lineHeight), 0xFFFFFFFF, false);
+            //?}
         }
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         this.renderBackground(drawContext);
         drawContext.fill(x + 1, y + height - 13, x + width - 1, y + height - 12, 0xFFFFFFFF);
         this.renderMessage(drawContext);

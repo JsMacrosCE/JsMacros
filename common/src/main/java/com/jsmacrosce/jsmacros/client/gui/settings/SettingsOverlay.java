@@ -2,7 +2,11 @@ package com.jsmacrosce.jsmacros.client.gui.settings;
 
 import com.google.common.collect.Lists;
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 //? if >1.21.8 {
 /*import net.minecraft.client.input.KeyEvent;
 *///?}
@@ -137,7 +141,11 @@ public class SettingsOverlay extends OverlayContainer implements ICategoryTreePa
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         renderBackground(drawContext);
         int w = width - 4;
 
@@ -149,7 +157,11 @@ public class SettingsOverlay extends OverlayContainer implements ICategoryTreePa
 
         sections.render(drawContext, mouseX, mouseY, delta);
 
+        //? if >=26.1 {
+        /*drawContext.textWithWordWrap(textRenderer, title, x + 3, y + 3, width - 14, 0xFFFFFFFF, false);
+        *///?} else {
         drawContext.drawWordWrap(textRenderer, title, x + 3, y + 3, width - 14, 0xFFFFFFFF, false);
+        //?}
         drawContext.fill(x + 2, y + 12, x + width - 2, y + 13, 0xFFFFFFFF);
 
         //sep

@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingfields;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.AbstractWidget;
 import com.jsmacrosce.jsmacros.client.gui.settings.SettingsOverlay;
 import com.jsmacrosce.jsmacros.client.gui.settings.settingcontainer.AbstractSettingContainer;
@@ -45,8 +49,16 @@ public class FloatField extends AbstractSettingField<Float> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
+        //? if >=26.1 {
+        /*drawContext.text(textRenderer, BaseScreen.trimmed(textRenderer, settingName, width / 2), x + 2, y + 1, 0xFFFFFFFF, false);
+        *///?} else {
         drawContext.drawString(textRenderer, BaseScreen.trimmed(textRenderer, settingName, width / 2), x + 2, y + 1, 0xFFFFFFFF, false);
+        //?}
     }
 
 }

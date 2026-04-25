@@ -1,10 +1,21 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+//? if <26.1 {
 import com.mojang.blaze3d.platform.DepthTestFunction;
+//?}
+//? if >=26.1 {
+/*import com.mojang.blaze3d.pipeline.DepthStencilState;
+import com.mojang.blaze3d.platform.CompareOp;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.util.Mth;
 import net.minecraft.client.renderer.MultiBufferSource;
+//? if >=26.1 {
+/*import net.minecraft.client.renderer.SubmitNodeCollector;
+*///?}
 import net.minecraft.client.renderer.RenderPipelines;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
@@ -36,7 +47,16 @@ public class Rect implements RenderElement, Alignable<Rect> {
     private static final DepthTestFunction oldDebugQuadsDepthTestFunction;
     //? }
 
-    //? if >=1.21.11 {
+    //? if >=26.1 {
+    /*private static final RenderPipeline DEBUG_QUADS_SEE_THROUGH = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
+            .withLocation("pipeline/jsmacrosce/debug_quads_see_through")
+            .withCull(false)
+            .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))
+            .build();
+    private static final RenderType DEBUG_QUADS_SEE_THROUGH_TYPE = RenderType.create(
+            "jsmacrosce_debug_quads_see_through",
+            RenderSetup.builder(DEBUG_QUADS_SEE_THROUGH).createRenderSetup());
+    *///?} else if >=1.21.11 {
     /*private static final RenderPipeline DEBUG_QUADS_SEE_THROUGH = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
             .withLocation("pipeline/jsmacrosce/debug_quads_see_through")
             .withCull(false)
@@ -350,7 +370,11 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void extractRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         //? if >1.21.5 {
         Matrix3x2fStack matrices = drawContext.pose();
         matrices.pushMatrix();
@@ -369,7 +393,11 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, SubmitNodeCollector collector, float delta) {
+    *///?} else {
     public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+    //?}
         matrixStack.pushPose();
         matrixStack.translate(x1, y1, 0);
         if (rotateCenter) {
