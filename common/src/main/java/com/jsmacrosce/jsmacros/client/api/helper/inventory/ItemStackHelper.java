@@ -9,6 +9,9 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.Tag;
+//? if >=26.1 {
+/*import net.minecraft.network.chat.Component;
+*///?}
 import net.minecraft.network.chat.Style;
 import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -266,7 +269,11 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      * @since 1.2.0
      */
     public TextHelper getDefaultName() {
+        //? if >=26.1 {
+        /*return TextHelper.wrap(Component.translatable(base.getItem().getDescriptionId()));
+        *///?} else {
         return TextHelper.wrap(base.getItem().getName());
+        //?}
     }
 
     /**
@@ -335,7 +342,11 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      */
     @DocletReplaceReturn("JavaList<ItemTag>")
     public List<String> getTags() {
+        //? if >=26.1 {
+        /*return base.typeHolder().tags().map(t -> t.location().toString()).collect(Collectors.toList());
+        *///?} else {
         return base.getItemHolder().tags().map(t -> t.location().toString()).collect(Collectors.toList());
+        //?}
     }
 
     /**

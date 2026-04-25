@@ -17,9 +17,15 @@ neoForge {
         layout.buildDirectory.file("generated/access-transformer/accesstransformer.cfg")
     )
 
-    parchment {
-        minecraftVersion = commonMod.prop("parchment_minecraft")
-        mappingsVersion = commonMod.prop("parchment_version")
+    val parchment_minecraft = commonMod.prop("parchment_minecraft")
+    val parchment_version = commonMod.prop("parchment_version")
+    // Parchment does not yet ship mappings for 26.1.x; skip the layer when
+    // either property is blank. TODO(26.1): re-enable once parchment publishes.
+    if (parchment_minecraft.isNotBlank() && parchment_version.isNotBlank()) {
+        parchment {
+            minecraftVersion = parchment_minecraft
+            mappingsVersion = parchment_version
+        }
     }
 }
 
@@ -73,19 +79,40 @@ val accessTransformerFile = layout.buildDirectory.file("generated/access-transfo
 val accessWidenerFile = rootProject.file(
     "common/src/main/resources/accesswideners/$minecraft_version-$mod_id.accesswidener"
 )
-val generateAccessTransformer by tasks.registering(Copy::class) {
-    from(accessWidenerFile)
-    into(accessTransformerFile.map { it.asFile.parentFile })
-    rename { "accesstransformer.cfg" }
-    val transformerClass = Class.forName(
-        "dev.kikugie.fletching_table.transformer.Aw2AtFileTransformer"
-    ) as Class<out FilterReader>
-    val argsClass = Class.forName(
-        "dev.kikugie.fletching_table.transformer.Aw2AtFileTransformer\$TransformArgs"
-    )
-    val args = argsClass.getDeclaredConstructor(Path::class.java)
-        .newInstance(accessWidenerFile.toPath())
-    filter(mapOf("args" to args), transformerClass)
+
+// MC 26.1+ ships deobfuscated, so the access widener uses the `official`
+// namespace. Aw2AtFileTransformer only accepts `named`, and 26.1 does not
+// build NeoForge (which is the only consumer of the generated AT file).
+// On 26.1 we still emit an empty AT stub at the canonical path because
+// neoform's createMinecraftArtifacts hashes the file as part of its cache
+// key, and a missing path crashes the task.
+val isDeobfuscatedMc = minecraft_version.startsWith("26.")
+
+val generateAccessTransformer = if (isDeobfuscatedMc) {
+    tasks.register("generateAccessTransformer") {
+        val outFile = accessTransformerFile
+        outputs.file(outFile)
+        doLast {
+            val target = outFile.get().asFile
+            target.parentFile.mkdirs()
+            target.writeText("# Empty AT stub for 26.1 (deobfuscated, NeoForge unsupported).\n")
+        }
+    }
+} else {
+    tasks.register("generateAccessTransformer", Copy::class.java) {
+        from(accessWidenerFile)
+        into(accessTransformerFile.map { it.asFile.parentFile })
+        rename { "accesstransformer.cfg" }
+        val transformerClass = Class.forName(
+            "dev.kikugie.fletching_table.transformer.Aw2AtFileTransformer"
+        ) as Class<out FilterReader>
+        val argsClass = Class.forName(
+            "dev.kikugie.fletching_table.transformer.Aw2AtFileTransformer\$TransformArgs"
+        )
+        val args = argsClass.getDeclaredConstructor(Path::class.java)
+            .newInstance(accessWidenerFile.toPath())
+        filter(mapOf("args" to args), transformerClass)
+    }
 }
 
 tasks.named("createMinecraftArtifacts") {

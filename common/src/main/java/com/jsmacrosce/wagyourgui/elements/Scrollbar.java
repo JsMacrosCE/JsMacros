@@ -1,6 +1,10 @@
 package com.jsmacrosce.wagyourgui.elements;
 
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
@@ -111,7 +115,11 @@ public class Scrollbar extends AbstractWidget {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void extractWidgetRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void renderWidget(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         // mainpart
         drawContext.fill(getX() + 1, (int) (getY() + 1 + scrollAmount), getX() + width - 1, (int) (getY() + 1 + scrollAmount + scrollbarHeight), highlightColor);
 

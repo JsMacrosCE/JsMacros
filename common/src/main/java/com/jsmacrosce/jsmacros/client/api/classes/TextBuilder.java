@@ -8,6 +8,9 @@ import net.minecraft.network.chat.*;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
+//? if >=26.1 {
+/*import net.minecraft.world.item.ItemStackTemplate;
+*///?}
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.jsmacros.access.CustomClickEvent;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
@@ -152,7 +155,13 @@ public class TextBuilder {
      * @since 1.3.0
      */
     public TextBuilder withShowItemHover(ItemStackHelper item) {
+        //? if >=26.1 {
+        /*if (!item.getRaw().isEmpty()) {
+            self.withStyle(style -> style.withHoverEvent(new HoverEvent.ShowItem(ItemStackTemplate.fromNonEmptyStack(item.getRaw()))));
+        }
+        *///?} else {
         self.withStyle(style -> style.withHoverEvent(new HoverEvent.ShowItem(item.getRaw())));
+        //?}
         return this;
     }
 
