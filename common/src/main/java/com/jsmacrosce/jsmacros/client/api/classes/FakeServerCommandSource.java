@@ -46,9 +46,15 @@ public class FakeServerCommandSource extends CommandSourceStack {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public Collection<String> getCustomTabSuggestions() {
+        return source.getCustomTabSuggestions();
+    }
+    *///?} else {
     public Collection<String> getCustomTabSugggestions() {
         return source.getCustomTabSugggestions();
     }
+    //?}
 
     @Override
     public Collection<String> getOnlinePlayerNames() {
@@ -92,7 +98,11 @@ public class FakeServerCommandSource extends CommandSourceStack {
 
     @Override
     public void sendSuccess(Supplier<Component> feedbackSupplier, boolean broadcastToOps) {
+        //? if >=26.1 {
+        /*Minecraft.getInstance().player.sendSystemMessage(feedbackSupplier.get());
+        *///?} else {
         Minecraft.getInstance().player.displayClientMessage(feedbackSupplier.get(), false);
+        //?}
     }
 
 }

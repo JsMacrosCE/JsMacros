@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingcontainer;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import com.jsmacrosce.jsmacros.client.gui.settings.SettingsOverlay;
 import com.jsmacrosce.jsmacros.client.gui.settings.settingfields.*;
 import com.jsmacrosce.wagyourgui.elements.Scrollbar;
@@ -35,7 +39,11 @@ public class PrimitiveSettingGroup extends AbstractSettingContainer {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         for (AbstractSettingField<?> setting : settings) {
             setting.render(drawContext, mouseX, mouseY, delta);
         }
