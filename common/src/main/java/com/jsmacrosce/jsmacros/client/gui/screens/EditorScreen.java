@@ -4,7 +4,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
@@ -750,17 +754,33 @@ public class EditorScreen extends BaseScreen {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void extractRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         assert minecraft != null;
 
         //? if <=1.21.5 {
         /*this.renderBackground(drawContext, mouseX, mouseY, delta);
         *///?}
 
+        //? if >=26.1 {
+        /*drawContext.text(font, fileName, 2, 2, 0xFFFFFFFF);
+        *///?} else {
         drawContext.drawString(font, fileName, 2, 2, 0xFFFFFFFF);
+        //?}
 
+        //? if >=26.1 {
+        /*drawContext.text(font, String.format("%d ms", (int) textRenderTime), 2, height - 10, 0xFFFFFFFF);
+        *///?} else {
         drawContext.drawString(font, String.format("%d ms", (int) textRenderTime), 2, height - 10, 0xFFFFFFFF);
+        //?}
+        //? if >=26.1 {
+        /*drawContext.text(font, lineCol, (int) (width - font.width(lineCol) - (width - 10) / 4F - 2), height - 10, 0xFFFFFFFF);
+        *///?} else {
         drawContext.drawString(font, lineCol, (int) (width - font.width(lineCol) - (width - 10) / 4F - 2), height - 10, 0xFFFFFFFF);
+        //?}
 
         drawContext.fill(0, 12, width - 10, height - 12, 0xFF2B2B2B);
         drawContext.fill(lineNumWidth, 12, lineNumWidth + 1, height - 12, 0xFF707070);
@@ -788,14 +808,26 @@ public class EditorScreen extends BaseScreen {
                 drawContext.fill(lineNumWidth + 1, y + add + i * lineSpread, lineNumWidth + 2 + cursor.endCol, y + add + (i + 1) * lineSpread, 0xFF33508F);
             }
             Component lineNum = Component.literal(String.format("%d.", j + 1)).setStyle(lineNumStyle);
+            //? if >=26.1 {
+            /*drawContext.text(minecraft.font, lineNum, lineNumWidth - 2 - minecraft.font.width(lineNum), y + add + i * lineSpread, 0xFFFFFFFF, false);
+            *///?} else {
             drawContext.drawString(minecraft.font, lineNum, lineNumWidth - 2 - minecraft.font.width(lineNum), y + add + i * lineSpread, 0xFFFFFFFF, false);
+            //?}
+            //? if >=26.1 {
+            /*drawContext.text(minecraft.font, trim(renderedText[j]), lineNumWidth + 2, y + add + i * lineSpread, 0xFFFFFFFF, false);
+            *///?} else {
             drawContext.drawString(minecraft.font, trim(renderedText[j]), lineNumWidth + 2, y + add + i * lineSpread, 0xFFFFFFFF, false);
+            //?}
         }
         drawContext.disableScissor();
 
         for (GuiEventListener b : ImmutableList.copyOf(this.children())) {
             if (b instanceof Renderable) {
+                //? if >=26.1 {
+                /*((Renderable) b).extractRenderState(drawContext, mouseX, mouseY, delta);
+                *///?} else {
                 ((Renderable) b).render(drawContext, mouseX, mouseY, delta);
+                //?}
             }
         }
 

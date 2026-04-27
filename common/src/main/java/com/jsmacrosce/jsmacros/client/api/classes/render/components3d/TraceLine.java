@@ -4,6 +4,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+//? if >=26.1 {
+/*import net.minecraft.client.renderer.SubmitNodeCollector;
+*///?}
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
@@ -155,7 +158,11 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(PoseStack matrixStack, MultiBufferSource consumers, SubmitNodeCollector collector, float tickDelta) {
+    *///?} else {
     public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
+    //?}
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         //? if >=1.21.11 {
         /*Vec3 cameraPos = camera.position();
@@ -167,7 +174,11 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         Vec3 p1 = cameraPos.add(lookDir);
 
         render.setPos(p1.x, p1.y, p1.z, render.pos.x2, render.pos.y2, render.pos.z2);
+        //? if >=26.1 {
+        /*render.render(matrixStack, consumers, collector, tickDelta);
+        *///?} else {
         render.render(matrixStack, consumers, tickDelta);
+        //?}
     }
 
     /**

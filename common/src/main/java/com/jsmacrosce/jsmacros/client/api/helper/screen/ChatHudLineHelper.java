@@ -1,6 +1,10 @@
 package com.jsmacrosce.jsmacros.client.api.helper.screen;
 
+//? if >=26.1 {
+/*import net.minecraft.client.multiplayer.chat.GuiMessage;
+*///?} else {
 import net.minecraft.client.GuiMessage;
+//?}
 import net.minecraft.client.gui.components.ChatComponent;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;

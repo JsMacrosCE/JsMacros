@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.gui.overlays;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import com.jsmacrosce.wagyourgui.elements.Button;
@@ -46,18 +50,34 @@ public class AboutOverlay extends OverlayContainer {
         this.vcenter = ((height - 12) - (lines * textRenderer.lineHeight)) / 2;
     }
 
+    //? if >=26.1 {
+    /*protected void renderMessage(GuiGraphicsExtractor drawContext) {
+    *///?} else {
     protected void renderMessage(GuiGraphics drawContext) {
+    //?}
         for (int i = 0; i < lines; ++i) {
             int w = textRenderer.width(text.get(i));
+            //? if >=26.1 {
+            /*drawContext.text(textRenderer, text.get(i), (int) (x + width / 2F - w / 2F), y + 2 + vcenter + (i * textRenderer.lineHeight), 0xFFFFFFFF, false);
+            *///?} else {
             drawContext.drawString(textRenderer, text.get(i), (int) (x + width / 2F - w / 2F), y + 2 + vcenter + (i * textRenderer.lineHeight), 0xFFFFFFFF, false);
+            //?}
         }
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         renderBackground(drawContext);
 
+        //? if >=26.1 {
+        /*drawContext.textWithWordWrap(textRenderer, Component.translatable("jsmacrosce.about"), x + 3, y + 3, width - 14, 0xFFFFFFFF, false);
+        *///?} else {
         drawContext.drawWordWrap(textRenderer, Component.translatable("jsmacrosce.about"), x + 3, y + 3, width - 14, 0xFFFFFFFF, false);
+        //?}
         renderMessage(drawContext);
 
         drawContext.fill(x + 2, y + 12, x + width - 2, y + 13, 0xFFFFFFFF);

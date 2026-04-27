@@ -2,9 +2,14 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+//? if <26.1 {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.renderer.MultiBufferSource;
+//? if >=26.1 {
+/*import net.minecraft.client.renderer.SubmitNodeCollector;
+*///?}
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
 import com.jsmacrosce.doclet.DocletIgnore;
@@ -23,7 +28,11 @@ public interface RenderElement extends Renderable {
      * Called by Surface for >1.21.5. Default is a no-op.
      */
     @DocletIgnore
+    //? if >=26.1 {
+    /*default void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, SubmitNodeCollector collector, float delta) {}
+    *///?} else {
     default void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {}
+    //?}
 
     /**
      * Converts a packed lightmap value (as returned by {@code LightTexture.pack()}) to a

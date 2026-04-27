@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
@@ -222,7 +226,11 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void extractRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         //? if >1.21.5 {
         Matrix3x2fStack matrices = drawContext.pose();
         matrices.pushMatrix();

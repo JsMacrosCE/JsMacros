@@ -43,8 +43,13 @@ pluginManagement {
     }
 
     plugins {
-        // see https://fabricmc.net/develop/ for new versions
-        id("fabric-loom") version "1.13-SNAPSHOT" apply false
+        // see https://fabricmc.net/develop/ for new versions.
+        // fabric-loom is the legacy alias (LoomGradlePlugin, requires mappings) used for 1.21.x.
+        // net.fabricmc.fabric-loom is the non-obfuscated plugin (LoomNoRemapGradlePlugin, skips
+        // mappings) required for MC 26.1+ which ships deobfuscated. Both IDs resolve to the same
+        // plugin JAR.
+        id("fabric-loom") version "1.15.4" apply false
+        id("net.fabricmc.fabric-loom") version "1.15.4" apply false
         // see https://projects.neoforged.net/neoforged/moddevgradle for new versions
         id("net.neoforged.moddev") version "2.0.139" apply false
     }
@@ -65,22 +70,33 @@ include("extension")
 include("extension:graal")
 include("extension:graal:js")
 include("extension:graal:python")
+include("extension:ruby")
+
+val fabricVersions = listOf("1.21.5", "1.21.8", "1.21.10", "1.21.11", "26.1.2")
+val commonVersions = fabricVersions
+// NeoForge 26.1.2.22-beta is available but requires its own adaptation; deferred to a follow-up PR.
+// TODO(26.1): include "26.1.2" here once the neoforge branch is wired up.
+val neoforgeVersions = listOf("1.21.5", "1.21.8", "1.21.10", "1.21.11")
+
+// Expose to stonecutter.gradle.kts so version lists aren't duplicated.
+gradle.extra["fabricVersions"] = fabricVersions
+gradle.extra["neoforgeVersions"] = neoforgeVersions
 
 stonecutter {
     kotlinController = true
     centralScript = "build.gradle.kts"
 
     create(rootProject) {
-        versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
+        versions(*fabricVersions.toTypedArray())
 
         branch("common") {
-            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
+            versions(*commonVersions.toTypedArray())
         }
         branch("fabric") {
-            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
+            versions(*fabricVersions.toTypedArray())
         }
         branch("neoforge") {
-            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
+            versions(*neoforgeVersions.toTypedArray())
         }
     }
 }

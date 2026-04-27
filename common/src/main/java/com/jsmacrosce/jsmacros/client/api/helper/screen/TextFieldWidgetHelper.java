@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.EditBox;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.jsmacros.client.JsMacros;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IScreen;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinTextFieldWidget;
@@ -11,6 +12,7 @@ import com.jsmacrosce.jsmacros.core.MethodWrapper;
 
 import java.util.Objects;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -148,13 +150,26 @@ public class TextFieldWidgetHelper extends ClickableWidgetHelper<TextFieldWidget
         return this;
     }
 
+    // EditBox.setFilter(Predicate<String>) was removed in 26.1 with no replacement — the public API
+    // lost user-configurable input rejection (only internal StringUtil.filterText survives, and
+    // TextFormatter is visual-only). These setters warn once per JVM on 26.1+ rather than silently
+    // no-op, so macros noticed the behavior change instead of mysteriously failing.
+    private static final AtomicBoolean SET_TEXT_PREDICATE_WARNED = new AtomicBoolean();
+    private static final AtomicBoolean RESET_TEXT_PREDICATE_WARNED = new AtomicBoolean();
+
     /**
      * @param predicate the text filter
      * @return self for chaining.
      * @since 1.8.4
      */
     public TextFieldWidgetHelper setTextPredicate(MethodWrapper<String, ?, ?, ?> predicate) {
+        //? if <26.1 {
         base.setFilter(predicate);
+        //?} else {
+        /*if (SET_TEXT_PREDICATE_WARNED.compareAndSet(false, true)) {
+            JsMacros.LOGGER.warn("TextFieldWidgetHelper.setTextPredicate is a no-op on Minecraft 26.1+: EditBox.setFilter was removed upstream with no replacement.");
+        }
+        *///?}
         return this;
     }
 
@@ -163,7 +178,13 @@ public class TextFieldWidgetHelper extends ClickableWidgetHelper<TextFieldWidget
      * @since 1.8.4
      */
     public TextFieldWidgetHelper resetTextPredicate() {
+        //? if <26.1 {
         base.setFilter(Objects::nonNull);
+        //?} else {
+        /*if (RESET_TEXT_PREDICATE_WARNED.compareAndSet(false, true)) {
+            JsMacros.LOGGER.warn("TextFieldWidgetHelper.resetTextPredicate is a no-op on Minecraft 26.1+: EditBox.setFilter was removed upstream with no replacement.");
+        }
+        *///?}
         return this;
     }
 

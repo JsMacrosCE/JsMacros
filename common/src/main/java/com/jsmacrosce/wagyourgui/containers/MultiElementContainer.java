@@ -1,7 +1,11 @@
 package com.jsmacrosce.wagyourgui.containers;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -86,6 +90,10 @@ public abstract class MultiElementContainer<T extends IContainerParent> implemen
         return parent.getFirstOverlayParent();
     }
 
+    //? if >=26.1 {
+    /*public abstract void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta);
+    *///?} else {
     public abstract void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta);
+    //?}
 
 }
