@@ -30,7 +30,11 @@ public abstract class StateHelper<U extends StateHolder<?, ?>> extends BaseHelpe
      * @since 1.8.4
      */
     public Map<String, String> toMap() {
+        //? if >=26.1 {
+        /*return base.getValues().collect(Collectors.toMap(v -> v.property().getName(), v -> Util.getPropertyName(v.property(), v.value())));
+        *///?} else {
         return base.getValues().entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey().getName(), entry -> Util.getPropertyName(entry.getKey(), entry.getValue())));
+        //?}
     }
 
     public <T extends Comparable<?>> StateHelper<U> with(String property, String value) {

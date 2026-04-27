@@ -69,6 +69,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicl
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.FurnaceMinecartEntityHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.TntMinecartEntityHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
+import com.jsmacrosce.jsmacros.util.ChunkPosUtil;
 
 import java.util.Arrays;
 import java.util.List;
@@ -183,7 +184,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
      * @since 1.6.5
      */
     public Pos2D getChunkPos() {
-        return new Pos2D(base.chunkPosition().x, base.chunkPosition().z);
+        return new Pos2D(ChunkPosUtil.x(base.chunkPosition()), ChunkPosUtil.z(base.chunkPosition()));
     }
 
     /**

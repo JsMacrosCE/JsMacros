@@ -17,7 +17,20 @@ import net.minecraft.client.input.KeyEvent;
 @MixinEnvironment("fabric")
 @Mixin(KeyboardHandler.class)
 public class MixinKeyboard {
-    //? if >1.21.8 {
+    //? if >=26.1 {
+    /*@WrapOperation(method = "keyPress", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;keyPressed(Lnet/minecraft/client/input/KeyEvent;)Z"))
+    private boolean onKeyPressed(Screen instance, KeyEvent keyEvent, Operation<Boolean> original) {
+        ((IScreenInternal) instance).jsmacros_keyPressed(keyEvent.key(), keyEvent.scancode(), keyEvent.modifiers());
+        return original.call(instance, keyEvent);
+    }
+
+    @WrapOperation(method = "charTyped", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;charTyped(Lnet/minecraft/client/input/CharacterEvent;)Z"))
+    private boolean onCharTyped1(Screen instance, CharacterEvent characterEvent, Operation<Boolean> original) {
+        // 26.1's CharacterEvent is char-only by design — modifier bits only travel with KeyEvent now.
+        ((IScreenInternal) instance).jsmacros_charTyped((char) characterEvent.codepoint(), 0);
+        return original.call(instance, characterEvent);
+    }
+    *///?} else if >1.21.8 {
     /*@WrapOperation(method = "keyPress", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;keyPressed(Lnet/minecraft/client/input/KeyEvent;)Z"))
     private boolean onKeyPressed(Screen instance, KeyEvent keyEvent, Operation<Boolean> original) {
         ((IScreenInternal) instance).jsmacros_keyPressed(keyEvent.key(), keyEvent.scancode(), keyEvent.modifiers());
