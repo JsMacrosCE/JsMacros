@@ -84,8 +84,10 @@ public class FWrapper extends PerExecLanguageLibrary<ScriptingContainer, JRubySc
                 return (R2) callFn(params);
             }
 
+            boolean bound = false;
             try {
-                ctx.bindThread(Thread.currentThread());
+                ctx.bindCallerThread();
+                bound = true;
                 if (ctx.runner.profile.checkJoinedThreadStack()) {
                     ctx.runner.profile.joinedThreadStack.add(Thread.currentThread());
                 }
@@ -93,9 +95,11 @@ public class FWrapper extends PerExecLanguageLibrary<ScriptingContainer, JRubySc
             } catch (Throwable ex) {
                 throw new RuntimeException(ex);
             } finally {
-                ctx.releaseBoundEventIfPresent(Thread.currentThread());
-                ctx.unbindThread(Thread.currentThread());
-                ctx.runner.profile.joinedThreadStack.remove(Thread.currentThread());
+                if (bound) {
+                    ctx.releaseBoundEventIfPresent(Thread.currentThread());
+                    ctx.unbindThread(Thread.currentThread());
+                    ctx.runner.profile.joinedThreadStack.remove(Thread.currentThread());
+                }
             }
         }
 
