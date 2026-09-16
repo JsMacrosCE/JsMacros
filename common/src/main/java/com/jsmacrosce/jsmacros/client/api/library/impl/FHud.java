@@ -53,7 +53,20 @@ public class FHud extends BaseLibrary {
      * @since 1.0.5
      */
     public ScriptScreen createScreen(String title, boolean dirtBG) {
-        return new ScriptScreen(title, dirtBG);
+        return createScreen(title, dirtBG, true, true);
+    }
+
+    /**
+     * @param title
+     * @param dirtBG boolean of whether to use a dirt background or not.
+     * @param darken whether the screen should darken its background.
+     * @param blur    whether the screen should blur its background.
+     * @return a new {@link IScreen IScreen} Object.
+     * @see IScreen
+     * @since 2.0.0
+     */
+    public ScriptScreen createScreen(String title, boolean dirtBG, boolean darken, boolean blur) {
+        return new ScriptScreen(title, dirtBG, darken, blur);
     }
 
     /**
