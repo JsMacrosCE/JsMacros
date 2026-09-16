@@ -349,6 +349,7 @@ public class Item implements RenderElement, Alignable<Item> {
         //?}
 
         if (overlay) {
+            renderDamageBar3D(matrixStack, consumers, light, seeThrough, delta);
             String text = ovText != null ? ovText : (item.getCount() > 1 ? String.valueOf(item.getCount()) : null);
             if (text != null) {
                 Font font = mc.font;
@@ -362,6 +363,34 @@ public class Item implements RenderElement, Alignable<Item> {
             }
         }
 
+        matrixStack.popPose();
+    }
+
+    private void renderDamageBar3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+        if (!item.isDamageableItem()) {
+            return;
+        }
+
+        int maxDamage = item.getMaxDamage();
+        if (maxDamage <= 0) {
+            return;
+        }
+
+        int damage = item.getDamageValue();
+        if (damage <= 0) {
+            return;
+        }
+
+        float durability = Math.max(0.0F, (float) (maxDamage - damage) / (float) maxDamage);
+        int barWidth = Mth.clamp(Math.round(13.0F * durability), 0, 13);
+        int barColor = 0xFF000000 | Mth.hsvToRgb(durability / 3.0F, 1.0F, 1.0F);
+
+        matrixStack.pushPose();
+        matrixStack.translate(0, 0, OVERLAY_TEXT_Z_OFFSET);
+        new Rect(2, 13, 15, 15, 0xFF000000, 0, 0).render3D(matrixStack, consumers, light, seeThrough, delta);
+        if (barWidth > 0) {
+            new Rect(2, 13, 2 + barWidth, 14, barColor, 0, 0).render3D(matrixStack, consumers, light, seeThrough, delta);
+        }
         matrixStack.popPose();
     }
 
@@ -690,7 +719,7 @@ public class Item implements RenderElement, Alignable<Item> {
         @Override
         protected Item createElement() {
             return new Item(x, y, zIndex, itemStack, overlay, scale, rotation, ovText).setRotateCenter(rotateCenter)
-                    .setParent(parent);
+                    .setParent(this.parent);
         }
 
         @Override
@@ -700,7 +729,7 @@ public class Item implements RenderElement, Alignable<Item> {
 
         @Override
         public int getParentWidth() {
-            return parent.getWidth();
+            return this.parent.getWidth();
         }
 
         @Override
@@ -710,7 +739,7 @@ public class Item implements RenderElement, Alignable<Item> {
 
         @Override
         public int getParentHeight() {
-            return parent.getHeight();
+            return this.parent.getHeight();
         }
 
         @Override
