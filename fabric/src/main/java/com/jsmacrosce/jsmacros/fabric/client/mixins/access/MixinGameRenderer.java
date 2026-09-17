@@ -29,8 +29,8 @@ public class MixinGameRenderer {
     private Minecraft minecraft;
 
     //? if >=26.1 {
-    /*@Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;extractRenderStateWithTooltipAndSubtitles(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V"))
-    private void onRender(Screen instance, GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    /*@Redirect(method = "extractGui", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;extractRenderStateWithTooltipAndSubtitles(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V"))
+    private void onExtractGui(Screen instance, GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
         instance.extractRenderStateWithTooltipAndSubtitles(drawContext, mouseX, mouseY, delta);
         if (!(minecraft.screen instanceof ScriptScreen)) {
             ((IScreenInternal) instance).jsmacros_render(drawContext, mouseX, mouseY, delta);
