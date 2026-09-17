@@ -92,7 +92,11 @@ public class FakeServerCommandSource extends CommandSourceStack {
 
     @Override
     public void sendSuccess(Supplier<Component> feedbackSupplier, boolean broadcastToOps) {
+        //? if >=26.1 {
+        /*Minecraft.getInstance().player.sendSystemMessage(feedbackSupplier.get());
+        *///? } else {
         Minecraft.getInstance().player.displayClientMessage(feedbackSupplier.get(), false);
+        //? }
     }
 
 }

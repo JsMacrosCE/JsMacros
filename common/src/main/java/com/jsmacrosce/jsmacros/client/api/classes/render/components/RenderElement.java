@@ -2,7 +2,11 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.Renderable;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
@@ -17,8 +21,25 @@ public interface RenderElement extends Renderable {
 
     int getZIndex();
 
+    //? if >=26.1 {
+    /*void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta);
+
     @DocletIgnore
+    @Override
+    default void extractRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+        render(drawContext, mouseX, mouseY, delta);
+    }
+    *///?} else {
+    @Override
+    void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta);
+    //?}
+
+    @DocletIgnore
+    //? if >=26.1 {
+    /*default void render3D(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     default void render3D(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         render(drawContext, mouseX, mouseY, delta);
     }
 

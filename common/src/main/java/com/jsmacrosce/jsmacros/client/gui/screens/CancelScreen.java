@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.gui.screens;
 
 import com.google.common.collect.ImmutableList;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
+//? }
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -98,12 +102,20 @@ public class CancelScreen extends BaseScreen {
     }
 
     @Override
-    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //? if >=26.1 {
+    /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
+    *///? } else {
+    public void render(final GuiGraphics drawContext, int mouseX, int mouseY, final float delta) {
+    //? }
         if (drawContext == null) {
             return;
         }
 
+        //? if >=26.1 {
+        /*super.extractRenderState(drawContext, mouseX, mouseY, delta);
+        *///? } else {
         super.render(drawContext, mouseX, mouseY, delta);
+        //? }
 
         List<BaseScriptContext<?>> tl = new ArrayList<>(JsMacrosClient.clientCore.getContexts());
 
@@ -112,7 +124,11 @@ public class CancelScreen extends BaseScreen {
             if (!services.value && r.service) {
                 removeContainer(r);
             }
+            //? if >=26.1 {
+            /*r.extractRenderState(drawContext, mouseX, mouseY, delta);
+            *///? } else {
             r.render(drawContext, mouseX, mouseY, delta);
+            //? }
         }
 
         for (BaseScriptContext<?> t : tl) {
@@ -123,7 +139,11 @@ public class CancelScreen extends BaseScreen {
             if (!(b instanceof Renderable)) {
                 continue;
             }
+            //? if >=26.1 {
+            /*((Renderable) b).extractRenderState(drawContext, mouseX, mouseY, delta);
+            *///? } else {
             ((Renderable) b).render(drawContext, mouseX, mouseY, delta);
+            //? }
         }
     }
 

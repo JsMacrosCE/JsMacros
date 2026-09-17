@@ -32,7 +32,7 @@
   "jsmacrosce.stopped": "Arrêté",
   "jsmacrosce.disablewithscreen": "Désactive l'évènement KEY dans les interface.",
   "jsmacrosce.about": "À propos",
-  "jsmacrosce.aboutinfo": "JS Macros Édition communautaire\nCréé par: East_Arctica\n\nMode pour faire des Macros en Javascript pour le Jeu de Cubes.\n\nPour obtenir de l'aide, allez sur le site internet ou rejoignez le Discord !",
+  "jsmacrosce.aboutinfo": "JS Macros Édition communautaire\nCréé par: East_Arctica\nBasé sur le travail de: WagYourTail\n\nMode pour faire des Macros en Javascript pour le Jeu de Cubes.\n\nPour obtenir de l'aide, allez sur le site internet ou rejoignez le Discord !",
   "jsmacrosce.back": "Retour",
   "jsmacrosce.erroropening": "Il y a eu une erreur lors de l'ouverture du fichier... \n\n",
   "jsmacrosce.save": "Enregistrer",

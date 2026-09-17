@@ -36,7 +36,7 @@ public class Line3D implements RenderElement3D<Line3D> {
             lineDepthTestFunction.setAccessible(true);
             oldlineDepthTestFunction = (DepthTestFunction) lineDepthTestFunction.get(RenderPipelines.LINES);
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException("JS-Macros 3D Rendering failed to reflect into RenderLayer for Line3D", e);
+            throw new RuntimeException("Failed to reflect into RenderLayer for Line3D", e);
         }
     }
     public Vec3D pos;

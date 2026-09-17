@@ -266,7 +266,11 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      * @since 1.2.0
      */
     public TextHelper getDefaultName() {
-        return TextHelper.wrap(base.getItem().getName());
+        return TextHelper.wrap(base.getItem().getName(
+                //? if >=26.1 {
+                /*base.getItem().getDefaultInstance()
+                *///? }
+        ));
     }
 
     /**

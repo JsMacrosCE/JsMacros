@@ -2,22 +2,16 @@ package com.jsmacrosce.jsmacros.fabric.client.mixins.access;
 
 import com.google.common.collect.ImmutableSet;
 import dev.kikugie.fletching_table.annotation.MixinEnvironment;
-//? if >1.21.5 {
-import com.mojang.blaze3d.buffers.GpuBufferSlice;
-//?}
 import com.mojang.blaze3d.framegraph.FrameGraphBuilder;
 import com.mojang.blaze3d.framegraph.FramePass;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
-//? if >1.21.8 {
-/*import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.state.LevelRenderState;
-*///?}
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.util.profiling.ProfilerFiller;
 import org.joml.Matrix4f;
+import org.joml.Matrix4fc;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -26,6 +20,21 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FHud;
+
+//? if >1.21.5 {
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
+//?}
+
+//? if >1.21.8 {
+/*import net.minecraft.client.Minecraft;
+*///?}
+
+//? if >=26.1 {
+/*import net.minecraft.client.renderer.state.level.LevelRenderState;
+import net.minecraft.client.renderer.chunk.ChunkSectionsToRender;
+*///? } else if > 1.21.8 {
+/*import net.minecraft.client.renderer.state.LevelRenderState;
+*///?}
 
 @MixinEnvironment("fabric")
 @Mixin(value = LevelRenderer.class)
@@ -40,12 +49,23 @@ public class MixinLevelRenderer {
 
     @Inject(method = "addMainPass", at = @At("TAIL"))
     private void onRenderMain(
-            //? if >1.21.8 {
+            //? if >= 26.1 {
+            /*final FrameGraphBuilder frameGraphBuilder,
+            final Frustum frustum,
+            final Matrix4fc modelViewMatrix,
+            final GpuBufferSlice terrainFog,
+            final boolean renderOutline,
+            final LevelRenderState levelRenderState,
+            final DeltaTracker deltaTracker,
+            final ProfilerFiller profiler,
+            final ChunkSectionsToRender chunkSectionsToRender,
+            CallbackInfo ci
+            *///? } else if >1.21.8 {
             /*FrameGraphBuilder frameGraphBuilder,
             Frustum frustum,
             Matrix4f frustumMatrix,
             GpuBufferSlice shaderFog,
-            boolean renderBlockOutline,
+            boolean renderOutline,
             LevelRenderState levelRenderState,
             DeltaTracker deltaTracker,
             ProfilerFiller profiler,

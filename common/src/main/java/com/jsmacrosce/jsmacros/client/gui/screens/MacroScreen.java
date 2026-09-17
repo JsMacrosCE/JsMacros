@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.gui.screens;
 
 import com.google.common.collect.ImmutableList;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
+//? }
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -199,7 +203,11 @@ public class MacroScreen extends BaseScreen {
     }
 
     @Override
-    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //? if >=26.1 {
+    /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
+    *///? } else {
+    public void render(final GuiGraphics drawContext, int mouseX, int mouseY, final float delta) {
+    //? }
         if (drawContext == null) {
             return;
         }
@@ -208,26 +216,46 @@ public class MacroScreen extends BaseScreen {
         /*this.renderBackground(drawContext, mouseX, mouseY, delta);
         *///?}
 
+        //? if >=26.1 {
+        /*topbar.extractRenderState(drawContext, mouseX, mouseY, delta);
+        *///? } else {
         topbar.render(drawContext, mouseX, mouseY, delta);
+        //? }
 
         for (GuiEventListener b : ImmutableList.copyOf(this.children())) {
             if (b instanceof Renderable) {
+                //? if >=26.1 {
+                /*((Renderable) b).extractRenderState(drawContext, mouseX, mouseY, delta);
+                *///? } else {
                 ((Renderable) b).render(drawContext, mouseX, mouseY, delta);
+                //? }
             }
         }
 
         for (MultiElementContainer<MacroScreen> macro : ImmutableList.copyOf(this.macros)) {
+            //? if >=26.1 {
+            /*macro.extractRenderState(drawContext, mouseX, mouseY, delta);
+            *///? } else {
             macro.render(drawContext, mouseX, mouseY, delta);
+            //? }
         }
         drawContext.fill(this.width * 5 / 6 - 1, 0, this.width * 5 / 6 + 1, 20, 0xFFFFFFFF);
         drawContext.fill(this.width / 6 - 1, 0, this.width / 6 + 1, 20, 0xFFFFFFFF);
         drawContext.fill(this.width / 6 * 2, 0, this.width / 6 * 2 + 2, 20, 0xFFFFFFFF);
         drawContext.fill(this.width / 6 * 3 + 1, 0, this.width / 6 * 3 + 3, 20, 0xFFFFFFFF);
         drawContext.fill(0, 20, width, 22, 0xFFFFFFFF);
+        //? if >=26.1 {
+        /*drawContext.centeredText(this.font, JsMacrosClient.clientCore.profile.getCurrentProfileName(), this.width * 8 / 12, 5, 0xFF7F7F7F);
+        *///? } else {
         drawContext.drawCenteredString(this.font, JsMacrosClient.clientCore.profile.getCurrentProfileName(), this.width * 8 / 12, 5, 0xFF7F7F7F);
+        //? }
 
         if (overlay != null) {
+            //? if >=26.1 {
+            /*overlay.extractRenderState(drawContext, mouseX, mouseY, delta);
+            *///? } else {
             overlay.render(drawContext, mouseX, mouseY, delta);
+            //? }
         }
     }
 

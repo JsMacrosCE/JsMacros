@@ -1,7 +1,6 @@
 package com.jsmacrosce.wagyourgui.containers;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -11,6 +10,12 @@ import com.jsmacrosce.wagyourgui.overlays.OverlayContainer;
 
 import java.util.ArrayList;
 import java.util.List;
+
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///? } else {
+import net.minecraft.client.gui.GuiGraphics;
+//? }
 
 public abstract class MultiElementContainer<T extends IContainerParent> implements IContainerParent {
     protected List<AbstractWidget> buttons = new ArrayList<>();
@@ -86,6 +91,9 @@ public abstract class MultiElementContainer<T extends IContainerParent> implemen
         return parent.getFirstOverlayParent();
     }
 
+    //? if >=26.1 {
+    /*public abstract void extractRenderState(final GuiGraphicsExtractor graphics, int mouseX, int mouseY, final float a);
+    *///? } else {
     public abstract void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta);
-
+    //? }
 }

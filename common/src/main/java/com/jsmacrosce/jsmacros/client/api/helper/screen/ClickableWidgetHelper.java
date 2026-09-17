@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.api.helper.screen;
 
 import net.minecraft.client.Minecraft;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -272,8 +276,13 @@ public class ClickableWidgetHelper<B extends ClickableWidgetHelper<B, T>, T exte
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+        base.extractRenderState(drawContext, mouseX, mouseY, delta);
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         base.render(drawContext, mouseX, mouseY, delta);
+    //?}
         if (base.isMouseOver(mouseX, mouseY) && !tooltips.isEmpty()) {
             //? if >1.21.5 {
             drawContext.setComponentTooltipForNextFrame(mc.font, tooltips, mouseX, mouseY);

@@ -122,9 +122,11 @@ public class BlockDataHelper extends BaseHelper<BlockState> {
      */
     public Map<String, String> getBlockState() {
         Map<String, String> map = new HashMap<>();
-        for (Entry<Property<?>, Comparable<?>> e : base.getValues().entrySet()) {
-            map.put(e.getKey().getName(), Util.getPropertyName(e.getKey(), e.getValue()));
-        }
+        //? if >=26.1 {
+        /*base.getValues().forEach(e -> map.put(e.property().getName(), Util.getPropertyName(e.property(), e.value())));
+        *///?} else {
+        base.getValues().forEach((key, value) -> map.put(key.getName(), Util.getPropertyName(key, value)));
+        //?}
         return map;
     }
 

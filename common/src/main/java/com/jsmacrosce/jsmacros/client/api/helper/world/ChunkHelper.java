@@ -93,7 +93,11 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
      * @since 1.8.4
      */
     public int getChunkX() {
+        //? if >=26.1 {
+        /*return base.getPos().x();
+        *///?} else {
         return base.getPos().x;
+        //?}
     }
 
     /**
@@ -101,7 +105,11 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
      * @since 1.8.4
      */
     public int getChunkZ() {
+        //? if >=26.1 {
+        /*return base.getPos().z();
+        *///?} else {
         return base.getPos().z;
+        //?}
     }
 
     /**

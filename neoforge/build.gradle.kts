@@ -36,12 +36,15 @@ neoForge {
         layout.buildDirectory.file("generated/access-transformer/accesstransformer.cfg")
     )
 
-    val parchment_minecraft = commonMod.prop("parchment_minecraft")
-    val parchment_version = commonMod.prop("parchment_version")
+    val supportsParchment = stonecutterBuild.eval(stonecutterBuild.current.version, "<26.1")
+    val parchment_minecraft = commonMod.propOrNull("parchment_minecraft")
+    val parchment_version = commonMod.propOrNull("parchment_version")
 
-    parchment {
-        minecraftVersion = parchment_minecraft
-        mappingsVersion = parchment_version
+    if (supportsParchment && parchment_minecraft != null && parchment_version != null) {
+        parchment {
+            minecraftVersion = parchment_minecraft
+            mappingsVersion = parchment_version
+        }
     }
 
     runs {

@@ -19,8 +19,8 @@ import java.util.Properties
 
 plugins {
     id("dev.kikugie.stonecutter")
-    id("net.neoforged.moddev") version "2.0.139" apply false
-    id("fabric-loom") version "1.13-SNAPSHOT" apply false
+    id("net.neoforged.moddev") version "2.0.140" apply false
+    id("fabric-loom") version "1.15-SNAPSHOT" apply false
     id("me.modmuss50.mod-publish-plugin") version "1.1.0"
 }
 
@@ -137,11 +137,13 @@ val modId = modIdProvider.get()
 val channel = channelProvider.get()
 version = computedVersionProvider.get()
 
-val supportedVersions = listOf("1.21.5", "1.21.8", "1.21.10", "1.21.11")
-val mcVersionsToBuild = if (IS_CI) supportedVersions else listOf("1.21.11")
+val supportedVersions = listOf("1.21.5", "1.21.8", "1.21.10", "1.21.11", "26.1")
+val mcVersionsToBuild = if (IS_CI) supportedVersions else listOf("26.1")
 val mcVersion = mcVersionsToBuild.first() // for backward compatibility
 
 val loaders = listOf("fabric", "neoforge")
+
+fun usesFabricRemap(version: String): Boolean = stonecutter.eval(version, "<26.1")
 
 data class ExtensionSpec(val path: String, val extId: String)
 val jsmExtensions: List<ExtensionSpec> = listOf(
@@ -362,7 +364,7 @@ gradle.projectsEvaluated {
         loaders.flatMap { loader ->
             mcVersionsToBuild.map { version ->
                 val loaderProject = project(":$loader:$version")
-                val sourceTaskName = if (loader == "fabric") "remapJar" else "jar"
+                val sourceTaskName = if (loader == "fabric" && usesFabricRemap(version)) "remapJar" else "jar"
                 val taskName = "package${loader.replaceFirstChar { it.uppercase() }}ModJar${version.replace(".", "")}"
 
                 tasks.register(taskName, Copy::class.java) {
@@ -496,7 +498,7 @@ gradle.projectsEvaluated {
                 val mcSegment = targetMcVersion.replace(".", "")
                 loaders.forEach { loader ->
                     val platformName = "modrinth${loader.replaceFirstChar { it.uppercase() }}$mcSegment"
-                    val sourceTaskName = if (loader == "fabric") "remapJar" else "jar"
+                    val sourceTaskName = if (loader == "fabric" && usesFabricRemap(targetMcVersion)) "remapJar" else "jar"
                     val loaderProject = project(":$loader:$targetMcVersion")
 
                     modrinth(platformName) {

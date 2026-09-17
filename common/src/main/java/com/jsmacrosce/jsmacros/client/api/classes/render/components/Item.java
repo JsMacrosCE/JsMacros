@@ -2,7 +2,11 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
@@ -250,18 +254,30 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         render(drawContext, mouseX, mouseY, delta, false);
     }
 
     @Override
     @DocletIgnore
+    //? if >=26.1 {
+    /*public void render3D(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render3D(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         render(drawContext, mouseX, mouseY, delta, true);
     }
 
     @DocletIgnore
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta, boolean is3dRender) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta, boolean is3dRender) {
+    //?}
         if (item == null) {
             return;
         }
@@ -287,7 +303,11 @@ public class Item implements RenderElement, Alignable<Item> {
             //? if >1.21.5 {
             matrices.translate(0, 0, matrices);
             matrices.scale(1, 1, matrices);
+            //? if >=26.1 {
+            /*drawContext.item(item, x, y);
+            *///? } else {
             drawContext.renderItem(item, x, y);
+            //? }
             matrices.scale(1, 1, matrices);
             //?} else {
             /*matrices.translate(0, 0, -0.1f);
@@ -296,7 +316,11 @@ public class Item implements RenderElement, Alignable<Item> {
             matrices.scale(1, 1, 1 / scaleZ);
             *///?}
         } else {
+            //? if >=26.1 {
+            /*drawContext.item(item, x, y);
+            *///?} else {
             drawContext.renderItem(item, x, y);
+            //?}
         }
         if (overlay) {
             if (is3dRender) {
@@ -306,7 +330,11 @@ public class Item implements RenderElement, Alignable<Item> {
                 /*matrices.translate(0, 0, -199.5);
                 *///?}
             }
+            //? if >=26.1 {
+            /*drawContext.itemDecorations(mc.font, item, x, y, ovText);
+            *///?} else {
             drawContext.renderItemDecorations(mc.font, item, x, y, ovText);
+            //?}
         }
 
         //? if >1.21.5 {

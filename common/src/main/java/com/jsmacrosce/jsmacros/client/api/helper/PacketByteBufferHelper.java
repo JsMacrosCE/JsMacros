@@ -559,7 +559,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      */
     public int[] readChunkPos() {
         ChunkPos pos = base.readChunkPos();
+        //? if >=26.1 {
+        /*return new int[]{pos.x(), pos.z()};
+        *///? } else {
         return new int[]{pos.x, pos.z};
+        //? }
     }
 
     /**
@@ -570,7 +574,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     public ChunkHelper readChunkHelper() {
         ChunkPos pos = base.readChunkPos();
         assert Minecraft.getInstance().level != null;
+        //? if >=26.1 {
+        /*ChunkAccess chunk = Minecraft.getInstance().level.getChunk(pos.x(), pos.z());
+        *///? } else {
         ChunkAccess chunk = Minecraft.getInstance().level.getChunk(pos.x, pos.z);
+        //? }
         return chunk == null ? null : new ChunkHelper(chunk);
     }
 

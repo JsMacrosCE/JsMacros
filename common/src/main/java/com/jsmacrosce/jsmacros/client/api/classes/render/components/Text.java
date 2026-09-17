@@ -3,7 +3,11 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
@@ -261,7 +265,11 @@ public class Text implements RenderElement, Alignable<Text> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         //? if >1.21.5 {
         Matrix3x2fStack matrices = drawContext.pose();
         matrices.pushMatrix();
@@ -271,7 +279,11 @@ public class Text implements RenderElement, Alignable<Text> {
         *///?}
 
         setupMatrix(matrices, x, y, (float) scale, rotation, getWidth(), getHeight(), rotateCenter);
+        //? if >=26.1 {
+        /*drawContext.text(mc.font, text, x, y, color, shadow);
+        *///?} else {
         drawContext.drawString(mc.font, text, x, y, color, shadow);
+        //?}
 
         //? if >1.21.5 {
         matrices.popMatrix();
@@ -282,7 +294,11 @@ public class Text implements RenderElement, Alignable<Text> {
 
     @Override
     @DocletIgnore
+    //? if >=26.1 {
+    /*public void render3D(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render3D(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         //? if >1.21.5 {
         Matrix3x2fStack matrices = drawContext.pose();
         matrices.pushMatrix();

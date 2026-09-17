@@ -144,7 +144,11 @@ public abstract class MixinClientPlayNetworkHandler extends ClientCommonPacketLi
 
     @Inject(at = @At("TAIL"), method = "handleForgetLevelChunk")
     public void onUnloadChunk(ClientboundForgetLevelChunkPacket packet, CallbackInfo info) {
+        //? if >=26.1 {
+        /*new EventChunkUnload(packet.pos().x(), packet.pos().z()).trigger();
+        *///? } else {
         new EventChunkUnload(packet.pos().x, packet.pos().z).trigger();
+        //? }
     }
 
     @Inject(

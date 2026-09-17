@@ -6,6 +6,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+//? if >=26.1 {
+/*import net.minecraft.world.phys.EntityHitResult;
+*///?}
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -626,7 +629,11 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
         InteractionHand hand = offHand ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         boolean joinedMain = JsMacrosClient.clientCore.profile.checkJoinedThreadStack();
         if (joinedMain) {
+            //? if >=26.1 {
+            /*InteractionResult result = base.interact(mc.player, entity.getRaw(), new EntityHitResult(entity.getRaw()), hand);
+            *///?} else {
             InteractionResult result = base.interact(mc.player, entity.getRaw(), hand);
+            //?}
             assert mc.player != null;
             if (result.consumesAction()) {
                 mc.player.swing(hand);
@@ -634,7 +641,11 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
+                //? if >=26.1 {
+                /*InteractionResult result = base.interact(mc.player, entity.getRaw(), new EntityHitResult(entity.getRaw()), hand);
+                *///?} else {
                 InteractionResult result = base.interact(mc.player, entity.getRaw(), hand);
+                //?}
                 assert mc.player != null;
                 if (result.consumesAction()) {
                     mc.player.swing(hand);

@@ -33,6 +33,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+//? if >=26.1 {
+/*import net.minecraft.commands.arguments.item.ItemInput;
+*///? }
+
 /**
  * @author Etheradon
  * @since 1.8.4
@@ -100,9 +104,14 @@ public class RegistryHelper {
     @DocletReplaceParams("id: CanOmitNamespace<ItemId>, nbt: string")
     public ItemStackHelper getItemStack(String id, String nbt) throws CommandSyntaxException {
         ItemParser reader = new ItemParser(Objects.requireNonNull(mc.getConnection()).registryAccess());
+        //? if >=26.1 {
+        /*ItemInput itemInput = reader.parse(new StringReader(parseNameSpace(id) + nbt));
+        ItemStack stack = itemInput.createItemStack(1);
+        *///? } else {
         ItemParser.ItemResult itemResult = reader.parse(new StringReader(parseNameSpace(id) + nbt));
-        ItemStack stack = new ItemStack(itemResult.item());
-        stack.applyComponents(itemResult.components());
+        ItemStack stack = new ItemStack(itemResult.item(), 1, itemResult.components());
+        //? }
+
         return new CreativeItemStackHelper(stack);
     }
 

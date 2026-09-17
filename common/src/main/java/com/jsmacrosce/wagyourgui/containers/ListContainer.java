@@ -1,10 +1,11 @@
 package com.jsmacrosce.wagyourgui.containers;
 
 import com.google.common.collect.ImmutableList;
+
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.network.chat.Component;
+
 import com.jsmacrosce.wagyourgui.elements.Button;
 import com.jsmacrosce.wagyourgui.elements.Scrollbar;
 import com.jsmacrosce.wagyourgui.overlays.IOverlayParent;
@@ -12,6 +13,12 @@ import com.jsmacrosce.wagyourgui.overlays.IOverlayParent;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
+
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
+import net.minecraft.client.gui.GuiGraphics;
+//?}
 
 public class ListContainer extends MultiElementContainer<IContainerParent> {
     private final List<Component> list;
@@ -64,8 +71,11 @@ public class ListContainer extends MultiElementContainer<IContainerParent> {
     }
 
     @Override
-    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-
+    //? if >=26.1 {
+    /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
+    *///?} else {
+    public void render(final GuiGraphics drawContext, int mouseX, int mouseY, final float delta) {
+    //?}
         for (AbstractWidget b : ImmutableList.copyOf(this.buttons)) {
             if (b instanceof Button && ((Button) b).hovering && ((Button) b).cantRenderAllText()) {
                 // border
@@ -77,7 +87,11 @@ public class ListContainer extends MultiElementContainer<IContainerParent> {
 
                 // fill
                 drawContext.fill(mouseX - 2, mouseY - textRenderer.lineHeight - 3, mouseX + width + 2, mouseY, 0xFF000000);
+                //? if >=26.1 {
+                /*drawContext.text(textRenderer, b.getMessage(), mouseX, mouseY - textRenderer.lineHeight - 1, 0xFFFFFFFF);
+                *///?} else {
                 drawContext.drawString(textRenderer, b.getMessage(), mouseX, mouseY - textRenderer.lineHeight - 1, 0xFFFFFFFF);
+                //?}
             }
         }
     }

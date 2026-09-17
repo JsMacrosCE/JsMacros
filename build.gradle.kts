@@ -296,7 +296,7 @@ if (isVersionedProject && hasMinecraftVersion) {
         val baseJarTasks: Map<String, org.gradle.api.tasks.TaskProvider<Copy>> =
             loaders.associateWith { loader ->
                 val loaderProject = project(":$loader")
-                val sourceTaskName = if (loader == "fabric") "remapJar" else "jar"
+                val sourceTaskName = if (loader == "fabric" && stonecutterBuild.eval(mcVersion, "<26.1")) "remapJar" else "jar"
                 val taskName = "package${loader.replaceFirstChar { it.uppercase() }}ModJar"
 
                 tasks.register(taskName, Copy::class.java) {
@@ -444,7 +444,7 @@ if (isVersionedProject && hasMinecraftVersion) {
             if (publishModrinth) {
                 loaders.forEach { loader ->
                     val platformName = "modrinth${loader.replaceFirstChar { it.uppercase() }}${targetMcVersion.replace(".", "")}"
-                    val sourceTaskName = if (loader == "fabric") "remapJar" else "jar"
+                    val sourceTaskName = if (loader == "fabric" && stonecutterBuild.eval(targetMcVersion, "<26.1")) "remapJar" else "jar"
                     val loaderProject = project(":$loader")
 
                     modrinth(platformName) {

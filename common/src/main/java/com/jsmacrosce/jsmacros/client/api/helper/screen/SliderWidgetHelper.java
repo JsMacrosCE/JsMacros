@@ -137,7 +137,7 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
         @Override
         public SliderWidgetHelper createWidget() {
             AtomicReference<SliderWidgetHelper> b = new AtomicReference<>(null);
-            Slider slider = new Slider(getX(), getY(), getWidth(), getHeight(), getMessage().getRaw(), value, (btn) -> {
+            Slider slider = new Slider(getX(), getY(), getWidth(), getHeight(), getMessage().getRaw(), Mth.clamp((double) value / (steps - 1), 0D, 1D), (btn) -> {
                 try {
                     if (action != null) {
                         action.accept(b.get(), screen);

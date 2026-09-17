@@ -14,7 +14,7 @@
   },
   "license": "MPL-2.0",
   "icon": "assets/jsmacrosce/icon.png",
-  "environment": "*",
+  "environment": "client",
   "entrypoints": {
     "main": [
       "com.jsmacrosce.jsmacros.fabric.client.JsMacrosFabric"
@@ -30,7 +30,7 @@
     "jsmacrosce-common.mixins.json",
     "jsmacrosce-fabric.mixins.json"
   ],
-  "accessWidener": "accesswideners/${minecraft_version}-${mod_id}.accesswidener",
+  "accessWidener": "accesswideners/${access_widener}",
   "depends": {
     "fabricloader": ">=0.15.0",
     "fabric-api": "*",

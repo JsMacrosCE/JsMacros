@@ -20,6 +20,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
@@ -35,6 +36,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import org.apache.logging.log4j.core.jmx.Server;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
@@ -567,11 +569,11 @@ public class FWorld extends BaseLibrary {
      */
     @Nullable
     public EntityHelper<?> rayTraceEntity(double x1, double y1, double z1, double x2, double y2, double z2) {
-        ClientLevel world = mc.level;
-        if (world == null) return null;
+        ClientLevel level = mc.level;
+        if (level == null) return null;
         TargetingConditions target = TargetingConditions.forNonCombat();
         target.selector((e, w) -> e.getBoundingBox().clip(new Vec3(x1, y1, z1), new Vec3(x2, y2, z2)).isPresent());
-        List<LivingEntity> entities = (List) StreamSupport.stream(world.entitiesForRendering().spliterator(), false).filter(e -> e instanceof LivingEntity).collect(Collectors.toList());
+        List<LivingEntity> entities = (List) StreamSupport.stream(level.entitiesForRendering().spliterator(), false).filter(e -> e instanceof LivingEntity).collect(Collectors.toList());
         LivingEntity closest = null;
         double distance = -1;
         Player tester = mc.player;
@@ -644,7 +646,11 @@ public class FWorld extends BaseLibrary {
     public long getTimeOfDay() {
         ClientLevel world = mc.level;
         if (world == null) return -1;
+        //? if >=26.1 {
+        /*return world.getDefaultClockTime();
+        *///?} else {
         return world.getDayTime();
+        //?}
     }
 
     /**
@@ -744,7 +750,7 @@ public class FWorld extends BaseLibrary {
         ClientLevel world = mc.level;
         if (world == null) return -1;
         //? if >=1.21.11 {
-        /*return (int) (world.getDayTime() / 24000L % 8L + 8L) % 8;
+        /*return (int) (world.getGameTime() / 24000L % 8L + 8L) % 8;
         *///? } else {
         return world.getMoonPhase();
         //? }

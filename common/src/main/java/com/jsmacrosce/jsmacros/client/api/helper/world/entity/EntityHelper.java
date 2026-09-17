@@ -172,7 +172,11 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
      * @since 1.6.5
      */
     public Pos2D getChunkPos() {
+        //? if >=26.1 {
+        /*return new Pos2D(base.chunkPosition().x(), base.chunkPosition().z());
+        *///?} else {
         return new Pos2D(base.chunkPosition().x, base.chunkPosition().z);
+        //?}
     }
 
     /**

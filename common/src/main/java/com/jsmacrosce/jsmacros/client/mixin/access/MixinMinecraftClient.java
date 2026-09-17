@@ -63,7 +63,11 @@ class MixinMinecraftClient {
     @Nullable
     public ClientLevel level;
 
+    //? if >= 26.1 {
+    /*@Inject(at = @At("TAIL"), method = "resizeGui")
+    *///? } else {
     @Inject(at = @At("TAIL"), method = "resizeDisplay")
+    //? }
     public void onResolutionChanged(CallbackInfo info) {
 
         synchronized (FHud.overlays) {

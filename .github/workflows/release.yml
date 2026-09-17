@@ -8,7 +8,7 @@ on:
         required: false
 
 env:
-  JAVA_VERSION: '21'
+  JAVA_VERSION: '25'
   MODRINTH_PROJECT: 2m9WfquA
   MOD_ID: jsmacrosce
 

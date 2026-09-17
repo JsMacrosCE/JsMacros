@@ -32,7 +32,7 @@
   "jsmacrosce.stopped": "Stopped",
   "jsmacrosce.disablewithscreen": "Disable KEY event when any screen is open.",
   "jsmacrosce.about": "About",
-  "jsmacrosce.aboutinfo": "JS Macros Community Edition\nCreated By: East_Arctica\n\nJavascript MacroMod for Block Game.\n\nFor help, refer to the website or join the Discord!",
+  "jsmacrosce.aboutinfo": "JS Macros Community Edition\nCreated by: East_Arctica\nBased off the work of: WagYourTail\n\nJavascript MacroMod for Block Game.\n\nFor help, refer to the website or join the Discord!",
   "jsmacrosce.back": "Back",
   "jsmacrosce.erroropening": "There was an error opening the file... \n\n",
   "jsmacrosce.save": "Save",

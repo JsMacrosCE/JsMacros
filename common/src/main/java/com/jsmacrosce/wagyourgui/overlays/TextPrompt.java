@@ -1,13 +1,19 @@
 package com.jsmacrosce.wagyourgui.overlays;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
+
 import com.jsmacrosce.wagyourgui.elements.Button;
 import com.jsmacrosce.wagyourgui.elements.TextInput;
 
 import java.util.function.Consumer;
+
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///? } else {
+import net.minecraft.client.gui.GuiGraphics;
+//? }
 
 public class TextPrompt extends OverlayContainer {
     private final Component message;
@@ -43,13 +49,25 @@ public class TextPrompt extends OverlayContainer {
     }
 
     @Override
-    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //? if >=26.1 {
+    /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
+    *///? } else {
+    public void render(final GuiGraphics drawContext, int mouseX, int mouseY, final float delta) {
+    //? }
         this.renderBackground(drawContext);
         int lineNum = 0;
         for (FormattedCharSequence line : textRenderer.split(message, width - 4)) {
+            //? if >=26.1 {
+            /*drawContext.text(textRenderer, line, (int) (x + width / 2F - textRenderer.width(line) / 2F), y + 5 + (lineNum++) * textRenderer.lineHeight, 0xFFFFFFFF, false);
+            *///? } else {
             drawContext.drawString(textRenderer, line, (int) (x + width / 2F - textRenderer.width(line) / 2F), y + 5 + (lineNum++) * textRenderer.lineHeight, 0xFFFFFFFF, false);
+            //? }
         }
+        //? if >=26.1 {
+        /*super.extractRenderState(drawContext, mouseX, mouseY, delta);
+        *///? } else {
         super.render(drawContext, mouseX, mouseY, delta);
+        //? }
     }
 
 }

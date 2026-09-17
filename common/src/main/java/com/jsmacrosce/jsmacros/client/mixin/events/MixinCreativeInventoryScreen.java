@@ -2,18 +2,25 @@ package com.jsmacrosce.jsmacros.client.mixin.events;
 
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
-import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
 import com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventClickSlot;
 import com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventDropSlot;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
+
+//? if >=26.1 {
+/*import net.minecraft.world.inventory.ContainerInput;
+*///? } else {
+import net.minecraft.world.inventory.ClickType;
+//? }
 
 @Mixin(CreativeModeInventoryScreen.class)
 public abstract class MixinCreativeInventoryScreen {
@@ -68,18 +75,28 @@ public abstract class MixinCreativeInventoryScreen {
     }
 
     @Inject(method = "slotClicked", at = @At("HEAD"), cancellable = true)
-    public void beforeMouseClick(Slot slot, int slotId, int button, ClickType actionType, CallbackInfo ci) {
+    //? if >=26.1 {
+    /*public void beforeMouseClick(Slot slot, int slotId, int buttonNum, ContainerInput actionType, CallbackInfo ci) {
+    *///? } else {
+    public void beforeMouseClick(Slot slot, int slotId, int buttonNum, ClickType actionType, CallbackInfo ci) {
+    //? }
         if (slot != null) {
             slotId = jsmacros$getSlotFromCreativeSlot(slot).index;
         }
-        EventClickSlot event = new EventClickSlot((AbstractContainerScreen<?>) (Object) this, actionType.ordinal(), button, slotId);
+
+        EventClickSlot event = new EventClickSlot((AbstractContainerScreen<?>) (Object) this, actionType.ordinal(), buttonNum, slotId);
         event.trigger();
         if (event.isCanceled()) {
             ci.cancel();
             return;
         }
+
+        //? if >=26.1 {
+        /*if (actionType == ContainerInput.THROW || slotId == -999) {
+        *///? } else {
         if (actionType == ClickType.THROW || slotId == -999) {
-            EventDropSlot eventDrop = new EventDropSlot((AbstractContainerScreen<?>) (Object) this, slotId, button == 1);
+        //? }
+            EventDropSlot eventDrop = new EventDropSlot((AbstractContainerScreen<?>) (Object) this, slotId, buttonNum == 1);
             eventDrop.trigger();
             if (eventDrop.isCanceled()) {
                 ci.cancel();
