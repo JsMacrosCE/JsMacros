@@ -35,6 +35,7 @@ dependencies {
     implementation("com.google.guava:guava:31.1-jre")
 
     // Test dependencies
+    testImplementation(project(":common:${minecraftVersion}"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testImplementation("org.jetbrains:annotations:20.1.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
@@ -42,9 +43,5 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
-    enabled = false
-}
-
-tasks.named("compileTestJava") {
     enabled = false
 }

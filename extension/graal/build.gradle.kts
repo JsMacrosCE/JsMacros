@@ -53,7 +53,7 @@ dependencies {
 
     // Common library dependencies, google deps must align with neoforged
     implementation("com.google.guava:guava:31.1-jre")
-    implementation("com.google.code.gson:gson:2.10")
+    implementation("com.google.code.gson:gson:2.14.0")
     implementation("org.slf4j:slf4j-api:2.0.16")
     implementation("it.unimi.dsi:fastutil:8.5.15")
 

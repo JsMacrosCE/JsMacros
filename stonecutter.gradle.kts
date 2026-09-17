@@ -19,9 +19,9 @@ import java.util.Properties
 
 plugins {
     id("dev.kikugie.stonecutter")
-    id("net.neoforged.moddev") version "2.0.140" apply false
-    id("fabric-loom") version "1.15-SNAPSHOT" apply false
-    id("me.modmuss50.mod-publish-plugin") version "1.1.0"
+    id("net.neoforged.moddev") version "2.0.147" apply false
+    id("fabric-loom") version "1.17-SNAPSHOT" apply false
+    id("me.modmuss50.mod-publish-plugin") version "2.2.0"
 }
 
 repositories {
