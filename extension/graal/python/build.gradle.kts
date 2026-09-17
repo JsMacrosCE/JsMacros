@@ -87,6 +87,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testImplementation("org.jetbrains:annotations:20.1.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 // Collect embedded dependency paths for the json file

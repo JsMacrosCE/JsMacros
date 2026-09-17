@@ -18,7 +18,7 @@ import java.util.Locale
 import java.util.Properties
 
 plugins {
-    id("me.modmuss50.mod-publish-plugin") version "1.1.0"
+    id("me.modmuss50.mod-publish-plugin") version "2.2.0"
 }
 
 repositories {

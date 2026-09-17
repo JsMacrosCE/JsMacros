@@ -44,15 +44,15 @@ pluginManagement {
 
     plugins {
         // see https://fabricmc.net/develop/ for new versions
-        id("fabric-loom") version "1.15-SNAPSHOT" apply false
+        id("fabric-loom") version "1.17-SNAPSHOT" apply false
         // see https://projects.neoforged.net/neoforged/moddevgradle for new versions
-        id("net.neoforged.moddev") version "2.0.140" apply false
+        id("net.neoforged.moddev") version "2.0.147" apply false
     }
 }
 
 plugins {
 	id("dev.kikugie.stonecutter") version "0.8.4"
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
 // This should match the folder name of the project, or else IDEA may complain (see https://youtrack.jetbrains.com/issue/IDEA-317606)
