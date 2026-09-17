@@ -4,11 +4,20 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.world.entity.Entity;
+import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
+
+//? if >=1.21.10 {
+/*import net.minecraft.client.entity.ClientAvatarState;
+*///?}
+//? if <=1.21.8 {
+import net.minecraft.client.player.AbstractClientPlayer;
+//?}
 
 import java.util.Objects;
 
@@ -100,21 +109,84 @@ public class TraceLine implements RenderElement3D<TraceLine> {
 
     @Override
     public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
-        Entity cameraEntity = Minecraft.getInstance().getCameraEntity();
-        Vec3 p1;
-        if (cameraEntity != null) {
-            p1 = cameraEntity.getEyePosition(tickDelta).add(cameraEntity.getViewVector(tickDelta));
-        } else {
-            Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-            //? if >=1.21.11 {
-            /*p1 = camera.position().add(Vec3.directionFromRotation(camera.xRot(), camera.yRot()));
-            *///? } else {
-            p1 = camera.getPosition().add(Vec3.directionFromRotation(camera.getXRot(), camera.getYRot()));
-            //? }
-        }
+        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        //? if >=1.21.11 {
+        /*Vec3 cameraPos = camera.position();
+        *///? } else {
+        Vec3 cameraPos = camera.getPosition();
+        //? }
+
+        Vec3 lookDir = getCrosshairDirection(camera, tickDelta);
+        Vec3 p1 = cameraPos.add(lookDir);
 
         render.setPos(p1.x, p1.y, p1.z, render.pos.x2, render.pos.y2, render.pos.z2);
         render.render(matrixStack, consumers, tickDelta);
+    }
+
+    /**
+     * Returns the world-space direction from the camera that corresponds to the screen-centre
+     * crosshair, accounting for the view-bob projection transform applied by GameRenderer.
+     * <p>
+     * bobView() bakes a translation, Z-roll, and X-pitch into the projection matrix
+     * (in camera space). The full bob transform is:
+     * <ol>
+     *   <li>translate(sin(dist*pi)*bob*0.5, -|cos(dist*pi)*bob|, 0)</li>
+     *   <li>Axis.ZP.rotationDegrees(sin(dist*pi)*bob*3)</li>
+     *   <li>Axis.XP.rotationDegrees(|cos(dist*pi-0.2)*bob|*5)</li>
+     * </ol>
+     * Both the rotation and the translation must be compensated: the rotation changes
+     * which camera-space direction maps to screen centre, and the translation shifts
+     * the effective viewpoint so the perspective origin is offset.
+     */
+    private static Vec3 getCrosshairDirection(Camera camera, float tickDelta) {
+        // Replicate the bob parameters from GameRenderer.bobView()
+        float dist = 0.0f;
+        float bob = 0.0f;
+        if (Minecraft.getInstance().options.bobView().get() && Minecraft.getInstance().getCameraEntity() instanceof
+                //? if >=1.21.10 {
+                /*net.minecraft.client.player.AbstractClientPlayer player) {
+            ClientAvatarState avatarState = player.avatarState();
+            dist = avatarState.getBackwardsInterpolatedWalkDistance(tickDelta);
+            bob  = avatarState.getInterpolatedBob(tickDelta);
+            *///? } else {
+                AbstractClientPlayer player)
+        {
+            float f3 = player.walkDist - player.walkDistO;
+            dist = -(player.walkDist + f3 * tickDelta);
+            bob = Mth.lerp(tickDelta, player.oBob, player.bob);
+            //?}
+        }
+
+        if (bob == 0.0f) {
+            // No bobbing active: the true camera forward is already screen-centre.
+            //? if >=1.21.11 {
+            /*return Vec3.directionFromRotation(camera.xRot(), camera.yRot());
+             *///? } else {
+            return Vec3.directionFromRotation(camera.getXRot(), camera.getYRot());
+            //?}
+        }
+
+        // Replicate the bob rotation angles from bobView():
+        float zDeg = Mth.sin(dist * (float) Math.PI) * bob * 3.0f;
+        float xDeg = Math.abs(Mth.cos(dist * (float) Math.PI - 0.2f) * bob) * 5.0f;
+
+        // Replicate the bob translation from bobView():
+        float tx = Mth.sin(dist * (float) Math.PI) * bob * 0.5f;
+        float ty = -Math.abs(Mth.cos(dist * (float) Math.PI) * bob);
+
+        // The full bob matrix is M_bob = T(tx,ty,0) * R_Z(zDeg) * R_X(xDeg).
+        // For a world-space point p1 = cameraPos + d to appear at screen centre,
+        // we need M_bob * V_rot * d to lie along (0, 0, -1), so
+        // d = camera.rotation() * invBob * (-tx, -ty, -1).
+        // (z=1 is arbitrary: only the direction matters.)
+        Quaternionf invBob =
+                new Quaternionf().rotateX((float) Math.toRadians(-xDeg)).rotateZ((float) Math.toRadians(-zDeg));
+        Vector3f camDir = invBob.transform(new Vector3f(-tx, -ty, -1.0f));
+
+        // Rotate from camera space to world space using the camera's orientation.
+        camera.rotation().transform(camDir);
+
+        return new Vec3(camDir.x, camDir.y, camDir.z);
     }
 
     public static class Builder {
