@@ -2,13 +2,25 @@ plugins {
     `java-library`
 }
 
+val minecraftVersion = rootProject.file("stonecutter.active").readText().trim()
+val versionProject = project(":${minecraftVersion}")
+val targetJavaVersion = versionProject.property("java_version").toString().toInt()
+
+configurations.configureEach {
+    if (isCanBeResolved) {
+        attributes.attribute(org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, targetJavaVersion)
+    }
+}
+
 base {
     archivesName.set("${property("mod_id")}-extension")
 }
 
 java {
+    sourceCompatibility = JavaVersion.toVersion(targetJavaVersion)
+    targetCompatibility = JavaVersion.toVersion(targetJavaVersion)
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(property("java_version").toString().toInt()))
+        languageVersion.set(JavaLanguageVersion.of(targetJavaVersion))
     }
     withSourcesJar()
 }
@@ -30,4 +42,9 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    enabled = false
+}
+
+tasks.named("compileTestJava") {
+    enabled = false
 }

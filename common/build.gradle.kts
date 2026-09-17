@@ -8,18 +8,24 @@ plugins {
 }
 
 val mod_id = commonMod.prop("mod_id")
-val minecraft_version = commonMod.mc
+val minecraft_version = commonMod.prop("minecraft_version")
 
 neoForge {
-    neoFormVersion = commonMod.prop("neo_form_version")
+    commonMod.propOrNull("neo_form_version")?.let { neoFormVersion = it }
 
     accessTransformers.from(
         layout.buildDirectory.file("generated/access-transformer/accesstransformer.cfg")
     )
 
-    parchment {
-        minecraftVersion = commonMod.prop("parchment_minecraft")
-        mappingsVersion = commonMod.prop("parchment_version")
+    val supportsParchment = stonecutterBuild.eval(stonecutterBuild.current.version, "<26.1")
+    val parchmentMinecraft = commonMod.propOrNull("parchment_minecraft")
+    val parchmentVersion = commonMod.propOrNull("parchment_version")
+
+    if (supportsParchment && parchmentMinecraft != null && parchmentVersion != null) {
+        parchment {
+            minecraftVersion = parchmentMinecraft
+            mappingsVersion = parchmentVersion
+        }
     }
 }
 

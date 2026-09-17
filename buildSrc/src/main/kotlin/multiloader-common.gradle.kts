@@ -129,6 +129,7 @@ tasks {
             "mod_name" to mod_name,
             "mod_author" to mod_author,
             "mod_id" to mod_id,
+            "access_widener" to if (stonecutterBuild.eval(minecraft_version, ">=26.1")) "$minecraft_version-$mod_id-official.accesswidener" else "$minecraft_version-$mod_id.accesswidener",
             "license" to license,
             "description" to project.description,
             "neoforge_version" to neoforge_version,
