@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
@@ -99,12 +100,18 @@ public class TraceLine implements RenderElement3D<TraceLine> {
 
     @Override
     public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
-        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-        //? if >=1.21.11 {
-        /*Vec3 p1 = camera.position().add(Vec3.directionFromRotation(camera.xRot(), camera.yRot()));
-        *///? } else {
-        Vec3 p1 = camera.getPosition().add(Vec3.directionFromRotation(camera.getXRot(), camera.getYRot()));
-        //? }
+        Entity cameraEntity = Minecraft.getInstance().getCameraEntity();
+        Vec3 p1;
+        if (cameraEntity != null) {
+            p1 = cameraEntity.getEyePosition(tickDelta).add(cameraEntity.getViewVector(tickDelta));
+        } else {
+            Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+            //? if >=1.21.11 {
+            /*p1 = camera.position().add(Vec3.directionFromRotation(camera.xRot(), camera.yRot()));
+            *///? } else {
+            p1 = camera.getPosition().add(Vec3.directionFromRotation(camera.getXRot(), camera.getYRot()));
+            //? }
+        }
 
         render.setPos(p1.x, p1.y, p1.z, render.pos.x2, render.pos.y2, render.pos.z2);
         render.render(matrixStack, consumers, tickDelta);
