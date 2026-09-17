@@ -142,6 +142,16 @@ class MixinMinecraftClient {
         }
     }
 
+    // 26.1 moved GameRenderer.pick to Minecraft.pick.
+    //? if >=26.1 {
+    /*@Inject(at = @At("HEAD"), method = "pick(F)V", cancellable = true)
+    private void overridePickTarget(float partialTicks, CallbackInfo ci) {
+        if (InteractionProxy.Target.onUpdate(partialTicks)) {
+            ci.cancel();
+        }
+    }
+    *///? }
+
     @Inject(at = @At(value = "INVOKE_STRING", target = "Lnet/minecraft/util/profiling/ProfilerFiller;popPush(Ljava/lang/String;)V", args = "ldc=gameRenderer"), method = "tick")
     private void ensureOverrideInteractions(CallbackInfo ci) {
         if (!(overlay == null && screen == null) && !pause) {
@@ -173,8 +183,8 @@ class MixinMinecraftClient {
     }
     //?}
 
-    // TODO: Currently MixinStyleSerializer.redirectClickGetAction and MixinMinecraftClient.catchEmptyShapeException are
-    //  broken in production. I do not know why this is, but it works in dev (I think).
+    // TODO: Currently MixinMinecraftClient.catchEmptyShapeException is broken in production. I do
+    //  not know why this is, but it works in dev (I think).
     /*
     @WrapOperation(method = "continueAttack", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/block/state/BlockState;isAir()Z"))
     private boolean catchEmptyShapeException(BlockState state, Operation<Boolean> original, @Local BlockPos blockPos) {

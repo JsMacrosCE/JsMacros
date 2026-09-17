@@ -9,9 +9,11 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.IScreen;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinTextFieldWidget;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 
+//? if <26.1 {
 import java.util.Objects;
+//? }
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 
 /**
  * @author Wagyourtail
@@ -19,6 +21,17 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @SuppressWarnings("unused")
 public class TextFieldWidgetHelper extends ClickableWidgetHelper<TextFieldWidgetHelper, EditBox> {
+    @Nullable
+    private Predicate<String> textFilter;
+    @Nullable
+    private MethodWrapper<String, IScreen, Object, ?> action;
+    @Nullable
+    private IScreen actionScreen;
+    private String lastAcceptedText = "";
+    private int lastAcceptedCursor;
+    private int lastAcceptedHighlight;
+    private boolean restoringText;
+
     public TextFieldWidgetHelper(EditBox t) {
         super(t);
     }
@@ -149,12 +162,63 @@ public class TextFieldWidgetHelper extends ClickableWidgetHelper<TextFieldWidget
     }
 
     /**
+     * Wires the text-change callback. On 26.1+ the same responder also enforces
+     * {@link #setTextPredicate(MethodWrapper)}, because {@code EditBox} no longer exposes a filter.
+     */
+    void bindAction(@Nullable MethodWrapper<String, IScreen, Object, ?> action, @Nullable IScreen screen) {
+        this.action = action;
+        this.actionScreen = screen;
+        installResponder();
+    }
+
+    private void installResponder() {
+        base.setResponder(this::onTextChanged);
+        snapshotAcceptedState();
+    }
+
+    private void onTextChanged(String text) {
+        if (restoringText) {
+            return;
+        }
+        if (textFilter != null && !textFilter.test(text)) {
+            restoringText = true;
+            try {
+                base.setValue(lastAcceptedText);
+                base.setCursorPosition(lastAcceptedCursor);
+                base.setHighlightPos(lastAcceptedHighlight);
+            } finally {
+                restoringText = false;
+            }
+            return;
+        }
+        snapshotAcceptedState();
+        if (action != null) {
+            try {
+                action.accept(text, actionScreen);
+            } catch (Throwable e) {
+                JsMacrosClient.clientCore.profile.logError(e);
+            }
+        }
+    }
+
+    private void snapshotAcceptedState() {
+        lastAcceptedText = base.getValue();
+        lastAcceptedCursor = base.getCursorPosition();
+        lastAcceptedHighlight = ((MixinTextFieldWidget) base).getHighlightPos();
+    }
+
+    /**
      * @param predicate the text filter
      * @return self for chaining.
      * @since 1.8.4
      */
     public TextFieldWidgetHelper setTextPredicate(MethodWrapper<String, ?, ?, ?> predicate) {
+        //? if >=26.1 {
+        /*this.textFilter = predicate;
+        installResponder();
+        *///? } else {
         base.setFilter(predicate);
+        //? }
         return this;
     }
 
@@ -163,7 +227,11 @@ public class TextFieldWidgetHelper extends ClickableWidgetHelper<TextFieldWidget
      * @since 1.8.4
      */
     public TextFieldWidgetHelper resetTextPredicate() {
+        //? if >=26.1 {
+        /*this.textFilter = null;
+        *///? } else {
         base.setFilter(Objects::nonNull);
+        //? }
         return this;
     }
 
@@ -282,20 +350,11 @@ public class TextFieldWidgetHelper extends ClickableWidgetHelper<TextFieldWidget
 
         @Override
         public TextFieldWidgetHelper createWidget() {
-            AtomicReference<TextFieldWidgetHelper> b = new AtomicReference<>(null);
             EditBox textField = new EditBox(textRenderer, getX(), getY(), getWidth(), getHeight(), getMessage().getRaw());
-            textField.setResponder(text -> {
-                try {
-                    if (action != null) {
-                        action.accept(text, screen);
-                    }
-                } catch (Throwable e) {
-                    JsMacrosClient.clientCore.profile.logError(e);
-                }
-            });
             textField.setSuggestion(suggestion);
-            b.set(new TextFieldWidgetHelper(textField, getZIndex()));
-            return b.get();
+            TextFieldWidgetHelper helper = new TextFieldWidgetHelper(textField, getZIndex());
+            helper.bindAction(action, screen);
+            return helper;
         }
 
     }

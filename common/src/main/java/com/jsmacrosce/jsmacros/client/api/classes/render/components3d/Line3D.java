@@ -1,10 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 
-import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.vertex.PoseStack;
+//? if <1.21.11 {
 import com.mojang.blaze3d.vertex.VertexConsumer;
+//? }
+
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
+
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.api.math.Vec3D;
@@ -16,9 +19,11 @@ import java.lang.reflect.Field;
 import java.util.Objects;
 
 //? if >=1.21.11 {
-/*import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+/*import net.minecraft.gizmos.GizmoProperties;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.gizmos.LineGizmo;
 *///? } else {
+import com.mojang.blaze3d.platform.DepthTestFunction;
 import net.minecraft.client.renderer.RenderType;
 //?}
 
@@ -27,6 +32,7 @@ import net.minecraft.client.renderer.RenderType;
  */
 @SuppressWarnings("unused")
 public class Line3D implements RenderElement3D<Line3D> {
+    //? if <1.21.11 {
     private static final Field lineDepthTestFunction;
     private static final DepthTestFunction oldlineDepthTestFunction;
 
@@ -39,6 +45,8 @@ public class Line3D implements RenderElement3D<Line3D> {
             throw new RuntimeException("Failed to reflect into RenderLayer for Line3D", e);
         }
     }
+    //? }
+
     public Vec3D pos;
     public int color;
     public boolean cull;
@@ -111,7 +119,7 @@ public class Line3D implements RenderElement3D<Line3D> {
         return pos.compareTo(o.pos);
     }
 
-    // TODO(1.21.11-ish): Refactor to use ShapeRenderer
+    //? if <1.21.11 {
     private void addLine(VertexConsumer consumer,
             PoseStack.Pose pose,
             float x,
@@ -122,32 +130,29 @@ public class Line3D implements RenderElement3D<Line3D> {
             float normalY,
             float normalZ)
     {
-        consumer.addVertex(pose, x, y, z).setColor(color)
-                //? if >=1.21.11 {
-                /*// 2.5F is from GizmoStyle.DEFAULT_WIDTH which is private and I didn't wanna access widen because I'm
-                // lazy.
-                .setLineWidth(2.5F)
-                 *///? }
-                .setNormal(pose, normalX, normalY, normalZ);
+        consumer.addVertex(pose, x, y, z).setColor(color).setNormal(pose, normalX, normalY, normalZ);
     }
+    //? }
 
     @Override
     @DocletIgnore
     public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
-        boolean seeThrough = !this.cull;
+        boolean alwaysOnTop = !this.cull;
         //? if >=1.21.11 {
-        /*RenderType lineType = seeThrough ? RenderTypes.linesTranslucent() : RenderTypes.lines();
-        VertexConsumer consumer = consumers.getBuffer(lineType);
+        /*GizmoProperties gizmo = Gizmos.addGizmo(new LineGizmo(
+                pos.getStart().toMojangDoubleVector(),
+                pos.getEnd().toMojangDoubleVector(),
+                color,
+                2.5F));
+        if (alwaysOnTop) {
+            gizmo.setAlwaysOnTop();
+        }
         *///? } else {
         VertexConsumer consumer = consumers.getBuffer(RenderType.lines());
-        //? }
-
-        //? if <1.21.11 {
         try {
-            if (seeThrough) {
+            if (alwaysOnTop) {
                 lineDepthTestFunction.set(RenderPipelines.LINES, DepthTestFunction.NO_DEPTH_TEST);
             }
-            //? }
             PoseStack.Pose entry = matrixStack.last();
 
             // Draw 3 lines in each of the normals for consistency
@@ -158,14 +163,13 @@ public class Line3D implements RenderElement3D<Line3D> {
             addLine(consumer, entry, (float) pos.x1, (float) pos.y1, (float) pos.z1, color, 0, 0, 1);
             addLine(consumer, entry, (float) pos.x2, (float) pos.y2, (float) pos.z2, color, 0, 0, 1);
 
-            //? if <1.21.11 {
-            if (seeThrough && consumer instanceof MultiBufferSource.BufferSource immediate) {
+            if (alwaysOnTop && consumer instanceof MultiBufferSource.BufferSource immediate) {
                 immediate.endBatch();
             }
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } finally {
-            if (seeThrough) {
+            if (alwaysOnTop) {
                 try {
                     lineDepthTestFunction.set(RenderPipelines.LINES, oldlineDepthTestFunction);
                 } catch (IllegalAccessException e) {

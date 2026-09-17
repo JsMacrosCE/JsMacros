@@ -1,7 +1,6 @@
 package com.jsmacrosce.jsmacros.forge.client.forgeevents;
 
 import com.google.common.collect.ImmutableSet;
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 //? if >=26.1 {
@@ -9,15 +8,12 @@ import net.minecraft.client.Minecraft;
 *///?} else {
 import net.minecraft.client.gui.GuiGraphics;
 //?}
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.profiling.Profiler;
 import net.neoforged.neoforge.client.event.*;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import net.neoforged.neoforge.common.NeoForge;
 import com.jsmacrosce.jsmacros.client.access.IScreenInternal;
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw2D;
-import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.api.classes.render.ScriptScreen;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FHud;
@@ -31,7 +27,6 @@ public class ForgeEvents {
     private static final Minecraft client = Minecraft.getInstance();
 
     public static void init() {
-        NeoForge.EVENT_BUS.addListener(ForgeEvents::renderWorldListener);
         NeoForge.EVENT_BUS.addListener(ForgeEvents::onTick);
         NeoForge.EVENT_BUS.addListener(ForgeEvents::onRegisterCommands);
 
@@ -106,37 +101,6 @@ public class ForgeEvents {
         //?}
 
         ev.registerBelow(layer, ResourceLocation.parse("jsmacrosce:hud"), ForgeEvents::renderHudListener);
-    }
-
-    //? if >1.21.5 {
-    public static void renderWorldListener(RenderLevelStageEvent.AfterLevel e) {
-    //?} else {
-    /*public static void renderWorldListener(RenderLevelStageEvent e) {
-        if (e.getStage() != RenderLevelStageEvent.Stage.AFTER_LEVEL) {
-            return;
-        }
-    *///?}
-        var profiler = Profiler.get();
-        profiler.push("jsmacrosce_draw3d");
-        try {
-            MultiBufferSource.BufferSource consumers = Minecraft.getInstance().renderBuffers().bufferSource();
-            //? if >1.21.8 {
-            /*DeltaTracker deltaTracker = Minecraft.getInstance().getDeltaTracker();
-            *///?} else {
-            DeltaTracker deltaTracker = e.getPartialTick();
-            //?}
-            float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(true);
-            PoseStack poseStack = new PoseStack();
-
-            for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
-                d.render(poseStack, consumers, tickDelta);
-            }
-
-            consumers.endBatch();
-        } catch (Throwable t) {
-            t.printStackTrace();
-        }
-        profiler.pop();
     }
 
     public static void onTick(ClientTickEvent.Post event) {

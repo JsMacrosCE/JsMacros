@@ -12,6 +12,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -61,6 +63,7 @@ public class FakeServerCommandSource extends CommandSourceStack {
     @Override
     //? }
     @Deprecated
+    @DocletIgnore
     public Collection<String> getCustomTabSugggestions() {
         // TODO: Implement proper deprecation system
         System.err.println("Warning: getCustomTabSugggestions() is deprecated and will be removed in the future. Use getCustomTabSuggestions() instead.");
