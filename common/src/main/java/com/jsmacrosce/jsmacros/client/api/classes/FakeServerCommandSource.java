@@ -45,9 +45,26 @@ public class FakeServerCommandSource extends CommandSourceStack {
         return source.getSelectedEntities();
     }
 
-    @Override
-    public Collection<String> getCustomTabSugggestions() {
+
+    //? if >=26.1 {
+    /*@Override
+    *///? }
+    public Collection<String> getCustomTabSuggestions() {
+        //? if >=26.1 {
+        /*return source.getCustomTabSuggestions();
+        *///? } else {
         return source.getCustomTabSugggestions();
+        //? }
+    }
+
+    //? if <26.1 {
+    @Override
+    //? }
+    @Deprecated
+    public Collection<String> getCustomTabSugggestions() {
+        // TODO: Implement proper deprecation system
+        System.err.println("Warning: getCustomTabSugggestions() is deprecated and will be removed in the future. Use getCustomTabSuggestions() instead.");
+        return this.getCustomTabSuggestions();
     }
 
     @Override

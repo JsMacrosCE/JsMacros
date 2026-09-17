@@ -6,7 +6,11 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+//? if >=26.1 {
+/*import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
+*///?} else {
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
+//?}
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
@@ -31,24 +35,40 @@ public class CommandBuilderFabric extends CommandBuilder {
     private final Stack<Pair<Boolean, Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>>>> pointer = new Stack<>();
 
     public CommandBuilderFabric(String name) {
+        //? if >=26.1 {
+        /*Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>> head = (a) -> ClientCommands.literal(name);
+        *///?} else {
         Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>> head = (a) -> ClientCommandManager.literal(name);
+        //?}
         this.name = name;
         pointer.push(new Pair<>(false, head));
     }
 
     @Override
     protected void argument(String name, Supplier<ArgumentType<?>> type) {
+        //? if >=26.1 {
+        /*pointer.push(new Pair<>(true, (e) -> ClientCommands.argument(name, type.get())));
+        *///?} else {
         pointer.push(new Pair<>(true, (e) -> ClientCommandManager.argument(name, type.get())));
+        //?}
     }
 
     @Override
     protected void argument(String name, Function<CommandBuildContext, ArgumentType<?>> type) {
+        //? if >=26.1 {
+        /*pointer.push(new Pair<>(true, (e) -> ClientCommands.argument(name, type.apply(e))));
+        *///?} else {
         pointer.push(new Pair<>(true, (e) -> ClientCommandManager.argument(name, type.apply(e))));
+        //?}
     }
 
     @Override
     public CommandBuilder literalArg(String name) {
+        //? if >=26.1 {
+        /*pointer.push(new Pair<>(false, (e) -> ClientCommands.literal(name)));
+        *///?} else {
         pointer.push(new Pair<>(false, (e) -> ClientCommandManager.literal(name)));
+        //?}
         return this;
     }
 
@@ -94,7 +114,11 @@ public class CommandBuilderFabric extends CommandBuilder {
     @Override
     public CommandBuilder register() {
         or(1);
+        //? if >=26.1 {
+        /*CommandDispatcher<FabricClientCommandSource> dispatcher = ClientCommands.getActiveDispatcher();
+        *///?} else {
         CommandDispatcher<FabricClientCommandSource> dispatcher = ClientCommandManager.getActiveDispatcher();
+        //?}
         Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>> head = pointer.pop().getU();
         if (dispatcher != null) {
             ClientPacketListener networkHandler = Minecraft.getInstance().getConnection();
@@ -110,7 +134,14 @@ public class CommandBuilderFabric extends CommandBuilder {
 
     @Override
     public CommandBuilder unregister() throws IllegalAccessException {
-        CommandNodeAccessor.remove(ClientCommandManager.getActiveDispatcher().getRoot(), name);
+        //? if >=26.1 {
+        /*CommandDispatcher<FabricClientCommandSource> dispatcher = ClientCommands.getActiveDispatcher();
+        *///?} else {
+        CommandDispatcher<FabricClientCommandSource> dispatcher = ClientCommandManager.getActiveDispatcher();
+        //?}
+        if (dispatcher != null) {
+            CommandNodeAccessor.remove(dispatcher.getRoot(), name);
+        }
         ClientPacketListener p = Minecraft.getInstance().getConnection();
         if (p != null) {
             CommandDispatcher<?> cd = p.getCommands();

@@ -4,7 +4,11 @@ import com.google.common.collect.ImmutableSet;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.profiling.Profiler;
@@ -50,7 +54,11 @@ public class ForgeEvents {
         // getCodePoint returns int in all versions - cast to char
         char codepoint = (char) event.getCodePoint();
 
+        //? if >=26.1 {
+        /*((IScreenInternal) event.getScreen()).jsmacros_charTyped(codepoint, IScreenInternal.currentModifiers());
+        *///?} else {
         ((IScreenInternal) event.getScreen()).jsmacros_charTyped(codepoint, event.getModifiers());
+        //?}
     }
 
     public static void onScreenDraw(ScreenEvent.Render.Post event) {
@@ -75,10 +83,14 @@ public class ForgeEvents {
         ((IScreenInternal) event.getScreen()).jsmacros_mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY());
     }
 
-    public static void renderHudListener(GuiGraphics GuiGraphics, DeltaTracker partialTicks) {
+    //? if >=26.1 {
+    /*public static void renderHudListener(GuiGraphicsExtractor guiGraphics, DeltaTracker partialTicks) {
+    *///?} else {
+    public static void renderHudListener(GuiGraphics guiGraphics, DeltaTracker partialTicks) {
+    //?}
         for (IDraw2D<Draw2D> h : ImmutableSet.copyOf(FHud.overlays).stream().sorted(Comparator.comparingInt(IDraw2D::getZIndex)).collect(Collectors.toList())) {
             try {
-                h.render(GuiGraphics);
+                h.render(guiGraphics);
             } catch (Throwable ignored) {
             }
         }
