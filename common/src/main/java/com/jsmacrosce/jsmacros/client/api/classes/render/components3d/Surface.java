@@ -28,6 +28,12 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import java.util.Iterator;
 import java.util.Objects;
 
+//? if >=26.1 {
+/*import net.minecraft.util.LightCoordsUtil;
+*///? } else {
+import net.minecraft.client.renderer.LightTexture;
+//?}
+
 //? if <=1.21.11 {
 import com.mojang.blaze3d.platform.DepthTestFunction;
 //? }
@@ -58,6 +64,16 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     public double zIndexScale = 0.001;
     public boolean renderBack;
     public boolean cull;
+
+    /**
+     * How the surface's elements are lit.
+     *
+     * @since 2.0.0
+     */
+    private enum LightMode { FULL_BRIGHT, WORLD, CUSTOM }
+
+    private LightMode lightMode = LightMode.FULL_BRIGHT;
+    private int customLight = 0xF000F0;
 
     public Surface(Pos3D pos, Pos3D rotations, Pos2D sizes, int minSubdivisions, boolean renderBack, boolean cull) {
         this.pos = pos;
@@ -194,6 +210,52 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
 
     public int getMinSubdivisions() {
         return minSubdivisions;
+    }
+
+    /**
+     * Makes all elements on this surface render at full brightness, ignoring world lighting.
+     *
+     * @return self for chaining.
+     * @since 2.0.0
+     */
+    public Surface setFullBrightLight() {
+        this.lightMode = LightMode.FULL_BRIGHT;
+        return this;
+    }
+
+    /**
+     * Makes all elements on this surface sample block and sky light from the world each frame
+     * at the surface's position (including the day/night sky darken). Cast shadows are not
+     * modelled.
+     *
+     * @return self for chaining.
+     * @since 2.0.0
+     */
+    public Surface setWorldLight() {
+        this.lightMode = LightMode.WORLD;
+        return this;
+    }
+
+    /**
+     * Sets a fixed light level for all elements on this surface.
+     *
+     * @param blockLight block light level, 0-15 (e.g. 15 next to a torch)
+     * @param skyLight   sky light level, 0-15 (e.g. 15 outdoors in daylight)
+     * @return self for chaining.
+     * @since 2.0.0
+     */
+    public Surface setLight(int blockLight, int skyLight) {
+        this.lightMode = LightMode.CUSTOM;
+        this.customLight = packLight(blockLight, skyLight);
+        return this;
+    }
+
+    private static int packLight(int blockLight, int skyLight) {
+        //? if >=26.1 {
+        /*return LightCoordsUtil.pack(blockLight, skyLight);
+        *///? } else {
+        return LightTexture.pack(blockLight, skyLight);
+        //?}
     }
 
     @Override
@@ -461,6 +523,8 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         private double zIndexScale = 0.001;
         private boolean renderBack = true;
         private boolean cull = false;
+        private LightMode lightMode = LightMode.FULL_BRIGHT;
+        private int customLight = 0xF000F0;
 
         public Builder(Draw3D parent) {
             this.parent = parent;
@@ -786,6 +850,42 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         }
 
         /**
+         * Renders all elements at full brightness, ignoring world lighting.
+         *
+         * @return self for chaining.
+         * @since 2.0.0
+         */
+        public Builder fullBrightLight() {
+            this.lightMode = LightMode.FULL_BRIGHT;
+            return this;
+        }
+
+        /**
+         * Samples block and sky light from the world each frame at the surface's position.
+         *
+         * @return self for chaining.
+         * @since 2.0.0
+         */
+        public Builder worldLight() {
+            this.lightMode = LightMode.WORLD;
+            return this;
+        }
+
+        /**
+         * Sets a fixed light level for all elements on this surface.
+         *
+         * @param blockLight block light level, 0-15 (e.g. 15 next to a torch)
+         * @param skyLight   sky light level, 0-15 (e.g. 15 outdoors in daylight)
+         * @return self for chaining.
+         * @since 2.0.0
+         */
+        public Builder light(int blockLight, int skyLight) {
+            this.lightMode = LightMode.CUSTOM;
+            this.customLight = packLight(blockLight, skyLight);
+            return this;
+        }
+
+        /**
          * Creates the surface for the given values and adds it to the draw3D.
          *
          * @return the build surface.
@@ -815,6 +915,8 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
                     .setRotateToPlayer(rotateToPlayer)
                     .bindToEntity(boundEntity)
                     .setBoundOffset(boundOffset);
+            surface.lightMode = lightMode;
+            surface.customLight = customLight;
             return surface;
         }
 
