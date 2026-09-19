@@ -1,7 +1,11 @@
 package com.jsmacrosce.wagyourgui.elements;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 //? if >1.21.8 {
 /*import net.minecraft.client.input.InputWithModifiers;
 *///?}
@@ -42,20 +46,30 @@ public class AnnotatedCheckBox extends Button {
     }
 
     @Override
+    //? if >=26.1 {
+    /*protected void renderMessage(GuiGraphicsExtractor drawContext) {
+    *///?} else {
     protected void renderMessage(GuiGraphics drawContext) {
+    //?}
         int width = this.width - height;
         for (int i = 0; i < visibleLines; ++i) {
             int w = textRenderer.width(textLines.get(i));
+            //? if >=26.1 {
+            /*drawContext.text(textRenderer, textLines.get(i), (int) (horizCenter ? getX() + width / 2F - w / 2F : getX() + 2), getY() + 2 + verticalCenter + (i * textRenderer.lineHeight), textColor, false);
+            *///?} else {
             drawContext.drawString(textRenderer, textLines.get(i), (int) (horizCenter ? getX() + width / 2F - w / 2F : getX() + 2), getY() + 2 + verticalCenter + (i * textRenderer.lineHeight), textColor, false);
+            //?}
         }
     }
 
     @Override
-    //? if >=1.21.11 {
+    //? if >=26.1 {
+    /*protected void extractContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else if >=1.21.11 {
     /*public void renderContents(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-    *///? } else {
+    *///?} else {
     public void renderWidget(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-    //? }
+    //?}
         if (this.visible) {
             this.renderMessage(drawContext);
 

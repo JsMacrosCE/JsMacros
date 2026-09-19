@@ -24,6 +24,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FClient;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
+import com.jsmacrosce.jsmacros.util.InteractionCompat;
 
 import java.util.Locale;
 import java.util.concurrent.Semaphore;
@@ -626,7 +627,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
         InteractionHand hand = offHand ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         boolean joinedMain = JsMacrosClient.clientCore.profile.checkJoinedThreadStack();
         if (joinedMain) {
-            InteractionResult result = base.interact(mc.player, entity.getRaw(), hand);
+            InteractionResult result = InteractionCompat.interact(base, mc.player, entity.getRaw(), hand);
             assert mc.player != null;
             if (result.consumesAction()) {
                 mc.player.swing(hand);
@@ -634,7 +635,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
-                InteractionResult result = base.interact(mc.player, entity.getRaw(), hand);
+                InteractionResult result = InteractionCompat.interact(base, mc.player, entity.getRaw(), hand);
                 assert mc.player != null;
                 if (result.consumesAction()) {
                     mc.player.swing(hand);

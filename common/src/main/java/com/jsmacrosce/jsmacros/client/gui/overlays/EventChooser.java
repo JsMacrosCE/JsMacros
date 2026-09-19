@@ -2,7 +2,11 @@ package com.jsmacrosce.jsmacros.client.gui.overlays;
 
 import com.google.common.collect.ImmutableList;
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
@@ -108,10 +112,18 @@ public class EventChooser extends OverlayContainer {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         renderBackground(drawContext);
 
+        //? if >=26.1 {
+        /*drawContext.textWithWordWrap(textRenderer, eventText, x + 3, y + 3, width - 14, 0xFFFFFFFF, false);
+        *///?} else {
         drawContext.drawWordWrap(textRenderer, eventText, x + 3, y + 3, width - 14, 0xFFFFFFFF, false);
+        //?}
 
         drawContext.fill(x + 2, y + 12, x + width - 2, y + 13, 0xFFFFFFFF);
         drawContext.fill(x + 2, y + height - 15, x + width - 2, y + height - 14, 0xFFFFFFFF);
@@ -129,7 +141,11 @@ public class EventChooser extends OverlayContainer {
 
                 // fill
                 drawContext.fill(mouseX - 2, mouseY - textRenderer.lineHeight - 3, mouseX + width + 2, mouseY, 0xFF000000);
+                //? if >=26.1 {
+                /*drawContext.text(textRenderer, b.getMessage(), mouseX, mouseY - textRenderer.lineHeight - 1, 0xFFFFFFFF);
+                *///?} else {
                 drawContext.drawString(textRenderer, b.getMessage(), mouseX, mouseY - textRenderer.lineHeight - 1, 0xFFFFFFFF);
+                //?}
             }
         }
     }

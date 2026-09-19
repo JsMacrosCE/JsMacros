@@ -1,6 +1,10 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render;
 
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.jsmacros.client.api.classes.render.components.*;
@@ -768,7 +772,11 @@ public interface IDraw2D<T> {
      * @param drawContext
      */
     @DocletIgnore
+    //? if >=26.1 {
+    /*void render(GuiGraphicsExtractor drawContext);
+    *///?} else {
     void render(GuiGraphics drawContext);
+    //?}
 
     /**
      * @param zIndex

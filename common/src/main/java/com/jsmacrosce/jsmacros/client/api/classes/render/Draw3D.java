@@ -4,6 +4,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
+//? if >=26.1 {
+/*import net.minecraft.client.renderer.SubmitNodeCollector;
+*///?}
 import net.minecraft.world.phys.Vec3;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.math.Pos2D;
@@ -709,7 +712,11 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     @DocletIgnore
+    //? if >=26.1 {
+    /*public void render(PoseStack poseStack, MultiBufferSource consumers, SubmitNodeCollector collector, float tickDelta) {
+    *///?} else {
     public void render(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
+    //?}
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         //? if >=1.21.11 {
         /*Vec3 cameraPos = camera.position();
@@ -726,7 +733,11 @@ public class Draw3D implements Registrable<Draw3D> {
             Collections.sort(elements);
 
             for (RenderElement3D<?> element : elements) {
+                //? if >=26.1 {
+                /*element.render(poseStack, consumers, collector, tickDelta);
+                *///?} else {
                 element.render(poseStack, consumers, tickDelta);
+                //?}
             }
         }
 

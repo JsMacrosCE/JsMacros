@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
 import net.minecraft.client.Minecraft;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
@@ -54,18 +58,30 @@ public class MixinHandledScreen<T extends AbstractContainerMenu> extends Screen 
         return getHoveredSlot(x, y);
     }
 
-    @Inject(method = "renderSlot", at = @At("TAIL"))
-    //? if >=1.21.11 {
+    @Inject(
+            //? if >=26.1 {
+            /*method = "extractSlot",
+            *///?} else {
+            method = "renderSlot",
+            //?}
+            at = @At("TAIL"))
+    //? if >=26.1 {
+    /*private void onDrawSlot(GuiGraphicsExtractor guiGraphics, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
+    *///?} else if >=1.21.11 {
     /*private void onDrawSlot(GuiGraphics guiGraphics, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
-    *///? } else {
+    *///?} else {
     private void onDrawSlot(GuiGraphics guiGraphics, Slot slot, CallbackInfo ci) {
-    //? }
+    //?}
         if (!JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).showSlotIndexes) return;
 
         if (!slot.isActive()) return;
 
         int index = menu.slots.indexOf(slot);
+        //? if >=26.1 {
+        /*guiGraphics.text(Minecraft.getInstance().font, String.valueOf(index), slot.x, slot.y, 0xCCFFFFFF, false);
+        *///?} else {
         guiGraphics.drawString(Minecraft.getInstance().font, String.valueOf(index), slot.x, slot.y, 0xCCFFFFFF, false);
+        //?}
     }
 
 }

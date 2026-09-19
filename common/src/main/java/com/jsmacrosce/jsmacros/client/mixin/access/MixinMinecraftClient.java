@@ -63,7 +63,14 @@ class MixinMinecraftClient {
     @Nullable
     public ClientLevel level;
 
-    @Inject(at = @At("TAIL"), method = "resizeDisplay")
+    @Inject(
+            at = @At("TAIL"),
+            //? if >=26.1 {
+            /*method = "resizeGui"
+            *///?} else {
+            method = "resizeDisplay"
+            //?}
+    )
     public void onResolutionChanged(CallbackInfo info) {
 
         synchronized (FHud.overlays) {
@@ -114,6 +121,15 @@ class MixinMinecraftClient {
     //? }
         InteractionProxy.reset();
     }
+
+    //? if >=26.1 {
+    /*@Inject(at = @At("HEAD"), method = "pick(F)V", cancellable = true)
+    private void onTargetUpdate(float tickDelta, CallbackInfo ci) {
+        if (InteractionProxy.Target.onUpdate(tickDelta)) {
+            ci.cancel();
+        }
+    }
+    *///?}
 
     @Inject(at = @At("HEAD"), method = "continueAttack", cancellable = true)
     private void overrideBlockBreaking(boolean breaking, CallbackInfo ci) {

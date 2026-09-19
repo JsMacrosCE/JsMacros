@@ -6,6 +6,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.commands.arguments.item.ItemParser;
+//? if >=26.1 {
+/*import net.minecraft.commands.arguments.item.ItemInput;
+*///?}
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -100,7 +103,11 @@ public class RegistryHelper {
     @DocletReplaceParams("id: CanOmitNamespace<ItemId>, nbt: string")
     public ItemStackHelper getItemStack(String id, String nbt) throws CommandSyntaxException {
         ItemParser reader = new ItemParser(Objects.requireNonNull(mc.getConnection()).registryAccess());
+        //? if >=26.1 {
+        /*ItemInput itemResult = reader.parse(new StringReader(parseNameSpace(id) + nbt));
+        *///?} else {
         ItemParser.ItemResult itemResult = reader.parse(new StringReader(parseNameSpace(id) + nbt));
+        //?}
         ItemStack stack = new ItemStack(itemResult.item());
         stack.applyComponents(itemResult.components());
         return new CreativeItemStackHelper(stack);

@@ -3,10 +3,21 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 import com.jsmacrosce.jsmacros.client.JsMacros;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.multiplayer.ClientLevel;
+//? if >=26.1 {
+/*import net.minecraft.util.LightCoordsUtil;
+*///?} else {
 import net.minecraft.client.renderer.LightTexture;
+//?}
 import net.minecraft.client.renderer.MultiBufferSource;
+//? if >=26.1 {
+/*import net.minecraft.client.renderer.SubmitNodeCollector;
+*///?}
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.phys.Vec3;
@@ -266,7 +277,11 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
      */
     public Surface setLight(int blockLight, int skyLight) {
         this.lightMode = LightMode.CUSTOM;
+        //? if >=26.1 {
+        /*this.customLight = LightCoordsUtil.pack(blockLight, skyLight);
+        *///?} else {
         this.customLight = LightTexture.pack(blockLight, skyLight);
+        //?}
         return this;
     }
 
@@ -312,7 +327,11 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
 
     @Override
     @DocletIgnore
+    //? if >=26.1 {
+    /*public void render(PoseStack matrices, MultiBufferSource consumers, SubmitNodeCollector collector, float partialTicks) {
+    *///?} else {
     public void render(PoseStack matrices, MultiBufferSource consumers, float partialTicks) {
+    //?}
         boolean seeThrough = !this.cull;
         matrices.pushPose();
 
@@ -362,12 +381,22 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         matrices.scale((float) scale, (float) scale, (float) scale);
 
         synchronized (elements) {
+            //? if >=26.1 {
+            /*renderElements3D(matrices,
+                    consumers,
+                    collector,
+                    partialTicks,
+                    resolveLightValue(renderPos.toRawBlockPos()),
+                    seeThrough,
+                    getElementsByZIndex());
+            *///?} else {
             renderElements3D(matrices,
                     consumers,
                     partialTicks,
                     resolveLightValue(renderPos.toRawBlockPos()),
                     seeThrough,
                     getElementsByZIndex());
+            //?}
         }
         matrices.popPose();
     }
@@ -385,7 +414,11 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
                 if (level == null) yield 0xF000F0;
                 int block = level.getBrightness(LightLayer.BLOCK, blockPos);
                 int sky = level.getBrightness(LightLayer.SKY, blockPos);
+                //? if >=26.1 {
+                /*yield LightCoordsUtil.pack(block, sky);
+                *///?} else {
                 yield LightTexture.pack(block, sky);
+                //?}
             }
         };
     }
@@ -417,19 +450,35 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         return new Vector3f((float) Math.toDegrees(radianX), (float) Math.toDegrees(radianY), (float) Math.toDegrees(radianZ));
     }
 
+    //? if >=26.1 {
+    /*private void renderElements3D(PoseStack matrices, MultiBufferSource consumers, SubmitNodeCollector collector, float delta, int light, boolean seeThrough, Iterator<RenderElement> iter) {
+    *///?} else {
     private void renderElements3D(PoseStack matrices, MultiBufferSource consumers, float delta, int light, boolean seeThrough, Iterator<RenderElement> iter) {
+    //?}
         while (iter.hasNext()) {
             RenderElement element = iter.next();
             // Render each draw2D element individually so that the cull and renderBack settings are used
             if (element instanceof Draw2DElement draw2DElement) {
+                //? if >=26.1 {
+                /*renderDraw2D3D(matrices, consumers, collector, delta, light, seeThrough, draw2DElement);
+                *///?} else {
                 renderDraw2D3D(matrices, consumers, delta, light, seeThrough, draw2DElement);
+                //?}
             } else {
+                //? if >=26.1 {
+                /*renderElement3D(matrices, consumers, collector, delta, light, seeThrough, element);
+                *///?} else {
                 renderElement3D(matrices, consumers, delta, light, seeThrough, element);
+                //?}
             }
         }
     }
 
+    //? if >=26.1 {
+    /*private void renderDraw2D3D(PoseStack matrices, MultiBufferSource consumers, SubmitNodeCollector collector, float delta, int light, boolean seeThrough, Draw2DElement element) {
+    *///?} else {
     private void renderDraw2D3D(PoseStack matrices, MultiBufferSource consumers, float delta, int light, boolean seeThrough, Draw2DElement element) {
+    //?}
         matrices.pushPose();
         matrices.translate(element.x, element.y, 0);
         matrices.scale(element.scale, element.scale, 1);
@@ -443,24 +492,40 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         // Don't translate back! Elements are rendered relative to the translated origin.
         Draw2D draw2D = element.getDraw2D();
         synchronized (draw2D.getElements()) {
+            //? if >=26.1 {
+            /*renderElements3D(matrices, consumers, collector, delta, light, seeThrough, draw2D.getElementsByZIndex());
+            *///?} else {
             renderElements3D(matrices, consumers, delta, light, seeThrough, draw2D.getElementsByZIndex());
+            //?}
         }
         matrices.popPose();
     }
 
+    //? if >=26.1 {
+    /*private void renderElement3D(PoseStack matrices, MultiBufferSource consumers, SubmitNodeCollector collector, float delta, int light, boolean seeThrough, RenderElement element) {
+    *///?} else {
     private void renderElement3D(PoseStack matrices, MultiBufferSource consumers, float delta, int light, boolean seeThrough, RenderElement element) {
+    //?}
         matrices.pushPose();
         // The surface's scale transform has already been applied to the matrix stack, so a plain
         // zIndexScale * zIndex translation would be scaled down by `scale` (e.g. 0.01), causing
         // z-fighting.  Divide by scale to keep the world-space z-separation equal to
         // zIndexScale * zIndex regardless of the surface's pixel-to-block scale factor.
         matrices.translate(0, 0, (zIndexScale / scale) * element.getZIndex());
+        //? if >=26.1 {
+        /*element.render3D(matrices, consumers, light, seeThrough, collector, delta);
+        *///?} else {
         element.render3D(matrices, consumers, light, seeThrough, delta);
+        //?}
         matrices.popPose();
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void extractRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         // This does nothing I guess?
     }
 
@@ -846,7 +911,11 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
          */
         public Builder light(int blockLight, int skyLight) {
             this.lightMode = LightMode.CUSTOM;
+            //? if >=26.1 {
+            /*this.customLight = LightCoordsUtil.pack(blockLight, skyLight);
+            *///?} else {
             this.customLight = LightTexture.pack(blockLight, skyLight);
+            //?}
             return this;
         }
 
