@@ -17,7 +17,7 @@ Modes: `auto` (headless, chat report), `screen` (suite page controls),
 | `WIDGETS-BUILDER-001` | Widget Builders | `screen` | Builder-created button, checkbox, slider, lock, text field, and cycling button. | [suite.js](suite.js) | Manual |
 | `WIDGETS-PREDICATE-001` | Text Field Predicate | `screen` | `setTextPredicate`/`resetTextPredicate` filter typed and programmatic text. | [suite.js](suite.js) | Manual |
 | `RENDER-PRIMITIVES-001` | Render Primitives | `screen` | Text, rect, line, image, item, nested Draw2D, ordering, and mutation. | [suite.js](suite.js) | Manual |
-| `DRAW2D-OVERLAY-001` | Draw2D Overlay | `observe` | Overlay registration, HUD rendering, and unregistration. | [suite.js](suite.js) | Visual, chat verdict |
+| `DRAW2D-OVERLAY-001` | Draw2D Overlay | `observe` | Overlay register/unregister lifecycle; the overlay renders on the normal HUD. | [suite.js](suite.js) | Visual, chat verdict |
 | `TEXT-INTERACTION-001` | Text Interaction | `screen` | Text hover for exact styled segments and a custom click action. | [suite.js](suite.js) | Manual |
 | `TEXT-WORLD-HOVER-001` | World Hover | `screen` | Item and entity hover payloads using the local player. | [suite.js](suite.js) | Manual, requires world |
 | `SCREEN-RENDER-001` | Screen Render Callback | `screen` | Screen render callback execution without raw draw-context coupling. | [suite.js](suite.js) | Manual |
@@ -26,19 +26,21 @@ Modes: `auto` (headless, chat report), `screen` (suite page controls),
 | `DRAW3D-LIFECYCLE-001` | Draw3D Lifecycle | `auto` | `Hud.createDraw3D()`, register/unregister chaining, list membership, `clear()` across all lists, and `Hud.clearDraw3Ds()`. | [suite.js](suite.js) | Automatic |
 | `DRAW3D-PRIMITIVES-001` | Draw3D Primitives | `auto` | Box, line, trace line, entity trace line, point (xyz and `Pos3D`), `forBlock`, add/remove/re-add, and entity-trace state. | [suite.js](suite.js) | Automatic |
 | `DRAW3D-STYLE-001` | Draw3D Style and Builders | `auto` | ARGB color/alpha, `fixAlpha`, fill semantics, position helpers, builder getters, and the `Box.Builder.color(int,int)` fix. | [suite.js](suite.js) | Automatic |
-| `DRAW3D-SURFACE-001` | Draw3D Surface | `auto` | Surface size/subdivision/transform and nested element API. | [suite.js](suite.js) | Automatic |
+| `DRAW3D-SURFACE-001` | Draw3D Surface | `auto` | Surface size/subdivision/transform, nested element API, `renderBack` field/builder, and resize preserving children. | [suite.js](suite.js) | Automatic |
 | `INVENTORY-ITEMTAGS-001` | Item Tags | `auto` | `ItemStackHelper.getTags()` returns namespaced tag ids. | [suite.js](suite.js) | Automatic |
 | `DRAW3D-VISUAL-001` | Draw3D Visual | `observe` | Box/line/trace/surface rendering and always-on-top depth behavior. | [suite.js](suite.js) | Visual, chat verdict, requires world |
 | `DRAW3D-ENTITY-001` | Entity Trace Line | `observe` | Entity trace `yOffset` tracking and automatic removal when the entity is gone. | [suite.js](suite.js) | Visual, chat verdict, requires a nearby mob |
-| `DRAW3D-SURFACE-002` | Surface Render Regression | `observe` | Surface `zIndex` draw order, `setRotateCenter`, image/item/nested elements, and a head-locked panel. | [suite.js](suite.js) | Visual, 3D surface blocked on 26.1 |
-| `DRAW3D-SURFACE-003` | Surface Facing and Mutation | `observe` | `setRotateToPlayer(true)` and in-place size/remove/add/position mutation while registered. | [suite.js](suite.js) | Visual, 3D surface blocked on 26.1 |
-| `DRAW3D-ITEM-001` | Item Overlay Text | `observe` | 2D HUD item `overlayVisible`/`overlayText`, plus the same on a 3D surface. | [suite.js](suite.js) | Visual, 3D surface blocked on 26.1 |
-| `HUD-DEBUG-001` | Debug Screen Overlay | `observe` | Registered `Draw2D` overlay renders over the F3 debug screen. | [suite.js](suite.js) | Visual, chat verdict, Fabric only |
+| `DRAW3D-SURFACE-002` | Surface Render Regression | `observe` | Surface direct rendering of rect/line/text/image/item, `zIndex` draw order, `setRotateCenter`, nested Draw2D, and a head-locked panel. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-SURFACE-003` | Surface Facing and Mutation | `observe` | `setRotateToPlayer(true)` and in-place size/remove/add/position mutation while registered. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-SURFACE-004` | Surface Light Mode | `observe` | `setWorldLight`/`setFullBrightLight`/`setLight`: world light dims in the dark, bright/custom stay lit. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-SURFACE-005` | Single-Sided Surface | `observe` | `renderBack = false` hides the whole panel when viewed from behind; `renderBack = true` stays visible. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-SURFACE-006` | Surface Depth Modes | `observe` | `cull = false` (always-on-top) draws over a wall; `cull = true` (depth-tested) is hidden behind it. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-ITEM-001` | Item Overlay Text | `observe` | 2D HUD item `overlayVisible`/`overlayText`, plus the same item on a 3D surface. | [suite.js](suite.js) | Visual, requires world |
+| `HUD-DEBUG-001` | Debug Screen Overlay | `observe` | The registered `Draw2D` overlay renders on top of the F3 debug screen (Fabric-only `MixinDebugHud`). | [suite.js](suite.js) | Visual, chat verdict, Fabric only |
 
-> On the current `26.1` branch `Surface.render(PoseStack, ...)` is commented out,
-> so 3D surfaces do not draw. Tests marked "3D surface blocked on 26.1" still run
-> their registration/state checks; record `Skip` if the panels never appear. See
-> [draw3d-system.md](draw3d-system.md).
+> Surfaces render on every supported version: rects, lines, text, images and items.
+> On 1.21.11+ they draw from the Gizmos pass; on 1.21.5-1.21.10 from the direct
+> pass. See [draw3d-system.md](draw3d-system.md).
 
 Add new tests by behavior area (for example, `SCREEN-*`, `DRAW2D-*`,
 `DRAW3D-*`, `INVENTORY-*`, or `EVENT-*`) rather than by Minecraft version. A

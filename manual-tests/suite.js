@@ -176,6 +176,15 @@ function forwardPosition(player, distance, yOffset) {
     return { x: eye.x + fx * distance, y: eye.y + fy * distance + yOffset, z: eye.z + fz * distance };
 }
 
+// Yaw that points a surface's readable (+Z) face at the player's eyes. Mirrors what
+// Surface.setRotateToPlayer() computes, for panels that must stay static so the
+// front/back can be inspected by walking around. Pass the point the surface pivots
+// about: its top-left corner, or its centre when rotateCenter is set.
+function facingYaw(player, x, z) {
+    const eye = player.getEyePos();
+    return Math.atan2(eye.x - x, eye.z - z) * 180 / Math.PI;
+}
+
 // Re-anchors a surface in front of the player's eyes. Called every tick so the
 // surface stays head-locked (position and rotation) while the camera moves.
 function updateHeadLockedSurface(surface, player) {
@@ -189,7 +198,9 @@ function updateHeadLockedSurface(surface, player) {
     const width = 1.3;
     const height = 0.35;
     surface.setPos(eye.x + fx * distance - width / 2, eye.y + fy * distance - 0.08 - height / 2, eye.z + fz * distance);
-    surface.setRotations(-player.getPitch(), 180 + player.getYaw(), 0);
+    // Orientation is delegated to the surface's own camera-facing maths; hand-rolled
+    // rotations here did not stay aligned with the camera.
+    surface.setRotateToPlayer(true);
 }
 
 function nearestNonPlayerEntity(player, radius) {
@@ -274,9 +285,8 @@ const TESTS = [
             check(state, String(screen.getScreenClassName()) === "ScriptScreen", "Script screen class is exposed");
             check(state, String(screen.getTitleText().getString()) === "Screen Basics", "Screen title is exposed");
             check(state, screen.getWidth() > 0 && screen.getHeight() > 0, "Screen dimensions are available");
-            screen.textBuilder("This suite requests a menu background: dirt on older targets and a blurred menu background on 26.1+.")
+            screen.textBuilder("The menu background is blurred.")
                 .pos(0, 46).color(0xFFFFFF).shadow(false).alignHorizontally("center").buildAndAdd();
-            screen.addText("The status below reports automatic checks for screen metadata.", 24, 72, 0xFFFFFF, false);
         }
     },
     {
@@ -288,7 +298,7 @@ const TESTS = [
             state.initCount = (state.initCount || 0) + 1;
             check(state, state.initCount >= 1, "Initialization callback ran");
             screen.addText("Initialization count: " + state.initCount, 24, 46, 0xFFFFFF, false);
-            screen.addText("Reload rebuilds this screen. The count must increase without duplicate controls.", 24, 66, 0xFFFFFF, false);
+            screen.addText("Reload: the count increases and no duplicate controls appear.", 24, 66, 0xFFFFFF, false);
             screen.addButton(24, 92, 160, 20, "Reload Screen", wrap(() => screen.reloadScreen()));
         }
     },
@@ -299,7 +309,7 @@ const TESTS = [
         title: "Init Failure Recovery",
         setup(screen, state) {
             check(state, state.failureHandled !== false, "Failure recovery is ready");
-            screen.addText("Trigger a controlled init failure. This test must return here with a recorded recovery.", 24, 46, 0xFFFFFF, false);
+            screen.addText("Trigger a controlled failure: it returns here with a recorded recovery.", 24, 46, 0xFFFFFF, false);
             screen.addText("Recovery count: " + (state.failureCount || 0), 24, 66, 0xFFFFFF, false);
             screen.addButton(24, 92, 200, 20, "Trigger Controlled Failure", wrap(() => {
                 const failing = Hud.createScreen("Init Failure", true);
@@ -324,7 +334,7 @@ const TESTS = [
         mode: "screen",
         title: "Close and Parent",
         setup(screen, state) {
-            screen.addText("Open a child screen, then close it. It must return here and increment the callback count.", 24, 46, 0xFFFFFF, false);
+            screen.addText("Open a child and close it: it returns here and increments the callback count.", 24, 46, 0xFFFFFF, false);
             screen.addText("Child close callbacks: " + (state.closeCount || 0), 24, 66, 0xFFFFFF, false);
             screen.addButton(24, 92, 160, 20, "Open Child", wrap(() => {
                 const child = Hud.createScreen("Child Screen", true);
@@ -353,8 +363,7 @@ const TESTS = [
             screen.shouldCloseOnEsc = false;
             screen.shouldPause = false;
             screen.addText("No title should appear above this line.", 24, 46, 0xFFFFFF, false);
-            screen.addText("Press Esc: this screen must remain open. In a world, it must not pause the game.", 24, 66, 0xFFFFFF, false);
-            screen.addText("Use Back or Mark Passed when the check is complete.", 24, 86, 0xFFFFFF, false);
+            screen.addText("Press Esc: the screen stays open and the game is not paused.", 24, 66, 0xFFFFFF, false);
             check(state, !screen.drawTitle && !screen.shouldCloseOnEsc && !screen.shouldPause, "Screen flags accepted their configured values");
         }
     },
@@ -396,7 +405,7 @@ const TESTS = [
                 state.character++;
                 update("Character: " + state.character + " '" + character + "' modifiers " + modifiers);
             }));
-            screen.addText("Click, drag, scroll, press a key, and type a character. Each action updates the line above.", 24, 72, 0xFFFFFF, false);
+            screen.addText("Click, drag, scroll, press a key and type a character; each updates the line above.", 24, 72, 0xFFFFFF, false);
         }
     },
     {
@@ -408,7 +417,7 @@ const TESTS = [
             state.keyModifiers = 0;
             state.charModifiers = 0;
             state.plainCharSeen = false;
-            const status = screen.addText("Hold Shift/Ctrl/Alt/Super and press a key, then type a plain and a Shift character.", 24, 46, 0xFFFFFF, false);
+            const status = screen.addText("Hold Shift/Ctrl/Alt/Super and press a key, then type a plain and a Shift character, then press Check.", 24, 46, 0xFFFFFF, false);
             const updateStatus = () => {
                 const seen = state.keyModifiers | state.charModifiers;
                 status.setText("key mods " + state.keyModifiers + " | char mods " + state.charModifiers
@@ -442,7 +451,7 @@ const TESTS = [
                 status.setText("Check -> key " + state.keyModifiers + " char " + state.charModifiers
                     + "   Checks: " + automaticCount(state));
             }));
-            screen.addText("Press each modifier key once, then type a plain and a Shift character, then press Check.", 24, 108, 0xFFFFFF, false);
+            screen.addText("Press each modifier once, then type a plain and a Shift character.", 24, 108, 0xFFFFFF, false);
         }
     },
     {
@@ -527,7 +536,7 @@ const TESTS = [
         mode: "screen",
         title: "Text Field Predicate",
         setup(screen, state) {
-            const status = screen.addText("The field accepts at most three characters. Try typing and using the setters.", 24, 46, 0xFFFFFF, false);
+            const status = screen.addText("The field accepts at most three characters.", 24, 46, 0xFFFFFF, false);
             const input = screen.addTextInput(24, 72, 200, 20, "predicate", wrap(text => {
                 status.setText("Field text: " + text);
             }));
@@ -544,7 +553,6 @@ const TESTS = [
                 check(state, input.getText() === "abcd", "resetTextPredicate() removes the length filter");
                 status.setText("Predicate reset. Field text: " + input.getText());
             }));
-            screen.addText("Type four or more characters first: the field must stop growing at three.", 24, 156, 0xFFFFFF, false);
         }
     },
     {
@@ -570,7 +578,7 @@ const TESTS = [
             screen.reAddElement(text);
             check(state, rect.getRotation() === 8, "Rectangle mutation is retained");
             check(state, screen.getElements().contains(text), "Removed element can be re-added");
-            screen.addText("The rectangle is intentionally rotated; the text and line are not. The sword has only a durability bar. Nested is at 320,72.", 24, 140, 0xFFFFFF, false);
+            screen.addText("The rectangle is rotated; the text and line are not. The sword shows only a durability bar.", 24, 140, 0xFFFFFF, false);
         }
     },
     {
@@ -579,8 +587,7 @@ const TESTS = [
         mode: "observe",
         title: "Draw2D Overlay",
         instructions: [
-            "The cyan 'Manual suite overlay' is on the HUD at the top-left while this test runs.",
-            "Confirm it is visible, then mark the result."
+            "The cyan overlay is visible on the HUD."
         ],
         prepare(state) {
             const overlay = Hud.createDraw2D();
@@ -640,8 +647,8 @@ const TESTS = [
                 .withShowItemHover(Client.getRegistryManager().getItemStack("minecraft:diamond")).build();
             const entityText = Chat.createTextBuilder().append("[2] Hover the player preview").withColor(0xA)
                 .withShowEntityHover(player).build();
-            screen.addText("Hover each line. The diamond tooltip should contain 'Diamond' and with Advanced Tooltips enabled, 'minecraft:diamond' and '<X> component(s)'.", 24, 46, 0xFFFFFF, false);
-            screen.addText("Entity details requires Advanced Tooltips (F3+H) and should show the player name, type, and uuid.", 24, 60, 0xFFFFFF, false);
+            screen.addText("Hover each line: the diamond tooltip contains 'Diamond' (and its id/components with F3+H).", 24, 46, 0xFFFFFF, false);
+            screen.addText("The entity tooltip shows the player's name, type and uuid with F3+H.", 24, 60, 0xFFFFFF, false);
             screen.addText(itemText, 24, 78, 0xFFFFFF, false);
             screen.addText(entityText, 24, 94, 0xFFFFFF, false);
             check(state, true, "World item and entity hover styles were added");
@@ -658,7 +665,7 @@ const TESTS = [
             screen.setOnRender(wrap(() => {
                 state.renderCalls++;
             }));
-            screen.addText("Wait briefly, then press Check Render Callback. The count must be greater than zero.", 24, 72, 0xFFFFFF, false);
+            screen.addText("Press Check Render Callback: the count is greater than zero.", 24, 72, 0xFFFFFF, false);
             screen.addButton(24, 98, 180, 20, "Check Render Callback", wrap(() => {
                 status.setText("Render callback count: " + state.renderCalls);
                 check(state, state.renderCalls > 0, "Render callback ran");
@@ -674,7 +681,7 @@ const TESTS = [
             const entry = session.hostScreen;
             const name = entry == null ? "None" : String(entry.getScreenClassName());
             screen.addText("Screen captured before opening the suite: " + name, 24, 46, 0xFFFFFF, false);
-            screen.addText("Run the suite from a vanilla screen such as inventory to test screen wrapping and return navigation.", 24, 66, 0xFFFFFF, false);
+            screen.addText("Open the suite from a vanilla screen (e.g. inventory) to test return navigation.", 24, 66, 0xFFFFFF, false);
             if (entry == null) {
                 state.manualOnly = true;
                 screen.addText(session.hostCaptureError == null ? "No host screen was captured. This run is not applicable." : "Host capture was unavailable: " + session.hostCaptureError, 24, 86, 0xFFFFFF, false);
@@ -690,9 +697,7 @@ const TESTS = [
         mode: "observe",
         title: "Target Override",
         instructions: [
-            "The crosshair target is overridden to the solid block under you.",
-            "Look around: the block outline must stay locked on that block even when you look away.",
-            "The override is checked automatically when you mark the result."
+            "Target is overridden to the block under the player."
         ],
         prepare(state) {
             const player = Player.getPlayer();
@@ -867,23 +872,23 @@ const TESTS = [
                 const eb = draw.entityTraceLineBuilder().entity(null).yOffset(1.25).color(0x778899).alpha(44);
                 check(state, eb.getYOffset() === 1.25 && eb.getColor() === 0x778899 && eb.getAlpha() === 44, "EntityTraceLine.Builder getters are retained");
 
-                // The bare-RGB paths run through ColorUtil.fixAlpha, so a colour
+                // The bare-RGB paths run through ColorUtil.fixAlpha, so a color
                 // without an alpha byte is treated as opaque instead of invisible.
                 const bare = draw.addBox(0, 0, 0, 1, 1, 1, 0xFF0000, 0, false);
                 check(state, alphaOf(bare.color) === 255 && rgbOf(bare.color) === 0xFF0000, "Box outline fixAlpha() defaults bare RGB to alpha 255");
                 bare.setColor(0x00FF00, 255);
-                check(state, alphaOf(bare.color) === 255 && rgbOf(bare.color) === 0x00FF00, "Box.setColor(rgb, alpha) sets the outline colour");
+                check(state, alphaOf(bare.color) === 255 && rgbOf(bare.color) === 0x00FF00, "Box.setColor(rgb, alpha) sets the outline color");
                 bare.setFillColor(0x010203, 128);
-                check(state, alphaOf(bare.fillColor) === 128 && rgbOf(bare.fillColor) === 0x010203, "Box.setFillColor(rgb, alpha) sets the fill colour");
+                check(state, alphaOf(bare.fillColor) === 128 && rgbOf(bare.fillColor) === 0x010203, "Box.setFillColor(rgb, alpha) sets the fill color");
                 bare.setPosToPoint(3, 4, 5, 0.3);
                 check(state, approx(bare.pos.x2 - bare.pos.x1, 0.6) && approx(bare.pos.y2 - bare.pos.y1, 0.6) && approx(bare.pos.z2 - bare.pos.z1, 0.6),
                     "Box.setPosToPoint(x, y, z, radius) creates a cube with side 2*radius");
 
                 // Regression for the old Box.Builder.color(int, int) bug where it
-                // assigned fillColor instead of the outline colour.
+                // assigned fillColor instead of the outline color.
                 const builderColor = draw.boxBuilder().fillColor(0xA1B2C3).color(0x112233, 77).build();
                 check(state, alphaOf(builderColor.color) === 77 && rgbOf(builderColor.color) === 0x112233,
-                    "Box.Builder.color(rgb, alpha) sets the outline colour, not the fill colour");
+                    "Box.Builder.color(rgb, alpha) sets the outline color, not the fill color");
                 check(state, rgbOf(builderColor.fillColor) === 0xA1B2C3, "Box.Builder.fillColor(rgb) is retained");
 
                 const bareLine = draw.addLine(0, 0, 0, 1, 2, 3, 0xFFFFFF);
@@ -926,6 +931,19 @@ const TESTS = [
                 check(state, listSize(surface.getImages()) === 1, "Surface image added");
                 check(state, listSize(surface.getItems()) === 1, "Surface item added");
                 check(state, listSize(surface.getDraw2Ds()) === 1, "Surface nested Draw2D added");
+
+                // renderBack is the single-sided switch (see DRAW3D-SURFACE-005).
+                surface.renderBack = false;
+                check(state, surface.renderBack === false, "Surface.renderBack is settable");
+                const built = draw.surfaceBuilder().renderBack(false).build();
+                check(state, built.renderBack === false, "Surface.Builder.renderBack(false) is retained");
+
+                // Resizing must keep the surface's children (recomputeScale, not init()).
+                const beforeRects = listSize(surface.getRects());
+                surface.setSizes(12, 6);
+                check(state, listSize(surface.getRects()) === beforeRects, "setSizes() preserves child elements");
+                surface.setMinSubdivisions(50);
+                check(state, listSize(surface.getRects()) === beforeRects, "setMinSubdivisions() preserves child elements");
             });
         }
     },
@@ -952,9 +970,8 @@ const TESTS = [
         mode: "observe",
         title: "Draw3D Visual",
         instructions: [
-            "Look straight ahead: red filled box, green line, blue trace line, and a Draw3D surface panel.",
-            "The yellow box is always-on-top; the magenta box is depth-tested.",
-            "Put a wall between you and the far boxes: yellow must stay visible, magenta must be hidden."
+            "Red box, green line, blue trace line and a surface render in front of you.",
+            "The yellow box draws over walls; the magenta box is hidden behind them."
         ],
         prepare(state) {
             const player = Player.getPlayer();
@@ -973,7 +990,7 @@ const TESTS = [
             const far = forwardPosition(player, 12.0, 0);
             draw.addBox(far.x - 0.6, far.y - 0.6, far.z - 0.6, far.x + 0.6, far.y + 0.6, far.z + 0.6, 0xFFFF00, 0x000000, false, false);
             draw.addBox(far.x + 1.8, far.y - 0.6, far.z - 0.6, far.x + 3.0, far.y + 0.6, far.z + 0.6, 0xFF00FF, 0x000000, false, true);
-            const surface = draw.addDraw2D(p.x - 1.0, p.y + 0.4, p.z, 0, 0, 0, 2.0, 1.0, 120, true, false);
+            const surface = draw.addDraw2D(p.x - 1.0, p.y + 0.4, p.z, 0, facingYaw(player, p.x - 1.0, p.z), 0, 2.0, 1.0, 120, true, false);
             surface.addRect(0, 0, 120, 60, 0x1F1F1F, 200, 0, 0);
             surface.addText("Draw3D", 8, 8, 0xFFFFFF, 1, false, 0.8, 0);
             draw.register();
@@ -1000,9 +1017,8 @@ const TESTS = [
         mode: "observe",
         title: "Entity Trace Line",
         instructions: [
-            "Stand near a mob or animal: a red trace line points at its feet (yOffset 0) and a green line points above its head (yOffset 2.5).",
-            "Move and look around: both lines must track the entity rather than stay in world space.",
-            "Kill the entity (attack it or /kill): both lines must disappear automatically. The test passes once they do, or click Pass/Fail/Skip."
+            "Red and green trace lines track the nearest entity's feet and head as you move around it.",
+            "Both lines disappear when the entity dies."
         ],
         prepare(state) {
             const player = Player.getPlayer();
@@ -1055,12 +1071,9 @@ const TESTS = [
         mode: "observe",
         title: "Surface Render Regression",
         instructions: [
-            "Front panel: a green rotated rect renders above a red rect (zIndex), with text, a cyan line, a diamond image and a diamond sword item.",
-            "A small blue 'Nested' sub-panel sits on the front panel.",
-            "A second, tilted panel nearby has an orange diagonal line.",
-            "The 'Bound Surface' panel near the camera must stay locked in view as you move and look around.",
-            "Known on this branch: 3D surfaces may not render at all (Surface.render is disabled). If nothing appears, mark Skip and note it.",
-            "Confirm every element is visible, then mark the result."
+            "Front panel: green rotated rect over red (zIndex), text, a cyan line, a diamond image and a diamond sword item.",
+            "A blue 'Nested' sub-panel and a tilted panel with an orange diagonal line are also visible.",
+            "The 'Bound Surface' panel stays locked in view as you move and look around."
         ],
         prepare(state) {
             const player = Player.getPlayer();
@@ -1070,7 +1083,7 @@ const TESTS = [
             const draw = Hud.createDraw3D();
             state.draw = draw;
             const p = forwardPosition(player, 3.0, -0.6);
-            const main = draw.addDraw2D(p.x - 1.2, p.y, p.z, 0, player.getYaw(), 0, 2.4, 1.6, 160, true, false);
+            const main = draw.addDraw2D(p.x - 1.2, p.y, p.z, 0, facingYaw(player, p.x, p.z), 0, 2.4, 1.6, 160, true, false);
             main.setRotateToPlayer(false);
             main.setRotateCenter(true);
             main.zIndexScale = 0.002;
@@ -1092,14 +1105,14 @@ const TESTS = [
             }));
             main.addDraw2D(nested, 108, 58, 40, 28, 8);
             const rotatedPoint = forwardPosition(player, 4.2, -0.1);
-            const rotated = draw.addDraw2D(rotatedPoint.x + 0.6, rotatedPoint.y, rotatedPoint.z, 20, player.getYaw(), 0, 1.6, 0.9, 120, true, false);
+            const rotated = draw.addDraw2D(rotatedPoint.x + 0.6, rotatedPoint.y, rotatedPoint.z, 20, facingYaw(player, rotatedPoint.x + 1.4, rotatedPoint.z), 0, 1.6, 0.9, 120, true, false);
             rotated.setRotateCenter(true);
             rotated.addRect(0, 0, 120, 68, 0x0F4D66, 190, 0, 0);
             rotated.addText("Rotated panel", 10, 10, 0xFFFFFF, 1, true, 0.8, 0);
             rotated.addLine(8, 54, 110, 18, 0xFFAA33, 2, 2.0, 0);
             const bound = draw.addDraw2D(p.x, p.y + 0.5, p.z, 0, 0, 0, 1.3, 0.35, 64, true, false);
             bound.setRotateCenter(true);
-            bound.setRotateToPlayer(false);
+            bound.setRotateToPlayer(true);
             bound.addRect(0, 0, 64, 18, 0x225522, 175, 0, 0);
             bound.addText("Bound Surface", 4, 5, 0xDDFFDD, 1, false, 0.65, 0);
             state.bound = bound;
@@ -1147,10 +1160,8 @@ const TESTS = [
         mode: "observe",
         title: "Surface Facing and Mutation",
         instructions: [
-            "A green 'Faces You' panel must keep turning to face you from its own position as you walk around it, including up close.",
-            "A red 'Before' panel starts small, then grows and changes colour in place, then moves to the right, staying visible throughout.",
-            "Known on this branch: 3D surfaces may not render at all (Surface.render is disabled). If nothing appears, mark Skip and note it.",
-            "Confirm both panels keep rendering through the change, then mark the result."
+            "The green 'Faces You' panel keeps turning to face you as you walk around it.",
+            "The red 'Before' panel grows, turns blue and relabels to 'Resized', then slides two blocks right."
         ],
         prepare(state) {
             const player = Player.getPlayer();
@@ -1169,7 +1180,11 @@ const TESTS = [
 
             const centre = forwardPosition(player, 3.0, 0.6);
             const mutating = draw.addDraw2D(centre.x + 1.2, centre.y, centre.z, 1.2, 0.8);
+            // Single-sided and static: orient its readable face at the player so the
+            // mutation stays visible (rotateCenter is off, so the pivot is the corner).
+            mutating.setRotations(0, facingYaw(player, centre.x + 1.2, centre.z), 0);
             state.mutating = mutating;
+            state.mutatingBase = { x: centre.x + 1.2, y: centre.y, z: centre.z };
             state.mutatingRect = mutating.addRect(0, 0, mutating.getWidth(), mutating.getHeight(), 0xAA2222, 0x55, 0, 0);
             state.mutatingText = mutating.addText("Before", 8, 8, 0xFFFFFF, 1, false, 0.7, 0);
             state.ticks = 0;
@@ -1184,35 +1199,57 @@ const TESTS = [
                 return;
             }
             state.ticks++;
-            if (state.ticks !== 20) {
+            const START = 20;
+            const GROW_END = START + 20;
+            const MOVE_END = GROW_END + 20;
+            if (state.ticks < START) {
+                return;
+            }
+            if (state.ticks <= GROW_END) {
+                const t = (state.ticks - START) / (GROW_END - START);
+                onMain(() => {
+                    const surface = state.mutating;
+                    if (surface == null) {
+                        return;
+                    }
+                    surface.setSizes(1.2 + 2.8 * t, 0.8 + 1.4 * t);
+                    state.mutatingRect.setPos(0, 0, surface.getWidth(), surface.getHeight());
+                });
+                return;
+            }
+            if (state.ticks === GROW_END + 1) {
+                onMain(() => {
+                    if (state.mutating == null) {
+                        return;
+                    }
+                    state.mutatingText.setText("Resized");
+                    state.mutatingRect.setColor(0x2255AA, 0x66);
+                });
+                return;
+            }
+            if (state.ticks <= MOVE_END) {
+                const t = (state.ticks - GROW_END - 1) / (MOVE_END - GROW_END - 1);
+                onMain(() => {
+                    const base = state.mutatingBase;
+                    if (state.mutating == null || base == null) {
+                        return;
+                    }
+                    // Slide two blocks right of where it started, not relative to
+                    // the player's current view.
+                    state.mutating.setPos(base.x + 2.0 * t, base.y, base.z);
+                });
                 return;
             }
             state.mutated = true;
-            onMain(() => {
-                const surface = state.mutating;
-                if (surface == null) {
-                    return;
-                }
-                surface.setSizes(4.0, 2.2);
-                surface.removeRect(state.mutatingRect);
-                surface.removeText(state.mutatingText);
-                surface.addRect(0, 0, surface.getWidth(), surface.getHeight(), 0x2255AA, 0x66, 0, 0);
-                surface.addText("Resized", 8, 8, 0xFFFFFF, 1, false, 0.9, 0);
-                const player = Player.getPlayer();
-                if (player != null) {
-                    const moved = forwardPosition(player, 3.0, 2.0);
-                    surface.setPos(moved.x + 2.0, moved.y, moved.z);
-                }
-            });
         },
         verify(state) {
             if (!state.mutated || state.mutating == null) {
                 return;
             }
-            check(state, approx(state.mutating.getSizes().x, 4.0) && approx(state.mutating.getSizes().y, 2.2), "Surface resized in place");
+            check(state, approx(state.mutating.getSizes().x, 4.0) && approx(state.mutating.getSizes().y, 2.2), "Surface grew in place");
             check(state, listSize(state.mutating.getRects()) === 1 && listSize(state.mutating.getTexts()) === 1,
-                "Surface kept exactly the new rect and text after mutation");
-            check(state, !state.mutating.getRects().contains(state.mutatingRect), "The removed rect is gone after mutation");
+                "Surface kept its rect and text through the resize");
+            check(state, approx(state.mutating.pos.x, state.mutatingBase.x + 2.0), "Surface slid two blocks right after resizing");
         },
         teardown(state) {
             if (state.draw != null) {
@@ -1224,8 +1261,170 @@ const TESTS = [
             }
             state.facing = null;
             state.mutating = null;
+            state.mutatingBase = null;
             state.mutatingRect = null;
             state.mutatingText = null;
+        }
+    },
+    {
+        id: "DRAW3D-SURFACE-004",
+        category: "Draw3D",
+        mode: "observe",
+        title: "Surface Light Mode",
+        instructions: [
+            "In the dark or at night, 'WORLD' dims while 'BRIGHT' stays lit.",
+            "The 'CUSTOM' panel's brightness follows its animated light level (0-15).",
+            "Back in daylight, 'WORLD' brightens again."
+        ],
+        prepare(state) {
+            const player = Player.getPlayer();
+            if (player == null) {
+                return false;
+            }
+            const draw = Hud.createDraw3D();
+            state.draw = draw;
+            const p = forwardPosition(player, 3.0, 0.3);
+            const addPanel = (x, label) => {
+                const surface = draw.addDraw2D(x, p.y, p.z, 0, facingYaw(player, x + 0.6, p.z), 0, 1.2, 0.8, 120, true, false);
+                surface.setRotateToPlayer(false);
+                surface.setRotateCenter(true);
+                surface.addRect(0, 0, surface.getWidth(), surface.getHeight(), 0xFFFFFF, 0xCC, 0, 0);
+                surface.addText(label, 6, 6, 0xFFFFFF, 1, false, 0.9, 0);
+                return surface;
+            };
+
+            const world = addPanel(p.x - 1.9, "WORLD");
+            check(state, sameObject(world.setWorldLight(), world), "setWorldLight() returns self for chaining");
+
+            const bright = addPanel(p.x + 0.1, "BRIGHT");
+            check(state, sameObject(bright.setFullBrightLight(), bright), "setFullBrightLight() returns self for chaining");
+
+            const custom = addPanel(p.x + 2.1, "CUSTOM 0,0");
+            check(state, sameObject(custom.setLight(0, 0), custom), "setLight(blockLight, skyLight) returns self for chaining");
+            state.custom = custom;
+            state.customText = custom.getTexts().get(0);
+            state.lightTicks = 0;
+
+            draw.register();
+            check(state, listSize(draw.getDraw2Ds()) === 3, "Three light-mode surfaces were added");
+            return true;
+        },
+        tick(state) {
+            if (state.custom == null) {
+                return;
+            }
+            state.lightTicks++;
+            if (state.lightTicks % 8 !== 0) {
+                return;
+            }
+            // Ramp block/sky light 0 -> 15 -> 0 so the brightness visibly tracks the label.
+            const step = (state.lightTicks / 8) % 32;
+            const value = step <= 15 ? step : 30 - step;
+            onMain(() => {
+                if (state.custom == null) {
+                    return;
+                }
+                state.custom.setLight(value, value);
+                if (state.customText != null) {
+                    state.customText.setText("CUSTOM " + value + "," + value);
+                }
+            });
+        },
+        teardown(state) {
+            if (state.draw != null) {
+                try {
+                    state.draw.unregister();
+                } catch (ignored) {
+                }
+                state.draw = null;
+            }
+            state.custom = null;
+            state.customText = null;
+        }
+    },
+    {
+        id: "DRAW3D-SURFACE-005",
+        category: "Draw3D",
+        mode: "observe",
+        title: "Single-Sided Surface",
+        instructions: [
+            "From the front, green 'DOUBLE' and red 'SINGLE' look the same.",
+            "From behind, green 'DOUBLE' stays visible and red 'SINGLE' disappears."
+        ],
+        prepare(state) {
+            const player = Player.getPlayer();
+            if (player == null) {
+                return false;
+            }
+            const draw = Hud.createDraw3D();
+            state.draw = draw;
+            const p = forwardPosition(player, 3.0, 0.3);
+            const addPanel = (x, singleSided) => {
+                const surface = draw.addDraw2D(x, p.y, p.z, 0, facingYaw(player, x + 0.6, p.z), 0, 1.2, 0.8, 120, true, false);
+                surface.setRotateToPlayer(false);
+                surface.setRotateCenter(true);
+                surface.renderBack = !singleSided;
+                surface.addRect(0, 0, surface.getWidth(), surface.getHeight(), singleSided ? 0xCC4444 : 0x44CC44, 0xCC, 0, 0);
+                surface.addText(singleSided ? "SINGLE" : "DOUBLE", 6, 6, 0xFFFFFF, 1, false, 0.8, 0);
+                return surface;
+            };
+            const doubleSided = addPanel(p.x - 1.0, false);
+            const singleSided = addPanel(p.x + 1.0, true);
+            draw.register();
+            check(state, doubleSided.renderBack === true && singleSided.renderBack === false, "The two panels have different renderBack values");
+            check(state, listSize(draw.getDraw2Ds()) === 2, "Two panels were added");
+            return true;
+        },
+        teardown(state) {
+            if (state.draw != null) {
+                try {
+                    state.draw.unregister();
+                } catch (ignored) {
+                }
+                state.draw = null;
+            }
+        }
+    },
+    {
+        id: "DRAW3D-SURFACE-006",
+        category: "Draw3D",
+        mode: "observe",
+        title: "Surface Depth Modes",
+        instructions: [
+            "In the open, red 'ALWAYS TOP' and blue 'DEPTH' are both visible.",
+            "Behind a wall, red 'ALWAYS TOP' draws over the wall and blue 'DEPTH' is hidden."
+        ],
+        prepare(state) {
+            const player = Player.getPlayer();
+            if (player == null) {
+                return false;
+            }
+            const draw = Hud.createDraw3D();
+            state.draw = draw;
+            const p = forwardPosition(player, 4.0, 0.3);
+            const addPanel = (x, cull, color, label) => {
+                const surface = draw.addDraw2D(x, p.y, p.z, 0, facingYaw(player, x + 0.6, p.z), 0, 1.2, 0.8, 120, true, cull);
+                surface.setRotateToPlayer(false);
+                surface.setRotateCenter(true);
+                surface.addRect(0, 0, surface.getWidth(), surface.getHeight(), color, 0xCC, 0, 0);
+                surface.addText(label, 6, 6, 0xFFFFFF, 1, false, 0.7, 0);
+                return surface;
+            };
+            const alwaysOnTop = addPanel(p.x - 1.0, false, 0xCC4444, "ALWAYS TOP");
+            const depthTested = addPanel(p.x + 1.0, true, 0x4466CC, "DEPTH");
+            draw.register();
+            check(state, alwaysOnTop.cull === false && depthTested.cull === true, "The two panels have different cull values");
+            check(state, listSize(draw.getDraw2Ds()) === 2, "Two panels were added");
+            return true;
+        },
+        teardown(state) {
+            if (state.draw != null) {
+                try {
+                    state.draw.unregister();
+                } catch (ignored) {
+                }
+                state.draw = null;
+            }
         }
     },
     {
@@ -1234,10 +1433,8 @@ const TESTS = [
         mode: "observe",
         title: "Item Overlay Text",
         instructions: [
-            "Top-left HUD: a black panel with a diamond item. The item must show the overlay text 'overlay_test_text' in the item's count position.",
-            "In front of you: a 3D surface with the same diamond item and overlay text.",
-            "Known on this branch: 3D surfaces may not render at all (Surface.render is disabled). If the 3D half never appears, mark Skip and note it.",
-            "Confirm the overlay text is readable in both places, then mark the result."
+            "The top-left HUD item shows the overlay text 'overlay_test_text' in its count position.",
+            "The 3D surface item in front of you shows the same overlay text."
         ],
         prepare(state) {
             const player = Player.getPlayer();
@@ -1257,7 +1454,7 @@ const TESTS = [
             const draw = Hud.createDraw3D();
             state.draw = draw;
             const p = forwardPosition(player, 4.0, 0);
-            const surface = draw.addDraw2D(p.x - 1.0, p.y, p.z, 2, 1);
+            const surface = draw.addDraw2D(p.x - 1.0, p.y, p.z, 0, facingYaw(player, p.x - 1.0, p.z), 0, 2, 1);
             surface.addRect(0, 0, surface.getWidth(), surface.getHeight(), 0x000000, 100, 0, 0);
             surface.addText("3D Surface", 8, 8, 0xFFFFFF, 1, false, 0.8, 0);
             surface.itemBuilder().item("minecraft:diamond").pos(8, 24).overlayVisible(true).overlayText("overlay_test_text").buildAndAdd();
@@ -1288,9 +1485,7 @@ const TESTS = [
         mode: "observe",
         title: "Debug Screen Overlay",
         instructions: [
-            "The aqua 'Debug suite overlay' is registered on the HUD for this test and is visible even without F3.",
-            "Press F3 and confirm the same aqua line also renders on top of the debug HUD.",
-            "Press F3 again to close the debug screen, then mark the result."
+            "Press F3: the aqua overlay renders on top of the debug screen."
         ],
         prepare(state) {
             if (String(Client.getModLoader()).toLowerCase().indexOf("fabric") < 0) {
