@@ -9,8 +9,20 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
+import org.joml.Quaternionf;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+
+//? if >=1.21.11 {
+/*import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
+*///? } else {
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
+//? }
 
 /**
  * @author Wagyourtail
@@ -330,6 +342,36 @@ public class Rect implements RenderElement, Alignable<Rect> {
         //?} else {
         /*matrices.popPose();
         *///?}
+    }
+
+    @Override
+    @DocletIgnore
+    public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+        matrixStack.pushPose();
+        matrixStack.translate(x1, y1, 0);
+        if (rotateCenter) {
+            matrixStack.translate(getWidth() / 2d, getHeight() / 2d, 0);
+        }
+        matrixStack.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        if (rotateCenter) {
+            matrixStack.translate(-getWidth() / 2d, -getHeight() / 2d, 0);
+        }
+        matrixStack.translate(-x1, -y1, 0);
+
+        float brightness = RenderElement.lightBrightness(light);
+        float a = ((color >> 24) & 0xFF) / 255.0f;
+        float r = ((color >> 16) & 0xFF) / 255.0f * brightness;
+        float g = ((color >> 8) & 0xFF) / 255.0f * brightness;
+        float b = (color & 0xFF) / 255.0f * brightness;
+        PoseStack.Pose pose = matrixStack.last();
+
+        VertexConsumer vc = consumers.getBuffer(SurfaceRenderTypes.quads(false, !seeThrough));
+        vc.addVertex(pose, x1, y1, 0).setColor(r, g, b, a);
+        vc.addVertex(pose, x2, y1, 0).setColor(r, g, b, a);
+        vc.addVertex(pose, x2, y2, 0).setColor(r, g, b, a);
+        vc.addVertex(pose, x1, y2, 0).setColor(r, g, b, a);
+
+        matrixStack.popPose();
     }
 
     public Rect setParent(IDraw2D<?> parent) {

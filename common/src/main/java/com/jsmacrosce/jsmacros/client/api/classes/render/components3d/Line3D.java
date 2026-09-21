@@ -148,11 +148,15 @@ public class Line3D implements RenderElement3D<Line3D> {
             gizmo.setAlwaysOnTop();
         }
         *///? } else {
-        VertexConsumer consumer = consumers.getBuffer(RenderType.lines());
         try {
             if (alwaysOnTop) {
+                // Flush anything already queued with the default depth state first.
+                if (consumers instanceof MultiBufferSource.BufferSource immediate) {
+                    immediate.endBatch();
+                }
                 lineDepthTestFunction.set(RenderPipelines.LINES, DepthTestFunction.NO_DEPTH_TEST);
             }
+            VertexConsumer consumer = consumers.getBuffer(RenderType.lines());
             PoseStack.Pose entry = matrixStack.last();
 
             // Draw 3 lines in each of the normals for consistency
@@ -163,7 +167,7 @@ public class Line3D implements RenderElement3D<Line3D> {
             addLine(consumer, entry, (float) pos.x1, (float) pos.y1, (float) pos.z1, color, 0, 0, 1);
             addLine(consumer, entry, (float) pos.x2, (float) pos.y2, (float) pos.z2, color, 0, 0, 1);
 
-            if (alwaysOnTop && consumer instanceof MultiBufferSource.BufferSource immediate) {
+            if (alwaysOnTop && consumers instanceof MultiBufferSource.BufferSource immediate) {
                 immediate.endBatch();
             }
         } catch (IllegalAccessException e) {

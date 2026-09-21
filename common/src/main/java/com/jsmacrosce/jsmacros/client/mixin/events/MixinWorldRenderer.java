@@ -27,6 +27,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
+import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.Surface;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FHud;
 
 // 1.21.11 introduced the Gizmos API. 3D components emit gizmos, so we collect them here and
@@ -59,6 +60,13 @@ import com.mojang.blaze3d.buffers.GpuBufferSlice;
 /*import net.minecraft.client.renderer.FogParameters;
 *///?}
 
+//? if <1.21.11 {
+import com.mojang.blaze3d.pipeline.RenderTarget;
+import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.util.profiling.Profiler;
+import net.minecraft.world.phys.Vec3;
+//?}
+
 @Mixin(LevelRenderer.class)
 public class MixinWorldRenderer {
 
@@ -88,53 +96,37 @@ public class MixinWorldRenderer {
     ) {
         jsmacrosce_addGizmoPass(frameGraphBuilder, cameraState, modelViewMatrix);
     }
-    *///? } else if >1.21.8 {
-    /*@Inject(method = "addMainPass", at = @At("TAIL"))
+    */    //? } else if >1.21.8 {
+    /*// Inject after the cloud/weather passes so clouds do not draw over surfaces.
+    @Inject(method = "addLateDebugPass", at = @At("HEAD"))
     private void onRenderMain(
             FrameGraphBuilder frameGraphBuilder,
-            Frustum frustum,
-            Matrix4f frustumMatrix,
+            Vec3 cameraPos,
             GpuBufferSlice shaderFog,
-            boolean renderBlockOutline,
-            LevelRenderState levelRenderState,
-            DeltaTracker deltaTracker,
-            ProfilerFiller profiler,
+            Frustum frustum,
             CallbackInfo ci
     ) {
-        jsmacrosce_renderDirect3D(frameGraphBuilder, deltaTracker, profiler);
+        jsmacrosce_renderDirect3D(frameGraphBuilder);
     }
     *///?} else if >1.21.5 {
-    @Inject(method = "addMainPass", at = @At("TAIL"))
+    @Inject(method = "addLateDebugPass", at = @At("HEAD"))
     private void onRenderMain(
             FrameGraphBuilder frameGraphBuilder,
-            Frustum frustum,
-            Camera camera,
-            Matrix4f frustumMatrix,
+            Vec3 cameraPos,
             GpuBufferSlice shaderFog,
-            boolean renderBlockOutline,
-            boolean renderEntityOutline,
-            DeltaTracker deltaTracker,
-            ProfilerFiller profiler,
             CallbackInfo ci
     ) {
-        jsmacrosce_renderDirect3D(frameGraphBuilder, deltaTracker, profiler);
+        jsmacrosce_renderDirect3D(frameGraphBuilder);
     }
     //?} else {
-    /*@Inject(method = "addMainPass", at = @At("TAIL"))
+    /*@Inject(method = "addLateDebugPass", at = @At("HEAD"))
     private void onRenderMain(
             FrameGraphBuilder frameGraphBuilder,
-            Frustum frustum,
-            Camera camera,
-            Matrix4f frustumMatrix,
-            Matrix4f projectionMatrix,
+            Vec3 cameraPos,
             FogParameters fogParameters,
-            boolean renderBlockOutline,
-            boolean renderEntityOutline,
-            DeltaTracker deltaTracker,
-            ProfilerFiller profiler,
             CallbackInfo ci
     ) {
-        jsmacrosce_renderDirect3D(frameGraphBuilder, deltaTracker, profiler);
+        jsmacrosce_renderDirect3D(frameGraphBuilder);
     }
     *///?}
 
@@ -187,11 +179,41 @@ public class MixinWorldRenderer {
                         consumers.endLastBatch();
                     }
 
-                    if (!alwaysOnTopGizmos.isEmpty()) {
-                        RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(mainTarget.getDepthTexture(), 1.0);
-                        alwaysOnTopGizmos.render(matrixStack, consumers, cameraState, viewMatrix);
-                        consumers.endLastBatch();
+                    // Depth-tested surface elements (cull=true) draw while the world
+                    // depth buffer is still intact.
+                    for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
+                        d.renderDirect(matrixStack, consumers, tickDelta, false);
                     }
+                    consumers.endBatch();
+
+                    // Always-on-top elements need a cleared depth buffer, and the
+                    // direct surfaces (cull=false) need it too, not just the gizmos.
+                    boolean alwaysOnTopSurface = false;
+                    for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
+                        for (Surface s : d.getDraw2Ds()) {
+                            if (!s.cull) {
+                                alwaysOnTopSurface = true;
+                                break;
+                            }
+                        }
+                        if (alwaysOnTopSurface) {
+                            break;
+                        }
+                    }
+
+                    if (!alwaysOnTopGizmos.isEmpty() || alwaysOnTopSurface) {
+                        RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(mainTarget.getDepthTexture(), 1.0);
+                        if (!alwaysOnTopGizmos.isEmpty()) {
+                            alwaysOnTopGizmos.render(matrixStack, consumers, cameraState, viewMatrix);
+                            consumers.endLastBatch();
+                        }
+                    }
+
+                    // Always-on-top surface elements (cull=false) draw after the clear.
+                    for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
+                        d.renderDirect(matrixStack, consumers, tickDelta, true);
+                    }
+                    consumers.endBatch();
                 } finally {
                     RenderSystem.outputColorTextureOverride = null;
                     RenderSystem.outputDepthTextureOverride = null;
@@ -207,7 +229,7 @@ public class MixinWorldRenderer {
 
     //? if <1.21.11 {
     @Unique
-    private void jsmacrosce_renderDirect3D(FrameGraphBuilder frameGraphBuilder, DeltaTracker deltaTracker, ProfilerFiller profiler) {
+    private void jsmacrosce_renderDirect3D(FrameGraphBuilder frameGraphBuilder) {
         if (this.targets == null) {
             return;
         }
@@ -216,18 +238,41 @@ public class MixinWorldRenderer {
         frameBufferSet.main = framePass.readsAndWrites(frameBufferSet.main);
 
         framePass.executes(() -> {
+            ProfilerFiller profiler = Profiler.get();
             profiler.push("jsmacrosce_d3d");
 
             try {
                 MultiBufferSource.BufferSource consumers = Minecraft.getInstance().renderBuffers().bufferSource();
-                float tickDelta = deltaTracker.getGameTimeDeltaPartialTick(true);
+                float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
                 PoseStack matrixStack = new PoseStack();
 
                 for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
-                    d.render(matrixStack, consumers, tickDelta);
+                    d.renderDepthPass(matrixStack, consumers, tickDelta);
                 }
-
                 consumers.endBatch();
+
+                // Always-on-top surfaces (cull=false) must draw over the world, so
+                // clear depth before their group.
+                boolean alwaysOnTopSurface = false;
+                for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
+                    for (Surface s : d.getDraw2Ds()) {
+                        if (!s.cull) {
+                            alwaysOnTopSurface = true;
+                            break;
+                        }
+                    }
+                    if (alwaysOnTopSurface) {
+                        break;
+                    }
+                }
+                if (alwaysOnTopSurface) {
+                    RenderTarget mainTarget = Minecraft.getInstance().getMainRenderTarget();
+                    RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(mainTarget.getDepthTexture(), 1.0);
+                    for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
+                        d.renderAlwaysOnTopSurfaces(matrixStack, consumers, tickDelta);
+                    }
+                    consumers.endBatch();
+                }
             } catch (Throwable e) {
                 e.printStackTrace();
             }

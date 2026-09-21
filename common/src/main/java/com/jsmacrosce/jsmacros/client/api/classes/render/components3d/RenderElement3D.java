@@ -10,6 +10,15 @@ public interface RenderElement3D<T extends RenderElement3D<?>> extends Comparabl
     @DocletIgnore
     void render(PoseStack matrices, MultiBufferSource consumers, float tickDelta);
 
+    /**
+     * Renders elements that draw themselves directly into the buffer source rather
+     * than through the Gizmos API. {@code alwaysOnTop} splits the depth-tested group
+     * (false) from the group drawn after the depth clear (true).
+     */
+    @DocletIgnore
+    default void renderDirect(PoseStack matrices, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
+    }
+
     @Override
     default int compareTo(@NotNull RenderElement3D o) {
         int i = this.getClass().getCanonicalName().compareTo(o.getClass().getCanonicalName());

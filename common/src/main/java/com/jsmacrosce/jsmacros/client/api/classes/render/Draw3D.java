@@ -722,4 +722,113 @@ public class Draw3D implements Registrable<Draw3D> {
 
         poseStack.popPose();
     }
+
+    /**
+     * Renders everything except always-on-top (cull=false) surfaces. Used by the
+     * pre-1.21.11 pass, which draws those after a depth clear.
+     */
+    @DocletIgnore
+    public void renderDepthPass(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
+        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        //? if >=1.21.11 {
+        /*Vec3 cameraPos = camera.position();
+        *///? } else {
+        Vec3 cameraPos = camera.getPosition();
+        //? }
+
+        poseStack.pushPose();
+        poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
+
+        EntityTraceLine.dirty = false;
+
+        synchronized (elements) {
+            Collections.sort(elements);
+
+            for (RenderElement3D<?> element : elements) {
+                if (element instanceof Surface surface && !surface.cull) {
+                    continue;
+                }
+                element.render(poseStack, consumers, tickDelta);
+            }
+        }
+
+        if (EntityTraceLine.dirty) {
+            synchronized (elements) {
+                elements.removeIf(e -> e instanceof EntityTraceLine etl && etl.shouldRemove);
+            }
+        }
+
+        poseStack.popPose();
+    }
+
+    /**
+     * Renders only the always-on-top (cull=false) surfaces.
+     */
+    @DocletIgnore
+    public void renderAlwaysOnTopSurfaces(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
+        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        //? if >=1.21.11 {
+        /*Vec3 cameraPos = camera.position();
+        *///? } else {
+        Vec3 cameraPos = camera.getPosition();
+        //? }
+
+        poseStack.pushPose();
+        poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
+
+        synchronized (elements) {
+            Collections.sort(elements);
+
+            for (RenderElement3D<?> element : elements) {
+                if (element instanceof Surface surface && !surface.cull) {
+                    element.render(poseStack, consumers, tickDelta);
+                }
+            }
+        }
+
+        poseStack.popPose();
+    }
+
+    /**
+     * Renders the elements that draw themselves directly (surfaces and their children:
+     * rect/line/text/image/item) into the buffer source. Must be called inside the render
+     * pass's output override, after the gizmo passes, and flushed by the caller.
+     * {@code alwaysOnTop} selects the group drawn after the always-on-top depth clear.
+     */
+    @DocletIgnore
+    public void renderDirect(PoseStack poseStack, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
+        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        //? if >=1.21.11 {
+        /*Vec3 cameraPos = camera.position();
+        *///? } else {
+        Vec3 cameraPos = camera.getPosition();
+        //? }
+
+        poseStack.pushPose();
+        poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
+
+        synchronized (elements) {
+            // Surface geometry does not write depth, so order surfaces back to
+            // front (painter's algorithm) instead of relying on the depth buffer.
+            List<Surface> surfaces = new ArrayList<>();
+            for (RenderElement3D<?> element : elements) {
+                if (element instanceof Surface surface) {
+                    surfaces.add(surface);
+                }
+            }
+            surfaces.sort((a, b) -> Double.compare(distanceSq(b.pos, cameraPos), distanceSq(a.pos, cameraPos)));
+            for (Surface surface : surfaces) {
+                surface.renderDirect(poseStack, consumers, tickDelta, alwaysOnTop);
+            }
+        }
+
+        poseStack.popPose();
+    }
+
+    private static double distanceSq(Pos3D pos, Vec3 cameraPos) {
+        double dx = pos.x - cameraPos.x;
+        double dy = pos.y - cameraPos.y;
+        double dz = pos.z - cameraPos.z;
+        return dx * dx + dy * dy + dz * dz;
+    }
 }

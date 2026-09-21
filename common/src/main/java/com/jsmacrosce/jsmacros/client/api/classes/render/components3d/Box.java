@@ -226,6 +226,9 @@ public class Box implements RenderElement3D<Box> {
         MultiBufferSource.BufferSource immediate = (MultiBufferSource.BufferSource) consumers;
         try {
             if (seeThrough) {
+                // Flush anything already queued first, otherwise this box's endBatch
+                // would flush an earlier depth-tested box with NO_DEPTH_TEST too.
+                immediate.endBatch();
                 lineDepthTestFunction.set(RenderPipelines.LINES, DepthTestFunction.NO_DEPTH_TEST);
                 boxDepthTestFunction.set(RenderPipelines.DEBUG_FILLED_BOX, DepthTestFunction.NO_DEPTH_TEST);
             }

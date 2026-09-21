@@ -38,6 +38,7 @@ import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.doclet.DocletReplaceTypeParams;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.math.Pos2D;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.client.access.IMixinEntity;
@@ -149,6 +150,16 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
      */
     public Pos3D getPos() {
         return new Pos3D(base.getX(), base.getY(), base.getZ());
+    }
+
+    /**
+     * Interpolated entity position, used for render-time placement.
+     *
+     * @since 2.0.0
+     */
+    @DocletIgnore
+    public Pos3D getInterpolatedPos(float partialTicks) {
+        return new Pos3D(base.getPosition(partialTicks));
     }
 
     /**

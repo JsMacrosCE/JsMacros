@@ -11,6 +11,8 @@ import net.minecraft.client.gui.GuiGraphics;
 //?}
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.LightLayer;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
@@ -34,6 +36,9 @@ import java.util.Objects;
 import net.minecraft.client.renderer.LightTexture;
 //?}
 
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
+
 //? if <=1.21.11 {
 import com.mojang.blaze3d.platform.DepthTestFunction;
 //? }
@@ -48,7 +53,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     public boolean rotateCenter;
     @Nullable
     public EntityHelper<?> boundEntity;
-    public Pos3D boundOffset;
+    public Pos3D boundOffset = Pos3D.ZERO;
     public final Pos3D pos;
     public final Pos3D rotations;
     protected final Pos2D sizes;
@@ -196,7 +201,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     public void setSizes(double x, double y) {
         this.sizes.x = x;
         this.sizes.y = y;
-        init();
+        recomputeScale();
     }
 
     public Pos2D getSizes() {
@@ -205,7 +210,11 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
 
     public void setMinSubdivisions(int minSubdivisions) {
         this.minSubdivisions = minSubdivisions;
-        init();
+        recomputeScale();
+    }
+
+    private void recomputeScale() {
+        scale = Math.min(sizes.x, sizes.y) / minSubdivisions;
     }
 
     public int getMinSubdivisions() {
@@ -289,7 +298,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
 
     @Override
     public void init() {
-        scale = Math.min(sizes.x, sizes.y) / minSubdivisions;
+        recomputeScale();
         super.init();
     }
 
@@ -326,55 +335,177 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     @Override
     @DocletIgnore
     public void render(PoseStack matrices, MultiBufferSource consumers, float tickDelta) {
-//        matrices.push();
-//        if (boundEntity != null && boundEntity.isAlive()) {
-//            Pos3D entityPos = boundEntity.getPos().add(boundOffset);
-//            pos.x += (entityPos.x - pos.x) * tickDelta;
-//            pos.y += (entityPos.y - pos.y) * tickDelta;
-//            pos.z += (entityPos.z - pos.z) * tickDelta;
-//        }
-//
-//        matrices.translate(pos.x, pos.y, pos.z);
-//
-//        if (rotateToPlayer) {
-//            Vector3f rot = toEulerDegrees(Minecraft.getInstance().gameRenderer.getMainCamera().rotation());
-//            rotations.x = -rot.x();
-//            rotations.y = 180 + rot.y();
-//            rotations.z = 0;
-//        }
-//        if (rotateCenter) {
-//            matrices.translate(sizes.x / 2, 0, 0);
-//            matrices.multiply(new Quaternionf().rotateLocalY((float) Math.toRadians(rotations.y)));
-//            matrices.translate(-sizes.x / 2, 0, 0);
-//            matrices.translate(0, -sizes.y / 2, 0);
-//            matrices.multiply(new Quaternionf().rotateLocalX((float) Math.toRadians(rotations.x)));
-//            matrices.translate(0, sizes.y / 2, 0);
-//            matrices.translate(sizes.x / 2, -sizes.y / 2, 0);
-//            matrices.multiply(new Quaternionf().rotateLocalZ((float) Math.toRadians(rotations.z)));
-//            matrices.translate(-sizes.x / 2, sizes.y / 2, 0);
-//        } else {
-//            Quaternionf q = new Quaternionf();
-//            q.rotateLocalY((float) Math.toRadians(rotations.y));
-//            q.rotateLocalX((float) Math.toRadians(rotations.x));
-//            q.rotateLocalZ((float) Math.toRadians(rotations.z));
-//            matrices.multiply(q);
-//        }
-//        // fix it so that y-axis goes down instead of up
-//        matrices.scale(1, -1, 1);
-//        // scale so that x or y have minSubdivisions units between them
-//        matrices.scale((float) scale, (float) scale, (float) scale);
-//
-//        synchronized (elements) {
-//            renderElements3D(drawContext, getElementsByZIndex());
-//        }
-//        matrices.pop();
-//
-//        if (!cull) {
-//            RenderSystem.enableDepthTest();
-//        }
-//        if (renderBack) {
-//            RenderSystem.enableCull();
-//        }
+        // On 1.21.11+ surfaces are drawn from renderDirect inside the Gizmos pass.
+        //? if <1.21.11 {
+        /*renderSurface(matrices, consumers, tickDelta);
+        *///? }
+    }
+
+    @Override
+    @DocletIgnore
+    public void renderDirect(PoseStack matrices, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
+        //? if >=1.21.11 {
+        /*// cull surfaces are depth-tested; non-cull surfaces draw after the depth clear.
+        if ((!this.cull) != alwaysOnTop) {
+            return;
+        }
+        renderSurface(matrices, consumers, tickDelta);
+        *///? }
+    }
+
+    private void renderSurface(PoseStack matrices, MultiBufferSource consumers, float tickDelta) {
+        boolean seeThrough = !this.cull;
+        Pos3D renderPos = resolveRenderPos(tickDelta);
+        updateRotateToPlayer(renderPos);
+        Matrix4f transform = buildSurfaceTransform(renderPos);
+        if (!renderBack && isCameraOnBackSide(transform)) {
+            return;
+        }
+        int light = resolveLight(renderPos);
+        matrices.pushPose();
+        matrices.mulPose(transform);
+        synchronized (elements) {
+            renderDirectElements(matrices, consumers, light, seeThrough, tickDelta, getElementsByZIndex());
+        }
+        matrices.popPose();
+    }
+
+    /**
+     * True when the camera is behind the surface's readable face. The surface
+     * content is authored facing local -Z, so the camera is behind when it lies on
+     * the +Z side of the surface plane.
+     */
+    private static boolean isCameraOnBackSide(Matrix4f transform) {
+        //? if >=1.21.11 {
+        /*Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().position();
+        *///? } else {
+        Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
+        //? }
+        Vector3f origin = transform.transformPosition(new Vector3f(0, 0, 0));
+        Vector3f front = transform.transformPosition(new Vector3f(0, 0, 1)).sub(origin);
+        return front.x * (cameraPos.x - origin.x)
+                + front.y * (cameraPos.y - origin.y)
+                + front.z * (cameraPos.z - origin.z) > 0;
+    }
+
+    private Pos3D resolveRenderPos(float partialTicks) {
+        boolean isTrackingEntity = boundEntity != null && boundEntity.isAlive();
+        return isTrackingEntity ? boundEntity.getInterpolatedPos(partialTicks).add(boundOffset) : pos;
+    }
+
+    private void updateRotateToPlayer(Pos3D renderPos) {
+        if (!rotateToPlayer) {
+            return;
+        }
+        //? if >=1.21.11 {
+        /*Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().position();
+        *///? } else {
+        Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
+        //? }
+        double pivotX = rotateCenter ? renderPos.x + (sizes.x / 2.0) : renderPos.x;
+        double pivotY = rotateCenter ? renderPos.y - (sizes.y / 2.0) : renderPos.y;
+        double pivotZ = renderPos.z;
+        double dx = cameraPos.x - pivotX;
+        double dy = cameraPos.y - pivotY;
+        double dz = cameraPos.z - pivotZ;
+        double horizontal = Math.sqrt(dx * dx + dz * dz);
+        rotations.x = -Math.toDegrees(Math.atan2(dy, horizontal));
+        rotations.y = Math.toDegrees(Math.atan2(dx, dz));
+        rotations.z = 0;
+    }
+
+    private void renderDirectElements(PoseStack matrices, MultiBufferSource consumers, int light, boolean seeThrough, float tickDelta, Iterator<RenderElement> iter) {
+        while (iter.hasNext()) {
+            RenderElement element = iter.next();
+            if (element instanceof Draw2DElement draw2DElement) {
+                // Give the nested panel its zIndex depth so it does not sit coplanar
+                // with the parent's rects (older targets write depth in debugQuads).
+                matrices.pushPose();
+                if (scale != 0) {
+                    matrices.translate(0, 0, (float) ((zIndexScale / scale) * element.getZIndex()));
+                }
+                renderNestedDirect(matrices, consumers, light, seeThrough, tickDelta, draw2DElement);
+                matrices.popPose();
+                continue;
+            }
+            matrices.pushPose();
+            if (scale != 0) {
+                matrices.translate(0, 0, (float) ((zIndexScale / scale) * element.getZIndex()));
+            }
+            element.render3D(matrices, consumers, light, seeThrough, tickDelta);
+            // debugQuads sorts quads by camera distance on upload, which ignores
+            // zIndex order, so flush each element as its own batch and rely on
+            // painter's order.
+            if (consumers instanceof MultiBufferSource.BufferSource bufferSource) {
+                bufferSource.endBatch();
+            }
+            matrices.popPose();
+        }
+    }
+
+    private void renderNestedDirect(PoseStack matrices, MultiBufferSource consumers, int light, boolean seeThrough, float tickDelta, Draw2DElement element) {
+        matrices.pushPose();
+        matrices.translate(element.x, element.y, 0);
+        matrices.scale((float) element.scale, (float) element.scale, 1);
+        float centerX = element.getWidth() / 2f;
+        float centerY = element.getHeight() / 2f;
+        if (element.rotateCenter) {
+            matrices.translate(centerX, centerY, 0);
+        }
+        matrices.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(element.rotation)));
+        if (element.rotateCenter) {
+            matrices.translate(-centerX, -centerY, 0);
+        }
+        Draw2D draw2D = element.getDraw2D();
+        synchronized (draw2D.getElements()) {
+            renderDirectElements(matrices, consumers, light, seeThrough, tickDelta, draw2D.getElementsByZIndex());
+        }
+        matrices.popPose();
+    }
+
+    private Matrix4f buildSurfaceTransform(Pos3D renderPos) {
+        Matrix4f m = new Matrix4f();
+        m.translate((float) renderPos.x, (float) renderPos.y, (float) renderPos.z);
+        float halfX = (float) (sizes.x / 2.0);
+        float halfY = (float) (sizes.y / 2.0);
+        if (rotateCenter) {
+            // Rotate about the surface centre by giving each axis its own pivot.
+            m.translate(halfX, 0, 0);
+            m.rotateY((float) Math.toRadians(rotations.y));
+            m.translate(-halfX, 0, 0);
+            m.translate(0, -halfY, 0);
+            m.rotateX((float) Math.toRadians(rotations.x));
+            m.translate(0, halfY, 0);
+            m.translate(halfX, -halfY, 0);
+            m.rotateZ((float) Math.toRadians(rotations.z));
+            m.translate(-halfX, halfY, 0);
+        } else {
+            m.rotateY((float) Math.toRadians(rotations.y));
+            m.rotateX((float) Math.toRadians(rotations.x));
+            m.rotateZ((float) Math.toRadians(rotations.z));
+        }
+        // Flip y (surface space grows downwards) and map surface pixels to blocks.
+        m.scale((float) scale, (float) -scale, (float) scale);
+        return m;
+    }
+
+    private int resolveLight(Pos3D renderPos) {
+        return switch (lightMode) {
+            case FULL_BRIGHT -> 0xF000F0;
+            case CUSTOM -> customLight;
+            case WORLD -> {
+                var level = Minecraft.getInstance().level;
+                if (level == null) {
+                    yield 0xF000F0;
+                }
+                BlockPos blockPos = renderPos.toRawBlockPos();
+                int block = level.getBrightness(LightLayer.BLOCK, blockPos);
+                // Subtract the sky darken so the surface also dims at night, like
+                // the vanilla lightmap. Cast shadows are not modelled.
+                int sky = Math.max(0, level.getBrightness(LightLayer.SKY, blockPos) - level.getSkyDarken());
+                yield packLight(block, sky);
+            }
+        };
     }
 
     private static Vector3f toEulerDegrees(Quaternionf quaternion) {

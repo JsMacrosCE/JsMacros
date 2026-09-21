@@ -35,3 +35,9 @@ accessible field net/minecraft/world/entity/player/Player DATA_SHOULDER_PARROT_L
 accessible field net/minecraft/world/entity/player/Player DATA_SHOULDER_PARROT_RIGHT Lnet/minecraft/network/syncher/EntityDataAccessor;
 
 accessible class net/minecraft/client/StringSplitter$WidthLimitedCharSink
+
+# Surface render pipelines
+accessible method net/minecraft/client/renderer/rendertype/RenderType create (Ljava/lang/String;Lnet/minecraft/client/renderer/rendertype/RenderSetup;)Lnet/minecraft/client/renderer/rendertype/RenderType;
+accessible field net/minecraft/client/renderer/RenderPipelines MATRICES_PROJECTION_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
+accessible field net/minecraft/client/renderer/RenderPipelines LINES_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
+accessible field net/minecraft/client/renderer/RenderPipelines ENTITY_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;

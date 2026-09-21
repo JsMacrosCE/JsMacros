@@ -10,8 +10,19 @@ import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+
+//? if >=1.21.11 {
+/*import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
+*///? } else {
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
+//? }
 
 /**
  * @author Etheradon
@@ -314,6 +325,50 @@ public class Line implements RenderElement, Alignable<Line> {
         //?} else {
         /*matrices.popPose();
         *///?}
+    }
+
+    @Override
+    @DocletIgnore
+    public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+        matrixStack.pushPose();
+        matrixStack.translate(x1, y1, 0);
+        if (rotateCenter) {
+            matrixStack.translate(getScaledWidth() / 2d, getScaledHeight() / 2d, 0);
+        }
+        matrixStack.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        if (rotateCenter) {
+            matrixStack.translate(-getScaledWidth() / 2d, -getScaledHeight() / 2d, 0);
+        }
+        matrixStack.translate(-x1, -y1, 0);
+
+        float brightness = RenderElement.lightBrightness(light);
+        float a = ((color >> 24) & 0xFF) / 255.0f;
+        float r = ((color >> 16) & 0xFF) / 255.0f * brightness;
+        float g = ((color >> 8) & 0xFF) / 255.0f * brightness;
+        float b = (color & 0xFF) / 255.0f * brightness;
+
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        float length = (float) Math.sqrt(dx * dx + dy * dy);
+        if (length == 0 || width <= 0) {
+            matrixStack.popPose();
+            return;
+        }
+
+        // Render a quad instead of relying on the target-specific line vertex
+        // format. This preserves the script-facing width in surface pixel units
+        // on every supported version.
+        float halfWidth = width / 2.0f;
+        float offsetX = -dy / length * halfWidth;
+        float offsetY = dx / length * halfWidth;
+        VertexConsumer vc = consumers.getBuffer(SurfaceRenderTypes.quads(false, !seeThrough));
+        PoseStack.Pose pose = matrixStack.last();
+        vc.addVertex(pose, x1 + offsetX, y1 + offsetY, 0).setColor(r, g, b, a);
+        vc.addVertex(pose, x1 - offsetX, y1 - offsetY, 0).setColor(r, g, b, a);
+        vc.addVertex(pose, x2 - offsetX, y2 - offsetY, 0).setColor(r, g, b, a);
+        vc.addVertex(pose, x2 + offsetX, y2 + offsetY, 0).setColor(r, g, b, a);
+
+        matrixStack.popPose();
     }
 
     public Line setParent(IDraw2D<?> parent) {

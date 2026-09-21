@@ -343,6 +343,27 @@ public class Text implements RenderElement, Alignable<Text> {
         *///?}
     }
 
+    @Override
+    @DocletIgnore
+    public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+        matrixStack.pushPose();
+        matrixStack.translate(x, y, 0);
+        matrixStack.scale((float) scale, (float) scale, 1);
+        if (rotateCenter) {
+            matrixStack.translate(getWidth() / 2d, getHeight() / 2d, 0);
+        }
+        matrixStack.mulPose(new org.joml.Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        if (rotateCenter) {
+            matrixStack.translate(-getWidth() / 2d, -getHeight() / 2d, 0);
+        }
+        matrixStack.translate(-x, -y, 0);
+
+        mc.font.drawInBatch(text, (float) x, (float) y, RenderElement.applyLight(color, light), shadow, matrixStack.last().pose(), consumers,
+                seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL, 0, light);
+
+        matrixStack.popPose();
+    }
+
     public Text setParent(IDraw2D<?> parent) {
         this.parent = parent;
         return this;
