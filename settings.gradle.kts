@@ -71,17 +71,17 @@ stonecutter {
     centralScript = "build.gradle.kts"
 
     create(rootProject) {
-        versions("1.21.5", "1.21.8", "1.21.10", "1.21.11", "26.1")
+        versions("1.21.5", "1.21.8", "1.21.10", "1.21.11", "26.1.2")
 
         branch("common") {
-            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11", "26.1")
+            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11", "26.1.2")
         }
         branch("fabric") {
             versions("1.21.5", "1.21.8", "1.21.10", "1.21.11")
-            version("26.1").buildscript("unobf.gradle.kts")
+            version("26.1.2").buildscript("unobf.gradle.kts")
         }
         branch("neoforge") {
-            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11", "26.1")
+            versions("1.21.5", "1.21.8", "1.21.10", "1.21.11", "26.1.2")
         }
     }
 }

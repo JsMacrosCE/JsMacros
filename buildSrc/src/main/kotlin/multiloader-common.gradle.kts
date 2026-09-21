@@ -14,6 +14,8 @@ val minecraft_version = commonMod.mc
 val java_version = commonMod.prop("java_version")
 
 val minecraft_version_range = commonMod.propOrNull("minecraft_version_range") ?: "[$minecraft_version]"
+val fabric_minecraft_version_range = commonMod.propOrNull("fabric_minecraft_version_range") ?: minecraft_version
+val neoforge_minecraft_version_range = commonMod.propOrNull("neoforge_minecraft_version_range") ?: "[$minecraft_version]"
 val fabric_version = commonMod.propOrNull("fabric_version") ?: ""
 val fabric_loader_version = commonMod.propOrNull("fabric_loader_version") ?: ""
 
@@ -124,6 +126,8 @@ tasks {
             "group" to project.group,
             "minecraft_version" to minecraft_version,
             "minecraft_version_range" to minecraft_version_range,
+            "fabric_minecraft_version_range" to fabric_minecraft_version_range,
+            "neoforge_minecraft_version_range" to neoforge_minecraft_version_range,
             "fabric_version" to fabric_version,
             "fabric_loader_version" to fabric_loader_version,
             "mod_name" to mod_name,

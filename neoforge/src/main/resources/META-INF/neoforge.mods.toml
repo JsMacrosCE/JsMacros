@@ -21,6 +21,6 @@ description = '''
 [[dependencies.jsmacrosce]]
 modId = "minecraft"
 type = "required"
-versionRange = "[${minecraft_version}]"
+versionRange = "${neoforge_minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"

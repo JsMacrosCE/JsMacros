@@ -10,6 +10,7 @@ plugins {
 
 val mod_id = commonMod.prop("mod_id")
 val minecraft_version = commonMod.prop("minecraft_version")
+val fabric_minecraft_version_range = commonMod.propOrNull("fabric_minecraft_version_range") ?: minecraft_version
 var mod_version = project.version.toString()
 
 // 26.1+ ships unobfuscated: Loom skips access-widener remapping, so the file must declare `official`.
@@ -92,6 +93,7 @@ tasks.named<ProcessResources>("processResources") {
             mapOf(
                 "version" to mod_version,
                 "minecraft_version" to minecraft_version,
+                "fabric_minecraft_version_range" to fabric_minecraft_version_range,
                 "access_widener" to accessWidenerFile
             )
         )

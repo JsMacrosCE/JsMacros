@@ -16,6 +16,7 @@ plugins {
 
 val mod_id = commonMod.prop("mod_id")
 val minecraft_version = commonMod.prop("minecraft_version")
+val neoforge_minecraft_version_range = commonMod.propOrNull("neoforge_minecraft_version_range") ?: "[$minecraft_version]"
 var mod_version = project.version.toString()
 var neoforge_version = commonMod.prop("neoforge_version")
 
@@ -134,7 +135,8 @@ tasks.named<ProcessResources>("processResources") {
     filesMatching("META-INF/neoforge.mods.toml") {
         expand(mapOf(
             "version" to mod_version,
-            "minecraft_version" to minecraft_version
+            "minecraft_version" to minecraft_version,
+            "neoforge_minecraft_version_range" to neoforge_minecraft_version_range
         ))
     }
 }
