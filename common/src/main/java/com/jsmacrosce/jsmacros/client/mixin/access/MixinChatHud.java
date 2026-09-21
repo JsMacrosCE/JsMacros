@@ -1,8 +1,16 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+//? if >=26.1 {
+/*import net.minecraft.client.multiplayer.chat.GuiMessage;
+import net.minecraft.client.multiplayer.chat.GuiMessageTag;
+*///?} else {
 import net.minecraft.client.GuiMessage;
 import net.minecraft.client.GuiMessageTag;
+//?}
 import net.minecraft.client.gui.components.ChatComponent;
+//? if >=26.1 {
+/*import net.minecraft.client.multiplayer.chat.GuiMessageSource;
+*///?}
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
 import org.jetbrains.annotations.Nullable;
@@ -20,9 +28,15 @@ import java.util.List;
 @Mixin(ChatComponent.class)
 public abstract class MixinChatHud implements IChatHud {
 
+    //? if >=26.1 {
+    /*@Shadow
+    private void addMessage(Component message, @Nullable MessageSignature signature, GuiMessageSource source, @Nullable GuiMessageTag indicator) {
+    }
+    *///?} else {
     @Shadow
     private void addMessage(Component message, @Nullable MessageSignature signature, @Nullable GuiMessageTag indicator) {
     }
+    //?}
 
     @Shadow
     @Final
@@ -30,7 +44,11 @@ public abstract class MixinChatHud implements IChatHud {
 
     @Override
     public void jsmacros_addMessageBypass(Component message) {
+        //? if >=26.1 {
+        /*addMessage(message, null, GuiMessageSource.SYSTEM_CLIENT, GuiMessageTag.system());
+        *///?} else {
         addMessage(message, null, GuiMessageTag.system());
+        //?}
     }
 
     @Unique
@@ -39,20 +57,32 @@ public abstract class MixinChatHud implements IChatHud {
     @Override
     public void jsmacros_addMessageAtIndexBypass(Component message, int index, int time) {
         jsmacros$positionOverride.set(index);
+        //? if >=26.1 {
+        /*addMessage(message, null, GuiMessageSource.SYSTEM_CLIENT, GuiMessageTag.system());
+        *///?} else {
         addMessage(message, null, GuiMessageTag.system());
+        //?}
         jsmacros$positionOverride.set(0);
     }
 
-    //? if >=1.21.11 {
+    //? if >=26.1 {
     /*@Redirect(
+            method = "addMessageToQueue(Lnet/minecraft/client/multiplayer/chat/GuiMessage;)V",
+            at = @At(value = "INVOKE", target = "Ljava/util/List;addFirst(Ljava/lang/Object;)V")
+    )
+    public <E> void overrideMessagePos(List<GuiMessage> instance, E guiMessage) {
+        this.allMessages.add(jsmacros$positionOverride.get(), (GuiMessage) guiMessage);
+    }
+    *///?} else if >=1.21.11 {
+    @Redirect(
             method = "addMessageToQueue(Lnet/minecraft/client/GuiMessage;)V",
             at = @At(value = "INVOKE", target = "Ljava/util/List;addFirst(Ljava/lang/Object;)V")
     )
     public <E> void overrideMessagePos(List<GuiMessage> instance, E guiMessage) {
         this.allMessages.add(jsmacros$positionOverride.get(), (GuiMessage) guiMessage);
     }
-    *///? } else {
-    @ModifyArg(
+    //?} else {
+    /*@ModifyArg(
         method = "addMessageToQueue(Lnet/minecraft/client/GuiMessage;)V",
         at = @At(
             value = "INVOKE",
@@ -63,7 +93,7 @@ public abstract class MixinChatHud implements IChatHud {
     public int overrideMessagePos(int pos) {
         return jsmacros$positionOverride.get();
     }
-    //? }
+    *///?}
 
 
 }

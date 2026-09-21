@@ -3,6 +3,9 @@ package com.jsmacrosce.jsmacros.client.api.classes.inventory;
 import com.google.common.collect.ImmutableList;
 import net.minecraft.client.gui.screens.inventory.LoomScreen;
 import net.minecraft.core.Holder;
+//? if >=26.1 {
+/*import net.minecraft.core.HolderSet;
+*///?}
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.BannerPatternTags;
@@ -32,8 +35,13 @@ public class LoomInventory extends Inventory<LoomScreen> {
         if (stack.isEmpty()) {
             return bannerPatternLookup.get(BannerPatternTags.NO_ITEM_REQUIRED).map(ImmutableList::copyOf).orElse(ImmutableList.of());
         } else {
+            //? if >=26.1 {
+            /*HolderSet<BannerPattern> holders = stack.get(DataComponents.PROVIDES_BANNER_PATTERNS);
+            return holders != null ? ImmutableList.copyOf(holders) : List.of();
+            *///?} else {
             TagKey<BannerPattern> tagKey = stack.get(DataComponents.PROVIDES_BANNER_PATTERNS);
             return tagKey != null ? bannerPatternLookup.get(tagKey).map(ImmutableList::copyOf).orElse(ImmutableList.of()) : List.of();
+            //?}
         }
     }
 

@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.gui.screens;
 
 import com.google.common.collect.ImmutableList;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -199,7 +203,11 @@ public class MacroScreen extends BaseScreen {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void extractRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         if (drawContext == null) {
             return;
         }
@@ -212,7 +220,11 @@ public class MacroScreen extends BaseScreen {
 
         for (GuiEventListener b : ImmutableList.copyOf(this.children())) {
             if (b instanceof Renderable) {
+                //? if >=26.1 {
+                /*((Renderable) b).extractRenderState(drawContext, mouseX, mouseY, delta);
+                *///?} else {
                 ((Renderable) b).render(drawContext, mouseX, mouseY, delta);
+                //?}
             }
         }
 
@@ -224,7 +236,11 @@ public class MacroScreen extends BaseScreen {
         drawContext.fill(this.width / 6 * 2, 0, this.width / 6 * 2 + 2, 20, 0xFFFFFFFF);
         drawContext.fill(this.width / 6 * 3 + 1, 0, this.width / 6 * 3 + 3, 20, 0xFFFFFFFF);
         drawContext.fill(0, 20, width, 22, 0xFFFFFFFF);
+        //? if >=26.1 {
+        /*drawContext.centeredText(this.font, JsMacrosClient.clientCore.profile.getCurrentProfileName(), this.width * 8 / 12, 5, 0xFF7F7F7F);
+        *///?} else {
         drawContext.drawCenteredString(this.font, JsMacrosClient.clientCore.profile.getCurrentProfileName(), this.width * 8 / 12, 5, 0xFF7F7F7F);
+        //?}
 
         if (overlay != null) {
             overlay.render(drawContext, mouseX, mouseY, delta);

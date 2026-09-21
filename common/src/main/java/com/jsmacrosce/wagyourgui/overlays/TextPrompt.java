@@ -1,7 +1,11 @@
 package com.jsmacrosce.wagyourgui.overlays;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import com.jsmacrosce.wagyourgui.elements.Button;
@@ -43,11 +47,19 @@ public class TextPrompt extends OverlayContainer {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         this.renderBackground(drawContext);
         int lineNum = 0;
         for (FormattedCharSequence line : textRenderer.split(message, width - 4)) {
+            //? if >=26.1 {
+            /*drawContext.text(textRenderer, line, (int) (x + width / 2F - textRenderer.width(line) / 2F), y + 5 + (lineNum++) * textRenderer.lineHeight, 0xFFFFFFFF, false);
+            *///?} else {
             drawContext.drawString(textRenderer, line, (int) (x + width / 2F - textRenderer.width(line) / 2F), y + 5 + (lineNum++) * textRenderer.lineHeight, 0xFFFFFFFF, false);
+            //?}
         }
         super.render(drawContext, mouseX, mouseY, delta);
     }

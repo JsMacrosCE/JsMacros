@@ -1,7 +1,11 @@
 package com.jsmacrosce.wagyourgui.elements;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
@@ -81,19 +85,29 @@ public class Button extends AbstractButton {
         this.textColor = ColorUtil.fixAlpha(color);
     }
 
+    //? if >=26.1 {
+    /*protected void renderMessage(GuiGraphicsExtractor drawContext) {
+    *///?} else {
     protected void renderMessage(GuiGraphics drawContext) {
+    //?}
         for (int i = 0; i < visibleLines; ++i) {
             int w = textRenderer.width(textLines.get(i));
+            //? if >=26.1 {
+            /*drawContext.text(textRenderer, textLines.get(i), (int) (horizCenter ? getX() + width / 2F - w / 2F : getX() + 2), getY() + 2 + verticalCenter + (i * textRenderer.lineHeight), textColor, false);
+            *///?} else {
             drawContext.drawString(textRenderer, textLines.get(i), (int) (horizCenter ? getX() + width / 2F - w / 2F : getX() + 2), getY() + 2 + verticalCenter + (i * textRenderer.lineHeight), textColor, false);
+            //?}
         }
     }
 
     @Override
-    //? if >=1.21.11 {
+    //? if >=26.1 {
+    /*protected void extractContents(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else if >=1.21.11 {
     /*public void renderContents(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-    *///? } else {
+    *///?} else {
     public void renderWidget(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-    //? }
+    //?}
         if (this.visible) {
             // fill
             if (mouseX - getX() >= 0 && mouseX - getX() - width < 0 && mouseY - getY() >= 0 && mouseY - getY() - height < 0 && this.active || forceHover) {

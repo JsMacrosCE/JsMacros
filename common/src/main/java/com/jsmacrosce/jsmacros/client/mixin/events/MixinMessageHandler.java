@@ -10,7 +10,11 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.EventTitle;
 @Mixin(ChatListener.class)
 public class MixinMessageHandler {
 
+    //? if >=26.1 {
+    /*@ModifyArg(method = "handleOverlay", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Gui;setOverlayMessage(Lnet/minecraft/network/chat/Component;Z)V"))
+    *///?} else {
     @ModifyArg(method = "handleSystemMessage", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Gui;setOverlayMessage(Lnet/minecraft/network/chat/Component;Z)V"))
+    //?}
     private Component modifyOverlayMessage(Component text) {
         EventTitle et = new EventTitle("ACTIONBAR", text);
         et.trigger();

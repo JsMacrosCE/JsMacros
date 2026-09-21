@@ -2,7 +2,11 @@ package com.jsmacrosce.jsmacros.client.api.classes.render;
 
 import com.google.common.collect.ImmutableList;
 import net.minecraft.client.Minecraft;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.Renderable;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletIgnore;
@@ -591,7 +595,11 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
 
     @Override
     @DocletIgnore
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext) {
+    *///?} else {
     public void render(GuiGraphics drawContext) {
+    //?}
         if (drawContext == null || !visible) {
             return;
         }
@@ -599,7 +607,11 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
         synchronized (elements) {
             Iterator<RenderElement> iter = getElementsByZIndex();
             while (iter.hasNext()) {
+                //? if >=26.1 {
+                /*iter.next().extractRenderState(drawContext, 0, 0, 0);
+                *///?} else {
                 iter.next().render(drawContext, 0, 0, 0);
+                //?}
             }
         }
     }

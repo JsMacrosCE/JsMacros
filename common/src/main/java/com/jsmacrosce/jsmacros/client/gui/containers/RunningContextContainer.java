@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.gui.containers;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import com.jsmacrosce.jsmacros.client.JsMacros;
@@ -42,15 +46,27 @@ public class RunningContextContainer extends MultiElementContainer<CancelScreen>
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         try {
             if (t != null) {
                 if (t.isContextClosed()) {
                     JsMacros.LOGGER.warn("Closed context {} was still in list", t.getMainThread().getName());
                     parent.removeContainer(this);
                 } else if (this.visible) {
+                    //? if >=26.1 {
+                    /*drawContext.centeredText(textRenderer, textRenderer.plainSubstrByWidth(service ? ((EventService) t.getTriggeringEvent()).serviceName : t.getMainThread().getName(), width - 105 - height), x + (width - 105 - height) / 2 + height + 4, y + 2, 0xFFFFFFFF);
+                    *///?} else {
                     drawContext.drawCenteredString(textRenderer, textRenderer.plainSubstrByWidth(service ? ((EventService) t.getTriggeringEvent()).serviceName : t.getMainThread().getName(), width - 105 - height), x + (width - 105 - height) / 2 + height + 4, y + 2, 0xFFFFFFFF);
+                    //?}
+                    //? if >=26.1 {
+                    /*drawContext.centeredText(textRenderer, textRenderer.plainSubstrByWidth(DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - t.startTime), 100), x + width - 50 + height, y + 2, 0xFFFFFFFF);
+                    *///?} else {
                     drawContext.drawCenteredString(textRenderer, textRenderer.plainSubstrByWidth(DurationFormatUtils.formatDurationHMS(System.currentTimeMillis() - t.startTime), 100), x + width - 50 + height, y + 2, 0xFFFFFFFF);
+                    //?}
                     drawContext.fill(x + width - 101, y, x + width - 100, y + height, 0xFFFFFFFF);
                     drawContext.fill(x + height, y, x + height + 1, y + height, 0xFFFFFFFF);
                     // border

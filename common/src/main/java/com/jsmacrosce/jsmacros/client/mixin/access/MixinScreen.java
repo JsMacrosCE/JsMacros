@@ -4,7 +4,11 @@ import com.google.common.collect.ImmutableList;
 import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.components.events.AbstractContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -908,7 +912,11 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void jsmacros_render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void jsmacros_render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         if (drawContext == null) {
             return;
         }
@@ -919,7 +927,11 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
 
             while (iter.hasNext()) {
                 RenderElement e = iter.next();
+                //? if >=26.1 {
+                /*e.extractRenderState(drawContext, mouseX, mouseY, delta);
+                *///?} else {
                 e.render(drawContext, mouseX, mouseY, delta);
+                //?}
                 if (e instanceof Text t) {
                     if (mouseX > t.x && mouseX < t.x + t.getWidth() && mouseY > t.y && mouseY < t.y + font.lineHeight) {
                         hoverText = t;
@@ -928,7 +940,15 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
             }
 
             if (hoverText != null) {
+                //? if >=26.1 {
+                /*// 26.1: renderComponentHoverEffect is private; hover effects are applied automatically
+                // when text is rendered through ActiveTextCollector.textRenderer(HoveredTextEffects)
+                // and drained via GuiGraphicsExtractor.extractDeferredElements. No standalone API
+                // exists for the manual out-of-band call pattern used here; our Text element paints
+                // raw strings so the auto path does not cover it. Functional gap tracked upstream.
+                *///?} else {
                 drawContext.renderComponentHoverEffect(font, TextUtil.componentStyleAtWidth(font, hoverText.text, mouseX - hoverText.x), mouseX, mouseY);
+                //?}
             }
         }
     }

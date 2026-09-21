@@ -16,8 +16,7 @@ public class GraalScriptContext extends BaseScriptContext<Context> {
     }
 
     @Override
-    public void closeContext() {
-        super.closeContext();
+    protected void doSubclassClose() {
         Context ctx = getContext();
         if (ctx != null) {
             ctx.close(true);
