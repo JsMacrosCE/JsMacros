@@ -371,9 +371,9 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     }
 
     /**
-     * True when the camera is behind the surface's readable face. The surface
-     * content is authored facing local -Z, so the camera is behind when it lies on
-     * the +Z side of the surface plane.
+     * True when the camera is behind the surface's readable face. Surface content is
+     * authored facing local +Z (see {@link #updateRotateToPlayer}, which points +Z at
+     * the camera), so the camera is behind it when it lies on the -Z side of the plane.
      */
     private static boolean isCameraOnBackSide(Matrix4f transform) {
         //? if >=1.21.11 {
@@ -382,10 +382,10 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
         //? }
         Vector3f origin = transform.transformPosition(new Vector3f(0, 0, 0));
-        Vector3f front = transform.transformPosition(new Vector3f(0, 0, 1)).sub(origin);
-        return front.x * (cameraPos.x - origin.x)
-                + front.y * (cameraPos.y - origin.y)
-                + front.z * (cameraPos.z - origin.z) > 0;
+        Vector3f facing = transform.transformPosition(new Vector3f(0, 0, 1)).sub(origin);
+        return facing.x * (cameraPos.x - origin.x)
+                + facing.y * (cameraPos.y - origin.y)
+                + facing.z * (cameraPos.z - origin.z) < 0;
     }
 
     private Pos3D resolveRenderPos(float partialTicks) {
