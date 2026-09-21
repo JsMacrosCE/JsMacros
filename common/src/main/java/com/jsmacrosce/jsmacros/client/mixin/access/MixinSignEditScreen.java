@@ -43,8 +43,8 @@ public abstract class MixinSignEditScreen implements ISignEditScreen {
 
         this.messages[line] = text; // actual
         this.text = this.text.setMessage(line, Component.nullToEmpty(text)); // gui visual
-        // TODO: On sodium, this line is needed
-//        this.blockEntity.setText(this.text, this.front); // block visual
+        // TODO: On sodium, this needs to be called on the main thread
+        // this.blockEntity.setText(this.text, this.front); // block visual
     }
 
     @Override
