@@ -84,7 +84,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         this.pos = pos;
         this.rotations = rotations;
         this.sizes = sizes;
-        this.minSubdivisions = minSubdivisions;
+        this.minSubdivisions = Math.max(minSubdivisions, 1);
         this.renderBack = renderBack;
         this.cull = cull;
         init();
@@ -209,7 +209,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     }
 
     public void setMinSubdivisions(int minSubdivisions) {
-        this.minSubdivisions = minSubdivisions;
+        this.minSubdivisions = Math.max(minSubdivisions, 1);
         recomputeScale();
     }
 

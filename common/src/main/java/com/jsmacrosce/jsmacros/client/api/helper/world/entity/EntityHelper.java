@@ -153,13 +153,21 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
+     * @param partialTicks the fraction of the current tick to interpolate.
+     * @return interpolated entity position.
+     */
+    public Pos3D getPos(float partialTicks) {
+        return new Pos3D(base.getPosition(partialTicks));
+    }
+
+    /**
      * Interpolated entity position, used for render-time placement.
      *
      * @since 2.0.0
      */
     @DocletIgnore
     public Pos3D getInterpolatedPos(float partialTicks) {
-        return new Pos3D(base.getPosition(partialTicks));
+        return getPos(partialTicks);
     }
 
     /**

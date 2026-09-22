@@ -24,8 +24,6 @@ import java.util.Comparator;
 import java.util.stream.Collectors;
 
 public class ForgeEvents {
-    private static final Minecraft client = Minecraft.getInstance();
-
     public static void init() {
         NeoForge.EVENT_BUS.addListener(ForgeEvents::onTick);
         NeoForge.EVENT_BUS.addListener(ForgeEvents::onRegisterCommands);
@@ -66,7 +64,7 @@ public class ForgeEvents {
         ((IScreenInternal) event.getScreen()).jsmacros_mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
     }
 
-    public static void onScreenMouseReleased(ScreenEvent.MouseButtonPressed.Pre event) {
+    public static void onScreenMouseReleased(ScreenEvent.MouseButtonReleased.Pre event) {
         ((IScreenInternal) event.getScreen()).jsmacros_mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
     }
 

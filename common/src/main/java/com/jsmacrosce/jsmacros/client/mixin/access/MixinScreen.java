@@ -936,9 +936,8 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
             while (iter.hasNext()) {
                 RenderElement e = iter.next();
                 e.render(drawContext, mouseX, mouseY, delta);
-                if (e instanceof Text) {
-                    Text t = (Text) e;
-                    if (mouseX > t.x && mouseX < t.x + t.width && mouseY > t.y && mouseY < t.y + font.lineHeight) {
+                if (e instanceof Text t) {
+                    if (mouseX > t.x && mouseX < t.x + t.getWidth() && mouseY > t.y && mouseY < t.y + font.lineHeight) {
                         hoverText = t;
                     }
                 }
@@ -981,7 +980,7 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
         synchronized (elements) {
             for (RenderElement e : elements) {
                 if (e instanceof Text t) {
-                    if (mouseX > t.x && mouseX < t.x + t.width && mouseY > t.y && mouseY < t.y + font.lineHeight) {
+                    if (mouseX > t.x && mouseX < t.x + t.getWidth() && mouseY > t.y && mouseY < t.y + font.lineHeight) {
                         hoverText = t;
                         break;
                     }
@@ -1097,12 +1096,12 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     *///? } else if >1.21.5 {
     @Inject(method = "handleComponentClicked", at = @At("HEAD"), cancellable = true)
     private void onHandleTextClick(Style style, CallbackInfoReturnable<Boolean> cir) {
-        handleCustomClickEvent(style.getClickEvent(), cir);
+        handleCustomClickEvent(style == null ? null : style.getClickEvent(), cir);
     }
     //?} else {
     /*@Inject(at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;error(Ljava/lang/String;Ljava/lang/Object;)V", remap = false), method = "handleComponentClicked", cancellable = true)
     public void onHandleTextClick(Style style, CallbackInfoReturnable<Boolean> cir) {
-        handleCustomClickEvent(style.getClickEvent(), cir);
+        handleCustomClickEvent(style == null ? null : style.getClickEvent(), cir);
     }
     *///?}
 

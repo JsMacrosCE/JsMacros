@@ -77,6 +77,30 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
 
     /**
+     * @return the positions of the line.
+     * @since 2.0.0
+     */
+    public Vec3D getPos() {
+        return new Vec3D(pos);
+    }
+
+    /**
+     * @return the first position of the line.
+     * @since 2.0.0
+     */
+    public Pos3D getPos1() {
+        return new Pos3D(pos.x1, pos.y1, pos.z1);
+    }
+
+    /**
+     * @return the second position of the line.
+     * @since 2.0.0
+     */
+    public Pos3D getPos2() {
+        return new Pos3D(pos.x2, pos.y2, pos.z2);
+    }
+
+    /**
      * @param color
      * @since 1.0.6
      */
@@ -94,11 +118,43 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
 
     /**
+     * @return the color of the line.
+     * @since 2.0.0
+     */
+    public int getColor() {
+        return color & 0xFFFFFF;
+    }
+
+    /**
      * @param alpha
      * @since 1.1.8
      */
     public void setAlpha(int alpha) {
         this.color = (alpha << 24) | (color & 0xFFFFFF);
+    }
+
+    /**
+     * @return the alpha value of the line's color.
+     * @since 2.0.0
+     */
+    public int getAlpha() {
+        return (color >> 24) & 0xFF;
+    }
+
+    /**
+     * @param alwaysOnTop whether the line should render on top of everything else.
+     * @since 2.0.0
+     */
+    public void setAlwaysOnTop(boolean alwaysOnTop) {
+        this.cull = !alwaysOnTop;
+    }
+
+    /**
+     * @return whether the line renders on top of everything else.
+     * @since 2.0.0
+     */
+    public boolean isAlwaysOnTop() {
+        return !cull;
     }
 
     @Override

@@ -1,10 +1,18 @@
 package com.jsmacrosce.jsmacros.client.api.library.impl;
 
+import com.google.gson.JsonParseException;
+import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.client.gui.components.toasts.ToastManager;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.SnbtGrammar;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.util.parsing.packrat.commands.Grammar;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +44,7 @@ import java.util.regex.Pattern;
 @SuppressWarnings("unused")
 public class FChat extends BaseLibrary {
     private static final Minecraft mc = Minecraft.getInstance();
+    private static final Grammar<Tag> nbtParser = SnbtGrammar.createParser(NbtOps.INSTANCE);
 
     public FChat(Core<?, ?> runner) {
         super(runner);
@@ -413,13 +422,18 @@ public class FChat extends BaseLibrary {
      *
      * @param json
      * @return a new {@link TextHelper TextHelper}
+     * @throws JsonParseException
      * @see TextHelper
      * @since 1.1.3
      */
     @Nullable
     public TextHelper createTextHelperFromJSON(String json) {
-        Component jsonStr = Component.nullToEmpty(json);
-        return TextHelper.wrap(jsonStr);
+        try {
+            var nbt = nbtParser.parseForCommands(new StringReader(json));
+            return TextHelper.wrap(ComponentSerialization.CODEC.parse(NbtOps.INSTANCE, nbt).getOrThrow());
+        } catch (CommandSyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
