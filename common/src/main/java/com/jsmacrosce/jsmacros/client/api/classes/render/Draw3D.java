@@ -732,8 +732,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * Renders everything except always-on-top (cull=false) surfaces. Used by the
-     * pre-1.21.11 pass, which draws those after a depth clear.
+     * Renders non-surface elements. Surfaces are drawn separately across every
+     * registered Draw3D so their back-to-front order is global.
      */
     @DocletIgnore
     public void renderDepthPass(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
@@ -749,7 +749,7 @@ public class Draw3D implements Registrable<Draw3D> {
             Collections.sort(elements);
 
             for (RenderElement3D<?> element : elements) {
-                if (element instanceof Surface surface && !surface.cull) {
+                if (element instanceof Surface) {
                     continue;
                 }
                 element.render(poseStack, consumers, tickDelta);
@@ -797,27 +797,39 @@ public class Draw3D implements Registrable<Draw3D> {
      */
     @DocletIgnore
     public void renderDirect(PoseStack poseStack, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
+        renderDirectSurfaces(Collections.singleton(this), poseStack, consumers, tickDelta, alwaysOnTop);
+    }
+
+    /**
+     * Surface pipelines do not consistently write depth, so every registered
+     * Draw3D must share the same back-to-front order within each depth group.
+     */
+    @DocletIgnore
+    public static void renderDirectSurfaces(Iterable<Draw3D> draws, PoseStack poseStack, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         Vec3 cameraPos = CameraCompat.position(camera);
 
-        poseStack.pushPose();
-        poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
-
-        synchronized (elements) {
-            // Surface geometry does not write depth, so order surfaces back to
-            // front (painter's algorithm) instead of relying on the depth buffer.
-            List<Surface> surfaces = new ArrayList<>();
-            for (RenderElement3D<?> element : elements) {
-                if (element instanceof Surface surface) {
-                    surfaces.add(surface);
+        List<Surface> surfaces = new ArrayList<>();
+        for (Draw3D draw : draws) {
+            synchronized (draw.elements) {
+                for (RenderElement3D<?> element : draw.elements) {
+                    if (element instanceof Surface surface && surface.cull != alwaysOnTop) {
+                        surfaces.add(surface);
+                    }
                 }
             }
-            surfaces.sort((a, b) -> Double.compare(distanceSq(b.resolveRenderPos(tickDelta), cameraPos), distanceSq(a.resolveRenderPos(tickDelta), cameraPos)));
-            for (Surface surface : surfaces) {
-                surface.renderDirect(poseStack, consumers, tickDelta, alwaysOnTop);
-            }
         }
+        surfaces.sort((a, b) -> Double.compare(distanceSq(b.resolveRenderPos(tickDelta), cameraPos), distanceSq(a.resolveRenderPos(tickDelta), cameraPos)));
 
+        poseStack.pushPose();
+        poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
+        for (Surface surface : surfaces) {
+            //? if >=1.21.11 {
+            /*surface.renderDirect(poseStack, consumers, tickDelta, alwaysOnTop);
+            *///? } else {
+            surface.render(poseStack, consumers, tickDelta);
+            //? }
+        }
         poseStack.popPose();
     }
 

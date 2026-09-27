@@ -47,6 +47,7 @@ import java.util.function.BooleanSupplier;
 //? if >=26.1 {
 /*import net.minecraft.client.gui.ActiveTextCollector;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.TextAlignment;
 *///? } else {
 import net.minecraft.client.gui.GuiGraphics;
 //? }
@@ -946,8 +947,12 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
             //? if >=26.1 {
             /*if (hoverText != null) {
                 ActiveTextCollector textCollector = drawContext.textRenderer();
-                textCollector.defaultParameters(textCollector.defaultParameters().withOpacity(0.0F));
-                textCollector.accept(hoverText.x, hoverText.y, hoverText.text);
+                textCollector.accept(
+                    TextAlignment.LEFT,
+                    hoverText.x,
+                    hoverText.y,
+                    textCollector.defaultParameters().withOpacity(0.0F),
+                    hoverText.text);
             }
             *///? } else {
             if (hoverText != null) {

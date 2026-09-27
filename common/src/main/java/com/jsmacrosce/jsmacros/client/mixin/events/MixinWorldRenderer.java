@@ -174,6 +174,7 @@ public class MixinWorldRenderer {
                 RenderSystem.outputColorTextureOverride = mainTarget.getColorTextureView();
                 RenderSystem.outputDepthTextureOverride = mainTarget.getDepthTextureView();
                 try {
+                    ImmutableSet<Draw3D> draws = ImmutableSet.copyOf(FHud.renders);
                     if (!standardGizmos.isEmpty()) {
                         standardGizmos.render(matrixStack, consumers, cameraState, viewMatrix);
                         consumers.endLastBatch();
@@ -181,15 +182,13 @@ public class MixinWorldRenderer {
 
                     // Depth-tested surface elements (cull=true) draw while the world
                     // depth buffer is still intact.
-                    for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
-                        d.renderDirect(matrixStack, consumers, tickDelta, false);
-                    }
+                    Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, false);
                     consumers.endBatch();
 
                     // Always-on-top elements need a cleared depth buffer, and the
                     // direct surfaces (cull=false) need it too, not just the gizmos.
                     boolean alwaysOnTopSurface = false;
-                    for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
+                    for (Draw3D d : draws) {
                         for (Surface s : d.getDraw2Ds()) {
                             if (!s.cull) {
                                 alwaysOnTopSurface = true;
@@ -210,9 +209,7 @@ public class MixinWorldRenderer {
                     }
 
                     // Always-on-top surface elements (cull=false) draw after the clear.
-                    for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
-                        d.renderDirect(matrixStack, consumers, tickDelta, true);
-                    }
+                    Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, true);
                     consumers.endBatch();
                 } finally {
                     RenderSystem.outputColorTextureOverride = null;
@@ -246,15 +243,18 @@ public class MixinWorldRenderer {
                 float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
                 PoseStack matrixStack = new PoseStack();
 
-                for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
+                ImmutableSet<Draw3D> draws = ImmutableSet.copyOf(FHud.renders);
+                for (Draw3D d : draws) {
                     d.renderDepthPass(matrixStack, consumers, tickDelta);
                 }
+                consumers.endBatch();
+                Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, false);
                 consumers.endBatch();
 
                 // Always-on-top surfaces (cull=false) must draw over the world, so
                 // clear depth before their group.
                 boolean alwaysOnTopSurface = false;
-                for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
+                for (Draw3D d : draws) {
                     for (Surface s : d.getDraw2Ds()) {
                         if (!s.cull) {
                             alwaysOnTopSurface = true;
@@ -268,9 +268,7 @@ public class MixinWorldRenderer {
                 if (alwaysOnTopSurface) {
                     RenderTarget mainTarget = Minecraft.getInstance().getMainRenderTarget();
                     RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(mainTarget.getDepthTexture(), 1.0);
-                    for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
-                        d.renderAlwaysOnTopSurfaces(matrixStack, consumers, tickDelta);
-                    }
+                    Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, true);
                     consumers.endBatch();
                 }
             } catch (Throwable e) {
