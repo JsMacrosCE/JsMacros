@@ -12,6 +12,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.*;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FHud;
+import com.jsmacrosce.jsmacros.client.util.CameraCompat;
 import com.jsmacrosce.jsmacros.core.classes.Registrable;
 
 import java.util.ArrayList;
@@ -695,11 +696,7 @@ public class Draw3D implements Registrable<Draw3D> {
     @DocletIgnore
     public void render(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-        //? if >=1.21.11 {
-        /*Vec3 cameraPos = camera.position();
-        *///? } else {
-        Vec3 cameraPos = camera.getPosition();
-        //? }
+        Vec3 cameraPos = CameraCompat.position(camera);
 
         poseStack.pushPose();
         poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
@@ -730,11 +727,7 @@ public class Draw3D implements Registrable<Draw3D> {
     @DocletIgnore
     public void renderDepthPass(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-        //? if >=1.21.11 {
-        /*Vec3 cameraPos = camera.position();
-        *///? } else {
-        Vec3 cameraPos = camera.getPosition();
-        //? }
+        Vec3 cameraPos = CameraCompat.position(camera);
 
         poseStack.pushPose();
         poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
@@ -767,11 +760,7 @@ public class Draw3D implements Registrable<Draw3D> {
     @DocletIgnore
     public void renderAlwaysOnTopSurfaces(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-        //? if >=1.21.11 {
-        /*Vec3 cameraPos = camera.position();
-        *///? } else {
-        Vec3 cameraPos = camera.getPosition();
-        //? }
+        Vec3 cameraPos = CameraCompat.position(camera);
 
         poseStack.pushPose();
         poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
@@ -798,11 +787,7 @@ public class Draw3D implements Registrable<Draw3D> {
     @DocletIgnore
     public void renderDirect(PoseStack poseStack, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-        //? if >=1.21.11 {
-        /*Vec3 cameraPos = camera.position();
-        *///? } else {
-        Vec3 cameraPos = camera.getPosition();
-        //? }
+        Vec3 cameraPos = CameraCompat.position(camera);
 
         poseStack.pushPose();
         poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());

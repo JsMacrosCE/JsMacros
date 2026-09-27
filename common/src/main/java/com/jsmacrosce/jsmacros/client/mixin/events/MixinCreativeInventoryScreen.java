@@ -10,8 +10,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventClickSlot;
-import com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventDropSlot;
+import com.jsmacrosce.jsmacros.client.util.ContainerInputCompat;
+import com.jsmacrosce.jsmacros.client.util.SlotClickEvents;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -84,23 +84,11 @@ public abstract class MixinCreativeInventoryScreen {
             slotId = jsmacros$getSlotFromCreativeSlot(slot).index;
         }
 
-        EventClickSlot event = new EventClickSlot((AbstractContainerScreen<?>) (Object) this, actionType.ordinal(), buttonNum, slotId);
-        event.trigger();
-        if (event.isCanceled()) {
+        if (SlotClickEvents.fire((AbstractContainerScreen<?>) (Object) this,
+                ContainerInputCompat.actionId(actionType),
+                ContainerInputCompat.isThrow(actionType),
+                buttonNum, slotId)) {
             ci.cancel();
-            return;
-        }
-
-        //? if >=26.1 {
-        /*if (actionType == ContainerInput.THROW || slotId == -999) {
-        *///? } else {
-        if (actionType == ClickType.THROW || slotId == -999) {
-        //? }
-            EventDropSlot eventDrop = new EventDropSlot((AbstractContainerScreen<?>) (Object) this, slotId, buttonNum == 1);
-            eventDrop.trigger();
-            if (eventDrop.isCanceled()) {
-                ci.cancel();
-            }
         }
     }
 

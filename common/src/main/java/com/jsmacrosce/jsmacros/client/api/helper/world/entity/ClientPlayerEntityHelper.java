@@ -12,9 +12,6 @@ import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-//? if >=26.1 {
-/*import net.minecraft.world.phys.EntityHitResult;
-*///?}
 import net.minecraft.world.effect.MobEffectUtil;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
@@ -41,6 +38,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.AdvancementManagerHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockStateHelper;
+import com.jsmacrosce.jsmacros.client.util.InteractionCompat;
 
 import java.util.List;
 import java.util.Locale;
@@ -485,14 +483,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
         InteractionHand hand = offHand ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         boolean joinedMain = JsMacrosClient.clientCore.profile.checkJoinedThreadStack();
         if (joinedMain) {
-            InteractionResult result = mc.gameMode.interact(
-                mc.player,
-                entity.getRaw(),
-                //? if >=26.1 {
-                /*new EntityHitResult(entity.getRaw()),
-                *///?}
-                hand
-            );
+            InteractionResult result = InteractionCompat.interact(mc.gameMode, mc.player, entity.getRaw(), hand);
             assert mc.player != null;
             if (result.consumesAction()) {
                 mc.player.swing(hand);
@@ -500,14 +491,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
-                InteractionResult result = mc.gameMode.interact(
-                    mc.player,
-                    entity.getRaw(),
-                    //? if >=26.1 {
-                    /*new EntityHitResult(entity.getRaw()),
-                    *///?}
-                    hand
-                );
+                InteractionResult result = InteractionCompat.interact(mc.gameMode, mc.player, entity.getRaw(), hand);
                 assert mc.player != null;
                 if (result.consumesAction()) {
                     mc.player.swing(hand);

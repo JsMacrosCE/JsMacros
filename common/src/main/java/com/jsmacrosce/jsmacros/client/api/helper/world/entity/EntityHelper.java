@@ -28,6 +28,7 @@ import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.*;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -70,6 +71,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicl
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.FurnaceMinecartEntityHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.TntMinecartEntityHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
+import com.jsmacrosce.jsmacros.util.ChunkPosCompat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -191,11 +193,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
      * @since 1.6.5
      */
     public Pos2D getChunkPos() {
-        //? if >=26.1 {
-        /*return new Pos2D(base.chunkPosition().x(), base.chunkPosition().z());
-        *///?} else {
-        return new Pos2D(base.chunkPosition().x, base.chunkPosition().z);
-        //?}
+        ChunkPos pos = base.chunkPosition();
+        return new Pos2D(ChunkPosCompat.x(pos), ChunkPosCompat.z(pos));
     }
 
     /**

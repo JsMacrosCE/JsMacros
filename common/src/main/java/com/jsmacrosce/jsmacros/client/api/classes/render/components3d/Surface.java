@@ -26,6 +26,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.components.Draw2DElemen
 import com.jsmacrosce.jsmacros.client.api.classes.render.components.RenderElement;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
+import com.jsmacrosce.jsmacros.client.util.CameraCompat;
 
 import java.util.Iterator;
 import java.util.Objects;
@@ -376,11 +377,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
      * the camera), so the camera is behind it when it lies on the -Z side of the plane.
      */
     private static boolean isCameraOnBackSide(Matrix4f transform) {
-        //? if >=1.21.11 {
-        /*Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().position();
-        *///? } else {
-        Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
-        //? }
+        Vec3 cameraPos = CameraCompat.position(Minecraft.getInstance().gameRenderer.getMainCamera());
         Vector3f origin = transform.transformPosition(new Vector3f(0, 0, 0));
         Vector3f facing = transform.transformPosition(new Vector3f(0, 0, 1)).sub(origin);
         return facing.x * (cameraPos.x - origin.x)
@@ -397,11 +394,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         if (!rotateToPlayer) {
             return;
         }
-        //? if >=1.21.11 {
-        /*Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().position();
-        *///? } else {
-        Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
-        //? }
+        Vec3 cameraPos = CameraCompat.position(Minecraft.getInstance().gameRenderer.getMainCamera());
         double pivotX = rotateCenter ? renderPos.x + (sizes.x / 2.0) : renderPos.x;
         double pivotY = rotateCenter ? renderPos.y - (sizes.y / 2.0) : renderPos.y;
         double pivotZ = renderPos.z;
