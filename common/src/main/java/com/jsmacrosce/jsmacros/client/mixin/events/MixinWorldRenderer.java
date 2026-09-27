@@ -27,7 +27,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
-import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.Surface;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FHud;
 
 // 1.21.11 introduced the Gizmos API. 3D components emit gizmos, so we collect them here and
@@ -61,8 +60,6 @@ import com.mojang.blaze3d.buffers.GpuBufferSlice;
 *///?}
 
 //? if <1.21.11 {
-import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.util.profiling.Profiler;
 import net.minecraft.world.phys.Vec3;
 //?}
@@ -185,30 +182,12 @@ public class MixinWorldRenderer {
                     Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, false);
                     consumers.endBatch();
 
-                    // Always-on-top elements need a cleared depth buffer, and the
-                    // direct surfaces (cull=false) need it too, not just the gizmos.
-                    boolean alwaysOnTopSurface = false;
-                    for (Draw3D d : draws) {
-                        for (Surface s : d.getDraw2Ds()) {
-                            if (!s.cull) {
-                                alwaysOnTopSurface = true;
-                                break;
-                            }
-                        }
-                        if (alwaysOnTopSurface) {
-                            break;
-                        }
-                    }
-
-                    if (!alwaysOnTopGizmos.isEmpty() || alwaysOnTopSurface) {
+                    if (!alwaysOnTopGizmos.isEmpty()) {
                         RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(mainTarget.getDepthTexture(), 1.0);
-                        if (!alwaysOnTopGizmos.isEmpty()) {
-                            alwaysOnTopGizmos.render(matrixStack, consumers, cameraState, viewMatrix);
-                            consumers.endLastBatch();
-                        }
+                        alwaysOnTopGizmos.render(matrixStack, consumers, cameraState, viewMatrix);
+                        consumers.endLastBatch();
                     }
 
-                    // Always-on-top surface elements (cull=false) draw after the clear.
                     Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, true);
                     consumers.endBatch();
                 } finally {
@@ -251,26 +230,8 @@ public class MixinWorldRenderer {
                 Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, false);
                 consumers.endBatch();
 
-                // Always-on-top surfaces (cull=false) must draw over the world, so
-                // clear depth before their group.
-                boolean alwaysOnTopSurface = false;
-                for (Draw3D d : draws) {
-                    for (Surface s : d.getDraw2Ds()) {
-                        if (!s.cull) {
-                            alwaysOnTopSurface = true;
-                            break;
-                        }
-                    }
-                    if (alwaysOnTopSurface) {
-                        break;
-                    }
-                }
-                if (alwaysOnTopSurface) {
-                    RenderTarget mainTarget = Minecraft.getInstance().getMainRenderTarget();
-                    RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(mainTarget.getDepthTexture(), 1.0);
-                    Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, true);
-                    consumers.endBatch();
-                }
+                Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, true);
+                consumers.endBatch();
             } catch (Throwable e) {
                 e.printStackTrace();
             }
