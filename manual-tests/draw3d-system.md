@@ -35,16 +35,17 @@ from a title screen.
 | Test | Expected behavior |
 | --- | --- |
 | `DRAW3D-LIFECYCLE-001` | `Hud.createDraw3D()`, `register()`/`unregister()` chaining and list membership, `clear()` across boxes/lines/trace lines/surfaces, and `Hud.clearDraw3Ds()` (pre-existing draws are re-registered). |
-| `DRAW3D-PRIMITIVES-001` | Box, line, trace line, entity trace line, point (xyz and `Pos3D`), `boxBuilder().forBlock()`, add/remove/re-add, and entity-trace `setEntity`/`shouldRemove`/`dirty` state. |
+| `DRAW3D-PRIMITIVES-001` | Box, line, trace line, entity trace line (including the five-argument always-on-top overload), point (xyz and `Pos3D`), `boxBuilder().forBlock()`, add/remove/re-add, and entity-trace `setEntity`/`shouldRemove`/`dirty` state. |
 | `DRAW3D-STYLE-001` | Packed ARGB outline/fill color and alpha, `fixAlpha` for bare RGB, `setAlpha`/`setFillAlpha` RGB preservation, `setColor`/`setFillColor`, `setPosToBlock`/`setPosToPoint`, and box/line/trace/entity-trace builder getters. |
 | `DRAW3D-SURFACE-001` | Surface width/height versus minimum subdivisions, position/rotation/size mutators, nested rect/text/line/image/item/Draw2D, `renderBack` field/builder, and resize preserving children. |
 | `DRAW3D-VISUAL-001` | In-world rendering of a filled box, line, trace line and surface, plus the always-on-top (`cull = false`) vs depth-tested (`cull = true`) box behavior. |
 | `DRAW3D-ENTITY-001` | Entity trace `yOffset` (feet vs above head) tracking, and automatic removal once the entity is removed. Completes itself when the lines disappear, or accepts a chat verdict. Skipped when no non-player entity is nearby. |
 | `DRAW3D-SURFACE-002` | Surface direct rendering of rect/line/text/image (1.21.11+) and item (26.1), `zIndex` draw order, `setRotateCenter`, a nested Draw2D, a tilted panel, and a head-locked panel re-anchored each tick. |
 | `DRAW3D-SURFACE-003` | `setRotateToPlayer(true)` facing, and in-place `setSizes`/`removeRect`/`removeText`/`addRect`/`addText`/`setPos` mutation after the surface has been registered. |
-| `DRAW3D-SURFACE-004` | `setWorldLight`/`setFullBrightLight`/`setLight` and the matching builder methods: world light dims in the dark while full-bright and custom stay lit. |
+| `DRAW3D-SURFACE-004` | `setWorldLight`/`setFullBrightLight`/`setLight` and the matching builder methods: world light dims in the dark while full-bright and custom stay lit; text and images receive light only once. |
 | `DRAW3D-SURFACE-005` | `renderBack = false` is single-sided (the panel disappears when viewed from behind); `renderBack = true` stays visible. |
 | `DRAW3D-SURFACE-006` | `cull = false` surfaces are always-on-top (draw over a wall); `cull = true` surfaces are depth-tested (hidden behind it). |
+| `DRAW3D-SURFACE-007` | An entity-bound translucent green surface sorts at its interpolated position in front of an overlapping static red surface, even though its stored `pos` is farther away. |
 | `DRAW3D-ITEM-001` | `Item.Builder.overlayVisible(true)`/`overlayText(...)` on a 2D HUD overlay, plus the same item on a 3D surface (26.1 direct path). |
 
 ## Run steps
@@ -70,12 +71,15 @@ from a title screen.
   visible, and the bound panel stays in view while the camera moves.
 - `DRAW3D-SURFACE-003` (1.21.11+): the facing panel tracks the player, and the
   red panel keeps rendering after it is resized, recolored and moved.
-- `DRAW3D-SURFACE-004` (1.21.11+): in an enclosed area or at night the blue WORLD
-  surface dims while the orange BRIGHT and green CUSTOM surfaces stay lit.
+- `DRAW3D-SURFACE-004` (1.21.11+): in an enclosed area or at night the WORLD
+  surface dims while BRIGHT stays lit and CUSTOM follows its animated light
+  level. Its image and text should dim smoothly, not twice as fast as expected.
 - `DRAW3D-SURFACE-005`: from behind, the green DOUBLE panel stays visible and the
   red SINGLE panel disappears.
 - `DRAW3D-SURFACE-006`: with a wall in between, the red ALWAYS TOP panel draws
   over the wall and the blue DEPTH panel is hidden.
+- `DRAW3D-SURFACE-007` (1.21.11+): the green bound panel covers the red static
+  panel where they overlap, despite its deliberately distant stored position.
 - `DRAW3D-ITEM-001`: `overlay_test_text` is visible on the 2D HUD item and on the
   3D surface item (26.1).
 - Leaving a Draw3D test unregisters its elements; no test leaves a registered
@@ -94,8 +98,8 @@ from a title screen.
   `DRAW3D-SURFACE-003` animates a grow, a recolor and a slide to cover this.
 - `Surface.setWorldLight()`/`setFullBrightLight()`/`setLight(...)` were ported from
   `main`/`surface-fixes` onto this branch. The chosen light is passed to each
-  element: rect/line/text/image multiply their RGB by the light brightness and the
-  item uses the packed light coords. It includes the day/night sky darken but not
+  element: rect/line multiply their RGB by the light brightness, text/image use
+  the lightmap, and the item uses the packed light coords. It includes the day/night sky darken but not
   cast shadows, so an enclosed WORLD surface can go very dark.
   `DRAW3D-SURFACE-004` covers it.
 - Every surface element type draws directly into the pass buffer source (from

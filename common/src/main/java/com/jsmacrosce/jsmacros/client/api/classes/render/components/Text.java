@@ -358,7 +358,9 @@ public class Text implements RenderElement, Alignable<Text> {
         }
         matrixStack.translate(-x, -y, 0);
 
-        mc.font.drawInBatch(text, (float) x, (float) y, RenderElement.applyLight(color, light), shadow, matrixStack.last().pose(), consumers,
+        // The font renderer applies the packed light via its lightmap; keep the
+        // requested text color unchanged so lighting is not applied twice.
+        mc.font.drawInBatch(text, (float) x, (float) y, color, shadow, matrixStack.last().pose(), consumers,
                 seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL, 0, light);
 
         matrixStack.popPose();

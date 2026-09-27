@@ -402,6 +402,17 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
+     * @since 1.9.0
+     */
+    public EntityTraceLine addEntityTraceLine(EntityHelper<?> entity, int color, int alpha, double yOffset, boolean alwaysOnTop) {
+        EntityTraceLine l = new EntityTraceLine(entity, color, alpha, yOffset, alwaysOnTop);
+        synchronized (elements) {
+            elements.add(l);
+        }
+        return l;
+    }
+
+    /**
      * @return self for chaining
      * @since 1.9.0
      */
@@ -801,7 +812,7 @@ public class Draw3D implements Registrable<Draw3D> {
                     surfaces.add(surface);
                 }
             }
-            surfaces.sort((a, b) -> Double.compare(distanceSq(b.pos, cameraPos), distanceSq(a.pos, cameraPos)));
+            surfaces.sort((a, b) -> Double.compare(distanceSq(b.resolveRenderPos(tickDelta), cameraPos), distanceSq(a.resolveRenderPos(tickDelta), cameraPos)));
             for (Surface surface : surfaces) {
                 surface.renderDirect(poseStack, consumers, tickDelta, alwaysOnTop);
             }

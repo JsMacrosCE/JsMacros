@@ -24,7 +24,7 @@ Modes: `auto` (headless, chat report), `screen` (suite page controls),
 | `SCREEN-HOST-001` | Host Screen | `screen` | Captured vanilla-screen wrapping and return navigation. | [suite.js](suite.js) | Manual, requires launch from host screen |
 | `INTERACT-TARGET-001` | Target Override | `observe` | `setTarget` overrides the crosshair target and survives client picks. | [suite.js](suite.js) | Visual, chat verdict, requires world |
 | `DRAW3D-LIFECYCLE-001` | Draw3D Lifecycle | `auto` | `Hud.createDraw3D()`, register/unregister chaining, list membership, `clear()` across all lists, and `Hud.clearDraw3Ds()`. | [suite.js](suite.js) | Automatic |
-| `DRAW3D-PRIMITIVES-001` | Draw3D Primitives | `auto` | Box, line, trace line, entity trace line, point (xyz and `Pos3D`), `forBlock`, add/remove/re-add, and entity-trace state. | [suite.js](suite.js) | Automatic |
+| `DRAW3D-PRIMITIVES-001` | Draw3D Primitives | `auto` | Box, line, trace line, entity trace line (including the five-argument overload), point (xyz and `Pos3D`), `forBlock`, add/remove/re-add, and entity-trace state. | [suite.js](suite.js) | Automatic |
 | `DRAW3D-STYLE-001` | Draw3D Style and Builders | `auto` | ARGB color/alpha, `fixAlpha`, fill semantics, position helpers, builder getters, and the `Box.Builder.color(int,int)` fix. | [suite.js](suite.js) | Automatic |
 | `DRAW3D-SURFACE-001` | Draw3D Surface | `auto` | Surface size/subdivision/transform, nested element API, `renderBack` field/builder, and resize preserving children. | [suite.js](suite.js) | Automatic |
 | `INVENTORY-ITEMTAGS-001` | Item Tags | `auto` | `ItemStackHelper.getTags()` returns namespaced tag ids. | [suite.js](suite.js) | Automatic |
@@ -32,9 +32,10 @@ Modes: `auto` (headless, chat report), `screen` (suite page controls),
 | `DRAW3D-ENTITY-001` | Entity Trace Line | `observe` | Entity trace `yOffset` tracking and automatic removal when the entity is gone. | [suite.js](suite.js) | Visual, chat verdict, requires a nearby mob |
 | `DRAW3D-SURFACE-002` | Surface Render Regression | `observe` | Surface direct rendering of rect/line/text/image/item, `zIndex` draw order, `setRotateCenter`, nested Draw2D, and a head-locked panel. | [suite.js](suite.js) | Visual, requires world |
 | `DRAW3D-SURFACE-003` | Surface Facing and Mutation | `observe` | `setRotateToPlayer(true)` and in-place size/remove/add/position mutation while registered. | [suite.js](suite.js) | Visual, requires world |
-| `DRAW3D-SURFACE-004` | Surface Light Mode | `observe` | `setWorldLight`/`setFullBrightLight`/`setLight`: world light dims in the dark, bright/custom stay lit. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-SURFACE-004` | Surface Light Mode | `observe` | `setWorldLight`/`setFullBrightLight`/`setLight`: compare rect, text and image as world light dims and custom light changes. | [suite.js](suite.js) | Visual, requires world |
 | `DRAW3D-SURFACE-005` | Single-Sided Surface | `observe` | `renderBack = false` hides the whole panel when viewed from behind; `renderBack = true` stays visible. | [suite.js](suite.js) | Visual, requires world |
 | `DRAW3D-SURFACE-006` | Surface Depth Modes | `observe` | `cull = false` (always-on-top) draws over a wall; `cull = true` (depth-tested) is hidden behind it. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-SURFACE-007` | Bound Surface Order | `observe` | A near entity-bound surface renders over a far static surface regardless of its stored position. | [suite.js](suite.js) | Visual, requires world |
 | `DRAW3D-ITEM-001` | Item Overlay Text | `observe` | 2D HUD item `overlayVisible`/`overlayText`, plus the same item on a 3D surface. | [suite.js](suite.js) | Visual, requires world |
 | `HUD-DEBUG-001` | Debug Screen Overlay | `observe` | The registered `Draw2D` overlay renders on top of the F3 debug screen (Fabric-only `MixinDebugHud`). | [suite.js](suite.js) | Visual, chat verdict, Fabric only |
 

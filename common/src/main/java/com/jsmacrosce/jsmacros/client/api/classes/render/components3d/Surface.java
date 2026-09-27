@@ -385,7 +385,8 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
                 + facing.z * (cameraPos.z - origin.z) < 0;
     }
 
-    private Pos3D resolveRenderPos(float partialTicks) {
+    @DocletIgnore
+    public Pos3D resolveRenderPos(float partialTicks) {
         boolean isTrackingEntity = boundEntity != null && boundEntity.isAlive();
         return isTrackingEntity ? boundEntity.getInterpolatedPos(partialTicks).add(boundOffset) : pos;
     }

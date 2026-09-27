@@ -829,6 +829,10 @@ const TESTS = [
                 const etl = draw.addEntityTraceLine(null, 0xFF00FF);
                 check(state, sameObject(etl.setEntity(null), etl), "EntityTraceLine.setEntity(null) returns self for chaining");
                 check(state, etl.shouldRemove === false, "EntityTraceLine.shouldRemove starts false");
+                const depthTrace = draw.addEntityTraceLine(null, 0x123456, 128, 1.5, false);
+                check(state, sameObject(draw.getEntityTraceLines().get(listSize(draw.getEntityTraceLines()) - 1), depthTrace)
+                    && !depthTrace.isAlwaysOnTop() && depthTrace.yOffset === 1.5,
+                    "Five-argument addEntityTraceLine() adds a depth-tested trace with the requested offset");
                 const EntityTraceLine = Java.type("com.jsmacrosce.jsmacros.client.api.classes.render.components3d.EntityTraceLine");
                 EntityTraceLine.dirty = false;
                 check(state, EntityTraceLine.dirty === false, "EntityTraceLine.dirty is an accessible static flag");
@@ -1290,6 +1294,7 @@ const TESTS = [
                 surface.setRotateCenter(true);
                 surface.addRect(0, 0, surface.getWidth(), surface.getHeight(), 0xFFFFFF, 0xCC, 0, 0);
                 surface.addText(label, 6, 6, 0xFFFFFF, 1, false, 0.9, 0);
+                surface.addImage(6, 22, 16, 16, "minecraft:textures/item/diamond.png", 0, 0, 16, 16, 16, 16);
                 return surface;
             };
 
@@ -1415,6 +1420,57 @@ const TESTS = [
             draw.register();
             check(state, alwaysOnTop.cull === false && depthTested.cull === true, "The two panels have different cull values");
             check(state, listSize(draw.getDraw2Ds()) === 2, "Two panels were added");
+            return true;
+        },
+        teardown(state) {
+            if (state.draw != null) {
+                try {
+                    state.draw.unregister();
+                } catch (ignored) {
+                }
+                state.draw = null;
+            }
+        }
+    },
+    {
+        id: "DRAW3D-SURFACE-007",
+        category: "Draw3D",
+        mode: "observe",
+        title: "Bound Surface Order",
+        instructions: [
+            "The near green panel is visible over the far red panel where they overlap.",
+            "The green panel follows you if you move; the red panel stays in place."
+        ],
+        prepare(state) {
+            const player = Player.getPlayer();
+            if (player == null) {
+                return false;
+            }
+            const draw = Hud.createDraw3D();
+            state.draw = draw;
+            const farPoint = forwardPosition(player, 4, 0.5);
+            const far = draw.addDraw2D(farPoint.x - 0.8, farPoint.y, farPoint.z, 1.6, 1.1);
+            far.renderBack = true;
+            far.setRotateToPlayer(true);
+            far.addRect(0, 0, far.getWidth(), far.getHeight(), 0xDD3333, 180, 0, 0);
+            far.addText("FAR", 8, 8, 0xFFFFFF, false);
+
+            const nearPoint = forwardPosition(player, 3, 0.5);
+            const playerPos = player.getPos(0.5);
+            // The stored position deliberately points far away; sorting by that
+            // position instead of the bound entity draws the red panel over green.
+            const near = draw.addDraw2D(nearPoint.x + 40, nearPoint.y, nearPoint.z, 1.2, 0.8);
+            near.renderBack = true;
+            near.setRotateToPlayer(true);
+            near.bindToEntity(player).setBoundOffset(nearPoint.x - 0.6 - playerPos.x,
+                nearPoint.y - playerPos.y, nearPoint.z - playerPos.z);
+            near.addRect(0, 0, near.getWidth(), near.getHeight(), 0x33DD33, 200, 0, 0);
+            near.addText("NEAR", 8, 8, 0xFFFFFF, false);
+
+            const renderPos = near.resolveRenderPos(0.5);
+            check(state, approx(renderPos.x, nearPoint.x - 0.6) && approx(renderPos.y, nearPoint.y)
+                && approx(renderPos.z, nearPoint.z), "Bound surface resolves its interpolated position plus offset");
+            draw.register();
             return true;
         },
         teardown(state) {

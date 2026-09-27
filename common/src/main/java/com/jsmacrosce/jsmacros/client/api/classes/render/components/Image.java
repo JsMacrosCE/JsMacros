@@ -379,11 +379,10 @@ public class Image implements RenderElement, Alignable<Image> {
         }
         matrixStack.translate(-x, -y, 0);
 
-        int shaded = RenderElement.applyLight(color, light);
-        float a = ((shaded >> 24) & 0xFF) / 255.0f;
-        float r = ((shaded >> 16) & 0xFF) / 255.0f;
-        float g = ((shaded >> 8) & 0xFF) / 255.0f;
-        float b = (shaded & 0xFF) / 255.0f;
+        float a = ((color >> 24) & 0xFF) / 255.0f;
+        float r = ((color >> 16) & 0xFF) / 255.0f;
+        float g = ((color >> 8) & 0xFF) / 255.0f;
+        float b = (color & 0xFF) / 255.0f;
         float u0 = imageX / (float) textureWidth;
         float v0 = imageY / (float) textureHeight;
         float u1 = (imageX + regionWidth) / (float) textureWidth;
