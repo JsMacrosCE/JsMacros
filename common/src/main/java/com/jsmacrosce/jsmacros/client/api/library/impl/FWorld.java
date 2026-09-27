@@ -654,6 +654,56 @@ public class FWorld extends BaseLibrary {
     }
 
     /**
+     * Returns the data-driven timelines active in the current dimension.
+     * <p>
+     * In 26.1, this returns Mojang {@code Holder<Timeline>} objects directly. Each
+     * timeline supplies {@code getCurrentTicks}, {@code getTotalTicks}, and
+     * {@code getPeriodCount}; pass {@code World.getClockManager()} to those
+     * methods. The returned holders retain their registered timeline IDs.
+     * <pre>
+     * const clockManager = World.getClockManager();
+     * for (const timelineHolder of World.getTimelines()) {
+     *     const timeline = timelineHolder.value();
+     *     Chat.log(`${timelineHolder.getRegisteredName()}: ${timeline.getCurrentTicks(clockManager)}`);
+     * }
+     * </pre>
+     *
+     * @return a snapshot of the current dimension's active timeline holders, or an empty list before 26.1 or when no world is loaded.
+     * @since 2.0.0
+     */
+    public List<?> getTimelines() {
+        // TODO: When the docgen system is reworked, implement a proper way to version functions and their returns so we can mitigate cross-version docgen issues.
+        ClientLevel world = mc.level;
+        if (world == null) return Collections.emptyList();
+        //? if >=26.1 {
+        /*return world.dimensionType().timelines().stream().toList();
+        *///? } else {
+        return Collections.emptyList();
+        //? }
+    }
+
+    /**
+     * Returns the current world's Mojang {@code ClockManager}.
+     * <p>
+     * Use this with the raw timelines returned by {@code World.getTimelines()} to read
+     * their current, total, and period-count tick values. It is available only on
+     * 26.1; earlier targets and an unloaded world return {@code null}.
+     *
+     * @return the active Mojang clock manager, or {@code null} when unavailable.
+     * @since 2.0.0
+     */
+    @Nullable
+    public Object getClockManager() {
+        ClientLevel world = mc.level;
+        if (world == null) return null;
+        //? if >=26.1 {
+        /*return world.clockManager();
+        *///? } else {
+        return null;
+        //? }
+    }
+
+    /**
      * @return {@code true} if it is daytime, {@code false} otherwise.
      * @since 1.8.4
      */
