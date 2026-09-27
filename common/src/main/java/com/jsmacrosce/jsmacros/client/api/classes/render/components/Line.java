@@ -2,10 +2,19 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+//? if <1.21.11 {
 import com.mojang.blaze3d.platform.DepthTestFunction;
+//?}
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
+//? if >=26.1 {
+/*import net.minecraft.client.renderer.SubmitNodeCollector;
+*///?}
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
@@ -297,7 +306,11 @@ public class Line implements RenderElement, Alignable<Line> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void extractRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         //? if >1.21.5 {
         Matrix3x2fStack matrices = drawContext.pose();
         matrices.pushMatrix();
@@ -337,7 +350,11 @@ public class Line implements RenderElement, Alignable<Line> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, SubmitNodeCollector collector, float delta) {
+    *///?} else {
     public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+    //?}
         matrixStack.pushPose();
         matrixStack.translate(x1, y1, 0);
         if (rotateCenter) {

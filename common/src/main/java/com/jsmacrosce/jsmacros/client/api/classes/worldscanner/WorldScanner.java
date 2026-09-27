@@ -25,6 +25,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.BlockHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockStateHelper;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
+import com.jsmacrosce.jsmacros.util.ChunkPosUtil;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -101,7 +102,7 @@ public class WorldScanner {
      */
     public List<Pos3D> scanAroundPlayer(int chunkRange) {
         if (mc.player == null) return new ArrayList<>();
-        return scanChunkRange(mc.player.chunkPosition().x, mc.player.chunkPosition().z, chunkRange);
+        return scanChunkRange(ChunkPosUtil.x(mc.player.chunkPosition()), ChunkPosUtil.z(mc.player.chunkPosition()), chunkRange);
     }
 
     /**
@@ -437,16 +438,18 @@ public class WorldScanner {
     }
 
     private Stream<Pos3D> scanChunkInternal(ChunkPos pos, int minY, int maxY) {
-        if (!world.hasChunk(pos.x, pos.z)) {
+        int posX = ChunkPosUtil.x(pos);
+        int posZ = ChunkPosUtil.z(pos);
+        if (!world.hasChunk(posX, posZ)) {
             return Stream.empty();
         }
 
-        long chunkX = (long) pos.x << 4;
-        long chunkZ = (long) pos.z << 4;
+        long chunkX = (long) posX << 4;
+        long chunkZ = (long) posZ << 4;
 
         List<Pos3D> blocks = new ArrayList<>();
 
-        streamChunkSections(world.getChunk(pos.x, pos.z), minY, maxY, (section, yOffset, isInFilter) -> {
+        streamChunkSections(world.getChunk(posX, posZ), minY, maxY, (section, yOffset, isInFilter) -> {
             SimpleBitStorage array = (SimpleBitStorage) ((IPalettedContainer<?>) section.getStates()).jsmacros_getData().jsmacros_getStorage();
             forEach(array, isInFilter, place -> blocks.add(new Pos3D(
                     chunkX + ((place & 255) & 15),
@@ -490,13 +493,15 @@ public class WorldScanner {
         Object2IntOpenHashMap<String> result = new Object2IntOpenHashMap<>();
 
         getBestStream(chunkPositions).flatMap(pos -> {
-            if (!world.getChunkSource().hasChunk(pos.x, pos.z)) {
+            int posX = ChunkPosUtil.x(pos);
+            int posZ = ChunkPosUtil.z(pos);
+            if (!world.getChunkSource().hasChunk(posX, posZ)) {
                 return Stream.empty();
             }
 
             Object2IntOpenHashMap<BlockState> blocks = new Object2IntOpenHashMap<>();
 
-            streamChunkSections(world.getChunk(pos.x, pos.z), (section, yOffset, isInFilter) -> count(section.getStates(), isInFilter, blocks::addTo));
+            streamChunkSections(world.getChunk(posX, posZ), (section, yOffset, isInFilter) -> count(section.getStates(), isInFilter, blocks::addTo));
             return blocks.object2IntEntrySet().stream();
         }).forEach(blockStateEntry -> {
             BlockState state = blockStateEntry.getKey();

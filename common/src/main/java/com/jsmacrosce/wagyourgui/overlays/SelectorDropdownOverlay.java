@@ -1,7 +1,11 @@
 package com.jsmacrosce.wagyourgui.overlays;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 //? if >1.21.8 {
 /*import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -122,7 +126,11 @@ public class SelectorDropdownOverlay extends OverlayContainer {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         renderBackground(drawContext);
         super.render(drawContext, mouseX, mouseY, delta);
     }

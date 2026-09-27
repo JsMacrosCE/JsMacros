@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.gui.containers;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.network.chat.Component;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.config.ClientConfigV2;
@@ -61,7 +65,11 @@ public class MacroListTopbar extends MultiElementContainer<MacroScreen> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         drawContext.fill(x, y, x + width, y + 1, 0xFFFFFFFF);
         drawContext.fill(x, y + height - 2, x + width, y + height - 1, 0xFFFFFFFF);
         drawContext.fill(x, y + height - 1, x + width, y + height, 0xFF7F7F7F);

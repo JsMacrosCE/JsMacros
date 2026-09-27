@@ -1,9 +1,15 @@
 import org.gradle.language.jvm.tasks.ProcessResources
+import net.fabricmc.loom.api.LoomGradleExtensionAPI
 
 plugins {
     kotlin("jvm") version "2.2.10"
     id("com.google.devtools.ksp") version "2.2.10-2.0.2"
-    id("fabric-loom")
+    // `apply false` puts loom on the classpath without applying it; the actual
+    // plugin (obfuscated vs deobfuscated) is picked per-version below. Typed DSL
+    // accessors are not generated under `apply false`, so loom-specific config in
+    // this file uses the string-based DSL (`"minecraft"(...)`, `configure<LoomGradleExtensionAPI>`).
+    id("fabric-loom") apply false
+    id("net.fabricmc.fabric-loom") apply false
     id("multiloader-loader")
     id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.22"
 }
@@ -11,6 +17,17 @@ plugins {
 val mod_id = commonMod.prop("mod_id")
 val minecraft_version = commonMod.prop("minecraft_version")
 var mod_version = project.version.toString()
+
+// MC 26.1 ships deobfuscated, so Loom 1.15+ skips the mappings layer and the
+// remap step. The non-obfuscated plugin `net.fabricmc.fabric-loom` routes to
+// `LoomNoRemapGradlePlugin`; the legacy `fabric-loom` alias still targets the
+// obfuscated-MC plugin used for 1.21.x. Both IDs come from the same JAR and
+// cannot be conditionalised inside the `plugins { }` block, so we apply the
+// correct one here.
+val isDeobfuscatedMc = minecraft_version.startsWith("26.")
+apply(plugin = if (isDeobfuscatedMc) "net.fabricmc.fabric-loom" else "fabric-loom")
+
+val loom = extensions.getByType(LoomGradleExtensionAPI::class.java)
 
 base {
     archivesName.set("$mod_id-$minecraft_version-fabric-$mod_version")
@@ -24,31 +41,37 @@ val extensionJars by configurations.creating {
 
 // Gradle is stupid and will throw a `Type mismatch: inferred type is Dependency? but Any was expected` otherwise
 fun DependencyHandlerScope.implInclude(notation: Any) {
-    add("implementation", requireNotNull(include(notation)))
+    val dep = requireNotNull(add("include", notation))
+    add("implementation", dep)
 }
 
 dependencies {
-    minecraft("com.mojang:minecraft:$minecraft_version")
+    "minecraft"("com.mojang:minecraft:$minecraft_version")
 
-    mappings(loom.layered {
-        val parchment_minecraft = commonMod.prop("parchment_minecraft")
-        val parchment_version = commonMod.prop("parchment_version")
+    if (!isDeobfuscatedMc) {
+        "mappings"(loom.layered(Action {
+            val parchment_minecraft = commonMod.prop("parchment_minecraft")
+            val parchment_version = commonMod.prop("parchment_version")
 
-        officialMojangMappings()
-        parchment(
-            "org.parchmentmc.data:parchment-$parchment_minecraft:$parchment_version@zip"
-        )
-    })
+            officialMojangMappings()
+            // Parchment does not yet ship mappings for 26.1.x; skip the layer when
+            // either property is blank. TODO(26.1): re-enable once parchment publishes.
+            if (parchment_minecraft.isNotBlank() && parchment_version.isNotBlank()) {
+                parchment(
+                    "org.parchmentmc.data:parchment-$parchment_minecraft:$parchment_version@zip"
+                )
+            }
+        }))
+    }
 
     val fabric_loader_version = commonMod.prop("fabric_loader_version")
     val fabric_version = commonMod.prop("fabric_version")
+    val mod_menu_version = commonMod.prop("mod_menu_version")
 
-    modImplementation("net.fabricmc:fabric-loader:$fabric_loader_version")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:$fabric_version")
-
-    // ModMenu integration
-    val mod_menu_version = commonMod.prop("mod_menu_version");
-    modImplementation("com.terraformersmc:modmenu:$mod_menu_version")
+    val modOrPlain = if (isDeobfuscatedMc) "implementation" else "modImplementation"
+    add(modOrPlain, "net.fabricmc:fabric-loader:$fabric_loader_version")
+    add(modOrPlain, "net.fabricmc.fabric-api:fabric-api:$fabric_version")
+    add(modOrPlain, "com.terraformersmc:modmenu:$mod_menu_version")
 
     // Common library dependencies - include for bundling in jar
     implInclude("io.noties:prism4j:2.0.0")
@@ -91,13 +114,13 @@ tasks.named<ProcessResources>("processResources") {
 }
 
 // Copy the version-specific access widener and rename it for the jar
-loom {
+loom.apply {
     // Use the version-specific access widener
     accessWidenerPath.set(project(":common").file("src/main/resources/accesswideners/$minecraft_version-$mod_id.accesswidener"))
 
-    mixin {
+    mixin(Action {
         defaultRefmapName.set("$mod_id.refmap.json")
-    }
+    })
 }
 
 fletchingTable {

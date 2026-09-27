@@ -1,13 +1,26 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import net.minecraft.client.Minecraft;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.renderer.MultiBufferSource;
+//? if >=26.1 {
+/*import net.minecraft.client.renderer.SubmitNodeCollector;
+*///?}
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+//? if <26.1 {
 import com.mojang.blaze3d.platform.DepthTestFunction;
+//?}
+//? if >=26.1 {
+/*import com.mojang.blaze3d.pipeline.DepthStencilState;
+import com.mojang.blaze3d.platform.CompareOp;
+*///?}
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
@@ -44,7 +57,14 @@ public class Image implements RenderElement, Alignable<Image> {
     private static final DepthTestFunction oldEntityTranslucentDepthTestFunction;
     //? }
 
-    //? if >=1.21.11 {
+    //? if >=26.1 {
+    /*private static final RenderPipeline ENTITY_TRANSLUCENT_SEE_THROUGH = RenderPipeline.builder(RenderPipelines.ENTITY_SNIPPET)
+            .withLocation("pipeline/jsmacrosce/entity_translucent_see_through")
+            .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))
+            .withCull(false)
+            .build();
+    private static final Map<ResourceLocation, RenderType> ENTITY_TRANSLUCENT_SEE_THROUGH_TYPES = new ConcurrentHashMap<>();
+    *///?} else if >=1.21.11 {
     /*private static final RenderPipeline ENTITY_TRANSLUCENT_SEE_THROUGH = RenderPipeline.builder(RenderPipelines.ENTITY_SNIPPET)
             .withLocation("pipeline/jsmacrosce/entity_translucent_see_through")
             .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
@@ -342,7 +362,11 @@ public class Image implements RenderElement, Alignable<Image> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void extractRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         //? if >1.21.5 {
         Matrix3x2fStack matrices = drawContext.pose();
         matrices.pushMatrix();
@@ -378,7 +402,11 @@ public class Image implements RenderElement, Alignable<Image> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, SubmitNodeCollector collector, float delta) {
+    *///?} else {
     public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+    //?}
         matrixStack.pushPose();
         matrixStack.translate(x, y, 0);
         if (rotateCenter) {

@@ -644,7 +644,11 @@ public class FWorld extends BaseLibrary {
     public long getTimeOfDay() {
         ClientLevel world = mc.level;
         if (world == null) return -1;
+        //? if >=26.1 {
+        /*return world.getDefaultClockTime();
+        *///?} else {
         return world.getDayTime();
+        //?}
     }
 
     /**
@@ -743,9 +747,11 @@ public class FWorld extends BaseLibrary {
     public int getMoonPhase() {
         ClientLevel world = mc.level;
         if (world == null) return -1;
-        //? if >=1.21.11 {
+        //? if >=26.1 {
+        /*return (int) (world.getDefaultClockTime() / 24000L % 8L + 8L) % 8;
+        *///?} else if >=1.21.11 {
         /*return (int) (world.getDayTime() / 24000L % 8L + 8L) % 8;
-        *///? } else {
+        *///?} else {
         return world.getMoonPhase();
         //? }
     }

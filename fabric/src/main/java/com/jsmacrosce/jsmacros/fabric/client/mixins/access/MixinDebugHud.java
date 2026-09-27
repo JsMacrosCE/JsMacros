@@ -2,7 +2,9 @@ package com.jsmacrosce.jsmacros.fabric.client.mixins.access;
 
 import com.google.common.collect.ImmutableSet;
 import dev.kikugie.fletching_table.annotation.MixinEnvironment;
+//? if <=1.21.8 {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.DebugScreenOverlay;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

@@ -3,7 +3,7 @@ package com.jsmacrosce.jsmacros.client.mixin.access;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-//? if >=1.21.10 {
+//? if >=1.21.10 && <26.1 {
 /*import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.renderer.block.model.ItemTransform;
 import net.minecraft.client.renderer.item.ItemStackRenderState;

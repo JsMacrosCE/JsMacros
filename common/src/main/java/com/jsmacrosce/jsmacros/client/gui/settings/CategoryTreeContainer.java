@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.gui.settings;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.network.chat.Component;
 import com.jsmacrosce.wagyourgui.containers.MultiElementContainer;
 import com.jsmacrosce.wagyourgui.elements.Button;
@@ -164,7 +168,11 @@ public class CategoryTreeContainer extends MultiElementContainer<ICategoryTreePa
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
 
     }
 

@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render;
 
 import com.google.common.collect.ImmutableList;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.network.chat.Component;
@@ -33,7 +37,11 @@ public class ScriptScreen extends BaseScreen {
     public boolean shouldPause = true;
     private final int bgStyle;
     @Nullable
+    //? if >=26.1 {
+    /*private MethodWrapper<Pos3D, GuiGraphicsExtractor, Object, ?> onRender;
+    *///?} else {
     private MethodWrapper<Pos3D, GuiGraphics, Object, ?> onRender;
+    //?}
 
     public ScriptScreen(String title, boolean dirt) {
         super(Component.literal(title), null);
@@ -62,30 +70,54 @@ public class ScriptScreen extends BaseScreen {
      * @param onRender pos3d elements are mousex, mousey, tickDelta
      * @since 1.4.0
      */
+    //? if >=26.1 {
+    /*public void setOnRender(@Nullable MethodWrapper<Pos3D, GuiGraphicsExtractor, Object, ?> onRender) {
+    *///?} else {
     public void setOnRender(@Nullable MethodWrapper<Pos3D, GuiGraphics, Object, ?> onRender) {
+    //?}
         this.onRender = onRender;
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void extractRenderState(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         if (drawContext == null) {
             return;
         }
         if (bgStyle == 0) {
+            //? if >=26.1 {
+            /*this.extractMenuBackground(drawContext);
+            *///?} else {
             this.renderMenuBackground(drawContext);
+            //?}
         }
 
         if (drawTitle) {
+            //? if >=26.1 {
+            /*drawContext.centeredText(this.font, this.title, this.width / 2, 20, 0xFFFFFFFF);
+            *///?} else {
             drawContext.drawCenteredString(this.font, this.title, this.width / 2, 20, 0xFFFFFFFF);
+            //?}
         }
 
+        //? if >=26.1 {
+        /*super.extractRenderState(drawContext, mouseX, mouseY, delta);
+        *///?} else {
         super.render(drawContext, mouseX, mouseY, delta);
+        //?}
 
         for (GuiEventListener button : ImmutableList.copyOf(this.children())) {
             if (!(button instanceof Renderable)) {
                 continue;
             }
+            //? if >=26.1 {
+            /*((Renderable) button).extractRenderState(drawContext, mouseX, mouseY, delta);
+            *///?} else {
             ((Renderable) button).render(drawContext, mouseX, mouseY, delta);
+            //?}
         }
 
         ((IScreenInternal) this).jsmacros_render(drawContext, mouseX, mouseY, delta);

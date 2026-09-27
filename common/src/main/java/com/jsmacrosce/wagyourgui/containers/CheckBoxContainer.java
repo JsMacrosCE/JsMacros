@@ -1,7 +1,11 @@
 package com.jsmacrosce.wagyourgui.containers;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.network.chat.Component;
 import com.jsmacrosce.wagyourgui.elements.Button;
 
@@ -40,9 +44,17 @@ public class CheckBoxContainer extends MultiElementContainer<IContainerParent> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         if (this.visible) {
+            //? if >=26.1 {
+            /*drawContext.textWithWordWrap(textRenderer, message, x + height, y + 2, width - height - 2, 0xFFFFFFFF, false);
+            *///?} else {
             drawContext.drawWordWrap(textRenderer, message, x + height, y + 2, width - height - 2, 0xFFFFFFFF, false);
+            //?}
         }
     }
 
