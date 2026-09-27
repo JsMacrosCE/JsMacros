@@ -1,0 +1,42 @@
+accessWidener v2 official
+
+accessible field net/minecraft/client/gui/components/BossHealthOverlay events Ljava/util/Map;
+accessible field net/minecraft/client/gui/components/ChatComponent allMessages Ljava/util/List;
+
+accessible field net/minecraft/client/gui/screens/inventory/BeaconScreen primary Lnet/minecraft/core/Holder;
+accessible field net/minecraft/client/gui/screens/inventory/BeaconScreen secondary Lnet/minecraft/core/Holder;
+accessible field net/minecraft/client/gui/screens/inventory/AbstractContainerScreen skipNextRelease Z
+accessible field net/minecraft/client/gui/screens/inventory/AbstractRecipeBookScreen recipeBookComponent Lnet/minecraft/client/gui/screens/recipebook/RecipeBookComponent;
+accessible field net/minecraft/client/gui/screens/recipebook/RecipeBookComponent tabInfos Ljava/util/List;
+
+accessible field net/minecraft/client/Minecraft fontManager Lnet/minecraft/client/gui/font/FontManager;
+accessible method net/minecraft/client/Minecraft startUseItem ()V
+accessible method net/minecraft/client/Minecraft startAttack ()Z
+accessible method net/minecraft/client/Minecraft getConnection ()Lnet/minecraft/client/multiplayer/ClientPacketListener;
+
+accessible method net/minecraft/client/multiplayer/ClientPacketListener getCommands ()Lcom/mojang/brigadier/CommandDispatcher;
+
+accessible field net/minecraft/client/player/ClientInput moveVector Lnet/minecraft/world/phys/Vec2;
+accessible method net/minecraft/client/player/KeyboardInput calculateImpulse (ZZ)F
+
+accessible field net/minecraft/client/OptionInstance value Ljava/lang/Object;
+
+accessible field net/minecraft/world/entity/player/StackedItemContents raw Lnet/minecraft/world/entity/player/StackedContents;
+
+accessible field net/minecraft/world/level/block/entity/FuelValues values Lit/unimi/dsi/fastutil/objects/Object2IntSortedMap;
+
+accessible field net/minecraft/world/entity/vehicle/boat/AbstractBoat status Lnet/minecraft/world/entity/vehicle/boat/AbstractBoat$Status;
+
+accessible field net/minecraft/world/entity/animal/dolphin/Dolphin treasurePos Lnet/minecraft/core/BlockPos;
+accessible method net/minecraft/world/entity/animal/fish/TropicalFish getPackedVariant ()I
+accessible field net/minecraft/world/entity/animal/wolf/Wolf isWet Z
+
+accessible field net/minecraft/world/entity/player/Player DATA_SHOULDER_PARROT_LEFT Lnet/minecraft/network/syncher/EntityDataAccessor;
+accessible field net/minecraft/world/entity/player/Player DATA_SHOULDER_PARROT_RIGHT Lnet/minecraft/network/syncher/EntityDataAccessor;
+
+accessible class net/minecraft/client/StringSplitter$WidthLimitedCharSink
+
+accessible field net/minecraft/client/renderer/RenderPipelines DEBUG_FILLED_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
+accessible field net/minecraft/client/renderer/RenderPipelines ENTITY_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
+accessible method net/minecraft/client/renderer/rendertype/RenderType create (Ljava/lang/String;Lnet/minecraft/client/renderer/rendertype/RenderSetup;)Lnet/minecraft/client/renderer/rendertype/RenderType;
+accessible method net/minecraft/client/renderer/RenderPipelines register (Lcom/mojang/blaze3d/pipeline/RenderPipeline;)Lcom/mojang/blaze3d/pipeline/RenderPipeline;

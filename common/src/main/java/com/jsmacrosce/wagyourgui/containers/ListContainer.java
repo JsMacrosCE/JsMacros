@@ -2,7 +2,11 @@ package com.jsmacrosce.wagyourgui.containers;
 
 import com.google.common.collect.ImmutableList;
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.network.chat.Component;
 import com.jsmacrosce.wagyourgui.elements.Button;
@@ -64,7 +68,11 @@ public class ListContainer extends MultiElementContainer<IContainerParent> {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
 
         for (AbstractWidget b : ImmutableList.copyOf(this.buttons)) {
             if (b instanceof Button && ((Button) b).hovering && ((Button) b).cantRenderAllText()) {
@@ -77,7 +85,11 @@ public class ListContainer extends MultiElementContainer<IContainerParent> {
 
                 // fill
                 drawContext.fill(mouseX - 2, mouseY - textRenderer.lineHeight - 3, mouseX + width + 2, mouseY, 0xFF000000);
+                //? if >=26.1 {
+                /*drawContext.text(textRenderer, b.getMessage(), mouseX, mouseY - textRenderer.lineHeight - 1, 0xFFFFFFFF);
+                *///?} else {
                 drawContext.drawString(textRenderer, b.getMessage(), mouseX, mouseY - textRenderer.lineHeight - 1, 0xFFFFFFFF);
+                //?}
             }
         }
     }

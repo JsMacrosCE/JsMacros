@@ -1,7 +1,11 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingcontainer;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
@@ -121,8 +125,16 @@ public abstract class AbstractMapSettingContainer<T, U extends AbstractMapSettin
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
+        //? if >=26.1 {
+        /*drawContext.text(textRenderer, settingName, (int) (x + width / 2F - textRenderer.width(settingName) / 2F + 20), y + 1, 0xFFFFFFFF, false);
+        *///?} else {
         drawContext.drawString(textRenderer, settingName, (int) (x + width / 2F - textRenderer.width(settingName) / 2F + 20), y + 1, 0xFFFFFFFF, false);
+        //?}
         drawContext.fill(x, y + 10, x + width, y + 11, 0xFFFFFFFF);
     }
 
@@ -194,7 +206,11 @@ public abstract class AbstractMapSettingContainer<T, U extends AbstractMapSettin
         }
 
         @Override
+        //? if >=26.1 {
+        /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+        *///?} else {
         public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+        //?}
 
         }
 

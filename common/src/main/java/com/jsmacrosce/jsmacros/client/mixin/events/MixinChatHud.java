@@ -1,8 +1,15 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
 import net.minecraft.ChatFormatting;
+//? if >=26.1 {
+/*import net.minecraft.client.multiplayer.chat.GuiMessageTag;
+*///?} else {
 import net.minecraft.client.GuiMessageTag;
+//?}
 import net.minecraft.client.gui.components.ChatComponent;
+//? if >=26.1 {
+/*import net.minecraft.client.multiplayer.chat.GuiMessageSource;
+*///?}
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
@@ -23,6 +30,21 @@ class MixinChatHud {
     @Unique
     private Component jsmacros$originalMessage;
 
+    //? if >=26.1 {
+    /*@Inject(
+            method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
+            at = @At("HEAD"),
+            cancellable = true
+    )
+    private void onAddMessage1(Component message, MessageSignature signature, GuiMessageSource source, GuiMessageTag indicator, CallbackInfo ci) {
+        jsmacros$originalMessage = message;
+        jsmacros$eventRecvMessage = new EventRecvMessage(message, signature, indicator);
+        jsmacros$eventRecvMessage.trigger();
+        if (jsmacros$eventRecvMessage.isCanceled()) {
+            ci.cancel();
+        }
+    }
+    *///?} else {
     @Inject(
             method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V",
             at = @At("HEAD"),
@@ -36,12 +58,17 @@ class MixinChatHud {
             ci.cancel();
         }
     }
+    //?}
 
     @Unique
     private boolean jsmacros$modifiedEventRecieve;
 
     @ModifyVariable(
+            //? if >=26.1 {
+            /*method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
+            *///?} else {
             method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V",
+            //?}
             at = @At(value = "HEAD"),
             argsOnly = true
     )
@@ -66,7 +93,11 @@ class MixinChatHud {
     private final Component MODIFIED_TEXT = Component.translatable("jsmacrosce.chat.tag.modified").withStyle(ChatFormatting.UNDERLINE);
 
     @ModifyVariable(
+            //? if >=26.1 {
+            /*method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
+            *///?} else {
             method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V",
+            //?}
             at = @At(value = "HEAD"),
             argsOnly = true
     )
@@ -84,6 +115,18 @@ class MixinChatHud {
         }
     }
 
+    //? if >=26.1 {
+    /*@Inject(
+            method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/multiplayer/chat/GuiMessageSource;Lnet/minecraft/client/multiplayer/chat/GuiMessageTag;)V",
+            at = @At("HEAD"),
+            cancellable = true
+    )
+    private void onAddChatMessage(Component message, MessageSignature signature, GuiMessageSource source, GuiMessageTag indicator, CallbackInfo ci) {
+        if (message == null) {
+            ci.cancel();
+        }
+    }
+    *///?} else {
     @Inject(
             method = "addMessage(Lnet/minecraft/network/chat/Component;Lnet/minecraft/network/chat/MessageSignature;Lnet/minecraft/client/GuiMessageTag;)V",
             at = @At("HEAD"),
@@ -94,5 +137,6 @@ class MixinChatHud {
             ci.cancel();
         }
     }
+    //?}
 
 }

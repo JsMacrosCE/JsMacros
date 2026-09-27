@@ -149,7 +149,13 @@ public class StyleHelper extends BaseHelper<Style> {
     public Object getHoverValue() {
         return switch (base.getHoverEvent()) {
             case HoverEvent.ShowText s -> TextHelper.wrap(s.value());
-            case HoverEvent.ShowItem i -> new ItemStackHelper(i.item());
+            case HoverEvent.ShowItem i -> {
+                //? if >=26.1 {
+                /*yield new ItemStackHelper(i.item().create());
+                *///?} else {
+                yield new ItemStackHelper(i.item());
+                //?}
+            }
             case HoverEvent.ShowEntity e -> e.entity().getTooltipLines().stream().map(TextHelper::wrap).collect(Collectors.toList());
             case null, default -> null;
         };

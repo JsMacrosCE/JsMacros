@@ -206,8 +206,10 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                 return (R2) fn.execute(args).as(Object.class);
             }
 
+            boolean bound = false;
             try {
-                ctx.bindThread(Thread.currentThread());
+                ctx.bindCallerThread();
+                bound = true;
                 if (!ctx.isMultiThreaded()) {
                     WrappedThread wt = new WrappedThread(Thread.currentThread(), priority);
                     ctx.tasks.add(wt);
@@ -220,6 +222,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
 
                     if (ctx.isContextClosed()) {
                         ctx.unbindThread(Thread.currentThread());
+                        bound = false;
                         ctx.tasks.poll();
                         WrappedThread next = ctx.tasks.peek();
                         if (next != null) {
@@ -246,12 +249,14 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                 e.printStackTrace();
                 throw new RuntimeException(e);
             } finally {
-                ctx.unbindThread(Thread.currentThread());
-                if (!ctx.isMultiThreaded()) {
-                    ctx.tasks.poll();
-                    WrappedThread next = ctx.tasks.peek();
-                    if (next != null) {
-                        next.notifyReady();
+                if (bound) {
+                    ctx.unbindThread(Thread.currentThread());
+                    if (!ctx.isMultiThreaded()) {
+                        ctx.tasks.poll();
+                        WrappedThread next = ctx.tasks.peek();
+                        if (next != null) {
+                            next.notifyReady();
+                        }
                     }
                 }
             }

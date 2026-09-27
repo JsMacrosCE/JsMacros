@@ -1,9 +1,14 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 
+//? if <1.21.11 {
 import com.mojang.blaze3d.platform.DepthTestFunction;
+//?}
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.MultiBufferSource;
+//? if >=26.1 {
+/*import net.minecraft.client.renderer.SubmitNodeCollector;
+*///?}
 import net.minecraft.client.renderer.RenderPipelines;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
@@ -29,6 +34,7 @@ import net.minecraft.client.renderer.RenderType;
  */
 @SuppressWarnings("unused")
 public class Line3D implements RenderElement3D<Line3D> {
+    //? if <1.21.11 {
     private static final Field lineDepthTestFunction;
     private static final DepthTestFunction oldlineDepthTestFunction;
 
@@ -41,6 +47,7 @@ public class Line3D implements RenderElement3D<Line3D> {
             throw new RuntimeException("JS-Macros 3D Rendering failed to reflect into RenderLayer for Line3D", e);
         }
     }
+    //?}
     public Vec3D pos;
     public int color;
     // TODO: deprecate in favor of "alwaysOnTop" (alwaysOnTop is technically the reverse of this)
@@ -189,7 +196,11 @@ public class Line3D implements RenderElement3D<Line3D> {
 
     @Override
     @DocletIgnore
+    //? if >=26.1 {
+    /*public void render(PoseStack matrixStack, MultiBufferSource consumers, SubmitNodeCollector collector, float tickDelta) {
+    *///?} else {
     public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
+    //?}
         boolean alwaysOnTop = !this.cull;
         //? if >=1.21.11 {
         /*GizmoProperties gizmo = Gizmos.addGizmo(new LineGizmo(

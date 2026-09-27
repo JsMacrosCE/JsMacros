@@ -3,7 +3,11 @@ package com.jsmacrosce.wagyourgui.elements;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -105,7 +109,11 @@ public class Slider extends AbstractWidget {
     }
 
     @Override
+    //? if >=26.1 {
+    /*protected void extractWidgetRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
+    *///?} else {
     protected void renderWidget(GuiGraphics context, int mouseX, int mouseY, float delta) {
+    //?}
         //? if >1.21.5 {
         RenderPipeline renderType = RenderPipelines.GUI_TEXTURED;
         //?} else {

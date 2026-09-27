@@ -41,6 +41,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.DirectionHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.HitResultHelper;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
+import com.jsmacrosce.jsmacros.util.ChunkPosUtil;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -559,7 +560,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      */
     public int[] readChunkPos() {
         ChunkPos pos = base.readChunkPos();
-        return new int[]{pos.x, pos.z};
+        return new int[]{ChunkPosUtil.x(pos), ChunkPosUtil.z(pos)};
     }
 
     /**
@@ -570,7 +571,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     public ChunkHelper readChunkHelper() {
         ChunkPos pos = base.readChunkPos();
         assert Minecraft.getInstance().level != null;
-        ChunkAccess chunk = Minecraft.getInstance().level.getChunk(pos.x, pos.z);
+        ChunkAccess chunk = Minecraft.getInstance().level.getChunk(ChunkPosUtil.x(pos), ChunkPosUtil.z(pos));
         return chunk == null ? null : new ChunkHelper(chunk);
     }
 

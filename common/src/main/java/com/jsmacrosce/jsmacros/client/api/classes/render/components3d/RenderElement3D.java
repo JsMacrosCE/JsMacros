@@ -2,13 +2,20 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
+//? if >=26.1 {
+/*import net.minecraft.client.renderer.SubmitNodeCollector;
+*///?}
 import org.jetbrains.annotations.NotNull;
 import com.jsmacrosce.doclet.DocletIgnore;
 
 public interface RenderElement3D<T extends RenderElement3D<?>> extends Comparable<RenderElement3D<?>> {
 
     @DocletIgnore
+    //? if >=26.1 {
+    /*void render(PoseStack matrices, MultiBufferSource consumers, SubmitNodeCollector collector, float tickDelta);
+    *///?} else {
     void render(PoseStack matrices, MultiBufferSource consumers, float tickDelta);
+    //?}
 
     @Override
     default int compareTo(@NotNull RenderElement3D o) {

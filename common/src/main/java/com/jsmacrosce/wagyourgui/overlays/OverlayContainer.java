@@ -1,7 +1,11 @@
 package com.jsmacrosce.wagyourgui.overlays;
 
 import net.minecraft.client.gui.Font;
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
+//?}
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import com.jsmacrosce.wagyourgui.containers.MultiElementContainer;
@@ -126,7 +130,11 @@ public abstract class OverlayContainer extends MultiElementContainer<IOverlayPar
     public void onClose() {
     }
 
+    //? if >=26.1 {
+    /*public void renderBackground(GuiGraphicsExtractor drawContext) {
+    *///?} else {
     public void renderBackground(GuiGraphics drawContext) {
+    //?}
         // black bg
         drawContext.fill(x, y, x + width, y + height, 0xFF000000);
         // 2 layer border
@@ -143,6 +151,16 @@ public abstract class OverlayContainer extends MultiElementContainer<IOverlayPar
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+        for (AbstractWidget btn : buttons) {
+            btn.extractRenderState(drawContext, mouseX, mouseY, delta);
+        }
+        if (this.overlay != null) {
+            this.overlay.render(drawContext, mouseX, mouseY, delta);
+        }
+    }
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         for (AbstractWidget btn : buttons) {
             btn.render(drawContext, mouseX, mouseY, delta);
@@ -151,5 +169,6 @@ public abstract class OverlayContainer extends MultiElementContainer<IOverlayPar
             this.overlay.render(drawContext, mouseX, mouseY, delta);
         }
     }
+    //?}
 
 }

@@ -484,7 +484,12 @@ public class FClient extends PerExecLibrary {
      */
     public void grabMouse() {
         mc.options.pauseOnLostFocus = false;
+        // Minecraft.setWindowActive(boolean) was removed in 26.1 with no replacement — focus
+        // state is now owned by Window via GLFW callbacks. The setter was belt-and-suspenders
+        // for focus regain; mouseHandler.grabMouse + pauseOnLostFocus=false carry the core behavior.
+        //? if <26.1 {
         mc.setWindowActive(true);
+        //?}
         mc.mouseHandler.grabMouse();
     }
 
