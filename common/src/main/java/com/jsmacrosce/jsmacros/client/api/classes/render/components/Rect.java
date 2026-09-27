@@ -602,6 +602,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
          */
         public Builder color(int color) {
             this.color = color;
+            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
             return this;
         }
 

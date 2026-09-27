@@ -627,7 +627,7 @@ const TESTS = [
             screen.addText(goldText, 24, 72, 0xFFFFFF, false);
             screen.addText(segmentedText, 24, 92, 0xFFFFFF, false);
             screen.addText(clickText, 24, 112, 0xFFFFFF, false);
-            screen.addText("[4] This unstyled text must not show a tooltip.", 24, 132, 0xFFFFFF, false);
+            screen.addText("[4] No tooltip here; this line must remain visible after hovering [1] and [2].", 24, 132, 0xFFFFFF, false);
             check(state, true, "Styled and custom-click text was added");
         }
     },
@@ -840,6 +840,71 @@ const TESTS = [
         }
     },
     {
+        id: "COLOR-ALPHA-001",
+        category: "Color",
+        mode: "auto",
+        title: "Default Color Alpha",
+        run(state) {
+            const ColorUtil = Java.type("com.jsmacrosce.jsmacros.client.util.ColorUtil");
+            check(state, alphaOf(ColorUtil.fixAlpha(0x123456)) === 0xFF, "fixAlpha() makes bare RGB opaque");
+            check(state, alphaOf(ColorUtil.fixAlpha(0x40123456)) === 0x40, "fixAlpha() preserves packed alpha");
+            check(state, ColorUtil.fixAlpha(0) === 0, "fixAlpha() leaves zero transparent");
+
+            const draw = Hud.createDraw2D();
+            const rect = draw.addRect(0, 0, 1, 1, 0x123456);
+            const line = draw.addLine(0, 0, 1, 1, 0x123456);
+            const text = draw.addText("alpha", 0, 0, 0x123456, false);
+            const image = draw.addImage(0, 0, 1, 1, 0, 0x123456,
+                "minecraft:textures/item/diamond.png", 0, 0, 1, 1, 1, 1, 0);
+            const elements = [["Rect", rect], ["Line", line], ["Text", text], ["Image", image]];
+            for (const [name, element] of elements) {
+                check(state, alphaOf(element.getColor()) === 0xFF && rgbOf(element.getColor()) === 0x123456,
+                    name + " constructor makes bare RGB opaque");
+                element.setColor(0x40123456);
+                check(state, alphaOf(element.getColor()) === 0x40, name + ".setColor() preserves packed alpha");
+                element.setColor(0x123456);
+                check(state, alphaOf(element.getColor()) === 0xFF, name + ".setColor() defaults bare RGB to opaque");
+                element.setColor(0);
+                check(state, element.getColor() === 0, name + ".setColor(0) remains transparent");
+            }
+            const rectBuilt = draw.rectBuilder().color(0x123456).build();
+            const lineBuilt = draw.lineBuilder().color(0x123456).build();
+            const imageBuilt = draw.imageBuilder("minecraft:textures/item/diamond.png").color(0x123456).build();
+            check(state, alphaOf(rectBuilt.getColor()) === 0xFF && alphaOf(lineBuilt.getColor()) === 0xFF && alphaOf(imageBuilt.getColor()) === 0xFF,
+                "Rect, Line and Image builders default bare RGB to opaque");
+            check(state, alphaOf(draw.textBuilder("alpha").color(0x123456).build().getColor()) === 0xFF,
+                "Text builder defaults bare RGB to opaque");
+            const builders = [["Rect", () => draw.rectBuilder()], ["Line", () => draw.lineBuilder()],
+                ["Image", () => draw.imageBuilder("minecraft:textures/item/diamond.png")],
+                ["Text", () => draw.textBuilder("alpha")]];
+            for (const [name, makeBuilder] of builders) {
+                check(state, alphaOf(makeBuilder().color(0x40123456).build().getColor()) === 0x40,
+                    name + " builder preserves packed alpha");
+                check(state, makeBuilder().color(0).build().getColor() === 0,
+                    name + " builder leaves zero transparent");
+            }
+            check(state, alphaOf(draw.lineBuilder().color(0x40123456).alpha(0x20).build().getColor()) === 0x20,
+                "Line builder explicit alpha overrides packed alpha");
+
+            const Button = Java.type("com.jsmacrosce.wagyourgui.elements.Button");
+            const Minecraft = Java.type("net.minecraft.client.Minecraft");
+            const Component = Java.type("net.minecraft.network.chat.Component");
+            const button = new Button(0, 0, 10, 10, Minecraft.getInstance().font,
+                0x123456, 0x123456, 0x123456, 0x123456, Component.literal("alpha"), null);
+            const buttonColors = [["color", "setColor"], ["borderColor", "setBorderColor"],
+                ["highlightColor", "setHighlightColor"], ["textColor", "setTextColor"]];
+            for (const [field, setter] of buttonColors) {
+                const colorField = button.getClass().getDeclaredField(field);
+                colorField.setAccessible(true);
+                check(state, alphaOf(colorField.getInt(button)) === 0xFF, "Button." + field + " defaults bare RGB to opaque");
+                button[setter](0x40123456);
+                check(state, alphaOf(colorField.getInt(button)) === 0x40, "Button." + setter + " preserves packed alpha");
+                button[setter](0);
+                check(state, colorField.getInt(button) === 0, "Button." + setter + " keeps zero transparent");
+            }
+        }
+    },
+    {
         id: "DRAW3D-STYLE-001",
         category: "Draw3D",
         mode: "auto",
@@ -865,25 +930,73 @@ const TESTS = [
                 check(state, bb.getColor() === 0x102030 && bb.getAlpha() === 77, "Box.Builder color and alpha are retained");
                 check(state, bb.getFillColor() === 0x405060 && bb.getFillAlpha() === 88, "Box.Builder fill color and alpha are retained");
                 check(state, bb.isFilled() && bb.isCulled(), "Box.Builder fill and cull flags are retained");
+                check(state, alphaOf(draw.boxBuilder().color(0x123456).build().color) === 0xFF,
+                    "Box.Builder defaults bare RGB outline to alpha 255");
+                check(state, alphaOf(draw.boxBuilder().color(0x40123456).build().color) === 0x40
+                    && draw.boxBuilder().color(0).build().color === 0,
+                    "Box.Builder preserves packed alpha and transparent zero");
+                const defaultFill = draw.boxBuilder().fillColor(0x123456).fill(true).build();
+                check(state, alphaOf(defaultFill.fillColor) === 0xFF && rgbOf(defaultFill.fillColor) === 0x123456,
+                    "Box.Builder defaults bare RGB fill to alpha 255");
+                check(state, alphaOf(draw.boxBuilder().fillColor(0x40123456).fill(true).build().fillColor) === 0x40
+                    && draw.boxBuilder().fillColor(0).fill(true).build().fillColor === 0,
+                    "Box.Builder fill preserves packed alpha and transparent zero");
+                check(state, alphaOf(draw.boxBuilder().fillColor(0x123456).fillAlpha(0).fill(true).build().fillColor) === 0,
+                    "Box.Builder explicit transparent fill remains transparent");
 
                 const lb = draw.lineBuilder().pos1(1, 2, 3).pos2(4, 5, 6).color(0x123456).alpha(88).cull(true);
                 check(state, lb.getPos1().x === 1 && lb.getPos2().z === 6, "Line3D.Builder positions are retained");
                 check(state, lb.getColor() === 0x123456 && lb.getAlpha() === 88 && lb.isCulled(), "Line3D.Builder color, alpha and cull are retained");
+                check(state, alphaOf(draw.lineBuilder().color(0x123456).build().color) === 0xFF,
+                    "Line3D.Builder defaults bare RGB to alpha 255");
+                check(state, alphaOf(draw.lineBuilder().color(0x40123456).build().color) === 0x40
+                    && draw.lineBuilder().color(0).build().color === 0,
+                    "Line3D.Builder preserves packed alpha and transparent zero");
 
                 const tb = draw.traceLineBuilder().pos(1, 2, 3).color(0x012345).alpha(66);
                 check(state, tb.getPos().x === 1 && tb.getColor() === 0x012345 && tb.getAlpha() === 66, "TraceLine.Builder getters are retained");
+                check(state, draw.traceLineBuilder().color(0x123456).build().getAlpha() === 0xFF,
+                    "TraceLine.Builder defaults bare RGB to alpha 255");
+                check(state, draw.traceLineBuilder().color(0x40123456).build().getAlpha() === 0x40
+                    && draw.traceLineBuilder().color(0).build().getAlpha() === 0,
+                    "TraceLine.Builder preserves packed alpha and transparent zero");
 
+                const defaultEntityTrace = draw.entityTraceLineBuilder().color(0x778899);
+                check(state, defaultEntityTrace.getAlpha() === 0xFF && defaultEntityTrace.build().getAlpha() === 0xFF,
+                    "EntityTraceLine.Builder defaults bare RGB to alpha 255");
+                check(state, draw.entityTraceLineBuilder().color(0x40123456).build().getAlpha() === 0x40
+                    && draw.entityTraceLineBuilder().color(0).build().getAlpha() === 0,
+                    "EntityTraceLine.Builder preserves packed alpha and transparent zero");
                 const eb = draw.entityTraceLineBuilder().entity(null).yOffset(1.25).color(0x778899).alpha(44);
                 check(state, eb.getYOffset() === 1.25 && eb.getColor() === 0x778899 && eb.getAlpha() === 44, "EntityTraceLine.Builder getters are retained");
+                const builtEntityTrace = eb.build();
+                check(state, builtEntityTrace.getColor() === 0x778899 && builtEntityTrace.getAlpha() === 44,
+                    "EntityTraceLine.Builder applies the separate RGB and alpha to the built line");
 
                 // The bare-RGB paths run through ColorUtil.fixAlpha, so a color
                 // without an alpha byte is treated as opaque instead of invisible.
                 const bare = draw.addBox(0, 0, 0, 1, 1, 1, 0xFF0000, 0, false);
                 check(state, alphaOf(bare.color) === 255 && rgbOf(bare.color) === 0xFF0000, "Box outline fixAlpha() defaults bare RGB to alpha 255");
+                const filled = draw.addBox(0, 0, 0, 1, 1, 1, 0x112233, 0x00CC44, true);
+                check(state, alphaOf(filled.fillColor) === 255 && rgbOf(filled.fillColor) === 0x00CC44,
+                    "Box.addBox() defaults bare RGB fill to alpha 255");
+                filled.setFillColor(0x123456);
+                check(state, alphaOf(filled.fillColor) === 255 && rgbOf(filled.fillColor) === 0x123456,
+                    "Box.setFillColor(rgb) defaults bare RGB to alpha 255");
+                filled.setFillColor(0x40123456);
+                check(state, alphaOf(filled.fillColor) === 0x40, "Box.setFillColor(argb) preserves packed alpha");
+                filled.setColor(0x40123456);
+                check(state, alphaOf(filled.color) === 0x40, "Box.setColor(argb) preserves packed alpha");
+                filled.setFillColor(0);
+                filled.setColor(0);
+                check(state, filled.fillColor === 0 && filled.color === 0, "Box zero colors remain transparent");
                 bare.setColor(0x00FF00, 255);
                 check(state, alphaOf(bare.color) === 255 && rgbOf(bare.color) === 0x00FF00, "Box.setColor(rgb, alpha) sets the outline color");
                 bare.setFillColor(0x010203, 128);
                 check(state, alphaOf(bare.fillColor) === 128 && rgbOf(bare.fillColor) === 0x010203, "Box.setFillColor(rgb, alpha) sets the fill color");
+                bare.setFillColor(0x40123456, 0x20);
+                check(state, alphaOf(bare.fillColor) === 0x20 && rgbOf(bare.fillColor) === 0x123456,
+                    "Box.setFillColor(argb, alpha) lets explicit alpha override packed alpha");
                 bare.setPosToPoint(3, 4, 5, 0.3);
                 check(state, approx(bare.pos.x2 - bare.pos.x1, 0.6) && approx(bare.pos.y2 - bare.pos.y1, 0.6) && approx(bare.pos.z2 - bare.pos.z1, 0.6),
                     "Box.setPosToPoint(x, y, z, radius) creates a cube with side 2*radius");
@@ -898,6 +1011,10 @@ const TESTS = [
                 const bareLine = draw.addLine(0, 0, 0, 1, 2, 3, 0xFFFFFF);
                 bareLine.setColor(0x123456);
                 check(state, alphaOf(bareLine.color) === 255 && rgbOf(bareLine.color) === 0x123456, "Line3D.setColor(rgb) uses fixAlpha()");
+                bareLine.setColor(0x40123456);
+                check(state, alphaOf(bareLine.color) === 0x40, "Line3D.setColor(argb) preserves packed alpha");
+                bareLine.setColor(0);
+                check(state, bareLine.color === 0, "Line3D.setColor(0) remains transparent");
                 const alphaTrace = draw.addTraceLine(1, 2, 3, 0x112233, 90);
                 check(state, sameObject(alphaTrace.setAlpha(33), alphaTrace), "TraceLine.setAlpha() returns self for chaining");
                 check(state, sameObject(alphaTrace.setColor(0x445566, 12), alphaTrace), "TraceLine.setColor(rgb, alpha) returns self for chaining");
@@ -1480,6 +1597,55 @@ const TESTS = [
                 } catch (ignored) {
                 }
                 state.draw = null;
+            }
+        }
+    },
+    {
+        id: "DRAW3D-SURFACE-008",
+        category: "Draw3D",
+        mode: "observe",
+        title: "Cross-Draw Surface Order",
+        instructions: [
+            "Two overlapping pairs of panels should BOTH appear green: the near green covers the far red.",
+            "If either pair appears red, surface sorting depends on Draw3D registration order."
+        ],
+        prepare(state) {
+            const player = Player.getPlayer();
+            if (player == null) {
+                return false;
+            }
+            const first = Hud.createDraw3D();
+            const second = Hud.createDraw3D();
+            state.draws = [first, second];
+            const yaw = player.getYaw() * Math.PI / 180;
+            const rightX = Math.cos(yaw);
+            const rightZ = Math.sin(yaw);
+            const addPanel = (draw, distance, side, color) => {
+                const point = forwardPosition(player, distance, 0.3);
+                const surface = draw.addDraw2D(point.x + side * rightX - 0.65,
+                    point.y, point.z + side * rightZ, 1.3, 0.85);
+                surface.renderBack = true;
+                surface.setRotateToPlayer(true);
+                surface.addRect(0, 0, surface.getWidth(), surface.getHeight(), color, 255, 0, 0);
+            };
+            // The two draws contain opposite near/far pairs: whichever Draw3D the
+            // registry visits last, the old per-draw sorting paints one pair red.
+            addPanel(first, 4, -0.9, 0xDD3333);
+            addPanel(first, 3, 0.9, 0x33DD33);
+            addPanel(second, 3, -0.9, 0x33DD33);
+            addPanel(second, 4, 0.9, 0xDD3333);
+            first.register();
+            second.register();
+            check(state, listSize(first.getDraw2Ds()) === 2 && listSize(second.getDraw2Ds()) === 2,
+                "Both Draw3Ds own one near and one far surface");
+            return true;
+        },
+        teardown(state) {
+            if (state.draws != null) {
+                for (const draw of state.draws) {
+                    draw.unregister();
+                }
+                state.draws = null;
             }
         }
     },

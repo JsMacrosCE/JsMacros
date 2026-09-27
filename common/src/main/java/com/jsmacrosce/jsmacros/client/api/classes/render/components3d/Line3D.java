@@ -384,6 +384,7 @@ public class Line3D implements RenderElement3D<Line3D> {
          */
         public Builder color(int color) {
             this.color = color;
+            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
             return this;
         }
 

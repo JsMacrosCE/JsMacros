@@ -163,7 +163,7 @@ public class Box implements RenderElement3D<Box> {
      * @since 1.1.8
      */
     public void setFillColor(int fillColor, int alpha) {
-        this.fillColor = fillColor | (alpha << 24);
+        this.fillColor = (fillColor & 0xFFFFFF) | (alpha << 24);
     }
 
     /**
@@ -296,7 +296,7 @@ public class Box implements RenderElement3D<Box> {
         private int color = 0xFFFFFF;
         private int fillColor = 0xFFFFFF;
         private int alpha = 0xFF;
-        private int fillAlpha = 0;
+        private int fillAlpha = 0xFF;
         private boolean fill = false;
         private boolean cull = false;
 
@@ -459,6 +459,7 @@ public class Box implements RenderElement3D<Box> {
          */
         public Builder color(int color) {
             this.color = color;
+            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
             return this;
         }
 
@@ -533,6 +534,7 @@ public class Box implements RenderElement3D<Box> {
          */
         public Builder fillColor(int fillColor) {
             this.fillColor = fillColor;
+            this.fillAlpha = ColorUtil.fixAlpha(fillColor) >>> 24;
             return this;
         }
 

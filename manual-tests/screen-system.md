@@ -16,7 +16,7 @@ unavailable.
 | Input | `SCREEN-INPUT-001`, `SCREEN-INPUT-002` | Mouse, drag, scroll, key, and character callbacks expose meaningful input data; key callbacks report Shift/Ctrl/Alt/Super and character callbacks report the delivered modifiers. |
 | Widgets | `WIDGETS-DIRECT-001`, `WIDGETS-BUILDER-001`, `WIDGETS-PREDICATE-001` | Direct and builder APIs create interactive controls; callbacks and state setters work; text-field predicates filter typed and programmatic text. |
 | Rendering | `RENDER-PRIMITIVES-001`, `SCREEN-RENDER-001` | Render components, nested Draw2D, ordering/mutation, and the portable render callback path work. |
-| Text | `TEXT-INTERACTION-001`, `TEXT-WORLD-HOVER-001` | Styled text hover/click behavior works, including item/entity payloads in a world. |
+| Text | `TEXT-INTERACTION-001`, `TEXT-WORLD-HOVER-001` | Styled text hover/click behavior works, including item/entity payloads in a world; hovering does not duplicate or hide other text. |
 | Integration | `SCREEN-HOST-001` | The API wraps a vanilla screen captured before the suite opens. |
 
 `DRAW2D-OVERLAY-001` and `INTERACT-TARGET-001` moved to `observe` mode (world

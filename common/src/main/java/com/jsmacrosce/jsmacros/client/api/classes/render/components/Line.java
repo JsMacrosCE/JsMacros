@@ -606,6 +606,7 @@ public class Line implements RenderElement, Alignable<Line> {
          */
         public Builder color(int color) {
             this.color = color;
+            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
             return this;
         }
 
@@ -697,7 +698,7 @@ public class Line implements RenderElement, Alignable<Line> {
                     y1,
                     x2,
                     y2,
-                    (alpha << 24) | color,
+                    (alpha << 24) | (color & 0xFFFFFF),
                     rotation,
                     width,
                     zIndex

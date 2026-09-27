@@ -785,6 +785,7 @@ public class Image implements RenderElement, Alignable<Image> {
          */
         public Builder color(int color) {
             this.color = color;
+            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
             return this;
         }
 

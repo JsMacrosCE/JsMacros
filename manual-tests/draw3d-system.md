@@ -36,7 +36,7 @@ from a title screen.
 | --- | --- |
 | `DRAW3D-LIFECYCLE-001` | `Hud.createDraw3D()`, `register()`/`unregister()` chaining and list membership, `clear()` across boxes/lines/trace lines/surfaces, and `Hud.clearDraw3Ds()` (pre-existing draws are re-registered). |
 | `DRAW3D-PRIMITIVES-001` | Box, line, trace line, entity trace line (including the five-argument always-on-top overload), point (xyz and `Pos3D`), `boxBuilder().forBlock()`, add/remove/re-add, and entity-trace `setEntity`/`shouldRemove`/`dirty` state. |
-| `DRAW3D-STYLE-001` | Packed ARGB outline/fill color and alpha, `fixAlpha` for bare RGB, `setAlpha`/`setFillAlpha` RGB preservation, `setColor`/`setFillColor`, `setPosToBlock`/`setPosToPoint`, and box/line/trace/entity-trace builder getters. |
+| `DRAW3D-STYLE-001` | Packed ARGB outline/fill color and alpha, `fixAlpha` defaults for bare RGB (except zero) through box/line setters, builder default alpha for box outline/fill and line/trace/entity trace, explicit fill alpha override (including zero), `setAlpha`/`setFillAlpha` RGB preservation, `setPosToBlock`/`setPosToPoint`, and builder getters. |
 | `DRAW3D-SURFACE-001` | Surface width/height versus minimum subdivisions, position/rotation/size mutators, nested rect/text/line/image/item/Draw2D, `renderBack` field/builder, and resize preserving children. |
 | `DRAW3D-VISUAL-001` | In-world rendering of a filled box, line, trace line and surface, plus the always-on-top (`cull = false`) vs depth-tested (`cull = true`) box behavior. |
 | `DRAW3D-ENTITY-001` | Entity trace `yOffset` (feet vs above head) tracking, and automatic removal once the entity is removed. Completes itself when the lines disappear, or accepts a chat verdict. Skipped when no non-player entity is nearby. |
@@ -46,6 +46,7 @@ from a title screen.
 | `DRAW3D-SURFACE-005` | `renderBack = false` is single-sided (the panel disappears when viewed from behind); `renderBack = true` stays visible. |
 | `DRAW3D-SURFACE-006` | `cull = false` surfaces are always-on-top (draw over a wall); `cull = true` surfaces are depth-tested (hidden behind it). |
 | `DRAW3D-SURFACE-007` | An entity-bound translucent green surface sorts at its interpolated position in front of an overlapping static red surface, even though its stored `pos` is farther away. |
+| `DRAW3D-SURFACE-008` | Two overlapping near/far pairs belong to different Draw3Ds in opposite order; both near green panels cover the far red panels regardless of registry iteration order. |
 | `DRAW3D-ITEM-001` | `Item.Builder.overlayVisible(true)`/`overlayText(...)` on a 2D HUD overlay, plus the same item on a 3D surface (26.1 direct path). |
 
 ## Run steps
@@ -80,6 +81,8 @@ from a title screen.
   over the wall and the blue DEPTH panel is hidden.
 - `DRAW3D-SURFACE-007` (1.21.11+): the green bound panel covers the red static
   panel where they overlap, despite its deliberately distant stored position.
+- `DRAW3D-SURFACE-008`: both panels appear green; if one is red,
+  surfaces are being sorted within each Draw3D instead of across all draws.
 - `DRAW3D-ITEM-001`: `overlay_test_text` is visible on the 2D HUD item and on the
   3D surface item (26.1).
 - Leaving a Draw3D test unregisters its elements; no test leaves a registered
@@ -110,12 +113,12 @@ from a title screen.
   `<1.21.10` `renderStatic` (items whose model uses a special renderer are not
   handled). Each leaf element is flushed as its own batch because `debugQuads`
   re-sorts quads by camera distance, which would otherwise ignore `zIndex` order.
-  Surfaces are drawn back-to-front by camera distance because no surface render
-  type writes depth, so a nearer surface covers a farther one (painter's
-  algorithm). A nested Draw2D panel is offset by its own `zIndex`, so it is not
-  coplanar with the parent's rects (older targets write depth in `debugQuads`, so
-  coplanar geometry z-fights). The item's fixed-buffer batches are flushed before
-  its overlay text so the text is not occluded.
+  Surfaces from all registered Draw3Ds are drawn back-to-front by camera
+  distance (some render types do not write depth), so a nearer surface covers a
+  farther one (painter's algorithm). A nested Draw2D panel is offset by its own
+  `zIndex`, so it is not coplanar with the parent's rects (older targets write
+  depth in `debugQuads`, so coplanar geometry z-fights). The item's fixed-buffer
+  batches are flushed before its overlay text so the text is not occluded.
 - A `cull = false` surface (the default in these tests) is fully always-on-top:
   rects, lines, text, images and items all draw over the world. On 1.21.11+ the
   pass clears depth before the always-on-top group when such a surface exists; on

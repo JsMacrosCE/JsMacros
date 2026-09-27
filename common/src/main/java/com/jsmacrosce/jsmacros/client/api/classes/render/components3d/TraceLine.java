@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 
+import com.jsmacrosce.jsmacros.client.util.ColorUtil;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -296,6 +297,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
          */
         public Builder color(int color) {
             this.color = color;
+            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
             return this;
         }
 
