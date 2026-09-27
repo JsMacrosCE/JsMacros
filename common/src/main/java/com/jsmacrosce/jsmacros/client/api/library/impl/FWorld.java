@@ -749,8 +749,13 @@ public class FWorld extends BaseLibrary {
     public int getMoonPhase() {
         ClientLevel world = mc.level;
         if (world == null) return -1;
-        //? if >=1.21.11 {
-        /*return (int) (world.getGameTime() / 24000L % 8L + 8L) % 8;
+        //? if >=26.1 {
+        /*return (int) Math.floorMod(
+            world.getOverworldClockTime() / net.minecraft.world.level.MoonPhase.PHASE_LENGTH,
+            (long) net.minecraft.world.level.MoonPhase.COUNT
+        );
+        *///? } else if >=1.21.11 {
+        /*return (int) (world.getDayTime() / 24000L % 8L + 8L) % 8;
         *///? } else {
         return world.getMoonPhase();
         //? }
