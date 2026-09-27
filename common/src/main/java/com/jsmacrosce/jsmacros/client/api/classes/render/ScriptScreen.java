@@ -32,13 +32,45 @@ public class ScriptScreen extends BaseScreen {
      */
     public boolean shouldPause = true;
     private final int bgStyle;
+    private final boolean darkenBackground;
+    private final boolean blurBackground;
     @Nullable
     private MethodWrapper<Pos3D, GuiGraphics, Object, ?> onRender;
 
     public ScriptScreen(String title, boolean dirt) {
+        this(title, dirt, true, true);
+    }
+
+    public ScriptScreen(String title, boolean dirt, boolean darken, boolean blur) {
         super(Component.literal(title), null);
         this.bgStyle = dirt ? 0 : 1;
+        this.darkenBackground = darken;
+        this.blurBackground = blur;
         this.drawTitle = true;
+    }
+
+    @Override
+    protected void renderMenuBackground(GuiGraphics drawContext) {
+        if (!darkenBackground) {
+            return;
+        }
+        super.renderMenuBackground(drawContext);
+    }
+
+    @Override
+    protected void renderBlurredBackground(
+            //? if >1.21.5 {
+            GuiGraphics drawContext
+            //?}
+    ) {
+        if (!blurBackground) {
+            return;
+        }
+        super.renderBlurredBackground(
+                //? if >1.21.5 {
+                drawContext
+                //?}
+        );
     }
 
     @Override
