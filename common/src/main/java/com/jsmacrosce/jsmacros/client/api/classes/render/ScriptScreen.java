@@ -67,25 +67,45 @@ public class ScriptScreen extends BaseScreen {
     }
 
     @Override
+    //? if >=26.1 {
+    /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
+    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //?}
         if (drawContext == null) {
             return;
         }
         if (bgStyle == 0) {
+            //? if >=26.1 {
+            /*this.extractMenuBackground(drawContext);
+            *///?} else {
             this.renderMenuBackground(drawContext);
+            //?}
         }
 
         if (drawTitle) {
+            //? if >=26.1 {
+            /*drawContext.centeredText(this.font, this.title, this.width / 2, 20, 0xFFFFFFFF);
+            *///?} else {
             drawContext.drawCenteredString(this.font, this.title, this.width / 2, 20, 0xFFFFFFFF);
+            //?}
         }
 
+        //? if >=26.1 {
+        /*super.extractRenderState(drawContext, mouseX, mouseY, delta);
+        *///?} else {
         super.render(drawContext, mouseX, mouseY, delta);
+        //?}
 
         for (GuiEventListener button : ImmutableList.copyOf(this.children())) {
             if (!(button instanceof Renderable)) {
                 continue;
             }
+            //? if >=26.1 {
+            /*((Renderable) button).extractRenderState(drawContext, mouseX, mouseY, delta);
+            *///?} else {
             ((Renderable) button).render(drawContext, mouseX, mouseY, delta);
+            //?}
         }
 
         ((IScreenInternal) this).jsmacros_render(drawContext, mouseX, mouseY, delta);

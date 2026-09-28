@@ -18,7 +18,7 @@ import java.util.Locale
 import java.util.Properties
 
 plugins {
-    id("me.modmuss50.mod-publish-plugin") version "1.1.0"
+    alias(libs.plugins.mod.publish)
 }
 
 repositories {
@@ -296,7 +296,7 @@ if (isVersionedProject && hasMinecraftVersion) {
         val baseJarTasks: Map<String, org.gradle.api.tasks.TaskProvider<Copy>> =
             loaders.associateWith { loader ->
                 val loaderProject = project(":$loader")
-                val sourceTaskName = if (loader == "fabric") "remapJar" else "jar"
+                val sourceTaskName = loaderProject.modJarTaskName(loader)
                 val taskName = "package${loader.replaceFirstChar { it.uppercase() }}ModJar"
 
                 tasks.register(taskName, Copy::class.java) {
@@ -444,8 +444,8 @@ if (isVersionedProject && hasMinecraftVersion) {
             if (publishModrinth) {
                 loaders.forEach { loader ->
                     val platformName = "modrinth${loader.replaceFirstChar { it.uppercase() }}${targetMcVersion.replace(".", "")}"
-                    val sourceTaskName = if (loader == "fabric") "remapJar" else "jar"
                     val loaderProject = project(":$loader")
+                    val sourceTaskName = loaderProject.modJarTaskName(loader)
 
                     modrinth(platformName) {
                         projectId.set(modrinthProjectId)
@@ -520,6 +520,9 @@ stonecutter {
     replacements.string(current.parsed >= "1.21.11") {
         replace("ResourceLocation", "Identifier")
 
+        replace("net.minecraft.Util", "net.minecraft.util.Util")
+        replace("net.minecraft.advancements.critereon", "net.minecraft.advancements.criterion")
+
         // Conflicts
         replace("parseIdentifier", "parseIdentifier")
         replace("getAdvancementsForIdentifiers", "getAdvancementsForIdentifiers")
@@ -532,5 +535,13 @@ stonecutter {
         replace("base.readResourceLocation", "base.readIdentifier")
         replace("base.writeResourceLocation", "base.writeIdentifier")
         replace("@return the raw minecraft Identifier.", "@return the raw minecraft Identifier.")
+    }
+
+    replacements.string(current.parsed >= "26.1") {
+        replace("GuiGraphics", "GuiGraphicsExtractor")
+
+        // Conflicts
+        // NeoForge's ScreenEvent.Render.Post accessor, which is still spelled this way
+        replace("getGuiGraphics", "getGuiGraphics")
     }
 }

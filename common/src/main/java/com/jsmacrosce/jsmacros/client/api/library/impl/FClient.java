@@ -484,7 +484,10 @@ public class FClient extends PerExecLibrary {
      */
     public void grabMouse() {
         mc.options.pauseOnLostFocus = false;
+        // TODO(26.1): setWindowActive was removed in 26.1, This needs to be tested at runtime.
+        //? if <26.1 {
         mc.setWindowActive(true);
+        //? }
         mc.mouseHandler.grabMouse();
     }
 

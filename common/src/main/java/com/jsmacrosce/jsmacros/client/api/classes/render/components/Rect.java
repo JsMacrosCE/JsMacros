@@ -1,28 +1,24 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.platform.DepthTestFunction;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderPipelines;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-
-import java.lang.reflect.Field;
 
 //? if >=1.21.11 {
-/*import com.mojang.blaze3d.pipeline.RenderPipeline;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+/*import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
 *///? } else {
-import net.minecraft.client.renderer.RenderType;
-//?}
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
+//? }
 
 /**
  * @author Wagyourtail
@@ -30,34 +26,6 @@ import net.minecraft.client.renderer.RenderType;
  */
 @SuppressWarnings("unused")
 public class Rect implements RenderElement, Alignable<Rect> {
-
-    //? if <1.21.11 {
-    private static final Field debugQuadsDepthTestFunction;
-    private static final DepthTestFunction oldDebugQuadsDepthTestFunction;
-    //? }
-
-    //? if >=1.21.11 {
-    /*private static final RenderPipeline DEBUG_QUADS_SEE_THROUGH = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
-            .withLocation("pipeline/jsmacrosce/debug_quads_see_through")
-            .withCull(false)
-            .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-            .build();
-    private static final RenderType DEBUG_QUADS_SEE_THROUGH_TYPE = RenderType.create(
-            "jsmacrosce_debug_quads_see_through",
-            RenderSetup.builder(DEBUG_QUADS_SEE_THROUGH).createRenderSetup());
-    *///? }
-
-    //? if <1.21.11 {
-    static {
-        try {
-            debugQuadsDepthTestFunction = RenderPipelines.DEBUG_QUADS.getClass().getDeclaredField("depthTestFunction");
-            debugQuadsDepthTestFunction.setAccessible(true);
-            oldDebugQuadsDepthTestFunction = (DepthTestFunction) debugQuadsDepthTestFunction.get(RenderPipelines.DEBUG_QUADS);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException("Failed to reflect into RenderLayer for Rect", e);
-        }
-    }
-    //? }
 
     @Nullable
     public IDraw2D<?> parent;
@@ -369,6 +337,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     @Override
+    @DocletIgnore
     public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
         matrixStack.pushPose();
         matrixStack.translate(x1, y1, 0);
@@ -384,41 +353,15 @@ public class Rect implements RenderElement, Alignable<Rect> {
         float brightness = RenderElement.lightBrightness(light);
         float a = ((color >> 24) & 0xFF) / 255.0f;
         float r = ((color >> 16) & 0xFF) / 255.0f * brightness;
-        float g = ((color >> 8)  & 0xFF) / 255.0f * brightness;
-        float b = (color         & 0xFF) / 255.0f * brightness;
+        float g = ((color >> 8) & 0xFF) / 255.0f * brightness;
+        float b = (color & 0xFF) / 255.0f * brightness;
         PoseStack.Pose pose = matrixStack.last();
 
-        //? if >=1.21.11 {
-        /*RenderType fillLayer = seeThrough ? DEBUG_QUADS_SEE_THROUGH_TYPE : RenderTypes.debugQuads();
-        VertexConsumer vc = consumers.getBuffer(fillLayer);
-        *///? } else {
-        VertexConsumer vc = consumers.getBuffer(RenderType.debugQuads());
-        try {
-            if (seeThrough) {
-                debugQuadsDepthTestFunction.set(RenderPipelines.DEBUG_QUADS, DepthTestFunction.NO_DEPTH_TEST);
-            }
-            //? }
-            vc.addVertex(pose, x1, y1, 0).setColor(r, g, b, a);
-            vc.addVertex(pose, x2, y1, 0).setColor(r, g, b, a);
-            vc.addVertex(pose, x2, y2, 0).setColor(r, g, b, a);
-            vc.addVertex(pose, x1, y2, 0).setColor(r, g, b, a);
-
-            //? if <1.21.11 {
-            if (seeThrough && consumers instanceof MultiBufferSource.BufferSource immediate) {
-                immediate.endBatch();
-            }
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } finally {
-            if (seeThrough) {
-                try {
-                    debugQuadsDepthTestFunction.set(RenderPipelines.DEBUG_QUADS, oldDebugQuadsDepthTestFunction);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-            //? }
+        VertexConsumer vc = consumers.getBuffer(SurfaceRenderTypes.quads(false, !seeThrough));
+        vc.addVertex(pose, x1, y1, 0).setColor(r, g, b, a);
+        vc.addVertex(pose, x2, y1, 0).setColor(r, g, b, a);
+        vc.addVertex(pose, x2, y2, 0).setColor(r, g, b, a);
+        vc.addVertex(pose, x1, y2, 0).setColor(r, g, b, a);
 
         matrixStack.popPose();
     }
@@ -651,6 +594,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
          */
         public Builder color(int color) {
             this.color = color;
+            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
             return this;
         }
 

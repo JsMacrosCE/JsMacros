@@ -1,9 +1,15 @@
 package com.jsmacrosce.jsmacros.client.api.helper.screen;
 
-import net.minecraft.client.GuiMessage;
 import net.minecraft.client.gui.components.ChatComponent;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
+import com.jsmacrosce.doclet.DocletIgnore;
+
+//? if >=26.1 {
+/*import net.minecraft.client.multiplayer.chat.GuiMessage;
+*///? } else {
+import net.minecraft.client.GuiMessage;
+//? }
 
 @SuppressWarnings("unused")
 public class ChatHudLineHelper extends BaseHelper<GuiMessage> {
@@ -18,9 +24,14 @@ public class ChatHudLineHelper extends BaseHelper<GuiMessage> {
         return TextHelper.wrap(base.content());
     }
 
-//    public int getId() {
-//        return base.getId();
-//    }
+    /**
+     * @deprecated Minecraft no longer exposes an id on {@code GuiMessage}; this always throws.
+     */
+    @Deprecated
+    @DocletIgnore
+    public int getId() {
+        throw new UnsupportedOperationException("ChatHudLineHelper.getId() is no longer supported: Minecraft no longer exposes a chat message id");
+    }
 
     public int getCreationTick() {
         return base.addedTime();

@@ -3,7 +3,6 @@ package com.jsmacrosce.jsmacros.test;
 import org.junit.jupiter.api.BeforeAll;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.EventLockWatchdog;
-import com.jsmacrosce.jsmacros.core.event.IEventListener;
 import com.jsmacrosce.jsmacros.core.event.impl.EventCustom;
 import com.jsmacrosce.jsmacros.core.language.EventContainer;
 import com.jsmacrosce.jsmacros.test.stubs.CoreInstanceCreator;
@@ -23,7 +22,7 @@ public abstract class BaseTest {
     public EventCustom runTestScript(String script, int timeout) throws InterruptedException {
         EventCustom event = new EventCustom(core, "test");
         EventContainer<?> ev = core.exec(getLang(), script, null, event, null, null);
-        EventLockWatchdog.startWatchdog(ev, IEventListener.NULL, timeout);
+        EventLockWatchdog.startWatchdog(ev, null, timeout);
         ev.awaitLock(() -> {});
         return event;
     }

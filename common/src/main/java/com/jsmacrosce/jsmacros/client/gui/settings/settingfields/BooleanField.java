@@ -40,7 +40,11 @@ public class BooleanField extends AbstractSettingField<Boolean> {
     }
 
     @Override
-    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //? if >=26.1 {
+    /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
+    *///? } else {
+    public void render(final GuiGraphics drawContext, int mouseX, int mouseY, final float delta) {
+    //? }
 
     }
 

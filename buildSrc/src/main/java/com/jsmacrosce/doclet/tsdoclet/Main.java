@@ -38,7 +38,7 @@ public class Main implements Doclet {
     private final Map<String, String> filterableEvents = new TreeMap<>();
 
     public static final List<String> includedClassPath = List.of(
-            "com.jsmacrosce.jsmacros.client.api.helpers.",
+            "com.jsmacrosce.jsmacros.client.api.helper.",
             "com.jsmacrosce.jsmacros.client.api.classes.inventory."
     );
 

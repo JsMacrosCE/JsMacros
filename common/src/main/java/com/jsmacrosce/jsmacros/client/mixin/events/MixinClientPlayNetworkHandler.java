@@ -14,6 +14,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ChunkPos;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -32,6 +33,7 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.player.EventDeath;
 import com.jsmacrosce.jsmacros.client.api.event.impl.player.EventStatusEffectUpdate;
 import com.jsmacrosce.jsmacros.client.api.event.impl.world.*;
 import com.jsmacrosce.jsmacros.client.api.helper.StatusEffectHelper;
+import com.jsmacrosce.jsmacros.util.ChunkPosCompat;
 
 import java.util.*;
 
@@ -144,7 +146,8 @@ public abstract class MixinClientPlayNetworkHandler extends ClientCommonPacketLi
 
     @Inject(at = @At("TAIL"), method = "handleForgetLevelChunk")
     public void onUnloadChunk(ClientboundForgetLevelChunkPacket packet, CallbackInfo info) {
-        new EventChunkUnload(packet.pos().x, packet.pos().z).trigger();
+        ChunkPos pos = packet.pos();
+        new EventChunkUnload(ChunkPosCompat.x(pos), ChunkPosCompat.z(pos)).trigger();
     }
 
     @Inject(

@@ -32,7 +32,7 @@
   "jsmacrosce.stopped": "已停止",
   "jsmacrosce.disablewithscreen": "當任何界面開啟時禁用按鍵事件",
   "jsmacrosce.about": "關於",
-  "jsmacrosce.aboutinfo": "JS Macros 社群版\n作者: East_Arctica\n\n給方塊遊戲設計的Javascript腳本模組\n\n需要幫助的話，前往下方網站或加入Discord!",
+  "jsmacrosce.aboutinfo": "JS Macros 社群版\n作者: East_Arctica\n基於 WagYourTail 的工作\n\n給方塊遊戲設計的Javascript腳本模組\n\n需要幫助的話，前往下方網站或加入Discord!",
   "jsmacrosce.back": "返回",
   "jsmacrosce.erroropening": "開啟檔案時出錯... \n\n",
   "jsmacrosce.save": "儲存",

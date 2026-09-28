@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 
+import com.jsmacrosce.jsmacros.client.util.ColorUtil;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -9,14 +10,16 @@ import net.minecraft.world.phys.Vec3;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
+import com.jsmacrosce.jsmacros.client.util.CameraCompat;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
-        //? if >=1.21.10 {
+
+//? if >=1.21.10 {
 /*import net.minecraft.client.entity.ClientAvatarState;
- *///?}
-        //? if <=1.21.8 {
+*///?}
+//? if <=1.21.8 {
 import net.minecraft.client.player.AbstractClientPlayer;
-        //?}
+//?}
 
 import java.util.Objects;
 
@@ -37,7 +40,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     public TraceLine(double x, double y, double z, int color, int alpha, boolean alwaysOnTop) {
-        render = new Line3D(0,0,0, x, y, z, color, alpha, !alwaysOnTop);
+        render = new Line3D(0, 0, 0, x, y, z, color, alpha, !alwaysOnTop);
     }
 
     public TraceLine(Pos3D pos, int color) {
@@ -71,7 +74,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * @return the position of the line's target
+     * @return the position of the line's target.
      * @since 2.0.0
      */
     public Pos3D getPos() {
@@ -97,7 +100,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * @return the color of the line
+     * @return the color of the line.
      * @since 2.0.0
      */
     public int getColor() {
@@ -113,7 +116,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * @return the alpha value of the line's color
+     * @return the alpha value of the line's color.
      * @since 2.0.0
      */
     public int getAlpha() {
@@ -121,7 +124,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * @param alwaysOnTop whether the line should be rendered on top of everything else or not
+     * @param alwaysOnTop whether the line should render on top of everything else.
      * @since 2.0.0
      */
     public void setAlwaysOnTop(boolean alwaysOnTop) {
@@ -129,7 +132,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * @return whether the line is rendered on top of everything else or not
+     * @return whether the line renders on top of everything else.
      * @since 2.0.0
      */
     public boolean isAlwaysOnTop() {
@@ -157,11 +160,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     @Override
     public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-        //? if >=1.21.11 {
-        /*Vec3 cameraPos = camera.position();
-        *///? } else {
-        Vec3 cameraPos = camera.getPosition();
-        //? }
+        Vec3 cameraPos = CameraCompat.position(camera);
 
         Vec3 lookDir = getCrosshairDirection(camera, tickDelta);
         Vec3 p1 = cameraPos.add(lookDir);
@@ -177,9 +176,9 @@ public class TraceLine implements RenderElement3D<TraceLine> {
      * bobView() bakes a translation, Z-roll, and X-pitch into the projection matrix
      * (in camera space). The full bob transform is:
      * <ol>
-     *   <li>translate(sin(dist*π)*bob*0.5, -|cos(dist*π)*bob|, 0)</li>
-     *   <li>Axis.ZP.rotationDegrees(sin(dist*π)*bob*3)</li>
-     *   <li>Axis.XP.rotationDegrees(|cos(dist*π-0.2)*bob|*5)</li>
+     *   <li>translate(sin(dist*pi)*bob*0.5, -|cos(dist*pi)*bob|, 0)</li>
+     *   <li>Axis.ZP.rotationDegrees(sin(dist*pi)*bob*3)</li>
+     *   <li>Axis.XP.rotationDegrees(|cos(dist*pi-0.2)*bob|*5)</li>
      * </ol>
      * Both the rotation and the translation must be compensated: the rotation changes
      * which camera-space direction maps to screen centre, and the translation shifts
@@ -205,12 +204,8 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         if (bob == 0.0f) {
-            // No bobbing active — the true camera forward is already screen-centre.
-            //? if >=1.21.11 {
-            /*return Vec3.directionFromRotation(camera.xRot(), camera.yRot());
-             *///? } else {
-            return Vec3.directionFromRotation(camera.getXRot(), camera.getYRot());
-            //?}
+            // No bobbing active: the true camera forward is already screen-centre.
+            return Vec3.directionFromRotation(CameraCompat.xRot(camera), CameraCompat.yRot(camera));
         }
 
         // Replicate the bob rotation angles from bobView():
@@ -223,22 +218,11 @@ public class TraceLine implements RenderElement3D<TraceLine> {
 
         // The full bob matrix is M_bob = T(tx,ty,0) * R_Z(zDeg) * R_X(xDeg).
         // For a world-space point p1 = cameraPos + d to appear at screen centre,
-        // we need:  M_bob * V_rot * d  to lie along (0, 0, -1).
-        //
-        // Expanding:  T * R_Z * R_X * V_rot * d = (0, 0, -z)
-        //        =>   R_Z * R_X * V_rot * d = (-tx, -ty, -z)
-        //        =>   V_rot * d = (R_Z * R_X)^-1 * (-tx, -ty, -z)
-        //        =>   d = camera.rotation() * invBob * (-tx, -ty, -1)
-        //
-        // (We use z=1 since only the direction matters and we normalize implicitly
-        //  by using the resulting vector as an offset from cameraPos.)
-
-        // Inverse bob rotation: undo X then undo Z (reverse order, negated angles).
+        // we need M_bob * V_rot * d to lie along (0, 0, -1), so
+        // d = camera.rotation() * invBob * (-tx, -ty, -1).
+        // (z=1 is arbitrary: only the direction matters.)
         Quaternionf invBob =
                 new Quaternionf().rotateX((float) Math.toRadians(-xDeg)).rotateZ((float) Math.toRadians(-zDeg));
-
-        // Include the bob translation offset so the line originates from the
-        // effective viewpoint, not just the camera position.
         Vector3f camDir = invBob.transform(new Vector3f(-tx, -ty, -1.0f));
 
         // Rotate from camera space to world space using the camera's orientation.
@@ -306,6 +290,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
          */
         public Builder color(int color) {
             this.color = color;
+            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
             return this;
         }
 
@@ -366,12 +351,12 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * @param alwaysOnTop whether the line should be rendered on top of everything else or not
-         * @return self for chaining
+         * @param alwaysOnTop whether the line should render on top of everything else.
+         * @return self for chaining.
          * @since 2.0.0
          */
         public Builder alwaysOnTop(boolean alwaysOnTop) {
-            this.alwaysOnTop = !alwaysOnTop;
+            this.alwaysOnTop = alwaysOnTop;
             return this;
         }
 

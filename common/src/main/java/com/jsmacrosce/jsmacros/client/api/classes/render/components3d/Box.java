@@ -1,10 +1,11 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 
-import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
+//? if <1.21.11 {
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.ShapeRenderer;
+//? }
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.api.math.Vec3D;
@@ -12,7 +13,9 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
 
+//? if <1.21.11 {
 import java.lang.reflect.Field;
+//? }
 import java.util.Objects;
 
 //? if >=1.21.11 {
@@ -25,11 +28,16 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.client.renderer.RenderType;
 //?}
 
+//? if <1.21.11 {
+import com.mojang.blaze3d.platform.DepthTestFunction;
+//? }
+
 /**
  * @author Wagyourtail
  */
 @SuppressWarnings("unused")
 public class Box implements RenderElement3D<Box> {
+    //? if <1.21.11 {
     private static final Field lineDepthTestFunction;
     private static final DepthTestFunction oldlineDepthTestFunction;
     private static final Field boxDepthTestFunction;
@@ -47,6 +55,8 @@ public class Box implements RenderElement3D<Box> {
             throw new RuntimeException(e);
         }
     }
+    //? }
+
     public Vec3D pos;
     public int color;
     public int fillColor;
@@ -153,7 +163,7 @@ public class Box implements RenderElement3D<Box> {
      * @since 1.1.8
      */
     public void setFillColor(int fillColor, int alpha) {
-        this.fillColor = fillColor | (alpha << 24);
+        this.fillColor = (fillColor & 0xFFFFFF) | (alpha << 24);
     }
 
     /**
@@ -200,7 +210,7 @@ public class Box implements RenderElement3D<Box> {
         //? if >=1.21.11 {
         /*AABB box = new AABB(pos.getStart().toMojangDoubleVector(), pos.getEnd().toMojangDoubleVector());
         int renderFillColor = fill ? fillColor : 0;
-        GizmoStyle style = new GizmoStyle(color, 2.5f, renderFillColor);
+        GizmoStyle style = new GizmoStyle(color, 2.5F, renderFillColor);
         GizmoProperties gizmo = Gizmos.addGizmo(new CuboidGizmo(box, style, false));
         if (seeThrough) {
             gizmo.setAlwaysOnTop();
@@ -216,23 +226,22 @@ public class Box implements RenderElement3D<Box> {
         MultiBufferSource.BufferSource immediate = (MultiBufferSource.BufferSource) consumers;
         try {
             if (seeThrough) {
+                // Flush anything already queued first, otherwise this box's endBatch
+                // would flush an earlier depth-tested box with NO_DEPTH_TEST too.
+                immediate.endBatch();
                 lineDepthTestFunction.set(RenderPipelines.LINES, DepthTestFunction.NO_DEPTH_TEST);
                 boxDepthTestFunction.set(RenderPipelines.DEBUG_FILLED_BOX, DepthTestFunction.NO_DEPTH_TEST);
             }
+
             RenderType linesLayer = RenderType.lines();
             RenderType fillLayer = RenderType.debugFilledBox();
 
             if (this.fill) {
-                float fillAlpha = ((fillColor >> 24) & 0xFF) / 255.0F;
-                float fillRed = ((fillColor >> 16) & 0xFF) / 255.0F;
-                float fillGreen = ((fillColor >> 8) & 0xFF) / 255.0F;
-                float fillBlue = (fillColor & 0xFF) / 255.0F;
-                ShapeRenderer.addChainedFilledBoxVertices(
-                    matrixStack,
-                    consumers.getBuffer(fillLayer),
-                    x1, y1, z1,
-                    x2, y2, z2,
-                    fillRed, fillGreen, fillBlue, fillAlpha);
+                float fa = ((fillColor >> 24) & 0xFF) / 255.0F;
+                float fr = ((fillColor >> 16) & 0xFF) / 255.0F;
+                float fg = ((fillColor >> 8) & 0xFF) / 255.0F;
+                float fb = (fillColor & 0xFF) / 255.0F;
+                ShapeRenderer.addChainedFilledBoxVertices(matrixStack, consumers.getBuffer(fillLayer), x1, y1, z1, x2, y2, z2, fr, fg, fb, fa);
             }
 
             float r = ((color >> 16) & 0xFF) / 255.0F;
@@ -245,14 +254,21 @@ public class Box implements RenderElement3D<Box> {
                     *///?} else
                     matrixStack,
                     consumers.getBuffer(linesLayer),
-                    x1, y1, z1,
-                    x2, y2, z2,
-                    r, g, b, a);
+                    x1,
+                    y1,
+                    z1,
+                    x2,
+                    y2,
+                    z2,
+                    r,
+                    g,
+                    b,
+                    a);
 
             if (seeThrough) {
                 immediate.endBatch();
             }
-        } catch (IllegalAccessException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
             if (seeThrough) {
@@ -280,7 +296,7 @@ public class Box implements RenderElement3D<Box> {
         private int color = 0xFFFFFF;
         private int fillColor = 0xFFFFFF;
         private int alpha = 0xFF;
-        private int fillAlpha = 0;
+        private int fillAlpha = 0xFF;
         private boolean fill = false;
         private boolean cull = false;
 
@@ -443,25 +459,26 @@ public class Box implements RenderElement3D<Box> {
          */
         public Builder color(int color) {
             this.color = color;
+            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
             return this;
         }
 
         /**
-         * @param color the fill color of the box
-         * @param alpha the alpha value for the box's fill color
+         * @param color the color of the box
+         * @param alpha the alpha value for the box's color
          * @return self for chaining.
          * @since 1.8.4
          */
         public Builder color(int color, int alpha) {
-            this.color = fillColor;
+            this.color = color;
             this.alpha = alpha;
             return this;
         }
 
         /**
-         * @param r the red component of the fill color
-         * @param g the green component of the fill color
-         * @param b the blue component of the fill color
+         * @param r the red component of the color
+         * @param g the green component of the color
+         * @param b the blue component of the color
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -471,10 +488,10 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * @param r the red component of the fill color
-         * @param g the green component of the fill color
-         * @param b the blue component of the fill color
-         * @param a the alpha component of the fill color
+         * @param r the red component of the color
+         * @param g the green component of the color
+         * @param b the blue component of the color
+         * @param a the alpha component of the color
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -517,6 +534,7 @@ public class Box implements RenderElement3D<Box> {
          */
         public Builder fillColor(int fillColor) {
             this.fillColor = fillColor;
+            this.fillAlpha = ColorUtil.fixAlpha(fillColor) >>> 24;
             return this;
         }
 

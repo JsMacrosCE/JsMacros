@@ -1,6 +1,5 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl;
 
-import net.minecraft.client.GuiMessageTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
 import org.jetbrains.annotations.Nullable;
@@ -8,6 +7,12 @@ import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
+
+//? if >=26.1 {
+/*import net.minecraft.client.multiplayer.chat.GuiMessageTag;
+*///? } else {
+import net.minecraft.client.GuiMessageTag;
+//? }
 
 /**
  * @author Wagyourtail

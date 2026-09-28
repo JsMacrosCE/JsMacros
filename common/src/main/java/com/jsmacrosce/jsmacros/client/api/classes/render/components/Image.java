@@ -2,33 +2,36 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import com.mojang.blaze3d.platform.DepthTestFunction;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
-import org.joml.Quaternionf;
 import com.jsmacrosce.jsmacros.client.api.classes.CustomImage;
 import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
-import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.jsmacrosce.doclet.DocletIgnore;
 
-import java.lang.reflect.Field;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+//? if <=1.21.5 {
+/*import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.renderer.RenderType;
+*///? }
 
 //? if >=1.21.11 {
-/*import com.mojang.blaze3d.pipeline.RenderPipeline;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+/*import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import org.joml.Quaternionf;
+import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
 *///? } else {
-import net.minecraft.client.renderer.RenderType;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import org.joml.Quaternionf;
+import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
 //? }
 
 /**
@@ -39,31 +42,6 @@ import net.minecraft.client.renderer.RenderType;
 public class Image implements RenderElement, Alignable<Image> {
 
     private static final Minecraft mc = Minecraft.getInstance();
-    //? if <1.21.11 {
-    private static final Field entityTranslucentDepthTestFunction;
-    private static final DepthTestFunction oldEntityTranslucentDepthTestFunction;
-    //? }
-
-    //? if >=1.21.11 {
-    /*private static final RenderPipeline ENTITY_TRANSLUCENT_SEE_THROUGH = RenderPipeline.builder(RenderPipelines.ENTITY_SNIPPET)
-            .withLocation("pipeline/jsmacrosce/entity_translucent_see_through")
-            .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-            .withCull(false)
-            .build();
-    private static final Map<ResourceLocation, RenderType> ENTITY_TRANSLUCENT_SEE_THROUGH_TYPES = new ConcurrentHashMap<>();
-    *///? }
-
-    //? if <1.21.11 {
-    static {
-        try {
-            entityTranslucentDepthTestFunction = RenderPipelines.ENTITY_TRANSLUCENT.getClass().getDeclaredField("depthTestFunction");
-            entityTranslucentDepthTestFunction.setAccessible(true);
-            oldEntityTranslucentDepthTestFunction = (DepthTestFunction) entityTranslucentDepthTestFunction.get(RenderPipelines.ENTITY_TRANSLUCENT);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException("Failed to reflect into RenderLayer for Image", e);
-        }
-    }
-    //? }
 
     private ResourceLocation imageid;
     @Nullable
@@ -377,6 +355,9 @@ public class Image implements RenderElement, Alignable<Image> {
         *///?}
     }
 
+    // Draws the image into the surface's world-space buffer source. Textured
+    // images cannot be represented as gizmos, so this is the direct path.
+    @DocletIgnore
     @Override
     public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
         matrixStack.pushPose();
@@ -392,77 +373,19 @@ public class Image implements RenderElement, Alignable<Image> {
 
         float a = ((color >> 24) & 0xFF) / 255.0f;
         float r = ((color >> 16) & 0xFF) / 255.0f;
-        float g = ((color >> 8)  & 0xFF) / 255.0f;
-        float b = (color         & 0xFF) / 255.0f;
+        float g = ((color >> 8) & 0xFF) / 255.0f;
+        float b = (color & 0xFF) / 255.0f;
+        float u0 = imageX / (float) textureWidth;
+        float v0 = imageY / (float) textureHeight;
+        float u1 = (imageX + regionWidth) / (float) textureWidth;
+        float v1 = (imageY + regionHeight) / (float) textureHeight;
 
-        float u0 = this.imageX / (float) this.textureWidth;
-        float v0 = this.imageY / (float) this.textureHeight;
-        float u1 = (this.imageX + this.regionWidth) / (float) this.textureWidth;
-        float v1 = (this.imageY + this.regionHeight) / (float) this.textureHeight;
-
-        //? if >=1.21.11 {
-        /*RenderType layer = seeThrough
-                ? ENTITY_TRANSLUCENT_SEE_THROUGH_TYPES.computeIfAbsent(imageid, textureId -> RenderType.create(
-                "jsmacrosce_entity_translucent_see_through_" + textureId,
-                RenderSetup.builder(ENTITY_TRANSLUCENT_SEE_THROUGH)
-                        .withTexture("Sampler0", textureId)
-                        .useLightmap()
-                        .useOverlay()
-                        .createRenderSetup()))
-                : RenderTypes.entityTranslucent(imageid);
-        VertexConsumer vc = consumers.getBuffer(layer);
+        VertexConsumer vc = consumers.getBuffer(SurfaceRenderTypes.images(imageid, !seeThrough));
         PoseStack.Pose pose = matrixStack.last();
-        *///? } else {
-        VertexConsumer vc = consumers.getBuffer(RenderType.entityTranslucent(imageid));
-        try {
-            if (seeThrough) {
-                entityTranslucentDepthTestFunction.set(RenderPipelines.ENTITY_TRANSLUCENT, DepthTestFunction.NO_DEPTH_TEST);
-            }
-            PoseStack.Pose pose = matrixStack.last();
-            //? }
-            // Quad: top-left, bottom-left, bottom-right, top-right (counter-clockwise when viewed from front)
-            vc.addVertex(pose, x, y, 0)
-                    .setColor(r, g, b, a)
-                    .setUv(u0, v0)
-                    .setOverlay(OverlayTexture.NO_OVERLAY)
-                    .setLight(light)
-                    .setNormal(pose, 0, 0, 1);
-            vc.addVertex(pose, x, y + height, 0)
-                    .setColor(r, g, b, a)
-                    .setUv(u0, v1)
-                    .setOverlay(OverlayTexture.NO_OVERLAY)
-                    .setLight(light)
-                    .setNormal(pose, 0, 0, 1);
-            vc.addVertex(pose, x + width, y + height, 0)
-                    .setColor(r, g, b, a)
-                    .setUv(u1, v1)
-                    .setOverlay(OverlayTexture.NO_OVERLAY)
-                    .setLight(light)
-                    .setNormal(pose, 0, 0, 1);
-            vc.addVertex(pose, x + width, y, 0)
-                    .setColor(r, g, b, a)
-                    .setUv(u1, v0)
-                    .setOverlay(OverlayTexture.NO_OVERLAY)
-                    .setLight(light)
-                    .setNormal(pose, 0, 0, 1);
-
-            //? if <1.21.11 {
-            if (seeThrough && consumers instanceof MultiBufferSource.BufferSource immediate) {
-                immediate.endBatch();
-            }
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } finally {
-            if (seeThrough) {
-                try {
-                    entityTranslucentDepthTestFunction.set(RenderPipelines.ENTITY_TRANSLUCENT, oldEntityTranslucentDepthTestFunction);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-            //? }
-
+        vc.addVertex(pose, x, y, 0).setColor(r, g, b, a).setUv(u0, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
+        vc.addVertex(pose, x, y + height, 0).setColor(r, g, b, a).setUv(u0, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
+        vc.addVertex(pose, x + width, y + height, 0).setColor(r, g, b, a).setUv(u1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
+        vc.addVertex(pose, x + width, y, 0).setColor(r, g, b, a).setUv(u1, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
         matrixStack.popPose();
     }
 
@@ -854,6 +777,7 @@ public class Image implements RenderElement, Alignable<Image> {
          */
         public Builder color(int color) {
             this.color = color;
+            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
             return this;
         }
 

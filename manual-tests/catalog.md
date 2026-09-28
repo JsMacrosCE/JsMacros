@@ -1,0 +1,51 @@
+# Manual client test catalog
+
+Modes: `auto` (headless, chat report), `screen` (suite page controls),
+`observe` (world visible, chat verdict), `event` (reserved). See
+[harness.md](harness.md).
+
+| ID | Title | Mode | Behavior | Script | Status |
+| --- | --- | --- | --- | --- | --- |
+| `SCREEN-OPEN-001` | Screen Basics | `screen` | Script-screen metadata, dimensions, title, and baseline rendering. | [suite.js](suite.js) | Manual |
+| `SCREEN-LIFECYCLE-001` | Screen Lifecycle | `screen` | Initialization and reload rebuild the screen without stale controls. | [suite.js](suite.js) | Manual |
+| `SCREEN-FAILURE-001` | Init Failure Recovery | `screen` | A controlled init failure reaches `setOnFailInit` and returns safely. | [suite.js](suite.js) | Manual |
+| `SCREEN-CLOSE-001` | Close and Parent | `screen` | Close callback ordering and parent restoration. | [suite.js](suite.js) | Manual |
+| `SCREEN-ESC-001` | Escape and Pause | `screen` | Title visibility, Escape suppression, and non-pausing behavior. | [suite.js](suite.js) | Manual |
+| `SCREEN-INPUT-001` | Screen Input | `screen` | Mouse, drag, scroll, key, and character callbacks. | [suite.js](suite.js) | Manual |
+| `SCREEN-INPUT-002` | Input Modifiers | `screen` | Key callbacks report Shift/Ctrl/Alt/Super; character callbacks report the delivered modifiers. | [suite.js](suite.js) | Manual |
+| `WIDGETS-DIRECT-001` | Direct Widgets | `screen` | Direct widget construction, callbacks, setters, tooltips, and programmatic click. | [suite.js](suite.js) | Manual |
+| `WIDGETS-BUILDER-001` | Widget Builders | `screen` | Builder-created button, checkbox, slider, lock, text field, and cycling button. | [suite.js](suite.js) | Manual |
+| `WIDGETS-PREDICATE-001` | Text Field Predicate | `screen` | `setTextPredicate`/`resetTextPredicate` filter typed and programmatic text. | [suite.js](suite.js) | Manual |
+| `RENDER-PRIMITIVES-001` | Render Primitives | `screen` | Text, rect, line, image, item, nested Draw2D, ordering, and mutation. | [suite.js](suite.js) | Manual |
+| `DRAW2D-OVERLAY-001` | Draw2D Overlay | `observe` | Overlay register/unregister lifecycle; the overlay renders on the normal HUD. | [suite.js](suite.js) | Visual, chat verdict |
+| `TEXT-INTERACTION-001` | Text Interaction | `screen` | Text hover for exact styled segments, no duplicate/hidden text after hover, and a custom click action. | [suite.js](suite.js) | Manual |
+| `TEXT-WORLD-HOVER-001` | World Hover | `screen` | Item and entity hover payloads using the local player. | [suite.js](suite.js) | Manual, requires world |
+| `SCREEN-RENDER-001` | Screen Render Callback | `screen` | Screen render callback execution without raw draw-context coupling. | [suite.js](suite.js) | Manual |
+| `SCREEN-HOST-001` | Host Screen | `screen` | Captured vanilla-screen wrapping and return navigation. | [suite.js](suite.js) | Manual, requires launch from host screen |
+| `INTERACT-TARGET-001` | Target Override | `observe` | `setTarget` overrides the crosshair target and survives client picks. | [suite.js](suite.js) | Visual, chat verdict, requires world |
+| `DRAW3D-LIFECYCLE-001` | Draw3D Lifecycle | `auto` | `Hud.createDraw3D()`, register/unregister chaining, list membership, `clear()` across all lists, and `Hud.clearDraw3Ds()`. | [suite.js](suite.js) | Automatic |
+| `DRAW3D-PRIMITIVES-001` | Draw3D Primitives | `auto` | Box, line, trace line, entity trace line (including the five-argument overload), point (xyz and `Pos3D`), `forBlock`, add/remove/re-add, and entity-trace state. | [suite.js](suite.js) | Automatic |
+| `COLOR-ALPHA-001` | Default Color Alpha | `auto` | `fixAlpha` semantics for RGB, ARGB and zero in 2D elements and GUI buttons; builder default and packed alpha, explicit alpha override. | [suite.js](suite.js) | Automatic |
+| `DRAW3D-STYLE-001` | Draw3D Style and Builders | `auto` | ARGB color/alpha, opaque bare-RGB outline/fill and line/trace builder defaults (including box fill), packed and explicit alpha, position helpers and builder getters. | [suite.js](suite.js) | Automatic |
+| `DRAW3D-SURFACE-001` | Draw3D Surface | `auto` | Surface size/subdivision/transform, nested element API, `renderBack` field/builder, and resize preserving children. | [suite.js](suite.js) | Automatic |
+| `INVENTORY-ITEMTAGS-001` | Item Tags | `auto` | `ItemStackHelper.getTags()` returns namespaced tag ids. | [suite.js](suite.js) | Automatic |
+| `DRAW3D-VISUAL-001` | Draw3D Visual | `observe` | Box/line/trace/surface rendering and always-on-top depth behavior. | [suite.js](suite.js) | Visual, chat verdict, requires world |
+| `DRAW3D-ENTITY-001` | Entity Trace Line | `observe` | Entity trace `yOffset` tracking and automatic removal when the entity is gone. | [suite.js](suite.js) | Visual, chat verdict, requires a nearby mob |
+| `DRAW3D-SURFACE-002` | Surface Render Regression | `observe` | Surface direct rendering of rect/line/text/image/item, `zIndex` draw order, `setRotateCenter`, nested Draw2D, and a head-locked panel. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-SURFACE-003` | Surface Facing and Mutation | `observe` | `setRotateToPlayer(true)` and in-place size/remove/add/position mutation while registered. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-SURFACE-004` | Surface Light Mode | `observe` | `setWorldLight`/`setFullBrightLight`/`setLight`: compare rect, text and image as world light dims and custom light changes. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-SURFACE-005` | Single-Sided Surface | `observe` | `renderBack = false` hides the whole panel when viewed from behind; `renderBack = true` stays visible. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-SURFACE-006` | Surface Depth Modes | `observe` | `cull = false` (always-on-top) draws over a wall; `cull = true` (depth-tested) is hidden behind it. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-SURFACE-007` | Bound Surface Order | `observe` | A near entity-bound surface renders over a far static surface regardless of its stored position. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-SURFACE-008` | Cross-Draw Surface Order | `observe` | Two opposite near/far surface pairs in separate Draw3Ds both render near-over-far. | [suite.js](suite.js) | Visual, requires world |
+| `DRAW3D-ITEM-001` | Item Overlay Text | `observe` | 2D HUD item `overlayVisible`/`overlayText`, plus the same item on a 3D surface. | [suite.js](suite.js) | Visual, requires world |
+| `HUD-DEBUG-001` | Debug Screen Overlay | `observe` | The registered `Draw2D` overlay renders on top of the F3 debug screen (Fabric-only `MixinDebugHud`). | [suite.js](suite.js) | Visual, chat verdict, Fabric only |
+
+> Surfaces render on every supported version: rects, lines, text, images and items.
+> On 1.21.11+ they draw from the Gizmos pass; on 1.21.5-1.21.10 from the direct
+> pass. See [draw3d-system.md](draw3d-system.md).
+
+Add new tests by behavior area (for example, `SCREEN-*`, `DRAW2D-*`,
+`DRAW3D-*`, `INVENTORY-*`, or `EVENT-*`) rather than by Minecraft version. A
+target-specific exception belongs in that test's documentation. Future event
+tests use the reserved `event` mode described in [harness.md](harness.md).

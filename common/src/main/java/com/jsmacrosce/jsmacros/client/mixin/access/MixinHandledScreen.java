@@ -54,10 +54,14 @@ public class MixinHandledScreen<T extends AbstractContainerMenu> extends Screen 
         return getHoveredSlot(x, y);
     }
 
-    @Inject(method = "renderSlot", at = @At("TAIL"))
-    //? if >=1.21.11 {
-    /*private void onDrawSlot(GuiGraphics guiGraphics, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
+    //? if >=26.1 {
+    /*@Inject(method = "extractSlot", at = @At("TAIL"))
+    private void onDrawSlot(GuiGraphicsExtractor guiGraphics, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
+    *///? } else if >=1.21.11 {
+    /*@Inject(method = "renderSlot", at = @At("TAIL"))
+    private void onDrawSlot(GuiGraphics guiGraphics, Slot slot, int mouseX, int mouseY, CallbackInfo ci) {
     *///? } else {
+    @Inject(method = "renderSlot", at = @At("TAIL"))
     private void onDrawSlot(GuiGraphics guiGraphics, Slot slot, CallbackInfo ci) {
     //? }
         if (!JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).showSlotIndexes) return;
@@ -65,7 +69,11 @@ public class MixinHandledScreen<T extends AbstractContainerMenu> extends Screen 
         if (!slot.isActive()) return;
 
         int index = menu.slots.indexOf(slot);
+        //? if >=26.1 {
+        /*guiGraphics.text(Minecraft.getInstance().font, String.valueOf(index), slot.x, slot.y, 0xCCFFFFFF, false);
+        *///? } else {
         guiGraphics.drawString(Minecraft.getInstance().font, String.valueOf(index), slot.x, slot.y, 0xCCFFFFFF, false);
+        //? }
     }
 
 }

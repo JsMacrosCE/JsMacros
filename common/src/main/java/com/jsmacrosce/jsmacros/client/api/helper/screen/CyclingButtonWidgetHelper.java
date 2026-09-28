@@ -43,7 +43,7 @@ public class CyclingButtonWidgetHelper<T> extends ClickableWidgetHelper<CyclingB
      * @since 1.8.4
      */
     public String getStringValue() {
-        return ((MixinCyclingButton<T>) this).getValueToText().apply(getValue()).getString();
+        return ((MixinCyclingButton<T>) base).getValueToText().apply(getValue()).getString();
     }
 
     /**

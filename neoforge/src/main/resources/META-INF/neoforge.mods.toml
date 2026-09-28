@@ -1,5 +1,5 @@
 modLoader = "javafml"
-loaderVersion = "[1,)"
+loaderVersion = "${neoforge_loader_version_range}"
 issueTrackerURL = "https://github.com/JsMacrosCE/JsMacros/issues"
 license = "MPL-2.0"
 
@@ -21,6 +21,6 @@ description = '''
 [[dependencies.jsmacrosce]]
 modId = "minecraft"
 type = "required"
-versionRange = "[${minecraft_version}]"
+versionRange = "${neoforge_minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"

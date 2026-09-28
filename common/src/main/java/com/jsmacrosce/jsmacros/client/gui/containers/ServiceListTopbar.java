@@ -57,7 +57,11 @@ public class ServiceListTopbar extends MultiElementContainer<ServiceScreen> {
     }
 
     @Override
-    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //? if >=26.1 {
+    /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
+    *///? } else {
+    public void render(final GuiGraphics drawContext, int mouseX, int mouseY, final float delta) {
+    //? }
         drawContext.fill(x, y, x + width, y + 1, 0xFFFFFFFF);
         drawContext.fill(x, y + height - 2, x + width, y + height - 1, 0xFFFFFFFF);
         drawContext.fill(x, y + height - 1, x + width, y + height, 0xFF7F7F7F);

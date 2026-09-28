@@ -38,15 +38,9 @@ import com.jsmacrosce.jsmacros.core.language.BaseWrappedException;
 
 import java.util.Arrays;
 
-//? if >=1.21.11 {
-/*import net.minecraft.advancements.criterion.BlockPredicate;
-import net.minecraft.advancements.criterion.NbtPredicate;
-import net.minecraft.advancements.criterion.StatePropertiesPredicate;
-*///? } else {
 import net.minecraft.advancements.critereon.BlockPredicate;
 import net.minecraft.advancements.critereon.NbtPredicate;
 import net.minecraft.advancements.critereon.StatePropertiesPredicate;
-//? }
 
 public class ClientProfile extends BaseProfile {
     private static final Minecraft mc = Minecraft.getInstance();

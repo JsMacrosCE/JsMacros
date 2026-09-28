@@ -9,11 +9,7 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
 import java.util.List;
 
-//? if >=1.21.11 {
-/*import net.minecraft.advancements.criterion.BlockPredicate;
-*///? } else {
 import net.minecraft.advancements.critereon.BlockPredicate;
-//? }
 
 /**
  * @since 1.9.1

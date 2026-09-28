@@ -26,7 +26,11 @@ public class MixinKeyboard {
 
     @WrapOperation(method = "charTyped", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;charTyped(Lnet/minecraft/client/input/CharacterEvent;)Z"))
     private boolean onCharTyped1(Screen instance, CharacterEvent characterEvent, Operation<Boolean> original) {
+        //? if >=26.1 {
+        /^((IScreenInternal) instance).jsmacros_charTyped((char) characterEvent.codepoint(), IScreenInternal.currentModifiers());
+        ^///?} else {
         ((IScreenInternal) instance).jsmacros_charTyped((char) characterEvent.codepoint(), characterEvent.modifiers());
+        //?}
         return original.call(instance, characterEvent);
     }
     *///?} else {

@@ -1,16 +1,13 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 
-import com.jsmacrosce.jsmacros.client.JsMacros;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import com.jsmacrosce.doclet.DocletIgnore;
@@ -22,9 +19,19 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.components.Draw2DElemen
 import com.jsmacrosce.jsmacros.client.api.classes.render.components.RenderElement;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
+import com.jsmacrosce.jsmacros.client.util.CameraCompat;
 
 import java.util.Iterator;
 import java.util.Objects;
+
+//? if >=26.1 {
+/*import net.minecraft.util.LightCoordsUtil;
+*///? } else {
+import net.minecraft.client.renderer.LightTexture;
+//?}
+
+import net.minecraft.world.phys.Vec3;
+import org.joml.Matrix4f;
 
 /**
  * @author Wagyourtail
@@ -36,7 +43,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     public boolean rotateCenter;
     @Nullable
     public EntityHelper<?> boundEntity;
-    public Pos3D boundOffset;
+    public Pos3D boundOffset = Pos3D.ZERO;
     public final Pos3D pos;
     public final Pos3D rotations;
     protected final Pos2D sizes;
@@ -53,7 +60,13 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     public boolean renderBack;
     public boolean cull;
 
+    /**
+     * How the surface's elements are lit.
+     *
+     * @since 2.0.0
+     */
     private enum LightMode { FULL_BRIGHT, WORLD, CUSTOM }
+
     private LightMode lightMode = LightMode.FULL_BRIGHT;
     private int customLight = 0xF000F0;
 
@@ -62,10 +75,6 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         this.rotations = rotations;
         this.sizes = sizes;
         this.minSubdivisions = Math.max(minSubdivisions, 1);
-        if (minSubdivisions != this.minSubdivisions) {
-            JsMacros.LOGGER.warn("Surface instantiated with invalid minSubdivisions: {}, defaulting to 1",
-                    minSubdivisions);
-        }
         this.renderBack = renderBack;
         this.cull = cull;
         init();
@@ -191,16 +200,61 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
 
     public void setMinSubdivisions(int minSubdivisions) {
         this.minSubdivisions = Math.max(minSubdivisions, 1);
-        if (minSubdivisions != this.minSubdivisions) {
-            JsMacros.LOGGER.warn("Surface.setMinSubdivisions called with invalid minSubdivisions: {}, defaulting to 1",
-                    minSubdivisions);
-        }
-        
         recomputeScale();
+    }
+
+    private void recomputeScale() {
+        scale = Math.min(sizes.x, sizes.y) / minSubdivisions;
     }
 
     public int getMinSubdivisions() {
         return minSubdivisions;
+    }
+
+    /**
+     * Makes all elements on this surface render at full brightness, ignoring world lighting.
+     *
+     * @return self for chaining.
+     * @since 2.0.0
+     */
+    public Surface setFullBrightLight() {
+        this.lightMode = LightMode.FULL_BRIGHT;
+        return this;
+    }
+
+    /**
+     * Makes all elements on this surface sample block and sky light from the world each frame
+     * at the surface's position (including the day/night sky darken). Cast shadows are not
+     * modelled.
+     *
+     * @return self for chaining.
+     * @since 2.0.0
+     */
+    public Surface setWorldLight() {
+        this.lightMode = LightMode.WORLD;
+        return this;
+    }
+
+    /**
+     * Sets a fixed light level for all elements on this surface.
+     *
+     * @param blockLight block light level, 0-15 (e.g. 15 next to a torch)
+     * @param skyLight   sky light level, 0-15 (e.g. 15 outdoors in daylight)
+     * @return self for chaining.
+     * @since 2.0.0
+     */
+    public Surface setLight(int blockLight, int skyLight) {
+        this.lightMode = LightMode.CUSTOM;
+        this.customLight = packLight(blockLight, skyLight);
+        return this;
+    }
+
+    private static int packLight(int blockLight, int skyLight) {
+        //? if >=26.1 {
+        /*return LightCoordsUtil.pack(blockLight, skyLight);
+        *///? } else {
+        return LightTexture.pack(blockLight, skyLight);
+        //?}
     }
 
     @Override
@@ -232,52 +286,10 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         return rotateCenter;
     }
 
-    /**
-     * Makes all elements on this surface render at full brightness, ignoring world lighting.
-     * This is the default behaviour.
-     *
-     * @return self for chaining.
-     * @since 1.9.1
-     */
-    public Surface setFullBrightLight() {
-        this.lightMode = LightMode.FULL_BRIGHT;
-        return this;
-    }
-
-    /**
-     * Makes all elements on this surface sample block and sky light from the world each frame
-     * at the surface's position, so they dim and brighten with their environment.
-     *
-     * @return self for chaining.
-     * @since 1.9.1
-     */
-    public Surface setWorldLight() {
-        this.lightMode = LightMode.WORLD;
-        return this;
-    }
-
-    /**
-     * Sets a fixed light level for all elements on this surface.
-     *
-     * @param blockLight block light level, 0–15 (e.g. 15 next to a torch)
-     * @param skyLight   sky light level, 0–15 (e.g. 15 outdoors in daylight)
-     * @return self for chaining.
-     * @since 1.9.1
-     */
-    public Surface setLight(int blockLight, int skyLight) {
-        this.lightMode = LightMode.CUSTOM;
-        this.customLight = LightTexture.pack(blockLight, skyLight);
-        return this;
-    }
-
     @Override
     public void init() {
         recomputeScale();
         super.init();
-    }
-
-    private void recomputeScale() {
-        scale = Math.min(sizes.x, sizes.y) / minSubdivisions;
     }
 
     @Override
@@ -312,80 +324,169 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
 
     @Override
     @DocletIgnore
-    public void render(PoseStack matrices, MultiBufferSource consumers, float partialTicks) {
+    public void render(PoseStack matrices, MultiBufferSource consumers, float tickDelta) {
+        // On 1.21.11+ surfaces are drawn from renderDirect inside the Gizmos pass.
+        //? if <1.21.11 {
+        /*renderSurface(matrices, consumers, tickDelta);
+        *///? }
+    }
+
+    @Override
+    @DocletIgnore
+    public void renderDirect(PoseStack matrices, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
+        //? if >=1.21.11 {
+        /*// cull surfaces are depth-tested; non-cull surfaces draw after the depth clear.
+        if ((!this.cull) != alwaysOnTop) {
+            return;
+        }
+        renderSurface(matrices, consumers, tickDelta);
+        *///? }
+    }
+
+    private void renderSurface(PoseStack matrices, MultiBufferSource consumers, float tickDelta) {
         boolean seeThrough = !this.cull;
+        Pos3D renderPos = resolveRenderPos(tickDelta);
+        updateRotateToPlayer(renderPos);
+        Matrix4f transform = buildSurfaceTransform(renderPos);
+        if (!renderBack && isCameraOnBackSide(transform)) {
+            return;
+        }
+        int light = resolveLight(renderPos);
         matrices.pushPose();
-
-        boolean isTrackingEntity = boundEntity != null && boundEntity.isAlive();
-        Pos3D renderPos = isTrackingEntity ? new Pos3D(boundEntity.getPos(partialTicks)) : pos;
-        matrices.translate(renderPos.x, renderPos.y, renderPos.z);
-
-        if (rotateToPlayer) {
-            //? if >=1.21.11 {
-            /*Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().position();
-            *///? } else {
-            Vec3 cameraPos = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
-            //? }
-            double pivotX = rotateCenter ? renderPos.x + (sizes.x / 2.0) : renderPos.x;
-            double pivotY = rotateCenter ? renderPos.y - (sizes.y / 2.0) : renderPos.y;
-            double pivotZ = renderPos.z;
-            double dx = cameraPos.x - pivotX;
-            double dy = cameraPos.y - pivotY;
-            double dz = cameraPos.z - pivotZ;
-            double horizontal = Math.sqrt(dx * dx + dz * dz);
-
-            rotations.x = -Math.toDegrees(Math.atan2(dy, horizontal));
-            rotations.y = Math.toDegrees(Math.atan2(dx, dz));
-            rotations.z = 0;
-        }
-
-        if (rotateCenter) {
-            matrices.translate(sizes.x / 2, 0, 0);
-            matrices.mulPose(new Quaternionf().rotateLocalY((float) Math.toRadians(rotations.y)));
-            matrices.translate(-sizes.x / 2, 0, 0);
-            matrices.translate(0, -sizes.y / 2, 0);
-            matrices.mulPose(new Quaternionf().rotateLocalX((float) Math.toRadians(rotations.x)));
-            matrices.translate(0, sizes.y / 2, 0);
-            matrices.translate(sizes.x / 2, -sizes.y / 2, 0);
-            matrices.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(rotations.z)));
-            matrices.translate(-sizes.x / 2, sizes.y / 2, 0);
-        } else {
-            Quaternionf q = new Quaternionf();
-            q.rotateLocalY((float) Math.toRadians(rotations.y));
-            q.rotateLocalX((float) Math.toRadians(rotations.x));
-            q.rotateLocalZ((float) Math.toRadians(rotations.z));
-            matrices.mulPose(q);
-        }
-        // fix it so that y-axis goes down instead of up
-        matrices.scale(1, -1, 1);
-        // scale so that x or y have minSubdivisions units between them
-        matrices.scale((float) scale, (float) scale, (float) scale);
-
+        matrices.mulPose(transform);
         synchronized (elements) {
-            renderElements3D(matrices,
-                    consumers,
-                    partialTicks,
-                    resolveLightValue(renderPos.toRawBlockPos()),
-                    seeThrough,
-                    getElementsByZIndex());
+            renderDirectElements(matrices, consumers, light, seeThrough, tickDelta, getElementsByZIndex());
         }
         matrices.popPose();
     }
 
-    private int resolveLightValue() {
-        return resolveLightValue(pos.toRawBlockPos());
+    /**
+     * True when the camera is behind the surface's readable face. Surface content is
+     * authored facing local +Z (see {@link #updateRotateToPlayer}, which points +Z at
+     * the camera), so the camera is behind it when it lies on the -Z side of the plane.
+     */
+    private static boolean isCameraOnBackSide(Matrix4f transform) {
+        Vec3 cameraPos = CameraCompat.position(Minecraft.getInstance().gameRenderer.getMainCamera());
+        Vector3f origin = transform.transformPosition(new Vector3f(0, 0, 0));
+        Vector3f facing = transform.transformPosition(new Vector3f(0, 0, 1)).sub(origin);
+        return facing.x * (cameraPos.x - origin.x)
+                + facing.y * (cameraPos.y - origin.y)
+                + facing.z * (cameraPos.z - origin.z) < 0;
     }
 
-    private int resolveLightValue(BlockPos blockPos) {
+    @DocletIgnore
+    public Pos3D resolveRenderPos(float partialTicks) {
+        boolean isTrackingEntity = boundEntity != null && boundEntity.isAlive();
+        return isTrackingEntity ? boundEntity.getInterpolatedPos(partialTicks).add(boundOffset) : pos;
+    }
+
+    private void updateRotateToPlayer(Pos3D renderPos) {
+        if (!rotateToPlayer) {
+            return;
+        }
+        Vec3 cameraPos = CameraCompat.position(Minecraft.getInstance().gameRenderer.getMainCamera());
+        double pivotX = rotateCenter ? renderPos.x + (sizes.x / 2.0) : renderPos.x;
+        double pivotY = rotateCenter ? renderPos.y - (sizes.y / 2.0) : renderPos.y;
+        double pivotZ = renderPos.z;
+        double dx = cameraPos.x - pivotX;
+        double dy = cameraPos.y - pivotY;
+        double dz = cameraPos.z - pivotZ;
+        double horizontal = Math.sqrt(dx * dx + dz * dz);
+        rotations.x = -Math.toDegrees(Math.atan2(dy, horizontal));
+        rotations.y = Math.toDegrees(Math.atan2(dx, dz));
+        rotations.z = 0;
+    }
+
+    private void renderDirectElements(PoseStack matrices, MultiBufferSource consumers, int light, boolean seeThrough, float tickDelta, Iterator<RenderElement> iter) {
+        while (iter.hasNext()) {
+            RenderElement element = iter.next();
+            if (element instanceof Draw2DElement draw2DElement) {
+                // Give the nested panel its zIndex depth so it does not sit coplanar
+                // with the parent's rects (older targets write depth in debugQuads).
+                matrices.pushPose();
+                if (scale != 0) {
+                    matrices.translate(0, 0, (float) ((zIndexScale / scale) * element.getZIndex()));
+                }
+                renderNestedDirect(matrices, consumers, light, seeThrough, tickDelta, draw2DElement);
+                matrices.popPose();
+                continue;
+            }
+            matrices.pushPose();
+            if (scale != 0) {
+                matrices.translate(0, 0, (float) ((zIndexScale / scale) * element.getZIndex()));
+            }
+            element.render3D(matrices, consumers, light, seeThrough, tickDelta);
+            // debugQuads sorts quads by camera distance on upload, which ignores
+            // zIndex order, so flush each element as its own batch and rely on
+            // painter's order.
+            if (consumers instanceof MultiBufferSource.BufferSource bufferSource) {
+                bufferSource.endBatch();
+            }
+            matrices.popPose();
+        }
+    }
+
+    private void renderNestedDirect(PoseStack matrices, MultiBufferSource consumers, int light, boolean seeThrough, float tickDelta, Draw2DElement element) {
+        matrices.pushPose();
+        matrices.translate(element.x, element.y, 0);
+        matrices.scale((float) element.scale, (float) element.scale, 1);
+        float centerX = element.getWidth() / 2f;
+        float centerY = element.getHeight() / 2f;
+        if (element.rotateCenter) {
+            matrices.translate(centerX, centerY, 0);
+        }
+        matrices.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(element.rotation)));
+        if (element.rotateCenter) {
+            matrices.translate(-centerX, -centerY, 0);
+        }
+        Draw2D draw2D = element.getDraw2D();
+        synchronized (draw2D.getElements()) {
+            renderDirectElements(matrices, consumers, light, seeThrough, tickDelta, draw2D.getElementsByZIndex());
+        }
+        matrices.popPose();
+    }
+
+    private Matrix4f buildSurfaceTransform(Pos3D renderPos) {
+        Matrix4f m = new Matrix4f();
+        m.translate((float) renderPos.x, (float) renderPos.y, (float) renderPos.z);
+        float halfX = (float) (sizes.x / 2.0);
+        float halfY = (float) (sizes.y / 2.0);
+        if (rotateCenter) {
+            // Rotate about the surface centre by giving each axis its own pivot.
+            m.translate(halfX, 0, 0);
+            m.rotateY((float) Math.toRadians(rotations.y));
+            m.translate(-halfX, 0, 0);
+            m.translate(0, -halfY, 0);
+            m.rotateX((float) Math.toRadians(rotations.x));
+            m.translate(0, halfY, 0);
+            m.translate(halfX, -halfY, 0);
+            m.rotateZ((float) Math.toRadians(rotations.z));
+            m.translate(-halfX, halfY, 0);
+        } else {
+            m.rotateY((float) Math.toRadians(rotations.y));
+            m.rotateX((float) Math.toRadians(rotations.x));
+            m.rotateZ((float) Math.toRadians(rotations.z));
+        }
+        // Flip y (surface space grows downwards) and map surface pixels to blocks.
+        m.scale((float) scale, (float) -scale, (float) scale);
+        return m;
+    }
+
+    private int resolveLight(Pos3D renderPos) {
         return switch (lightMode) {
             case FULL_BRIGHT -> 0xF000F0;
-            case CUSTOM      -> customLight;
-            case WORLD       -> {
-                ClientLevel level = Minecraft.getInstance().level;
-                if (level == null) yield 0xF000F0;
+            case CUSTOM -> customLight;
+            case WORLD -> {
+                var level = Minecraft.getInstance().level;
+                if (level == null) {
+                    yield 0xF000F0;
+                }
+                BlockPos blockPos = renderPos.toRawBlockPos();
                 int block = level.getBrightness(LightLayer.BLOCK, blockPos);
-                int sky = level.getBrightness(LightLayer.SKY, blockPos);
-                yield LightTexture.pack(block, sky);
+                // Subtract the sky darken so the surface also dims at night, like
+                // the vanilla lightmap. Cast shadows are not modelled.
+                int sky = Math.max(0, level.getBrightness(LightLayer.SKY, blockPos) - level.getSkyDarken());
+                yield packLight(block, sky);
             }
         };
     }
@@ -417,46 +518,65 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         return new Vector3f((float) Math.toDegrees(radianX), (float) Math.toDegrees(radianY), (float) Math.toDegrees(radianZ));
     }
 
-    private void renderElements3D(PoseStack matrices, MultiBufferSource consumers, float delta, int light, boolean seeThrough, Iterator<RenderElement> iter) {
+    private void renderElements3D(GuiGraphics drawContext, Iterator<RenderElement> iter) {
         while (iter.hasNext()) {
             RenderElement element = iter.next();
             // Render each draw2D element individually so that the cull and renderBack settings are used
             if (element instanceof Draw2DElement draw2DElement) {
-                renderDraw2D3D(matrices, consumers, delta, light, seeThrough, draw2DElement);
+                renderDraw2D3D(drawContext, draw2DElement);
             } else {
-                renderElement3D(matrices, consumers, delta, light, seeThrough, element);
+                renderElement3D(drawContext, element);
             }
         }
     }
 
-    private void renderDraw2D3D(PoseStack matrices, MultiBufferSource consumers, float delta, int light, boolean seeThrough, Draw2DElement element) {
-        matrices.pushPose();
-        matrices.translate(element.x, element.y, 0);
-        matrices.scale(element.scale, element.scale, 1);
-        if (element.rotateCenter) {
-            matrices.translate(element.getWidth() / 2d, element.getHeight() / 2d, 0);
+    private void renderDraw2D3D(GuiGraphics drawContext, Draw2DElement element) {
+        // TODO: Does setupMatrix operate the same here? Why does it have the final translation?
+        //? if >1.21.5 {
+        Matrix3x2fStack matrixStack = drawContext.pose();
+        matrixStack.pushMatrix();
+        setupMatrix(matrixStack, element.x, element.y, element.scale, element.rotation, element.getWidth(), element.getHeight(), element.rotateCenter);
+        //?} else {
+        /*PoseStack matrixStack = drawContext.pose();
+        matrixStack.pushPose();
+        matrixStack.translate(element.x, element.y, 0);
+        matrixStack.scale(element.scale, element.scale, 1);
+        if (rotateCenter) {
+            matrixStack.translate(element.width.getAsInt() / 2d, element.height.getAsInt() / 2d, 0);
         }
-        matrices.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(element.rotation)));
-        if (element.rotateCenter) {
-            matrices.translate(-element.getWidth() / 2d, -element.getHeight() / 2d, 0);
+        matrixStack.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(element.rotation)));
+        if (rotateCenter) {
+            matrixStack.translate(-element.width.getAsInt() / 2d, -element.height.getAsInt() / 2d, 0);
         }
-        // Don't translate back! Elements are rendered relative to the translated origin.
+        *///?}
+
+        // Don't translate back!
         Draw2D draw2D = element.getDraw2D();
         synchronized (draw2D.getElements()) {
-            renderElements3D(matrices, consumers, delta, light, seeThrough, draw2D.getElementsByZIndex());
+            renderElements3D(drawContext, draw2D.getElementsByZIndex());
         }
-        matrices.popPose();
+        //? if >1.21.5 {
+        matrixStack.popMatrix();
+        //?} else {
+        /*matrixStack.popPose();
+        *///?}
     }
 
-    private void renderElement3D(PoseStack matrices, MultiBufferSource consumers, float delta, int light, boolean seeThrough, RenderElement element) {
+    private void renderElement3D(GuiGraphics drawContext, RenderElement element) {
+        //? if >1.21.5 {
+        Matrix3x2fStack matrixStack = drawContext.pose();
+        matrixStack.pushMatrix();
+        // Z-index is no longer possible as this is a 3x2 matrix now.
+        //matrixStack.translate(0, 0, zIndexScale * element.getZIndex());
+        element.render3D(drawContext, 0, 0, 0);
+        matrixStack.popMatrix();
+        //?} else {
+        /*PoseStack matrices = drawContext.pose();
         matrices.pushPose();
-        // The surface's scale transform has already been applied to the matrix stack, so a plain
-        // zIndexScale * zIndex translation would be scaled down by `scale` (e.g. 0.01), causing
-        // z-fighting.  Divide by scale to keep the world-space z-separation equal to
-        // zIndexScale * zIndex regardless of the surface's pixel-to-block scale factor.
-        matrices.translate(0, 0, (zIndexScale / scale) * element.getZIndex());
-        element.render3D(matrices, consumers, light, seeThrough, delta);
+        matrices.translate(0, 0, zIndexScale * element.getZIndex());
+        element.render3D(drawContext, 0, 0, 0);
         matrices.popPose();
+        *///?}
     }
 
     @Override
@@ -813,11 +933,10 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         }
 
         /**
-         * Makes all elements on this surface render at full brightness, ignoring world lighting.
-         * This is the default behaviour.
+         * Renders all elements at full brightness, ignoring world lighting.
          *
          * @return self for chaining.
-         * @since 1.9.1
+         * @since 2.0.0
          */
         public Builder fullBrightLight() {
             this.lightMode = LightMode.FULL_BRIGHT;
@@ -825,11 +944,10 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         }
 
         /**
-         * Makes all elements on this surface sample block and sky light from the world each frame
-         * at the surface's position, so they dim and brighten with their environment.
+         * Samples block and sky light from the world each frame at the surface's position.
          *
          * @return self for chaining.
-         * @since 1.9.1
+         * @since 2.0.0
          */
         public Builder worldLight() {
             this.lightMode = LightMode.WORLD;
@@ -839,14 +957,14 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         /**
          * Sets a fixed light level for all elements on this surface.
          *
-         * @param blockLight block light level, 0–15 (e.g. 15 next to a torch)
-         * @param skyLight   sky light level, 0–15 (e.g. 15 outdoors in daylight)
+         * @param blockLight block light level, 0-15 (e.g. 15 next to a torch)
+         * @param skyLight   sky light level, 0-15 (e.g. 15 outdoors in daylight)
          * @return self for chaining.
-         * @since 1.9.1
+         * @since 2.0.0
          */
         public Builder light(int blockLight, int skyLight) {
             this.lightMode = LightMode.CUSTOM;
-            this.customLight = LightTexture.pack(blockLight, skyLight);
+            this.customLight = packLight(blockLight, skyLight);
             return this;
         }
 

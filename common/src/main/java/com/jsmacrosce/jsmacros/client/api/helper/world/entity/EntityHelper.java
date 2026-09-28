@@ -28,6 +28,7 @@ import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.*;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -38,6 +39,7 @@ import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.doclet.DocletReplaceTypeParams;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.math.Pos2D;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.client.access.IMixinEntity;
@@ -69,6 +71,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicl
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.FurnaceMinecartEntityHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.TntMinecartEntityHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
+import com.jsmacrosce.jsmacros.util.ChunkPosCompat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -135,11 +138,6 @@ import net.minecraft.world.level.storage.ValueOutput;
 //?}
 
 /**
- * Wraps a Minecraft {@link Entity} and exposes convenience methods for reading
- * entity state, querying world-related information, and accessing specialized
- * helper types.
- *
- * @param <T> the wrapped entity type
  * @author Wagyourtail
  */
 @SuppressWarnings("unused")
@@ -150,29 +148,32 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the current position of the entity.
-     *
-     * @return a new {@link Pos3D} representing the entity's current world position
+     * @return entity position.
      */
     public Pos3D getPos() {
         return new Pos3D(base.getX(), base.getY(), base.getZ());
     }
 
     /**
-     * Returns the interpolated position of the entity for the given render tick.
-     *
-     * @param partialTicks the fractional tick value used for interpolation between
-     *                     the previous and current tick (0–1)
-     * @return a new {@link Pos3D} representing the interpolated entity position
+     * @param partialTicks the fraction of the current tick to interpolate.
+     * @return interpolated entity position.
      */
     public Pos3D getPos(float partialTicks) {
         return new Pos3D(base.getPosition(partialTicks));
     }
 
     /**
-     * Returns the entity's current block position.
+     * Interpolated entity position, used for render-time placement.
      *
-     * @return a helper representing the entity's current block coordinates
+     * @since 2.0.0
+     */
+    @DocletIgnore
+    public Pos3D getInterpolatedPos(float partialTicks) {
+        return getPos(partialTicks);
+    }
+
+    /**
+     * @return entity block position.
      * @since 1.6.5
      */
     public BlockPosHelper getBlockPos() {
@@ -180,9 +181,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the entity's current eye position.
-     *
-     * @return a new {@link Pos3D} representing the entity's eye position
+     * @return the entity's eye position.
      * @since 1.8.4
      */
     public Pos3D getEyePos() {
@@ -190,20 +189,16 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the chunk coordinates containing this entity.
-     *
-     * @return a new {@link Pos2D} containing the chunk x and z coordinates, where
-     *         the z coordinate is stored in the {@code y} field
+     * @return entity chunk coordinates. Since Pos2D only has x and y fields, z coord is y.
      * @since 1.6.5
      */
     public Pos2D getChunkPos() {
-        return new Pos2D(base.chunkPosition().x, base.chunkPosition().z);
+        ChunkPos pos = base.chunkPosition();
+        return new Pos2D(ChunkPosCompat.x(pos), ChunkPosCompat.z(pos));
     }
 
     /**
-     * Returns the entity's current x-coordinate.
-     *
-     * @return the {@code x} coordinate of the entity
+     * @return the {@code x} value of the entity.
      * @since 1.0.8
      */
     public double getX() {
@@ -211,9 +206,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the entity's current y-coordinate.
-     *
-     * @return the {@code y} coordinate of the entity
+     * @return the {@code y} value of the entity.
      * @since 1.0.8
      */
     public double getY() {
@@ -221,9 +214,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the entity's current z-coordinate.
-     *
-     * @return the {@code z} coordinate of the entity
+     * @return the {@code z} value of the entity.
      * @since 1.0.8
      */
     public double getZ() {
@@ -231,9 +222,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the entity's current eye height offset for its active pose.
-     *
-     * @return the vertical offset from the entity's position to its eye position
+     * @return the current eye height offset for the entity.
      * @since 1.2.8
      */
     public double getEyeHeight() {
@@ -241,9 +230,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the entity's pitch rotation.
-     *
-     * @return the {@code pitch} value of the entity in degrees
+     * @return the {@code pitch} value of the entity.
      * @since 1.0.8
      */
     public float getPitch() {
@@ -251,9 +238,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the entity's yaw rotation.
-     *
-     * @return the wrapped {@code yaw} value of the entity in degrees
+     * @return the {@code yaw} value of the entity.
      * @since 1.0.8
      */
     public float getYaw() {
@@ -261,9 +246,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the display name of the entity.
-     *
-     * @return the entity's name as a {@link TextHelper}
+     * @return the name of the entity.
      * @since 1.0.8 [citation needed], returned string until 1.6.4
      */
     public TextHelper getName() {
@@ -271,9 +254,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the registry ID of the entity type.
-     *
-     * @return the namespaced ID of the entity type
+     * @return the type of the entity.
      */
     @DocletReplaceReturn("EntityId")
     public String getType() {
@@ -281,11 +262,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Checks whether this entity's type matches any of the given type IDs.
-     *
-     * @param types one or more entity type IDs to compare against
-     * @return {@code true} if this entity matches at least one provided type,
-     *         {@code false} otherwise
+     * checks if this entity type equals to any of the specified types<br>
      * @since 1.9.0
      */
     @DocletReplaceTypeParams("E extends CanOmitNamespace<EntityId>")
@@ -296,10 +273,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Checks whether the entity is currently glowing.
-     *
-     * @return {@code true} if the entity has the glowing effect, {@code false}
-     *         otherwise
+     * @return if the entity has the glowing effect.
      * @since 1.1.9
      */
     public boolean isGlowing() {
@@ -307,9 +281,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Checks whether the entity is currently in lava.
-     *
-     * @return {@code true} if the entity is in lava, {@code false} otherwise
+     * @return if the entity is in lava.
      * @since 1.1.9
      */
     public boolean isInLava() {
@@ -317,9 +289,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Checks whether the entity is currently on fire.
-     *
-     * @return {@code true} if the entity is on fire, {@code false} otherwise
+     * @return if the entity is on fire.
      * @since 1.1.9
      */
     public boolean isOnFire() {
@@ -327,9 +297,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Checks whether the entity is sneaking.
-     *
-     * @return {@code true} if the entity is sneaking, {@code false} otherwise
+     * @return {@code true} if the entity is sneaking, {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean isSneaking() {
@@ -337,9 +305,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Checks whether the entity is sprinting.
-     *
-     * @return {@code true} if the entity is sprinting, {@code false} otherwise
+     * @return {@code true} if the entity is sprinting, {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean isSprinting() {
@@ -347,10 +313,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the vehicle this entity is riding.
-     *
-     * @return a helper for the entity's vehicle, or {@code null} if the entity is
-     *         not riding anything
+     * @return the vehicle of the entity.
      * @since 1.1.8 [citation needed]
      */
     @Nullable
@@ -363,11 +326,6 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Ray traces from the entity's viewpoint and returns the first block hit.
-     *
-     * @param distance the maximum trace distance in blocks
-     * @param fluid whether fluids should be considered hittable
-     * @return a helper for the hit block, or {@code null} if no block was hit
      * @since 1.9.0
      */
     @Nullable
@@ -386,11 +344,9 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
 
 
     /**
-     * Ray traces from the entity's viewpoint and returns the first entity hit.
-     *
-     * @param distance the maximum trace distance in blocks
-     * @return a helper for the targeted entity, or {@code null} if no entity was hit
      * @since 1.9.0
+     * @param distance
+     * @return
      */
     @Nullable
     public EntityHelper<?> rayTraceEntity(int distance) {
@@ -398,10 +354,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the entities riding this entity.
-     *
-     * @return a list of passenger helpers, or {@code null} if the entity has no
-     *         passengers
+     * @return the entity passengers.
      * @since 1.1.8 [citation needed]
      */
     @Nullable
@@ -412,16 +365,14 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Serializes the entity into NBT without its entity ID.
-     *
-     * @return the entity's NBT data as a compound helper
+     * @return
      * @since 1.2.8, was a {@link String} until 1.5.0
      */
     public NBTElementHelper.NBTCompoundHelper getNBT() {
         //? if >1.21.5 {
         ValueOutput view = TagValueOutput.createWithContext(
                 ProblemReporter.DISCARDING,
-                player.registryAccess()
+                Objects.requireNonNull(Minecraft.getInstance().getConnection()).registryAccess()
         );
         base.saveWithoutId(view);
         CompoundTag nbt = ((TagValueOutput) view).buildResult();
@@ -434,10 +385,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Sets the entity's custom name.
-     *
-     * @param name the name to set, or {@code null} to clear the custom name
-     * @return this helper instance
+     * @param name
      * @since 1.6.4
      */
     public EntityHelper<T> setCustomName(@Nullable TextHelper name) {
@@ -450,11 +398,9 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Sets whether the entity's custom name should always be visible.
+     * sets the name to always display
      *
-     * @param b {@code true} to always show the custom name, {@code false} to use
-     *          normal visibility rules
-     * @return this helper instance
+     * @param b
      * @since 1.8.0
      */
     public EntityHelper<T> setCustomNameVisible(boolean b) {
@@ -463,10 +409,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Overrides the entity's glowing outline color.
-     *
-     * @param color the ARGB or packed color value to apply
-     * @return this helper instance
+     * @param color
      */
     public EntityHelper<T> setGlowingColor(int color) {
         ((IMixinEntity) base).jsmacros_setGlowingColor(color);
@@ -474,10 +417,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Clears any glowing color override previously applied with
-     * {@link #setGlowingColor(int)}.
      *
-     * @return this helper instance
      */
     public EntityHelper<T> resetGlowingColor() {
         ((IMixinEntity) base).jsmacros_resetColor();
@@ -485,11 +425,9 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the entity's current glowing color.
+     * warning: affected by setGlowingColor
      *
-     * <p>This value may be affected by {@link #setGlowingColor(int)}.</p>
-     *
-     * @return the current glow color value
+     * @return glow color
      * @since 1.8.2
      */
     public int getGlowingColor() {
@@ -497,11 +435,10 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Sets whether the entity should be forced into the glowing state.
+     * Sets whether the entity is glowing.
      *
-     * @param val {@code true} to force glowing, {@code false} to disable the forced
-     *            glowing state
-     * @return this helper instance
+     * @param val
+     * @return
      * @since 1.1.9
      */
     public EntityHelper<T> setGlowing(boolean val) {
@@ -510,9 +447,9 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Resets the entity's glowing state to the normal game-controlled value.
+     * reset the glowing effect to proper value.
      *
-     * @return this helper instance
+     * @return
      * @since 1.6.3
      */
     public EntityHelper<T> resetGlowing() {
@@ -521,9 +458,9 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Checks whether the entity is still alive.
+     * Checks if the entity is still alive.
      *
-     * @return {@code true} if the entity is alive, {@code false} otherwise
+     * @return
      * @since 1.2.8
      */
     public boolean isAlive() {
@@ -531,9 +468,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the UUID of the entity.
-     *
-     * @return the entity UUID as a string
+     * @return UUID of the entity, random* if not a player, otherwise the player's uuid.
      * @since 1.6.5
      */
     public String getUUID() {
@@ -541,9 +476,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the maximum amount of air the entity can store.
-     *
-     * @return the entity's maximum air supply
+     * @return the maximum amount of air this entity can have.
      * @since 1.8.4
      */
     public int getMaxAir() {
@@ -551,9 +484,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the entity's current air supply.
-     *
-     * @return the amount of air currently available to the entity
+     * @return the amount of air this entity has.
      * @since 1.8.4
      */
     public int getAir() {
@@ -561,9 +492,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the entity's approximate horizontal speed in blocks per second.
-     *
-     * @return the current horizontal speed based on the previous tick position
+     * @return this entity's current speed in blocks per second.
      * @since 1.8.4
      */
     public double getSpeed() {
@@ -573,10 +502,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the direction the entity is facing.
-     *
-     * @return a helper for the entity's facing direction, rounded to the nearest
-     *         cardinal/intercardinal direction
+     * @return the direction the entity is facing, rounded to the nearest 45 degrees.
      * @since 1.8.4
      */
     public DirectionHelper getFacingDirection() {
@@ -584,10 +510,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the distance from this entity to another entity.
-     *
-     * @param entity the entity to measure distance to
-     * @return the distance between the two entities in blocks
+     * @return the distance between this entity and the specified one.
      * @since 1.8.4
      */
     public float distanceTo(EntityHelper<?> entity) {
@@ -595,10 +518,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the distance from this entity to the given block position.
-     *
-     * @param pos the position to measure distance to
-     * @return the distance between this entity and the center of the given block
+     * @return the distance between this entity and the specified position.
      * @since 1.8.4
      */
     public double distanceTo(BlockPosHelper pos) {
@@ -606,10 +526,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the distance from this entity to the given world position.
-     *
-     * @param pos the position to measure distance to
-     * @return the distance between this entity and the given position in blocks
+     * @return the distance between this entity and the specified position.
      * @since 1.8.4
      */
     public double distanceTo(Pos3D pos) {
@@ -617,12 +534,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the distance from this entity to the given coordinates.
-     *
-     * @param x the target x-coordinate
-     * @param y the target y-coordinate
-     * @param z the target z-coordinate
-     * @return the distance between this entity and the given coordinates in blocks
+     * @return the distance between this entity and the specified position.
      * @since 1.8.4
      */
     public double distanceTo(double x, double y, double z) {
@@ -630,9 +542,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the entity's current velocity vector.
-     *
-     * @return a new {@link Pos3D} representing the entity's delta movement
+     * @return the velocity vector.
      * @since 1.8.4
      */
     public Pos3D getVelocity() {
@@ -640,9 +550,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the chunk currently containing this entity.
-     *
-     * @return a helper for the entity's current chunk
+     * @return the chunk helper for the chunk this entity is in.
      * @since 1.8.4
      */
     public ChunkHelper getChunk() {
@@ -650,9 +558,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the biome registry ID at the entity's current position.
-     *
-     * @return the namespaced biome ID for the biome containing this entity
+     * @return the name of the biome this entity is in.
      * @since 1.8.4
      */
     @DocletReplaceReturn("Biome")
@@ -666,13 +572,10 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Creates the most specific helper wrapper available for the given entity.
+     * mostly for internal use.
      *
-     * <p>This is primarily intended for internal use when converting raw Minecraft
-     * entities into their corresponding helper types.</p>
-     *
-     * @param e the Minecraft entity to wrap
-     * @return the most specific helper implementation for the given entity
+     * @param e mc entity.
+     * @return correct subclass of this.
      */
     public static EntityHelper<?> create(@NotNull Entity e) {
         Objects.requireNonNull(e, "Entity cannot be null.");
@@ -885,11 +788,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Casts this helper to a client player helper.
-     *
-     * <p>This is primarily intended for TypeScript-facing APIs.</p>
-     *
-     * @return this helper cast to {@link ClientPlayerEntityHelper}
+     * @return cast of this entity helper (mainly for typescript)
      * @since 1.6.3
      */
     public ClientPlayerEntityHelper<?> asClientPlayer() {
@@ -897,11 +796,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Casts this helper to a player helper.
-     *
-     * <p>This is primarily intended for TypeScript-facing APIs.</p>
-     *
-     * @return this helper cast to {@link PlayerEntityHelper}
+     * @return cast of this entity helper (mainly for typescript)
      * @since 1.6.3
      */
     public PlayerEntityHelper<?> asPlayer() {
@@ -909,11 +804,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Casts this helper to a villager helper.
-     *
-     * <p>This is primarily intended for TypeScript-facing APIs.</p>
-     *
-     * @return this helper cast to {@link VillagerEntityHelper}
+     * @return cast of this entity helper (mainly for typescript)
      * @since 1.6.3
      */
     public VillagerEntityHelper asVillager() {
@@ -921,11 +812,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Casts this helper to a merchant helper.
-     *
-     * <p>This is primarily intended for TypeScript-facing APIs.</p>
-     *
-     * @return this helper cast to {@link MerchantEntityHelper}
+     * @return cast of this entity helper (mainly for typescript)
      * @since 1.6.3
      */
     public MerchantEntityHelper<?> asMerchant() {
@@ -933,11 +820,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Casts this helper to a living entity helper.
-     *
-     * <p>This is primarily intended for TypeScript-facing APIs.</p>
-     *
-     * @return this helper cast to {@link LivingEntityHelper}
+     * @return cast of this entity helper (mainly for typescript)
      * @since 1.6.3
      */
     public LivingEntityHelper<?> asLiving() {
@@ -945,11 +828,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Casts this helper to an animal entity helper.
-     *
-     * <p>This is primarily intended for TypeScript-facing APIs.</p>
-     *
-     * @return this helper cast to {@link AnimalEntityHelper}
+     * @return this helper as an animal entity helper (mainly for typescript).
      * @since 1.8.4
      */
     public LivingEntityHelper<?> asAnimal() {
@@ -957,11 +836,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Casts this helper to an item entity helper.
-     *
-     * <p>This is primarily intended for TypeScript-facing APIs.</p>
-     *
-     * @return this helper cast to {@link ItemEntityHelper}
+     * @return cast of this entity helper (mainly for typescript)
      * @since 1.6.3
      */
     public ItemEntityHelper asItem() {
@@ -969,13 +844,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns this entity as its server-side counterpart when available.
-     *
-     * @return the matching server-side entity helper if an integrated server is
-     *         running, or {@code null} otherwise
+     * @return the entity as a server entity if an integrated server is running and {@code null} otherwise.
      * @since 1.8.4
-     * @throws UnsupportedOperationException always, because this is not currently
-     *                                       supported in the client environment
      */
     @Nullable
     public EntityHelper<?> asServerEntity() {

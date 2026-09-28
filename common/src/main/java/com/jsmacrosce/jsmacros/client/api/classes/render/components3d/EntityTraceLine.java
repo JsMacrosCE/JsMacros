@@ -132,7 +132,8 @@ public class EntityTraceLine extends TraceLine {
          * @since 1.9.0
          */
         public Builder color(int color) {
-            this.color = ColorUtil.fixAlpha(color);
+            this.color = color;
+            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
             return this;
         }
 

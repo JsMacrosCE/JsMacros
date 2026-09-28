@@ -6,7 +6,6 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.BannerPatternTags;
-import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BannerPattern;
 import com.jsmacrosce.jsmacros.client.access.ILoomScreen;
@@ -32,8 +31,12 @@ public class LoomInventory extends Inventory<LoomScreen> {
         if (stack.isEmpty()) {
             return bannerPatternLookup.get(BannerPatternTags.NO_ITEM_REQUIRED).map(ImmutableList::copyOf).orElse(ImmutableList.of());
         } else {
-            TagKey<BannerPattern> tagKey = stack.get(DataComponents.PROVIDES_BANNER_PATTERNS);
-            return tagKey != null ? bannerPatternLookup.get(tagKey).map(ImmutableList::copyOf).orElse(ImmutableList.of()) : List.of();
+            var patterns = stack.get(DataComponents.PROVIDES_BANNER_PATTERNS);
+            //? if >=26.1 {
+            /*return patterns != null ? StreamSupport.stream(patterns.spliterator(), false).toList() : List.of();
+            *///? } else {
+            return patterns != null ? bannerPatternLookup.get(patterns).map(ImmutableList::copyOf).orElse(ImmutableList.of()) : List.of();
+            //? }
         }
     }
 

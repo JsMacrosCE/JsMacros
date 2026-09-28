@@ -38,6 +38,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.AdvancementManagerHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockStateHelper;
+import com.jsmacrosce.jsmacros.client.util.InteractionCompat;
 
 import java.util.List;
 import java.util.Locale;
@@ -482,7 +483,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
         InteractionHand hand = offHand ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
         boolean joinedMain = JsMacrosClient.clientCore.profile.checkJoinedThreadStack();
         if (joinedMain) {
-            InteractionResult result = mc.gameMode.interact(mc.player, entity.getRaw(), hand);
+            InteractionResult result = InteractionCompat.interact(mc.gameMode, mc.player, entity.getRaw(), hand);
             assert mc.player != null;
             if (result.consumesAction()) {
                 mc.player.swing(hand);
@@ -490,7 +491,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
-                InteractionResult result = mc.gameMode.interact(mc.player, entity.getRaw(), hand);
+                InteractionResult result = InteractionCompat.interact(mc.gameMode, mc.player, entity.getRaw(), hand);
                 assert mc.player != null;
                 if (result.consumesAction()) {
                     mc.player.swing(hand);
@@ -733,7 +734,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
     public Map<String, Integer> getItemCooldownsRemainingTicks() {
         int tick = ((IItemCooldownManager) base.getCooldowns()).jsmacros_getManagerTicks();
         Map<Item, IItemCooldownEntry> map = ((IItemCooldownManager) base.getCooldowns()).jsmacros_getCooldownItems();
-        return map.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().getName().getString(), e -> e.getValue().jsmacros_getEndTick() - tick));
+        return map.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().getName(e.getKey().getDefaultInstance()).getString(), e -> e.getValue().jsmacros_getEndTick() - tick));
     }
 
     /**
@@ -760,7 +761,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
     public Map<String, Integer> getTicksSinceCooldownsStart() {
         int tick = ((IItemCooldownManager) base.getCooldowns()).jsmacros_getManagerTicks();
         Map<Item, IItemCooldownEntry> map = ((IItemCooldownManager) base.getCooldowns()).jsmacros_getCooldownItems();
-        return map.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().getName().getString(), e -> e.getValue().jsmacros_getStartTick() - tick));
+        return map.entrySet().stream().collect(Collectors.toMap(e -> e.getKey().getName(e.getKey().getDefaultInstance()).getString(), e -> e.getValue().jsmacros_getStartTick() - tick));
     }
 
     /**

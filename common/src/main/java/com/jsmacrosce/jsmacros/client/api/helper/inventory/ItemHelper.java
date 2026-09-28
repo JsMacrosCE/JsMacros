@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.inventory;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.Minecraft;
+import net.minecraft.commands.arguments.item.ItemInput;
 import net.minecraft.commands.arguments.item.ItemParser;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -131,7 +132,11 @@ public class ItemHelper extends BaseHelper<Item> {
      * @since 1.8.4
      */
     public boolean hasRecipeRemainder() {
+        //? if >=26.1 {
+        /*return base.getCraftingRemainder() != null;
+        *///? } else {
         return !base.getCraftingRemainder().isEmpty();
+        //? }
     }
 
     /**
@@ -140,7 +145,19 @@ public class ItemHelper extends BaseHelper<Item> {
      */
     @Nullable
     public ItemStackHelper getRecipeRemainder() {
-        return new ItemStackHelper(base.getCraftingRemainder());
+        //? if >=26.1 {
+        /*ItemStackTemplate remainder = base.getCraftingRemainder();
+        if (remainder == null) {
+            return null;
+        }
+        return new ItemStackHelper(remainder.create());
+        *///? } else {
+        ItemStack remainder = base.getCraftingRemainder();
+        if (remainder.isEmpty()) {
+            return null;
+        }
+        return new ItemStackHelper(remainder);
+        //? }
     }
 
     /**
@@ -162,7 +179,7 @@ public class ItemHelper extends BaseHelper<Item> {
      * @since 1.8.4
      */
     public String getName() {
-        return base.getName().getString();
+        return base.getName(base.getDefaultInstance()).getString();
     }
 
     /**
@@ -201,7 +218,11 @@ public class ItemHelper extends BaseHelper<Item> {
         if (types == null) {
             return false;
         }
-        return types.types() == DamageTypeTags.IS_FIRE;
+        //? if >=26.1 {
+        /*return types.types().unwrapKey().filter(DamageTypeTags.IS_FIRE::equals).isPresent();
+        *///? } else {
+        return DamageTypeTags.IS_FIRE.equals(types.types());
+        //? }
     }
 
     /**
@@ -265,8 +286,12 @@ public class ItemHelper extends BaseHelper<Item> {
      */
     public ItemStackHelper getStackWithNbt(String nbt) throws CommandSyntaxException {
         ItemParser reader = new ItemParser(Objects.requireNonNull(mc.getConnection()).registryAccess());
-        ItemParser.ItemResult itemResult = reader.parse(new StringReader(getId() + nbt));
-        return new ItemStackHelper(new ItemStack(itemResult.item()));
+        var itemResult = reader.parse(new StringReader(getId() + nbt));
+        //? if >=26.1 {
+        /*return new ItemStackHelper(itemResult.createItemStack(1));
+        *///? } else {
+        return new ItemStackHelper(new ItemStack(itemResult.item(), 1, itemResult.components()));
+        //? }
     }
 
     @Override

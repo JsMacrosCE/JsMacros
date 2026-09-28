@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Stonecutter needs this to detach the active source state and configure the
+  # full version matrix. Actions sets it implicitly, but not by contract.
+  CI: 'true'
+  JAVA_VERSION: '25'
+
+jobs:
+  compile:
+    name: Compile ${{ matrix.mc_version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in sync with `versions(...)` in settings.gradle.kts.
+        mc_version:
+          - '1.21.5'
+          - '1.21.8'
+          - '1.21.10'
+          - '1.21.11'
+          - '26.1.2'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-overwrite-existing: true
+
+      # `classes` runs stonecutterGenerate, resource processing and compilation.
+      # The packaging task (registered in stonecutter.gradle.kts) picks remapJar or jar by
+      # asking Loom which exists, so CI no longer has to know which is which; running it
+      # still catches mixin remap problems. validateAccessWidener is the only member-level
+      # check on access wideners (the NeoForge access transformer is a plain text conversion
+      # of the same file and resolves nothing).
+      - name: Compile ${{ matrix.mc_version }}
+        run: |
+          ./gradlew --console=plain --stacktrace \
+            :common:${{ matrix.mc_version }}:classes \
+            :fabric:${{ matrix.mc_version }}:classes \
+            :neoforge:${{ matrix.mc_version }}:classes \
+            :fabric:${{ matrix.mc_version }}:validateAccessWidener \
+            :packageFabricModJar${{ matrix.mc_version.replaceAll('.', '') }}
+
+      # From 26.1 the Fabric widener must declare `official` while the AW->AT conversion
+      # feeding NeoForge still needs a `named` one, so the version ships both files. They
+      # are byte-identical below the header; guard against the two drifting apart.
+      - name: Check 26.1 access wideners are in sync
+        if: startsWith(matrix.mc_version, '26.1')
+        run: |
+          dir=common/src/main/resources/accesswideners
+          diff <(tail -n +2 "$dir/${{ matrix.mc_version }}-jsmacrosce.accesswidener") \
+               <(tail -n +2 "$dir/${{ matrix.mc_version }}-jsmacrosce-official.accesswidener")
+
+  extensions:
+    name: Compile extensions
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-overwrite-existing: true
+
+      # These subprojects are not versioned by Stonecutter and compile against
+      # stonecutter.active. :extension has no main sources (just the test stubs
+      # the graal modules need) and its test task is disabled.
+      - name: Compile extension modules
+        run: |
+          echo "Extensions compile against Minecraft $(tr -d '[:space:]' < stonecutter.active)"
+          ./gradlew --console=plain --stacktrace \
+            :extension:testClasses \
+            :extension:graal:classes \
+            :extension:graal:js:classes \
+            :extension:graal:js:testClasses \
+            :extension:graal:python:classes \
+            :extension:graal:python:testClasses

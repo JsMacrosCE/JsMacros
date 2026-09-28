@@ -266,7 +266,11 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      * @since 1.2.0
      */
     public TextHelper getDefaultName() {
-        return TextHelper.wrap(base.getItem().getName());
+        return TextHelper.wrap(base.getItem().getName(
+                //? if >=26.1 {
+                /*base.getItem().getDefaultInstance()
+                *///? }
+        ));
     }
 
     /**
@@ -335,7 +339,11 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      */
     @DocletReplaceReturn("JavaList<ItemTag>")
     public List<String> getTags() {
+        //? if >=26.1 {
+        /*return base.typeHolder().tags().map(t -> t.location().toString()).collect(Collectors.toList());
+        *///? } else {
         return base.getItemHolder().tags().map(t -> t.location().toString()).collect(Collectors.toList());
+        //? }
     }
 
     /**

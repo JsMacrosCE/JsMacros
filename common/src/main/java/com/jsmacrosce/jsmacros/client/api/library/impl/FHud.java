@@ -45,15 +45,17 @@ public class FHud extends BaseLibrary {
         super(runner);
     }
 
+    // Before 1.20.5 vanilla used a dirt texture for this menu background; modern
+    // versions blur the world behind the screen instead.
     /**
      * @param title
-     * @param dirtBG boolean of whether to use a dirt background or not.
+     * @param showBackground boolean of whether to use the blurred menu background or not.
      * @return a new {@link IScreen IScreen} Object.
      * @see IScreen
      * @since 1.0.5
      */
-    public ScriptScreen createScreen(String title, boolean dirtBG) {
-        return new ScriptScreen(title, dirtBG);
+    public ScriptScreen createScreen(String title, boolean showBackground) {
+        return new ScriptScreen(title, showBackground);
     }
 
     /**
