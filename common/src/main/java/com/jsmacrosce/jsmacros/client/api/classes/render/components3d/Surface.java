@@ -1,12 +1,9 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LightLayer;
 import org.jetbrains.annotations.Nullable;
@@ -35,10 +32,6 @@ import net.minecraft.client.renderer.LightTexture;
 
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
-
-//? if <=1.21.11 {
-import com.mojang.blaze3d.platform.DepthTestFunction;
-//? }
 
 /**
  * @author Wagyourtail
@@ -570,21 +563,6 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     }
 
     private void renderElement3D(GuiGraphics drawContext, RenderElement element) {
-        // TODO: Someone removed this around 1.21.5, is it needed?
-        /*
-        if (renderBack) {
-            RenderSystem.disableCull();
-        } else {
-            RenderSystem.enableCull();
-        }
-
-        if (!cull) {
-            RenderSystem.disableDepthTest();
-        } else {
-            RenderSystem.enableDepthTest();
-        }
-        */
-
         //? if >1.21.5 {
         Matrix3x2fStack matrixStack = drawContext.pose();
         matrixStack.pushMatrix();
