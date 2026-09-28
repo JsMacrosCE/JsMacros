@@ -7,11 +7,11 @@ import java.io.File
 import java.nio.file.Path
 
 plugins {
-    kotlin("jvm") version "2.2.10"
-    id("com.google.devtools.ksp") version "2.2.10-2.0.2"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.ksp)
     `multiloader-loader`
     id("net.neoforged.moddev")
-    id("dev.kikugie.fletching-table.neoforge") version "0.1.0-alpha.22"
+    alias(libs.plugins.fletching.neoforge)
 }
 
 val mod_id = commonMod.prop("mod_id")
@@ -82,17 +82,17 @@ neoForge {
 
 dependencies {
     // Common library dependencies - implementation for dev, jarJar for bundling in production
-    implementation("io.noties:prism4j:2.0.0")
-    jarJar("io.noties:prism4j:[2.0.0,2.1.0)")
+    implementation(libs.prism4j)
+    jarJar("io.noties:prism4j:[${libs.versions.prism4j.get()},2.1.0)")
 
-    implementation("org.jooq:joor:0.9.15")
-    jarJar("org.jooq:joor:[0.9.15,0.10.0)")
+    implementation(libs.joor)
+    jarJar("org.jooq:joor:[${libs.versions.joor.get()},0.10.0)")
 
-    implementation("com.neovisionaries:nv-websocket-client:2.14")
-    jarJar("com.neovisionaries:nv-websocket-client:[2.14,2.15.0)")
+    implementation(libs.nv.websocket)
+    jarJar("com.neovisionaries:nv-websocket-client:[${libs.versions.nv.websocket.get()},2.15.0)")
 
-    implementation("org.javassist:javassist:3.30.2-GA")
-    jarJar("org.javassist:javassist:[3.30.2-GA,3.31.0)")
+    implementation(libs.javassist)
+    jarJar("org.javassist:javassist:[${libs.versions.javassist.get()},3.31.0)")
 
     // For NeoForge < 1.21.9, external libraries need to be added to additionalRuntimeClasspath
     // to be loaded by the modular classloader during dev runs.
@@ -102,10 +102,10 @@ dependencies {
         configurations.named("additionalRuntimeClasspath").configure {
             exclude(group = "org.jetbrains", module = "annotations-java5")
         }
-        "additionalRuntimeClasspath"("io.noties:prism4j:2.0.0")
-        "additionalRuntimeClasspath"("org.jooq:joor:0.9.15")
-        "additionalRuntimeClasspath"("com.neovisionaries:nv-websocket-client:2.14")
-        "additionalRuntimeClasspath"("org.javassist:javassist:3.30.2-GA")
+        "additionalRuntimeClasspath"(libs.prism4j)
+        "additionalRuntimeClasspath"(libs.joor)
+        "additionalRuntimeClasspath"(libs.nv.websocket)
+        "additionalRuntimeClasspath"(libs.javassist)
     }
 
     // Extension jars to embed

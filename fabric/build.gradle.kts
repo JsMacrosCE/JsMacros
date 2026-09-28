@@ -1,11 +1,11 @@
 import org.gradle.language.jvm.tasks.ProcessResources
 
 plugins {
-    kotlin("jvm") version "2.2.10"
-    id("com.google.devtools.ksp") version "2.2.10-2.0.2"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.ksp)
     id("fabric-loom")
     id("multiloader-loader")
-    id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.22"
+    alias(libs.plugins.fletching.fabric)
 }
 
 val mod_id = commonMod.prop("mod_id")
@@ -59,10 +59,10 @@ dependencies {
     modImplementation("com.terraformersmc:modmenu:$mod_menu_version")
 
     // Common library dependencies - include for bundling in jar
-    implInclude("io.noties:prism4j:2.0.0")
-    implInclude("org.jooq:joor:0.9.15")
-    implInclude("com.neovisionaries:nv-websocket-client:2.14")
-    implInclude("org.javassist:javassist:3.30.2-GA")
+    implInclude(libs.prism4j.get())
+    implInclude(libs.joor.get())
+    implInclude(libs.nv.websocket.get())
+    implInclude(libs.javassist.get())
 
     // Extension jars to embed
     add(extensionJars.name, project(mapOf("path" to ":extension:graal", "configuration" to "archives")))

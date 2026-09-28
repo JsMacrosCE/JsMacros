@@ -4,7 +4,7 @@ import java.nio.file.Path
 plugins {
     id("multiloader-common")
     id("net.neoforged.moddev")
-    id("dev.kikugie.fletching-table") version "0.1.0-alpha.22"
+    alias(libs.plugins.fletching.common)
 }
 
 val mod_id = commonMod.prop("mod_id")
@@ -30,20 +30,20 @@ neoForge {
 }
 
 dependencies {
-    compileOnly("org.spongepowered:mixin:0.8.5")
+    compileOnly(libs.mixin)
 
     // fabric and neoforge both bundle mixinextras, so it is safe to use it in common
-    compileOnly("io.github.llamalad7:mixinextras-common:0.3.5")
-    annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.5")
+    compileOnly(libs.mixinextras)
+    annotationProcessor(libs.mixinextras)
 
     // ASM for bytecode manipulation
-    compileOnly("org.ow2.asm:asm-tree:9.6")
+    compileOnly(libs.asm.tree)
 
     // Common library dependencies
-    compileOnly("io.noties:prism4j:2.0.0")
-    compileOnly("org.jooq:joor:0.9.15")
-    compileOnly("com.neovisionaries:nv-websocket-client:2.14")
-    compileOnly("org.javassist:javassist:3.30.2-GA")
+    compileOnly(libs.prism4j)
+    compileOnly(libs.joor)
+    compileOnly(libs.nv.websocket)
+    compileOnly(libs.javassist)
 }
 
 val commonJava by configurations.creating {
