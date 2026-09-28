@@ -119,7 +119,84 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   *replaced* by prose or an `{@link}`, but never silently dropped — and the substitution must be
   reported. (`PlayerInput` removed 7 `@see` tags; 6 were replaced, the 7th on a `private static`
   method was initially dropped and has now been restored as an `{@link}`.)
-- [ ] batch-22 (core event cancellation semantics, 4) — pending (NEW, raised by batch-05)
+- [x] batch-22 (core event cancellation semantics, 4) — done: `BaseEvent` / `BaseEventRegistry` /
+  `IEventListener` / `EventListener` fully documented — 25 members, 15 empty `@param`/`@return`
+  bodies filled, 3 examples. Build green, 0 non-comment lines changed, 0 `deadType` links, all 187
+  internal anchors resolve, 3/3 examples type-check under the shipped tsconfig AND `--strict`.
+  Took 2 rounds.
+
+  **The central claim survived independent re-derivation from source, link by link:** the two
+  convenience `JsMacros.on` overloads pass `joined = false`; `ScriptEventListener.trigger` hands the
+  callback to `threadPool.runTask` and returns the container immediately; `BaseProfile.triggerEvent`
+  **discards** that container on the plain path; `awaitLock` really parks the caller on the joined
+  path; `addEvent(Class)` really puts every cancellable event into `joinableEvents`. **14 mixin sites
+  read `isCanceled()` right after `trigger()` — at 13 of 14 it is the literal next statement.**
+
+  **Round 1 defects (validator, 1 finding / 2 instances):** two dead `{@link}`s in
+  `BaseEventRegistry` to `EventCustom#joinable`/`#cancelable`, which are `public boolean` — the doclet
+  emits `href="" class="deadType"` for any primitive-typed target. Fixed to `{@code}`. This is
+  docs-plan quirk 9 biting despite being named explicitly in the writer's brief: listing a rule is
+  not the same as a writer hitting it.
+
+  **Round 1 non-blocking findings I escalated into round 2 as real fixes:**
+  1. Both examples were **self-defeating** — they called `JsMacros.off(listener)` immediately after
+     `on(...)`, so as printed the listener was removed before it could ever fire. Correct code, but a
+     reader copying the snippet gets a no-op, in the one batch whose whole thesis is "this is how you
+     make `cancel()` work". `BaseEvent`'s now unregisters from *inside* its own callback (verified
+     safe: `on()` never invokes the callback, so no TDZ, and `getListeners` returns an
+     `ImmutableSet` snapshot so removal mid-dispatch cannot disturb the walk); `IEventListener`'s now
+     leaves a watcher registered, which is what `joined = false` actually buys.
+  2. **`BaseEvent.joinable()` under-specified its mechanism** — for ordinary events the profile never
+     calls `joinable()`, it tests `joinableEvents.contains(eventName)`; only `EventCustom` is judged by
+     asking the event. Same outcome, wrong mechanism stated.
+  3. **The joined-listener watchdog was undocumented** and batch-22's advice walks straight into it.
+
+  **THE WATCHDOG (documented in this batch, and it is a real trap):** `runJoinedEventListener` arms
+  `EventLockWatchdog` on every joined listener; `maxLockTime` defaults to **500 ms**
+  (`CoreConfigV2.java:17`). On overrun it calls `closeContext()` — out from under a still-running body
+  — `releaseLock()`, and, for a macro trigger only, `trigger.enabled = false`, a **permanent silent
+  disable**. `BaseListener.off()` is the same one line. The user's only sign is one logged
+  `WatchdogException`; the profile editor still shows the macro as present.
+
+  **Correction I made and the fix-writer caught back (worth keeping):** I asserted that events raised
+  from a mixin run on the client thread, so `joinedMain` is true in the ordinary case. **Too broad.**
+  `MixinClientConnection` raises `RecvPacket`/`SendPacket` from `channelRead0`/`sendPacket` — the
+  **netty** thread — so `checkJoinedThreadStack()` is false there and **no watchdog is armed at all**.
+  Identical user code, opposite behaviour, depending on which event fired. The shipped prose hedges
+  correctly ("provided the event was raised on a thread the profile treats as joinable").
+
+  **PRODUCT BUGS FOUND (not fixed — code changes, routed to a maintainer):**
+  1. The batch-22 bug itself, now with a wider blast radius than batch-05 recorded: the race applies
+     to macro triggers too, because `BaseLanguage.trigger` has the identical shape.
+  2. `EventLockWatchdog` silently and permanently disables an overrunning macro trigger, and
+     `WatchdogException` is a `private static class` — unreachable for a user to inspect, so the
+     message string is the only evidence. A user-visible signal belongs here.
+  3. The watchdog's thread-dependence is undocumented anywhere user-facing and looks like an
+     oversight: a joined listener on a netty-thread event has no time limit, the same listener on a
+     client-thread event is killed at 500 ms.
+  4. `closeContext()` runs while the script body is still going, and the body's own
+     `finally { p.releaseLock(); }` then runs against an already-released lock. **Flagged as
+     UNVERIFIED** — nobody traced whether the double release corrupts state. Worth a dedicated look.
+  5. `BaseEvent.cancellable()`/`joinable()`/`getEventName()` NPE on a subclass with no `@Event` (no
+     null check on the annotation lookup). Documented on each; a null check with a real message is
+     the better fix.
+  6. `BaseEventRegistry.addEvent(Class)` throws a bare `RuntimeException` where `IllegalArgumentException`
+     is the obvious choice.
+  7. `removeListener(String, …)` and `getListeners(String)` create map entries for unknown event names
+     (`putIfAbsent`/`computeIfAbsent`), so the live `listeners` map accumulates names nothing ever
+     registered and no `on()` could have validated.
+  8. `addEvent(String, boolean)` and `addEvent(String, boolean, boolean)` are dead surface: only the
+     3-arg form is ever called (for `ANYTHING`). Combined with `EventCustom.registerEvent()` using
+     only the 1-arg form, a custom event can never be joined by name.
+
+  **Deliberate omission, do not "fix":** `EventListener` has no `example:` block. It is a
+  Java-internal macro-trigger wrapper with no script-facing construction path, and an example would
+  have had to invent an API. Prose carries it.
+
+  **Known doclet-wide defect (found by the validator, affects every batch):** the web doclet
+  **silently drops `{@link}` labels** — `{@link Foo#bar() Bar}` renders as `Foo#bar()`, not `Bar`.
+  Not a correctness problem, but labelled links are not doing what their authors think. Stop writing
+  them in later batches.
 - [x] batch-07 (api.library + core.library.impl, 8) — done: 8 `@Library` entry points
   (Utils/JavaUtils/JsMacros/Reflection/FS/GlobalVars/Request/Time), **49 `example:` blocks** (47
   new; the codebase went from 1 pre-existing example to 50), last 4 documentation gaps filled.
@@ -187,7 +264,7 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   `&lt;init&gt;` in the shipped Python stub, because `pydoclet` emits `{@code}` bodies raw into a
   docstring where the entity is not decoded. There is no source form that satisfies both doclets;
   trading a Python-stub cosmetic for well-formed web docs is the right call.
-- [ ] batch-09 (client.api.library.impl, 7) — pending (NEXT)
+- [ ] batch-09 (client.api.library.impl, 7) — in-progress (NEXT)
 - [ ] batch-10 (client.api.helper top-level, 19) — pending
 - [ ] batch-11 (client.api.classes.worldscanner.filter.**, 17) — pending
 - [ ] batch-12 (worldscanner + client.api.classes core, 7) — pending

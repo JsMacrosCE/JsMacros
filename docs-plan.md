@@ -66,6 +66,25 @@ javadoc. Three files already have doc work on that branch and must stay consiste
 That branch uses a `@DocletCategory` annotation that **does not exist on this branch** — do not
 introduce it. Reuse its *prose* for the fields it documented, nothing more. See batch-04.
 
+### Verified 2026-09-28 (before batch-09 / batch-22): the overlap is much wider than 3 files, but carries no prose
+
+`git diff --name-only HEAD origin/backports/1.21.8-vitepress` lists 417 files, and the branch's heavy
+refactor does touch **all 7** `client.api.library.impl` classes (batch-09) and 2 of batch-22's 4
+classes. **None of them constrains us**, because the branch adds no javadoc there. Comparing the
+*comment lines only* between HEAD and the branch:
+
+| file | comment-line deltas | verdict |
+|---|---|---|
+| FChat | 1 | branch merely **dropped** a `@throws JsonParseException` (refactor changed the exception) |
+| FHud | 2 | a `@param` **rename only** (`showBackground` on HEAD vs `dirtBG` on the branch) |
+| FWorld | 35 | the refactor **removed methods**, taking their javadoc with them — HEAD is a superset |
+| FClient, FKeyBind, FPlayer, FPositionCommon, BaseEvent, BaseEventRegistry, IEventListener, EventListener | 0 | byte-identical comments |
+
+So the rule for every remaining batch is: **the branch's *code* churn is irrelevant, only its *new or
+rewritten prose* matters.** Before writing a batch, run the comment-only diff above for its files. If
+the delta is 0, the batch is unconstrained and can be written normally. If it is non-zero, read only
+the changed comment lines and reuse prose that is genuinely *new*.
+
 ---
 
 ## Batches
@@ -293,6 +312,19 @@ make all 45 classes' existing docs correct as written. That is a code fix, out o
     reason and let the prose carry it. Root cause of such absences: `tsdoclet/Main.java:41-43`
     whitelists only `client.api.helper.` and `client.api.classes.inventory.`; everything else is
     discovered only by being referenced from a whitelisted signature.
+15. **The web doclet silently drops `{@link}` labels** (found in batch-22, doclet-wide). `{@link
+    Foo#bar() Bar}` renders as `<a …>Foo#bar()</a>` — the label `Bar` is discarded, so the reader
+    sees the raw Java reference instead of the prose word the author intended. Not a correctness
+    problem, but a labelled link is worse than an unlabelled one. **Write `{@link Foo#bar()}` or
+    put the friendly word in the surrounding sentence** — do not rely on a label.
+16. **`tsdoclet` emits members regardless of javadoc**, except for Object overrides. The real rule in
+    `ClassParser.genTSInterface():206-215` is that every public field/constructor and every
+    non-obfuscated, non-Object method is emitted unconditionally; the *only* javadoc-conditional
+    filter is `AbstractParser.isObjectMethod():565-574`, which stops filtering a method once it has a
+    doc comment. So documenting `equals`/`hashCode`/`toString`/`clone` injects a brand-new
+    user-facing member, and **nothing else you write can change the shipped member set** — this is
+    the precise form of quirk 13, and it means "did documenting this change the `.d.ts`?" usually has
+    the answer "no, only descriptions changed".
 
 ## Validation (every batch)
 
