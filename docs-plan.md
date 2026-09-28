@@ -203,6 +203,29 @@ Fully documented (90/90); work is examples.
 ### batch-21 — `client.api.helper.world.entity.specialized.passive` (30)
 122/122 documented; work is examples.
 
+### batch-22 — core event cancellation semantics (cross-cutting, 4 classes) — NEW, from batch-05
+**Every cancellable event's docs currently promise that `cancel()` works, and it does not.**
+`FJsMacros.ScriptEventListener.trigger` builds the `EventContainer`, hands `callback.accept(e, p)`
+to `runner.threadPool.runTask(...)` and **returns immediately** — while every mixin reads
+`event.isCanceled()` on the *next line*. So a script's `event.cancel()` is a race it almost always
+loses. This contradicts the generated `Events.Cancellable` interface, the `cancel()` name, and
+roughly 45 classes of prose written in batches 01-05.
+
+State the rule **once, centrally** — do NOT scatter a hedge across the 45 event classes, which would
+create exactly the inconsistency batches 01-05 avoided.
+
+- `common/src/main/java/com/jsmacrosce/jsmacros/core/event/BaseEvent.java` (0/6 methods, no class doc)
+- `common/src/main/java/com/jsmacrosce/jsmacros/core/event/BaseEventRegistry.java` (9/13 m, 0/5 f)
+- `common/src/main/java/com/jsmacrosce/jsmacros/core/event/IEventListener.java` (no class doc)
+- `common/src/main/java/com/jsmacrosce/jsmacros/core/event/EventListener.java` (1 m, no class doc)
+
+Cover: what `joinable` events do differently; whether `BaseProfile` dispatches synchronously for some
+event kinds; and cross-link from `FJsMacros.on` if its own doc needs it. Name
+`JsMacrosThreadPool` (`core/threads/JsMacrosThreadPool.java`, undocumented) as the mechanism.
+
+**Alternative for a maintainer:** make `trigger()` synchronous for `cancellable` events, which would
+make all 45 classes' existing docs correct as written. That is a code fix, out of scope here.
+
 ---
 
 ## Conventions (applies to every batch)
