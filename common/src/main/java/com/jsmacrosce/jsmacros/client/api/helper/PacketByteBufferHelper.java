@@ -58,6 +58,52 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
+ * a packet's bytes, as something a script can read and write.
+ * <p>
+ * The wire format is a stream of typed values, and this is that stream: the read and write
+ * calls mirror each other exactly, so {@code writeVarInt} pairs with {@code readVarInt} and
+ * {@code writeString} with {@code readString}, and the order matters. A script reading a
+ * packet has to read the fields in the order the packet wrote them, because nothing in the
+ * buffer says what is where.
+ * <p>
+ * A helper is either a <b>fresh buffer</b> or a <b>real packet's</b> buffer, and the difference
+ * decides what it is for. The packet events hand one out for the packet in question, which is
+ * how a script reads a packet it has just seen, and {@code Client.createPacketByteBuffer()}
+ * makes an empty one for a script that wants to build a payload. Everything a script does to a
+ * real packet through this is a <i>local</i> change: the game is handed the packet object, not
+ * the buffer, so what a script writes here never reaches the network.
+ * <p>
+ * The buffer remembers where it was when the helper was made, and {@link #reset()} puts it
+ * back. That is the pattern every read of a real packet should follow — read what you want,
+ * then reset, so the next listener sees the packet from the start rather than part way through.
+ * <p>
+ * <b>Turning a buffer back into a packet does not work in this build.</b>
+ * {@link #toPacket(Class)} and {@link #toPacket(String)} read
+ * {@code BUFFER_TO_PACKET}, and that map is declared but never filled in, so a call that gets as
+ * far as the lookup throws a {@link java.lang.NullPointerException}. {@link #toPacket()} is the
+ * one that can answer without throwing: it returns {@code null} when the buffer has no packet
+ * behind it, which is the case for a fresh one, and throws when there is one.
+ * {@link #sendPacket()} and {@link #receivePacket(String)} reach the same lookup and fail the
+ * same way; {@link #receivePacket()} does not, because it hands the packet it already has
+ * straight to the connection. To change what goes out, use the send event's
+ * {@code replacePacket} instead.
+ * example:
+ * <pre>
+ * // read a packet that has just arrived, in the order the packet writes it
+ * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event) {
+ *   const buffer = event.getPacketBuffer();
+ *   // HealthUpdateS2CPacket writes a float health, then two bytes of food
+ *   Chat.log(`health ${buffer.readFloat()}`);
+ *   // put the buffer back so anything after this still sees the whole packet
+ *   buffer.reset();
+ * }));
+ *
+ * // or build a payload of your own
+ * const payload = Client.createPacketByteBuffer();
+ * payload.writeString("hello").writeVarInt(42);
+ * Chat.log(`${payload.readString()} and ${payload.readVarInt()}`);
+ * </pre>
+ *
  * @author Etheradon
  * @since 1.8.4
  */
@@ -67,7 +113,19 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     private static final Minecraft mc = Minecraft.getInstance();
 
     /**
+     * the lookup table that turns a buffer back into a packet.
+     * <p>
      * Don't touch this here!
+     * <br>
+     * <b>It is empty in this build, and nothing ever fills it.</b> The table is the one thing
+     * {@link #toPacket(Class)} reads, and it has no entries, so a call that gets as far as the
+     * lookup finds {@code null} and the call after it throws a
+     * {@link java.lang.NullPointerException}. That reaches {@link #toPacket(String)},
+     * {@link #sendPacket(String)}, {@link #receivePacket(String)} and
+     * {@link #receivePacket(Class)}, and it reaches {@link #toPacket()} and
+     * {@link #sendPacket()} whenever the buffer has a packet behind it. This is a bug in the
+     * class rather than a contract, and it is recorded here so a script does not go looking for
+     * a way round it.
      */
     public static final Map<Class<? extends Packet<?>>, Function<FriendlyByteBuf, ? extends Packet<?>>> BUFFER_TO_PACKET = new HashMap<>();
     private static final Object2IntMap<Class<? extends Packet<?>>> PACKET_IDS = new Object2IntArrayMap<>();
@@ -130,8 +188,25 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @return the packet for this buffer or {@code null} if no packet was used to create this
-     * helper.
+     * the packet this buffer came from, rebuilt from the buffer.
+     * <p>
+     * Which of two things happens is decided by the buffer, and the order matters. The check on
+     * {@code packet} comes first, so a buffer that has no packet behind it — a fresh one from
+     * {@code Client.createPacketByteBuffer()}, which is the documented way to get an empty
+     * buffer to build a payload in — gives {@code null} and never reaches the lookup. A buffer a
+     * packet event handed out does have a packet, and that path goes through
+     * {@link #toPacket(Class)}, which reads {@link #BUFFER_TO_PACKET}; that map is never filled
+     * in, so the lookup gives {@code null} and the call after it throws a
+     * {@link java.lang.NullPointerException}. So the {@code null} is the reachable answer and the
+     * exception is the exceptional one, not the other way round. The name is misleading in
+     * one further respect: there is no call on this class that hands back the original packet
+     * object, so the packet a script is looking at is only reachable through the event that
+     * carries it.
+     *
+     * @return the packet for this buffer, or {@code null} if no packet was used to create this
+     * helper
+     * @throws NullPointerException if this buffer has a packet behind it, because the lookup
+     * table the conversion reads is empty
      * @since 1.8.4
      */
     @Nullable
@@ -140,8 +215,18 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * the packet named, built from this buffer.
+     * <p>
+     * <b>This always throws in this build.</b> It looks the name up and passes what it finds to
+     * {@link #toPacket(Class)}, which reads {@link #BUFFER_TO_PACKET}; that map is never filled
+     * in, so the call throws a {@link java.lang.NullPointerException}. A
+     * name the lookup does not know gives {@code null} on the way in and fails the same way.
+     * <br>
+     * The names are the ones {@link #getPacketNames()} lists.
+     *
      * @param packetName the name of the packet's class that should be returned
      * @return the packet for this buffer.
+     * @throws NullPointerException always, because the lookup table this reads is empty
      * @see #getPacketNames()
      * @since 1.8.4
      */
@@ -151,8 +236,21 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * the packet of the given class, built from this buffer.
+     * <p>
+     * <b>This always throws in this build.</b> It is the one call that reads
+     * {@link #BUFFER_TO_PACKET} directly, and that map is never filled in, so the lookup gives
+     * {@code null} and calling it throws a
+     * {@link java.lang.NullPointerException}. Everything that turns a
+     * buffer back into a packet goes through here, which is why the whole family of those calls
+     * fails together.
+     * <br>
+     * Note that the buffer's own contents are not what is at fault: the failure is the missing
+     * lookup, not the bytes.
+     *
      * @param clazz the class of the packet to return
      * @return the packet for this buffer.
+     * @throws NullPointerException always, because the lookup table this reads is empty
      * @since 1.8.4
      */
     public Packet<?> toPacket(Class<? extends Packet> clazz) {
@@ -160,8 +258,24 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * the id the game uses on the wire for a packet class.
+     * <p>
+     * <b>This always answers {@code 0} in this build.</b> The table it reads is populated by a
+     * block of code that is commented out in this class, so a class that is not in it gives the
+     * map's default rather than a real id. A script must not read {@code 0} here as meaning the
+     * packet really does have that id.
+     * <br>
+     * The event's own {@code type} string is the reliable way to tell what a packet is.
+     * example:
+     * <pre>
+     * // the event's type is the reliable identifier
+     * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event) {
+     *   Chat.log(event.type);
+     * }));
+     * </pre>
+     *
      * @param packetClass the class of the packet to get the id for
-     * @return the id of the packet.
+     * @return the id of the packet, which is always {@code 0} in this build
      * @since 1.8.4
      */
     public int getPacketId(Class<? extends Packet<?>> packetClass) {
@@ -169,8 +283,19 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * which network state a packet class belongs to, in the game's own numbering.
+     * <p>
+     * <b>This always answers {@code 0} in this build.</b> The table it reads is populated by a
+     * block of code that is commented out in this class, so a class that is not in it gives the
+     * map's default rather than a real value. A script must not read {@code 0} here as the
+     * real state.
+     * <br>
+     * The state is which part of the connection a packet belongs to — logging in, playing, or
+     * configuring — and it is why a packet cannot simply be read on the wrong one.
+     *
      * @param packetClass the class of the packet to get the id for
-     * @return the id of the network state the packet belongs to.
+     * @return the id of the network state the packet belongs to, which is always {@code 0} in
+     * this build
      * @since 1.8.4
      */
     public int getNetworkStateId(Class<? extends Packet<?>> packetClass) {
@@ -178,8 +303,20 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * whether a packet class is one the server sends to the client.
+     * <p>
+     * <b>This always answers the default in this build.</b> The table it reads is
+     * populated by a block of code that is commented out in this class, so a class that
+     * is not in it gives the map's default rather than a real value. A script must not
+     * read the default as a real answer.
+     * <br>
+     * A name is the practical test for this: {@link #getPacketNames()} ends almost every
+     * clientbound one with {@code S2C} and every serverbound one with {@code C2S}, and the
+     * event's {@code type} is that same name.
+     *
      * @param packetClass the class to get the side for
-     * @return {@code true} if the packet is clientbound, {@code false} if it is serverbound.
+     * @return {@code true} if the packet is clientbound, {@code false} if it is serverbound,
+     * which is always {@code false} in this build
      * @since 1.8.4
      */
     public boolean isClientbound(Class<? extends Packet<?>> packetClass) {
@@ -187,8 +324,20 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * whether a packet class is one the client sends to the server.
+     * <p>
+     * <b>This always answers the default in this build.</b> The table it reads is
+     * populated by a block of code that is commented out in this class, so a class that
+     * is not in it gives the map's default rather than a real value. A script must not
+     * read the default as a real answer.
+     * <br>
+     * This is the exact opposite of {@link #isClientbound(Class)}, and since that is always
+     * {@code false} this is always {@code true} — including for a class that is genuinely
+     * clientbound. A name ending {@code C2S} is the reliable test.
+     *
      * @param packetClass the class to get the id for
-     * @return {@code true} if the packet is serverbound, {@code false} if it is clientbound.
+     * @return {@code true} if the packet is serverbound, {@code false} if it is clientbound,
+     * which is always {@code true} in this build
      * @since 1.8.4
      */
     public boolean isServerbound(Class<? extends Packet<?>> packetClass) {
@@ -197,8 +346,19 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
 
     /**
      * Send a packet of the given type, created from this buffer, to the server.
+     * <p>
+     * <b>This does not work in this build.</b> It goes through
+     * {@link #toPacket()}, which reads a lookup table that is never filled in and so
+     * throws a {@link java.lang.NullPointerException}. For a buffer
+     * with no packet behind it the call is a no-op instead, since the null check comes
+     * first.
+     * <br>
+     * To change what goes to the server, use the send event's {@code replacePacket}
+     * rather than this.
      *
      * @return self for chaining.
+     * @throws NullPointerException if the buffer has a packet behind it, which is always the
+     * case for one a packet event handed out
      * @since 1.8.4
      */
     public PacketByteBufferHelper sendPacket() {
@@ -209,8 +369,16 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * builds a packet of the named type from this buffer and sends it to the server.
+     * <p>
+     * <b>This does not work in this build.</b> The name lookup may also give {@code null}, but
+     * either way the call reaches {@link #toPacket(Class)}, which reads a table that is never
+     * filled in and so throws a {@link java.lang.NullPointerException}.
+     * To change what goes to the server, use the send event's {@code replacePacket} instead.
+     *
      * @param packetName the name of the packet's class that should be sent
      * @return self for chaining.
+     * @throws NullPointerException always
      * @since 1.8.4
      */
     public PacketByteBufferHelper sendPacket(String packetName) {
@@ -230,7 +398,27 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * handles a packet as though the client had received it, for testing a listener.
+     * <p>
+     * This one is <b>not</b> affected by the empty {@link #BUFFER_TO_PACKET} table, and it is
+     * worth knowing why, because its two siblings with a name or a class are. Nothing is
+     * converted here: the call hands the packet the buffer already holds straight to the
+     * client's connection, so neither the table nor {@link #toPacket()} is read at all. A
+     * buffer with no packet behind it, a fresh one for instance, is a no-op, which is the one
+     * case where the two are the same thing.
+     * <br>
+     * Nothing is sent anywhere either, so this is the opposite direction from
+     * {@link #sendPacket()} and the send event's {@code replacePacket} has no bearing on it.
+     * <br>
+     * The packet is declared as one for a {@code ClientGamePacketListener} and that is the
+     * caveat, but a subtle one: the cast is erased, so this call itself performs no check and
+     * a packet belonging to some other listener, a configuration or login one for instance, is
+     * handed over unchecked. The failure then comes from inside the game's own handler for
+     * that packet rather than from here, which makes it look like something else went wrong.
+     *
      * @return self for chaining.
+     * @throws ClassCastException if the packet behind this buffer is not a client game packet,
+     * raised by that packet's own handler rather than by this call
      * @since 1.8.4
      */
     public PacketByteBufferHelper receivePacket() {
@@ -241,8 +429,17 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * handles a packet of the named type as though the client had received it.
+     * <p>
+     * <b>This does not work in this build.</b> It goes through {@link #toPacket(String)}, whose
+     * lookup table is never filled in, so it throws a
+     * {@link java.lang.NullPointerException} for any buffer that has a
+     * packet behind it and is a no-op for one that does not. The names are the ones
+     * {@link #getPacketNames()} lists.
+     *
      * @param packetName the name of the packet's class that should be received
      * @return self for chaining.
+     * @throws NullPointerException if the buffer has a packet behind it
      * @see #getPacketNames()
      * @since 1.8.4
      */
@@ -255,8 +452,21 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * handles a packet of the given class as though the client had received it.
+     * <p>
+     * <b>This does not work in this build.</b> It goes through
+     * {@link #toPacket(Class)}, which reads a lookup table that is never filled in and so
+     * throws a {@link java.lang.NullPointerException}. For a buffer
+     * with no packet behind it the call is a no-op instead, since the null check comes
+     * first.
+     * <br>
+     * Note that this is the opposite of {@link #receivePacket()}, which does no conversion and
+     * therefore works: the {@code clazz} is only ever used to build a packet that the conversion
+     * then fails to produce, so naming a class here gains nothing over the no-argument form.
+     *
      * @param clazz the class of the packet to receive
      * @return self for chaining.
+     * @throws NullPointerException if the buffer has a packet behind it
      * @since 1.8.4
      */
     public PacketByteBufferHelper receivePacket(Class<? extends Packet> clazz) {
@@ -267,8 +477,58 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * These names are subject to change and are only for an easier access. They will probably not
-     * change in the future, but it is not guaranteed.
+     * every packet name this class knows, as a shortcut for a packet's class name.
+     * <p>
+     * These names are subject to change and are only for an easier access. They will probably
+     * not change in the future, but it is not guaranteed.
+     * <br>
+     * The naming carries the direction: a name ending {@code S2CPacket} is one the server sends
+     * to the client and one ending {@code C2SPacket} is one the client sends. That suffix is
+     * the practical way to tell the two apart here, because
+     * {@link #isClientbound(Class)} and {@link #isServerbound(Class)} do not work in this build.
+     * <br>
+     * It is a rule rather than a certainty, and a script that cares should not assume it holds
+     * for every entry. In the 1.21.8 build the table holds 200 names, of which 132 end in
+     * {@code S2CPacket} and 61 in {@code C2SPacket}; the other seven are the ones to know
+     * about, and all seven are named for the class they are a variant of with a {@code $}
+     * between the two parts, such as {@code EntityS2CPacket$Rotate} and
+     * {@code PlayerMoveC2SPacket$OnGroundOnly}, so the direction sits in the middle of the name
+     * and a {@code endsWith} test misses them. A test on the name is right for the 193 that
+     * follow the rule and only wrong for those seven.
+     * <br>
+     * Those counts are a snapshot of the 1.21.8 table rather than a property of the class, and
+     * they are worth reading that way: entries around the edges of the table sit in
+     * version-gated blocks of the source, so a build for another target compiles a different set
+     * and a packet that is a {@code Clientbound} one on 1.21.11 is an {@code S2CPacket} here.
+     * Nothing else on this class reads the numbers, so a count that has moved is a reason to
+     * recount rather than a reason to distrust {@link #getPacketName(Packet)}.
+     * <br>
+     * The list is also what a filterer's {@code setType} takes, and the same string the packet
+     * events report as their {@code type}.
+     * <br>
+     * Every name here stands for exactly one packet class, and the reverse map behind
+     * {@link #getPacketName(Packet)} is built from this same table, so for a packet that is in
+     * it the two agree. The one way a script can see a name that is not in this list is a
+     * packet class the table does not cover at all: {@link #getPacketName(Packet)} falls back to
+     * that class's real simple class name, which is the game's own rather than one of the
+     * shortcut names, so it will not be findable by matching against this list.
+     * example:
+     * <pre>
+     * const buffer = Client.createPacketByteBuffer();
+     * // a filterer picks a packet by one of these names
+     * const filterer = JsMacros.createEventFilterer("RecvPacket")
+     *   .setType("HealthUpdateS2CPacket");
+     *
+     * // the suffix is the practical direction test, and the seven names that
+     * // break it are the ones to spot by hand
+     * for (const name of buffer.getPacketNames()) {
+     *   if (name.endsWith("C2SPacket")) {
+     *     Chat.log(`${name} goes to the server`);
+     *   } else if (!name.endsWith("S2CPacket")) {
+     *     Chat.log(`${name} is the odd one out`);
+     *   }
+     * }
+     * </pre>
      *
      * @return a list of all packet names.
      * @since 1.8.4
@@ -280,6 +540,23 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
 
     /**
      * Resets the buffer to the state it was in when this helper was created.
+     * <p>
+     * The position and the contents both go back, so this undoes a read as well as a write.
+     * That makes it the call every listener on a packet event should make once it has read what
+     * it wanted: the buffer is shared with the rest of the game and with any other script, and
+     * without this the next reader starts wherever this one stopped.
+     * <br>
+     * The state it restores is the one captured when the helper was <i>made</i>, which for a
+     * packet event's helper is the state as the packet wrote it, not an empty buffer.
+     * example:
+     * <pre>
+     * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event) {
+     *   const buffer = event.getPacketBuffer();
+     *   // read the first field, then hand the packet back intact
+     *   Chat.log(`first field ${buffer.readVarInt()}`);
+     *   buffer.reset();
+     * }));
+     * </pre>
      *
      * @return self for chaining.
      * @since 1.8.4
@@ -1574,6 +1851,25 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         return String.format("PacketByteBufferHelper:{\"base\": %s}", base);
     }
 
+    /**
+     * the shortcut name of a packet object, or its class name if it has none.
+     * <p>
+     * The reverse of {@link #getPacketNames()} for a packet that is in hand: it gives the name
+     * a filterer would take and that the packet events report as their {@code type}, without
+     * the script having to reach the class itself. A packet class that is not in the table falls
+     * back to its simple class name, so the answer is always something usable.
+     * example:
+     * <pre>
+     * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event) {
+     *   // the event's own type is the same string
+     *   Chat.log(event.type);
+     * }));
+     * </pre>
+     *
+     * @param packet the packet to name
+     * @return the packet's shortcut name, or its simple class name if it has no entry
+     * @since 1.8.4
+     */
     public static String getPacketName(Packet<?> packet) {
         return PACKET_NAMES.getOrDefault(packet.getClass(), packet.getClass().getSimpleName());
     }

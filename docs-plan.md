@@ -472,6 +472,63 @@ javadoc**; that is the only check covering the class of defect that matters most
     the precise form of quirk 13, and it means "did documenting this change the `.d.ts`?" usually has
     the answer "no, only descriptions changed".
 
+17. **`node --check` does NOT catch the damage in item 5 above** (found in batch-10, and it is the
+    reason a green build, a clean `tsc` and a clean `node --check` together still shipped broken
+    JavaScript). A deleted `&&` leaves `if (a !== null a.getX() === 10 …)`, which is **still valid
+    JavaScript that means something entirely different**, so the check passes. The same applies to a
+    deleted `<` inside a comparison. **Count the bytes in the generated `.py`; that is the only
+    reliable check for this class of defect.**
+18. **`pydoclet` emits field *declarations* but never field *javadoc*** (batch-10). So an `example:`
+    attached to a **field** is invisible to Python readers no matter how well written it is, because
+    the comment is never emitted. The web doc and the `.d.ts` still get it. Unfixable in javadoc —
+    do not contort the text or reach for exotic markup; just know field examples are
+    `.html`/`.d.ts`-only.
+19. **`pydoclet` has no `@throws` support at all** (batch-10): 0 `Raises:` across 632 generated
+    `.py` files, against 47 Java files that use `@throws`. A `@throws` tag is still correct and still
+    reaches the web docs and the `.d.ts`; it just does not reach the Python stubs.
+20. **`tsdoclet` and `pydoclet` disagree on `char` returns** (batch-10): `tsdoclet` maps `char` to
+    `number` (`AbstractParser.java:286-288`) and `pydoclet` to `str` (`ClassParser.java:406-408`).
+    **The pydoclet is the correct one** — Truffle's `DefaultCharacterExports.isString()` is true for
+    `Character.class` and no numeric export is exposed, so a `char` arrives as a one-character
+    *string*. Consequences: `{@code String.fromCharCode(c)}` is wrong (`fromCharCode("c")` is `\0`);
+    use `"§" + c`. **Do not "correct" prose to match the buggy `.d.ts` type.**
+
+### How to audit a batch — learned the hard way in batch-10 (6 validation rounds)
+
+The dominant defect class in this codebase is **not** a doclet problem. It is **confident, specific,
+plausible claims about Minecraft semantics that nobody checked against the implementation.** Batch-10
+had ~20 of them across six rounds, and **not one was visible to `gradlew`, `tsc` or `node --check`**.
+They are all wrong *facts* in shipped user-facing docs: a wrong colour code, a wrong count, an
+example calling a method that exists nowhere in the repo, prose describing an overload the method
+does not call.
+
+**Audit by cross-reference, not by return value.** Rounds 1–4 of batch-10 each ran "pair every
+`@return` with its own body" and each found more; that method is **structurally incapable** of
+finding the defects that remained, because all of those are prose about something *other than* the
+method's own return. Invert it:
+
+> Enumerate every `{@link}` target, every relational sentence ("the same as", "the opposite of",
+> "its siblings", "unlike", "whereas", "not … but"), every bare numeral, and every
+> `always`/`never`/`only`/`all`/`most`/`exactly` — and resolve each against **the target's** body.
+
+Two rules for the writers that follow from this:
+
+> - **"The overload next to it does X" is not evidence about "this one does Y."** This carry-over
+>   produced two separate batch-10 defects (the hover-action list applied to `getClickAction()`;
+>   `sendPacket()`'s prose applied verbatim to `receivePacket()`).
+> - **Re-derive every numeric census from the compiled class, never from Stonecutter-gated source.**
+>   Source contains `//? if` blocks whose entries do not ship in the active target; counting source
+>   lines inflated batch-10's packet census from 200 to 202.
+
+**And verify a report before acting on it — twice in batch-10 a validator's finding was false, and
+"fixing" it would have corrupted correct documentation.** Both times the cause was the same parse
+trap: when reading a static initializer, **small constants appear as `iconst_*`/`bipush`/`sipush` and
+not only `ldc`**, and `PacketByteBufferHelper` uses **`ldc_w` exclusively**, so an `ldc`-only parse
+finds **zero** keys. A dropped entry silently **flips a tally**. Related trap: a field can be
+assigned from a literal in the static initializer but be **transformed in the constructor**
+(`DyeColor` applies `ARGB.opaque()` to two of its three colour fields there) — read the constructor,
+not just the initializer. **If a count of 16 comes out 14, suspect the parse before the data.**
+
 ## Validation (every batch)
 
 1. `./gradlew generatePyDoc generateTSDoc generateWebDoc` must succeed — javadoc parse errors
@@ -479,3 +536,11 @@ javadoc**; that is the only check covering the class of defect that matters most
 2. Every new/modified `example:` resolved symbol-by-symbol against the actual Java source.
 3. Where feasible, type-check examples against the generated TypeScript definitions.
 4. Flag (never silently drop) unverifiable examples; list them for the in-game test queue.
+5. **Byte-level check of the generated `.py`** — `&` and `<` must be 0 inside every `example:`.
+   Grepping for entities is useless (the damage is a *deletion*); and `node --check` passes the
+   damaged text because it is still valid JavaScript. See quirk 17.
+6. **Inverted cross-reference audit** — resolve every `{@link}` target and every relational sentence
+   against the *target's* body, and re-derive every numeric census from the compiled class. This is
+   the only check that finds the dominant defect class; see the audit section above.
+7. **Disprove any surprising report before acting on it.** Two of batch-10's validator findings were
+   false. Re-derive the number yourself; a tally that came out short means the parse dropped entries.

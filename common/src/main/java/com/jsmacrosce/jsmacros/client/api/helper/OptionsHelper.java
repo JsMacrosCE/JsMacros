@@ -42,6 +42,48 @@ import java.util.stream.Stream;
 *///?}
 
 /**
+ * a handle on the game's own settings, which is what the options screen edits.
+ * <p>
+ * This wraps the client's options object rather than copying it, so a value written here is the
+ * real setting and the game picks it up the next time it looks, the same as a change made
+ * through the options screen. A fresh helper is made on every {@code Client.getGameOptions()}
+ * call and they all wrap the same settings, so a value written through one is visible through
+ * another.
+ * <p>
+ * The settings are split into six groups, and each group is available two ways: as a field on
+ * this class ({@link #skin}, {@link #video}, {@link #music}, {@link #control}, {@link #chat},
+ * {@link #accessibility}) and as a getter ({@link #getSkinOptions()} and its siblings). The
+ * two are the same object, so which one to use is a matter of taste; the getters read a little
+ * better in a chain and the fields a little better when a value is being held on to.
+ * <br>
+ * The fields are created once, when the helper is made, so they are safe to keep and compare,
+ * unlike the helpers made on the fly by some of the older calls in this class. A setting that
+ * is not a simple value — a dropdown's name, a volume, an enabled pack list — comes back as a
+ * string or a list rather than an enum, and the group helper for it says what the accepted
+ * values are.
+ * example:
+ * <pre>
+ * const options = Client.getGameOptions();
+ *
+ * // the group helpers, either as a field or through its getter
+ * options.video.setRenderDistance(12);
+ * options.music.setMasterVolume(0.5);
+ * options.control.setMouseSensitivity(0.75);
+ * options.chat.setChatOpacity(0.8);
+ * // the same object the getter hands back
+ * options.getVideoOptions().setGuiScale(2);
+ *
+ * // read one back to confirm
+ * Chat.log(`render distance is now ${options.video.getRenderDistance()}`);
+ *
+ * // a few settings live on the helper itself
+ * options.setLanguage("en_us");
+ * options.setFov(90);
+ *
+ * // changes are only written to options.txt when asked
+ * options.saveOptions();
+ * </pre>
+ *
  * @author Etheradon
  * @since 1.8.4
  */
@@ -53,11 +95,84 @@ public class OptionsHelper extends BaseHelper<Options> {
     private final Minecraft mc = Minecraft.getInstance();
     private final PackRepository rpm = mc.getResourcePackRepository();
 
+    /**
+     * which parts of the player model are shown: the cape, the jacket, the sleeves, the pants
+     * and the hat.
+     * <p>
+     * These are the "Player Skin" settings from the options screen. Each part has a matching
+     * {@code is...Activated} reader and a {@code toggle...} writer, and the outer layer is only
+     * visible on its own when the skin actually has one, so a toggle here can be on while
+     * nothing is drawn.
+     * <br>
+     * The same object is returned by {@link #getSkinOptions()}.
+     * @since 1.8.4
+     */
     public final SkinOptionsHelper skin = new SkinOptionsHelper(this);
+    /**
+     * the graphics settings: render distance, gui scale, frame rate limit, and the rest of what
+     * the "Video Settings" screen holds.
+     * <p>
+     * This is the group that most scripts reach for. Values that are a choice rather than a
+     * number — the graphics mode, the clouds mode, the particle mode — come back and go in as
+     * the names the options screen shows, such as {@code "fancy"}, and the group helper says
+     * which names are accepted.
+     * <br>
+     * The same object is returned by {@link #getVideoOptions()}.
+     * @since 1.8.4
+     */
     public final VideoOptionsHelper video = new VideoOptionsHelper(this);
+    /**
+     * the sound settings: the master volume, the per-category volumes, the output device and
+     * whether subtitles are shown.
+     * <p>
+     * The per-category volumes are also reachable as one call each,
+     * {@link MusicOptionsHelper#getVolume(String)} and
+     * {@link MusicOptionsHelper#setVolume(String, double)}, which take a category name such as
+     * {@code "master"} or {@code "music"}; the group helper is the longer form with a method
+     * per category. A volume is a number from 0 to 1, and the master one multiplies the rest.
+     * The same two names still exist on the outer class, but those are deprecated in favour of
+     * the two linked here.
+     * <br>
+     * The same object is returned by {@link #getMusicOptions()}.
+     * @since 1.8.4
+     */
     public final MusicOptionsHelper music = new MusicOptionsHelper(this);
+    /**
+     * the input settings: mouse sensitivity, the invert-mouse and toggle-sneak switches, and the
+     * whole key binding list.
+     * <p>
+     * The key bindings are the fiddly part. {@link ControlOptionsHelper#getKeyBinds()} gives
+     * every binding and {@link ControlOptionsHelper#getKeyBindsByCategory()} the same grouped
+     * by the options-screen section they appear under; changing one goes through the key bind
+     * helper rather than by name.
+     * <br>
+     * The same object is returned by {@link #getControlOptions()}.
+     * @since 1.8.4
+     */
     public final ControlOptionsHelper control = new ControlOptionsHelper(this);
+    /**
+     * the chat settings: chat visibility, colours, links, opacity, text size, width, line
+     * spacing and the narrator mode.
+     * <p>
+     * Several of these are per-server, which is what makes them interesting from a script: a
+     * server sends its own chat settings down and the game applies them, so reading a value
+     * after a server sets one gives the server's value rather than the player's preference.
+     * <br>
+     * The same object is returned by {@link #getChatOptions()}.
+     * @since 1.8.4
+     */
     public final ChatOptionsHelper chat = new ChatOptionsHelper(this);
+    /**
+     * the accessibility settings, which is where the game puts anything about making the game
+     * easier to see or hear.
+     * <p>
+     * Some of these duplicate a setting that also lives in another group — the narrator mode
+     * and the subtitle setting are in {@link #chat} as well — and where that is the case the
+     * two are the same underlying setting, so a change through either shows up in the other.
+     * <br>
+     * The same object is returned by {@link #getAccessibilityOptions()}.
+     * @since 1.8.4
+     */
     public final AccessibilityOptionsHelper accessibility = new AccessibilityOptionsHelper(this);
 
     public OptionsHelper(Options options) {
@@ -404,6 +519,23 @@ public class OptionsHelper extends BaseHelper<Options> {
     @DocletCategory("Configuration/Profiles")
     public class SkinOptionsHelper {
 
+        /**
+         * the whole options helper this group belongs to.
+         * <p>
+         * Each group is a view onto one part of the settings, and this is the way back to the
+         * rest of them, so a script that starts in a group and needs a setting from another
+         * does not have to keep the outer handle around separately. It is the same object the
+         * field was created with, and the same one the group's {@code getParent()} returns.
+         * <br>
+         * example:
+         * <pre>
+         * const options = Client.getGameOptions();
+         * // back out to the whole helper, then into a different group
+         * options.skin.parent.music.setMasterVolume(0.4);
+         * options.skin.parent.chat.setChatOpacity(0.5);
+         * </pre>
+         * @since 1.8.4
+         */
         public final OptionsHelper parent;
 
         public SkinOptionsHelper(OptionsHelper OptionsHelper) {
@@ -582,6 +714,18 @@ public class OptionsHelper extends BaseHelper<Options> {
     @DocletCategory("Configuration/Profiles")
     public class VideoOptionsHelper {
 
+        /**
+         * the whole options helper this group belongs to.
+         * <p>
+         * Each group is a view onto one part of the settings, and this is the way back to the
+         * rest of them, so a script that starts in a group and needs a setting from another
+         * does not have to keep the outer handle around separately. It is the same object the
+         * field was created with, and the same one the group's {@code getParent()} returns.
+         * <br>
+         * The six group fields hold the same thing, so the example on
+         * {@code SkinOptionsHelper.parent}, the first of them, covers this one too.
+         * @since 1.8.4
+         */
         public final OptionsHelper parent;
 
         public VideoOptionsHelper(OptionsHelper OptionsHelper) {
@@ -1141,6 +1285,18 @@ public class OptionsHelper extends BaseHelper<Options> {
     @DocletCategory("Configuration/Profiles")
     public class MusicOptionsHelper {
 
+        /**
+         * the whole options helper this group belongs to.
+         * <p>
+         * Each group is a view onto one part of the settings, and this is the way back to the
+         * rest of them, so a script that starts in a group and needs a setting from another
+         * does not have to keep the outer handle around separately. It is the same object the
+         * field was created with, and the same one the group's {@code getParent()} returns.
+         * <br>
+         * The six group fields hold the same thing, so the example on
+         * {@code SkinOptionsHelper.parent}, the first of them, covers this one too.
+         * @since 1.8.4
+         */
         public final OptionsHelper parent;
 
         public MusicOptionsHelper(OptionsHelper OptionsHelper) {
@@ -1423,6 +1579,18 @@ public class OptionsHelper extends BaseHelper<Options> {
     @DocletCategory("Configuration/Profiles")
     public class ControlOptionsHelper {
 
+        /**
+         * the whole options helper this group belongs to.
+         * <p>
+         * Each group is a view onto one part of the settings, and this is the way back to the
+         * rest of them, so a script that starts in a group and needs a setting from another
+         * does not have to keep the outer handle around separately. It is the same object the
+         * field was created with, and the same one the group's {@code getParent()} returns.
+         * <br>
+         * The six group fields hold the same thing, so the example on
+         * {@code SkinOptionsHelper.parent}, the first of them, covers this one too.
+         * @since 1.8.4
+         */
         public final OptionsHelper parent;
 
         public ControlOptionsHelper(OptionsHelper OptionsHelper) {
@@ -1701,6 +1869,18 @@ public class OptionsHelper extends BaseHelper<Options> {
     @DocletCategory("Configuration/Profiles")
     public class ChatOptionsHelper {
 
+        /**
+         * the whole options helper this group belongs to.
+         * <p>
+         * Each group is a view onto one part of the settings, and this is the way back to the
+         * rest of them, so a script that starts in a group and needs a setting from another
+         * does not have to keep the outer handle around separately. It is the same object the
+         * field was created with, and the same one the group's {@code getParent()} returns.
+         * <br>
+         * The six group fields hold the same thing, so the example on
+         * {@code SkinOptionsHelper.parent}, the first of them, covers this one too.
+         * @since 1.8.4
+         */
         public final OptionsHelper parent;
 
         public ChatOptionsHelper(OptionsHelper OptionsHelper) {
@@ -2057,6 +2237,18 @@ public class OptionsHelper extends BaseHelper<Options> {
     @DocletCategory("Configuration/Profiles")
     public class AccessibilityOptionsHelper {
 
+        /**
+         * the whole options helper this group belongs to.
+         * <p>
+         * Each group is a view onto one part of the settings, and this is the way back to the
+         * rest of them, so a script that starts in a group and needs a setting from another
+         * does not have to keep the outer handle around separately. It is the same object the
+         * field was created with, and the same one the group's {@code getParent()} returns.
+         * <br>
+         * The six group fields hold the same thing, so the example on
+         * {@code SkinOptionsHelper.parent}, the first of them, covers this one too.
+         * @since 1.8.4
+         */
         public final OptionsHelper parent;
 
         public AccessibilityOptionsHelper(OptionsHelper OptionsHelper) {
@@ -2336,7 +2528,32 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new fov value
+         * whether to hide lightning flashes, the setting
+         * {@link #areLightningFlashesHidden()} reads back.
+         * <p>
+         * The name is a copy-and-paste slip in the runtime and it is worth knowing about before
+         * calling it: this overload takes a boolean and writes the "hide lightning flash"
+         * setting, so it has nothing to do with the field of view and it does not touch the fov
+         * effect scale at all. The fov effect scale is the other overload, the one taking a
+         * number, {@link #setFovEffect(double)}, read back with {@link #getFovEffect()}.
+         * <p>
+         * It is written straight into the option rather than through the game's own setter, as
+         * several others in this group are, so the value does not go through the option's range
+         * check. For a plain on/off there is nothing to refuse, so the two routes agree.
+         * example:
+         * <pre>
+         * const options = Client.getGameOptions();
+         *
+         * // this one hides lightning flashes, despite the name
+         * options.accessibility.setFovEffect(true);
+         * Chat.log(`flashes hidden: ${options.accessibility.areLightningFlashesHidden()}`);
+         *
+         * // the fov effect scale is the overload taking a number
+         * options.accessibility.setFovEffect(0.5);
+         * Chat.log(`fov effect scale: ${options.accessibility.getFovEffect()}`);
+         * </pre>
+         *
+         * @param val whether to hide lightning flashes
          * @return self for chaining.
          * @since 1.8.4
          */

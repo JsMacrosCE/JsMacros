@@ -297,7 +297,102 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   on a threshold, they just log. `FChat` now documents the same literal two ways (`{@code &a}` in
   prose, `"\x26a"` in the example) — **both correct, only one can be canonical; that is a maintainer's
   editorial call, not a defect.**
-- [ ] batch-10 (client.api.helper top-level, 19) — pending
+- [x] batch-10 (client.api.helper top-level, 18) — done: 3760 added javadoc lines, **130 `example:`
+  blocks** (the package had zero), 29 method gaps + 8 fields + 2 class docs closed.
+  Build green, 0/18 files with non-comment changes, **0 `&` bytes in all 18 generated `.py`**,
+  130/130 examples type-check, 7/7 rounds-1-4 fixes held. **Took 6 validation rounds** — by far
+  the most of any batch, and the one that produced the transferable findings.
+
+  **SCOPING CALL I MADE UP FRONT (this changed what "done" meant):** the audit tool reported ~40
+  undocumented members, but **12 were `toString()` overrides that must stay bare** (documenting
+  them injects new members into the shipped `.d.ts` per quirk 13/16). Stripping those out cut the
+  real work to 29 methods + 8 fields + 2 class docs. I also told the writer outright that fewer
+  correct examples beat many thin ones, and to report what it left undone — which is why
+  `OptionsHelper` (233 members) got 3 examples rather than 233.
+
+  **THE DOMINANT DEFECT CLASS — and why 6 rounds were needed.** Every blocking defect in every
+  round was the same thing: **a confident, specific, plausible claim about Minecraft semantics that
+  nobody had checked against the implementation.** In order, across rounds:
+  `getColorValue()` "gives 0 for modifiers" (it **throws** — `getColor()` returns a boxed `Integer`);
+  "`dark_red` is `r`" (it is **`4`**, the code is the hex digit of the colour index); an example
+  calling **`getRawId()`, a method existing nowhere in the repo**; "9 is white" (9 is BLUE, white
+  is 15); "the firework shade is usually brighter" (lower for 11 of 16); `getClickAction()`
+  documented with the *hover* action's lowercase ids when it returns **uppercase** `Enum.name()`;
+  `BlockPredicateHelper` claiming `test()` applies the data-component matcher when it reaches the
+  `BlockInWorld` overload that never reads it; and a packet census of 202 counting **Stonecutter-
+  gated entries that do not ship in 1.21.8** (the real figure, from the compiled class, is 200).
+  **~20 defects in total, none of which a build, a `tsc` or a `node --check` can see.**
+
+  **THE METHODOLOGICAL FINDING — the most transferable thing this batch produced.** Rounds 1–4 each
+  ran "pair every `@return` with its own body" and each found more. That method is **structurally
+  incapable** of finding the round-4/5 defects, because *all* of them are prose about something
+  **other than** the method's own return. The audit has to be **inverted**: enumerate every
+  `{@link}` target, every relational sentence ("the same as", "the opposite of", "its siblings",
+  "unlike"), every bare numeral and every `always`/`never`/`only`/`all`/`most`/`exactly`, and resolve
+  each against **the target's** body. That is what found the last 8, including a `&&` shipping
+  broken JS. Corollary rule for the writers: **"the overload next to it does X" is not evidence
+  about "this one does Y"** — that exact carry-over produced two separate defects.
+
+  **`node --check` IS NOT SUFFICIENT — a new blind spot.** A deleted `&&` leaves
+  `if (aimed !== null aimed.getX() === 10 …)`, which is **still valid JavaScript that means
+  something entirely different**, so `node --check` passes it. A green build, a clean type-check
+  and a clean `node --check` all passed while broken JS shipped. **The byte count is the only
+  reliable check** for this defect class.
+
+  **TWO VALIDATOR FINDINGS WERE FALSE — I DISPROVED BOTH FROM BYTECODE BEFORE THEY COULD BE
+  "FIXED". This is the batch's most important process lesson.**
+  - **DyeColorHelper colour splits (round 5):** reported inverted (firework smaller for 4/16, sign
+    for 5/16). Wrong. The validator's `ldc`-only parse **silently dropped `BLUE` and `BLACK`**, whose
+    third constants are `sipush 255` and `iconst_0`. Correct: firework lower for **11/16**, sign
+    lower for **4/16** = exactly `{blue, black, cyan, green}` — which is what the docs said.
+  - **DyeColorHelper alpha byte (round 6):** reported as a single blocking defect claiming there is
+    no alpha byte at all. Wrong. `ARGB.opaque(int)` is `ldc -16777216` + `ior`, and the **constructor**
+    applies it to `textureDiffuseColor` and `textColor` but not to `fireworkColor`; the three
+    getters return those fields directly. The validator read the **static-init literals** (all
+    ≤ `0xFFFFFF`) and missed the constructor. Worked proof: WHITE `0xF9FFFE` → `0xFFF9FFFE`;
+    `/65536` = 65529 vs the true red byte 249 — off by exactly `0xFF00` = 65280, which is the
+    number the doc already gave.
+  **Shared root cause: when reading a static initializer, small constants appear as
+  `iconst_*`/`bipush`/`sipush`, not only `ldc`; and `PacketByteBufferHelper` uses `ldc_w`
+  exclusively, so an `ldc`-only parse finds 0 keys.** A tally that comes out short means the parse
+  dropped entries, not that the data is smaller. **Both files were re-derived twice, independently,
+  and the docs were right both times.** Had I trusted the reports, two correct files would have been
+  corrupted.
+
+  **Round 4's inverted audit found 8 more** (7 blocking + 1 whose premise was false and which the
+  writer correctly **refused** to "fix" — `VehicleMoveS2CPacket` is put once; the second line is a
+  different name for a different class, and the compiled map has 200 distinct keys → 200 classes).
+  That refusal is the correct instinct and worth keeping.
+
+  **Source defects found (not fixed — code changes, routed to a maintainer).** Batch-05's
+  `BUFFER_TO_PACKET` finding is confirmed and now precisely documented: the map is read and never
+  written, and **3 further maps in the same class (`PACKET_IDS`, `PACKET_STATES`, `PACKET_SIDES`)
+  are populated only by a commented-out block**, so `getPacketId()`/`getNetworkStateId()` always
+  answer `0`, `isClientbound()` always `false` and `isServerbound()` always `true`. Also new:
+  `OptionsHelper.AccessibilityOptionsHelper.setFovEffect(boolean)` writes `hideLightningFlash`
+  (batch-10 corrected the **documentation**; the code is still wrong); `DyeColor`'s three shade
+  constants are independent per-colour values, not a derived lightening; `SuggestionsBuilderHelper
+  .suggestPositions` reads `split[0..2]` unconditionally so a 2-part string throws
+  `ArrayIndexOutOfBoundsException`; `FormattingHelper.getColorValue()` NPEs on any of the 5 modifiers
+  and on `RESET`, and `isModifier()` is **not** the complement of `isColor()` because `RESET` answers
+  false to both; `StatusEffectHelper.isPermanent()` is hard-coded `false`; `StatsHelper`'s keyed
+  stat calls key on a *category*, so `getRawStatMap`/`getFormattedStatMap` collapse to one entry per
+  category; `BlockPredicate` has a 4th `components` part that `test()` cannot reach; and 6 of 1520
+  vanilla advancements are in the minority shapes the docs had claimed were the majority.
+
+  **Accepted / deliberate:** `DyeColorHelper` has **0 examples** — validated as correct, because
+  `docs/typescript/headers/McIdsAndEnums.d.ts:15` is `type EntityTypeFromId<E> = EntityHelper;`,
+  discarding `E`, so *every* route to a `DyeColorHelper` is a `tsc` error. The class doc says so.
+  `OptionsHelper`/`InteractionManagerHelper`/`PacketByteBufferHelper` got 3/6/6 examples for
+  233/51/148 members — thin but each example is dense and the per-member `@param`/`@return` are
+  complete. **This is the recorded example backlog for this package.**
+
+  **Known docgen defects newly characterised:** `pydoclet` emits field *declarations* but never
+  field *javadoc*, so the 3 examples on `CommandNodeHelper.fabric` and `OptionsHelper.parent` are
+  **invisible to Python readers** (unfixable in javadoc). `pydoclet` also has **no `@throws`
+  support at all** (0 `Raises:` across 632 generated files vs 47 Java files using `@throws`).
+  `tsdoclet` and `pydoclet` **disagree on `char` returns** — `number` vs `str`; the pydoclet is
+  correct, since Truffle exports `Character` as a string.
 - [ ] batch-11 (client.api.classes.worldscanner.filter.**, 17) — pending
 - [ ] batch-12 (worldscanner + client.api.classes core, 7) — pending
 - [ ] batch-13 (client.api.classes.render + components3d, 12) — pending
@@ -312,4 +407,27 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
 
 ## In-game test queue (examples that could not be fully verified)
 
-_(empty)_
+Batch-10 (all runtime behaviour; everything static is bytecode-verified):
+
+1. `PacketByteBufferHelper` — that `toPacket()` returns `null` for a fresh `Client.createPacketByteBuffer()`
+   and throws `NullPointerException` for an event-supplied one; and that `PACKET_IDS`/`PACKET_STATES`/
+   `PACKET_SIDES` really do stay empty through the live mixin/init path (bytecode-verified, but that
+   is a runtime invariant). Confirms the corrected 200-entry census at runtime.
+2. `FormattingHelper` — that `getColorValue()` throws for all 5 modifiers and `RESET`, and that
+   `getCode()` arrives as a one-character **string** so `"§" + code` renders a real code.
+3. `DyeColorHelper` — the three shade values against real dyed items, signs and firework stars; and
+   in particular that `getColorValue().toString(16)` prints a leading `ff`, which is the single most
+   consequential correction in the batch.
+4. `StyleHelper.getClickAction()` — that a **server-sent** `clickEvent: {action: "custom"}` yields
+   `CUSTOM` (uppercase), distinct from the hard-coded lowercase `"custom"` for a JsMacros-registered
+   click.
+5. `SuggestionsBuilderHelper.suggestPositions("0 64")` — bytecode says `split[2]` is read
+   unconditionally, so this must throw `ArrayIndexOutOfBoundsException`. One call confirms it.
+6. `StatsHelper.getRawStatMap()` / `getFormattedStatMap()` — the per-category collapse, and the
+   `stat_type.minecraft.*` key shape, against a live server that has sent statistics.
+7. `NbtPredicateHelper` / `StatePredicateHelper` / `BlockPredicateHelper` examples — all key off
+   `elytra.getDestroyRestrictions()` and need a real elytra plus live block-entity state.
+8. Everything gated on being in a world: all examples using `Player.getPlayer()`,
+   `World.isWorldLoaded()`/`getBlock`/`getEntities`, `Client.getGameOptions()`, item NBT, and the
+   `InteractionManagerHelper` block-breaking examples. Also `JavaWrapper.methodToJava` callback
+   threading for `breakBlockAsync`.

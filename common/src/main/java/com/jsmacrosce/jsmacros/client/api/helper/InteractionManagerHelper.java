@@ -35,6 +35,58 @@ import java.util.concurrent.Semaphore;
 /**
  * Helper for ClientPlayerInteractionManager
  * it accesses interaction manager from {@code mc} instead of {@code base}, to avoid issues
+ * <p>
+ * Everything the player does to the world goes through one object — breaking a block,
+ * attacking, using an item on something, right-clicking — and this is a handle on it. It is
+ * reached through {@code Player.getInteractionManager()}, or the shorter
+ * {@code Player.interactions()}, and it is {@code null} outside a world.
+ * <p>
+ * Three things are worth knowing before using it.
+ * <br>
+ * <b>Targeting.</b> The calls that act on "whatever the player is looking at" use the
+ * crosshair, and the game changes what the crosshair is on continuously. The {@code setTarget}
+ * family overrides that, so a script can aim at a specific block or entity and have the call
+ * act on it instead. An override lasts until it is cleared, so a script that sets one and does
+ * not clear it has changed the game for everything after it;
+ * {@link #clearTargetOverride()} puts it back and {@link #hasTargetOverride()} says whether
+ * one is in place.
+ * <br>
+ * <b>Waiting.</b> Several calls take an {@code await} argument: with {@code false} they queue
+ * the work and return at once, and with {@code true} they block until the server has answered.
+ * Waiting is the thing that cannot be done from the main thread, so a call that waits and is
+ * made <i>on</i> the main thread throws rather than freezing the game. The two failures are
+ * separate and worth keeping apart: that main-thread check raises
+ * {@link java.lang.IllegalThreadStateException}, and the {@code throws InterruptedException} on
+ * the blocking calls comes from the {@code Semaphore} they wait on, which is not the same thing
+ * as refusing the call. Either way the advice is the same: these are the ones to run from a
+ * script's own thread, not from inside a main-thread callback.
+ * <br>
+ * <b>Breaking a block takes time.</b> {@link #breakBlock()} does the whole thing — starts the
+ * break, waits for it to finish, and reports what happened — which is why it blocks and why it
+ * can end in an interruption rather than a success. {@link #breakBlockAsync} is the version
+ * that hands the result to a callback instead of blocking, and is usually the better one in an
+ * event.
+ * example:
+ * <pre>
+ * const interactions = Player.interactions();
+ * if (interactions === null) { throw new Error("not in a world"); }
+ *
+ * // act on whatever the player is looking at
+ * interactions.breakBlock();
+ *
+ * // act on a specific block instead, then put the crosshair back
+ * interactions.setTarget(10, 64, -10);
+ * const result = interactions.breakBlock();
+ * interactions.clearTargetOverride();
+ * if (result !== null) {
+ *   Chat.log(`break finished as ${result.reason}`);
+ * }
+ *
+ * // holding an interact for a number of ticks, and letting go afterwards
+ * const left = interactions.holdInteract(20);
+ * Chat.log(`${left} ticks were not spent`);
+ * </pre>
+ *
  * @author aMelonRind
  * @since 1.9.0
  */
@@ -108,6 +160,29 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
 
     /**
      * sets crosshair target to a block
+     * <p>
+     * This is an override, not a read: it tells the game that the calls acting on "whatever the
+     * player is looking at" should act on this block instead. It stays in place until
+     * {@link #clearTargetOverride()} puts it back, so a script that sets one and does not clear
+     * it has changed the game for everything that runs after it.
+     * <br>
+     * There are seven forms, and this is one of the six block-position ones. A block position is
+     * given either as {@code x}, {@code y} and {@code z} ints or as a {@link BlockPosHelper} a
+     * script already has; each of those two can then be paired with the direction as a string
+     * like this one, as an {@code int} that is the game's 3D data value, or left out. The
+     * direction is which face of the block the call acts on, and the no-direction form uses the
+     * down face. The seventh form takes a {@code EntityHelper} and targets an entity instead of
+     * a block.
+     * example:
+     * <pre>
+     * const interactions = Player.interactions();
+     * if (interactions === null) { throw new Error("not in a world"); }
+     *
+     * // act on the top face of a specific block, then put the crosshair back
+     * interactions.setTarget(10, 64, -10, "up");
+     * interactions.interactBlock(10, 64, -10, "up", false);
+     * interactions.clearTargetOverride();
+     * </pre>
      * @return self for chaining
      * @since 1.9.0
      */
@@ -453,15 +528,26 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
 
     /**
      * breaks a block, will wait till it's done<br>
-     * this is the same as:
+     * this is the same as pointing the crosshair at the block, breaking what is targeted, and
+     * then putting the crosshair back:
      * <pre>
-     * setTarget(x, y, z);
+     * const interactions = Player.interactions();
+     * if (interactions === null) { throw new Error("not in a world"); }
+     *
+     * interactions.setTarget(10, 64, -10);
+     * // only break if the override actually landed on that block, since a
+     * // reach check or another script may have moved it in the meantime
      * let res = null;
-     * if (getTargetedBlock()?.getRaw().equals(new BlockPos(x, y, z))) res = breakBlock();
-     * clearTargetOverride();
-     * return res;
+     * const aimed = interactions.getTargetedBlock();
+     * if (aimed !== null) {
+     *   const where = aimed.getX() + " " + aimed.getY() + " " + aimed.getZ();
+     *   if (where === "10 64 -10") {
+     *     res = interactions.breakBlock();
+     *   }
+     * }
+     * interactions.clearTargetOverride();
      * </pre>
-     * @return result
+     * @return result, or {@code null} if the target moved before the break could start
      * @throws InterruptedException
      * @since 1.9.0
      */
@@ -472,15 +558,25 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
 
     /**
      * breaks a block, will wait till it's done<br>
-     * this is the same as:
+     * the same as the three-coordinate form, aimed at a position the script already has:
      * <pre>
-     * setTarget(pos);
+     * const interactions = Player.interactions();
+     * if (interactions === null) { throw new Error("not in a world"); }
+     *
+     * const pos = PositionCommon.createBlockPos(10, 64, -10);
+     * interactions.setTarget(pos);
      * let res = null;
-     * if (getTargetedBlock()?.equals(pos)) res = breakBlock();
-     * clearTargetOverride();
-     * return res;
+     * const aimed = interactions.getTargetedBlock();
+     * if (aimed !== null) {
+     *   const where = aimed.getX() + " " + aimed.getY() + " " + aimed.getZ();
+     *   const want = pos.getX() + " " + pos.getY() + " " + pos.getZ();
+     *   if (where === want) {
+     *     res = interactions.breakBlock();
+     *   }
+     * }
+     * interactions.clearTargetOverride();
      * </pre>
-     * @return result
+     * @return result, or {@code null} if the target moved before the break could start
      * @throws InterruptedException
      * @since 1.9.0
      */
@@ -504,6 +600,37 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     /**
      * starts breaking a block<br>
      * you can use {@code ClientPlayerEntityHelper#setTarget()} to specify which block to break
+     * <p>
+     * The non-blocking counterpart to {@link #breakBlock()}: it starts the break and returns,
+     * and the result arrives at the callback. That makes it the one to use inside an event,
+     * where blocking would hold up the game, and the callback runs on the main thread, so
+     * anything it wants to read has to be handed to it rather than reached for.
+     * <p>
+     * The result is a reason string and, on success, the position that was broken. A
+     * {@code SUCCESS} means the client finished the break, not that the server accepted it: a
+     * protected block or a lagging server will still refuse it.
+     * <p>
+     * A {@code null} callback is allowed, and is the way to start a break without caring how it
+     * turns out.
+     * <br>
+     * To break a block at a known position rather than the targeted one, set the target first
+     * with {@link #setTarget(int, int, int)} and clear it afterwards.
+     * example:
+     * <pre>
+     * const interactions = Player.interactions();
+     * if (interactions === null) { throw new Error("not in a world"); }
+     *
+     * // start it and carry on, with the outcome arriving later
+     * interactions.breakBlockAsync(JavaWrapper.methodToJava(function (result) {
+     *   if (result !== null) {
+     *     Chat.log(`break finished as ${result.reason}`);
+     *   }
+     * }));
+     *
+     * // and to stop one part way through
+     * // interactions.cancelBreakBlock();
+     * </pre>
+     *
      * @param callback this will mostly be called on main thread!
      *                 Use {@code methodToJavaAsync()} instead of {@code methodToJava()} to avoid errors.
      * @return self for chaining
@@ -807,6 +934,30 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
 
     /**
      * interacts for specified number of ticks
+     * <p>
+     * This holds the interact down for a number of game ticks, which is what a door or a button
+     * needs, and it is a blocking call: the script waits while the ticks go by. It cannot be run
+     * on the main thread for the same reason {@link #breakBlock()} cannot.
+     * <br>
+     * The return value is what was left over, not what was done. It is the full {@code ticks}
+     * when the interaction was cut short — the player interrupted it, or the target changed —
+     * and {@code 0} when all of them were spent, so a script that cares whether the hold
+     * actually lasted has to compare the two.
+     * <br>
+     * The interaction is released before this returns, so a script does not have to pair it with
+     * {@link #holdInteract(boolean)}.
+     * example:
+     * <pre>
+     * const interactions = Player.interactions();
+     * if (interactions === null) { throw new Error("not in a world"); }
+     *
+     * // hold for one second, which is twenty ticks
+     * const left = interactions.holdInteract(20);
+     * if (left !== 0) {
+     *   Chat.log(`the hold was cut short with ${left} ticks left`);
+     * }
+     * </pre>
+     *
      * @return remaining ticks if the interaction was interrupted
      * @throws InterruptedException
      * @since 1.9.0
