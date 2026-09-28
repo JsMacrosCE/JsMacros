@@ -394,6 +394,86 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   `tsdoclet` and `pydoclet` **disagree on `char` returns** — `number` vs `str`; the pydoclet is
   correct, since Truffle exports `Character` as a string.
 - [ ] batch-11 (client.api.classes.worldscanner.filter.**, 17) — pending
+- [x] batch-11 (client.api.classes.worldscanner.filter.**, 17) — done: the package the plan called
+  the worst-documented in the codebase (**31 methods, 1 documented, 0 examples**) is now **59
+  documented members and 48 `example:` blocks**, with all 17 class docs present. Build green,
+  **0/17** files with non-comment changes, **0 `&`/`<` bytes inside any example** across the whole
+  docset, 48/48 `node --check`, `tsc` 0 errors with 48 files compiled (non-vacuous), and the shipped
+  `.d.ts` byte-identical. 3 validation rounds.
+
+  **The structural fact that shaped the whole batch: none of these 17 classes is in the shipped
+  `.d.ts`** (0 occurrences each) — `tsdoclet`'s whitelist covers only `client.api.helper.` and
+  `client.api.classes.inventory.`, and `WorldScannerBuilder` is in neither, so nothing drags them in.
+  They are `WorldScannerBuilder`'s **internal construction detail**: a script never names one. So
+  **no `Java.type(...)` example is possible** (it types `unknown` and fails `tsc`), and every example
+  goes on the `World.getWorldScanner()` route instead. Same situation as batch-10's `DyeColorHelper`,
+  and the validator confirmed that handling was right.
+
+  **The defect class again — and it is now a confirmed pattern across two batches.** All 6 blocking
+  defects were confident, specific, plausible claims contradicted by the body one screen away, and
+  **not one was visible to `gradlew`, `tsc` or `node --check`**: a mistyped operator said to be
+  refused "when the filter is built" (it is refused at **test time** — the constructor never inspects
+  it, while the string filters genuinely do resolve in theirs, which is exactly how the error was
+  copied across); `>` described as tolerance-compared (only `==`/`!=` get `DoubleMath.fuzzyEquals`);
+  a claim about a **document that does not exist** (`XorFilter`'s own class javadoc is bare at HEAD,
+  so the sentence referred to itself); `remove(List)` said to remove "at most once" when it calls
+  `List.removeAll` and removes **every** occurrence (the correct text of the adjacent
+  `remove(IFilter)` copied onto a method with different semantics); an example comment contradicting
+  its own `Chat.log`; and `notBlockFilter()` said to throw "when the scanner is built" when
+  `composeFilters(null)` throws **inside the `not` call itself**, before `build()` is reached.
+
+  **THE METHOD THAT FINALLY WORKED — add these to the audit.** Pairing `@return` with its own body
+  (batch-10 rounds 1–4) does not find any of these, because none of them is about the method's own
+  return. The inverted pass does, **provided two extra dimensions are added**:
+  > 1. **Timing claims** — built vs constructed vs test time vs per-test vs once vs cached.
+  > 2. **Cardinality claims** — each / all / every / only / never / exactly N / at most once.
+  > 3. **Every sentence naming another class's documentation** — confirm that document exists and
+  >    says that. (Blocker 3 was a fabricated discrepancy.)
+  With those, the writer found 5 more errors in its own prose in one pass, and the validator found
+  one more it had missed. **Do not re-open the fixed ones.**
+
+  **A real runtime defect found in 5 examples, invisible to every gate:** `.is(15)` throws
+  `ClassCastException` at build time, because `ClassWrapperFilter` does
+  `new NumberCompareFilter((String) args[0], args[1])` — a numeric method needs an **operator and a
+  number**. All five fixed to `.is("==", 15)` (the 14 surviving single-arg `.is(x)` calls are on
+  boolean methods, which is correct).
+
+  **A WRITER CLAIM DISPROVEN BY THE VALIDATOR — do not record it as a quirk.** The writer reported
+  that a `{@code}` body **starting with `>` loses that `>`** (`{@code >=}` shipping as `=`), proved it
+  with a probe, and switched to `{@code ">="}`. The validator ran the real compiled pydoclet
+  (`buildSrc/build/libs/buildSrc.jar`) on **JDK 21, 25 and 26** and found `>` **preserved on all
+  three** — the quirk does not exist. The quoting was left in place (harmless) and no file describes
+  the loss. **What is real, and different: HTML entities in javadoc are mangled by the doclets** —
+  prose `a &gt;= b` → `a = b`; example `1 &gt;= 2` → `1 = 2`; `1 &amp;&amp; 2` → `1 2` (the whole
+  entity lost); `{@code &gt;=}` is not decoded at all; **raw `>=` / `&&` survive fine.** The rule is
+  *"never HTML-escape inside javadoc; write the raw character"*, and it hits `&amp;` harder than
+  `&gt;`. The 17 files have 0 entities.
+
+  **Dead code documented, not fixed (code changes — routed to a maintainer).** All confirmed by the
+  validator: `XorFilter` and the whole xor path are unreachable (no `xor*` builder method, so
+  `Operation.XOR` is never set and `case XOR:` at `WorldScannerBuilder.java:112` is dead); `GroupFilter`
+  and all four nested classes have **zero** construction sites repo-wide; `CharCompareFilter` is
+  unreachable (neither helper declares a `char`-returning method); all six `compare*` methods throw a
+  message listing `"=>"` while no switch anywhere has a `case "=>"` (they have `case ">="`), so the
+  error tells the user to type an operator the code rejects; `notStateFilter()`/`notBlockFilter()`
+  throw unless that category already has a filter; and `WorldScannerBuilder.java:273` instantiates
+  `new StringifyFilter<BlockStateFilter>` where the field is `IAdvancedFilter<BlockStateHelper>`
+  (the block branch gets it right) — compiling only via an unchecked cast. Also noted: inherited
+  helper methods are unreachable because `getPublicNoParameterMethods` uses `getDeclaredMethods()`,
+  so `BaseHelper.getRaw()` is invisible.
+
+  **A pre-existing doc defect in an out-of-scope file, recorded not fixed:** the shipped
+  `FWorld.getWorldScanner()` and `WorldScannerBuilder` examples use `.contains("chest", "barrel")`
+  and `.endsWith("ore")`, which **do not type-check** — `Contains`/`EndsWith` collapse to the whole
+  `toString` template. Those files are batch-12's; the writer correctly used only `.is(` and
+  `.matches(` here and did not edit them.
+
+  **Known docgen defects extended here:** **no doclet handles `@throws` at all** (0 exception names
+  across all 22 pages *and* all `.py` stubs) — so this extends to `webdoclet`, not just `pydoclet`;
+  17 source `<pre>` blocks emit only 47 `example:` blocks, because one pre-existing
+  `StringCompareFilter` example renders without the marker; and the 17 pages carry 20 degenerate
+  `href="#"` links from the doclet's own generic `@return` type links (1236 site-wide).
+
 - [ ] batch-12 (worldscanner + client.api.classes core, 7) — pending
 - [ ] batch-13 (client.api.classes.render + components3d, 12) — pending
 - [ ] batch-14 (client.api.classes.render.components, 9) — pending

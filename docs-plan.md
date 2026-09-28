@@ -511,6 +511,22 @@ method's own return. Invert it:
 > "its siblings", "unlike", "whereas", "not … but"), every bare numeral, and every
 > `always`/`never`/`only`/`all`/`most`/`exactly` — and resolve each against **the target's** body.
 
+**Three dimensions that must be added, or the pass misses the commonest defects** (established in
+batch-11, where all 6 blockers were one of these and the first, cross-reference-only pass found only
+half of them):
+
+> 1. **Timing claims** — *built* vs *constructed* vs *at test time* vs *per test* vs *once* vs
+>    *cached* vs *memoised*. Open the body and confirm **when**, not just the outcome. A constructor
+>    that merely stores a field validates nothing, and a neighbour that validates in its constructor
+>    is the trap.
+> 2. **Cardinality claims** — *each*, *all*, *every*, *only*, *never*, *exactly N*, *at most once*.
+>    Verify the count against the implementation. `List.removeAll` removes **every** occurrence while
+>    `List.remove(Object)` removes one; copying the sentence from one to the other is how this
+>    happens.
+> 3. **Every sentence naming another class's *documentation*** — confirm that document exists and
+>    says that. One batch-11 blocker was a claim about a discrepancy in a javadoc block that was in
+>    fact bare at HEAD, so the sentence referred to itself.
+
 Two rules for the writers that follow from this:
 
 > - **"The overload next to it does X" is not evidence about "this one does Y."** This carry-over
