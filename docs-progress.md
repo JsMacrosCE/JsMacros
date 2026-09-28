@@ -21,7 +21,6 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   `JsMacros.on("HungerChange", ...)` silently never calls back. There are 57 event constructions vs
   56 `.trigger()` calls in the mixin package; this is the only one missing it. The javadoc documents
   the dead state accurately. Flagged for a maintainer decision.
-- [ ] batch-03 (client.api.event.impl.inventory + event.filterer, 10) — pending
 - [x] batch-03 (client.api.event.impl.inventory + event.filterer, 10) — done: 7/7 inventory
   events + 3 filterers fully documented (23/23 fields, 26/26 methods, 10/10 `example:` blocks).
   Build green, 10/10 examples type-check under `--strict`. Took 3 rounds: 2 inverted predicate
