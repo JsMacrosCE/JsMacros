@@ -2,11 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.event.impl;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
-
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
@@ -26,16 +22,40 @@ import net.minecraft.client.GuiMessageTag;
  * <br>
  * This event is fired for player chat in addition to other chat-like messages received by the
  * client.
+ * <br>
+ * Cancelling stops the whole chat HUD {@code addMessage} call rather than just its visible part,
+ * so anything else that call would have done is skipped too.
+ * example:
+ * <pre>
+ * JsMacros.on("RecvMessage", JavaWrapper.methodToJava(function (event) {
+ *   if (event.messageType === "Chat Error") {
+ *     // the red "Chat validation error" line the client shows when it rejects a chat message
+ *     event.cancel();
+ *     return;
+ *   }
+ *   if (event.text === null) {
+ *     return;
+ *   }
+ *   Chat.log(`[${event.messageType}] ${event.text.getString()}`);
+ * }))
+ * </pre>
  * @author Wagyourtail
  * @since 1.2.7
  */
-@DocletCategory("Network/Chat")
 @Event(value = "RecvMessage", oldName = "RECV_MESSAGE", cancellable = true)
 public class EventRecvMessage extends BaseEvent {
     /**
      * The message content that is about to be added to the HUD.
+     * <br>
+     * This field is writable. A listener that replaces it changes what the client shows, and the
+     * client then marks the line as modified, which shows up as the {@code "Modified"}
+     * {@link #messageType} together with an extra line quoting what was originally sent.
+     * <br>
+     * Note: it is declared nullable here, so script type definitions allow it to be {@code null}
+     * and it has to be checked before it is read. The constructor always fills it in, so it is
+     * only {@code null} if a listener assigned {@code null} to it.
      */
-    @NotNull
+    @Nullable
     public TextHelper text;
 
     /**
@@ -56,19 +76,23 @@ public class EventRecvMessage extends BaseEvent {
      * <br>
      * As of 1.21.11, the known values for this include {@code "Modified"}, {@code "System"},
      * {@code "Not Secure"} and {@code "Chat Error"}
+     * <br>
+     * {@code "Modified"} is the one JsMacros puts there itself: it is the tag a line gets when a
+     * listener replaced {@link #text}.
      * @since 1.8.2
      */
     @Nullable
     public String messageType;
 
-    public EventRecvMessage(Component message, @Nullable MessageSignature signature, @Nullable GuiMessageTag indicator) {
+    public EventRecvMessage(Component message, MessageSignature signature, GuiMessageTag indicator) {
         super(JsMacrosClient.clientCore);
         this.text = TextHelper.wrap(message);
 
-        if (signature != null) {
+        if (signature == null) {
+            this.signature = null;
+        } else {
             this.signature = signature.bytes();
         }
-
         if (indicator != null) {
             this.messageType = indicator.logTag();
         }
