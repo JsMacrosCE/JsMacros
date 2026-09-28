@@ -224,6 +224,8 @@ Fully documented (90/90); work is examples.
 1. **Never write `=>` in an example.** The pydoclet drops the `&gt;` entity, so `=>` renders as a
    bare `=` in the shipped Python stubs (`methodToJava((event) = {`). Use
    `function (event) { ... }`. The same applies to `>` in prose inside `{@code}`.
+   **Note:** this is about *example code*. `<br>` in prose is fine and is the pervasive house
+   style — the doclet emits it deliberately, and every already-documented file uses it.
 2. **Never add `@see`.** The web doclet ignores `@see` entirely — it renders nowhere in the web
    docs and leaks as raw `@see` lines into the shipped `.d.ts`. Use inline `{@link}` instead.
 3. **`{@link}` silently resolves to the wrong overload** if the parameter type is not imported or
