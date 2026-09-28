@@ -10,6 +10,7 @@ import net.minecraft.world.phys.Vec3;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
+import com.jsmacrosce.jsmacros.client.util.CameraCompat;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -159,11 +160,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     @Override
     public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-        //? if >=1.21.11 {
-        /*Vec3 cameraPos = camera.position();
-        *///? } else {
-        Vec3 cameraPos = camera.getPosition();
-        //? }
+        Vec3 cameraPos = CameraCompat.position(camera);
 
         Vec3 lookDir = getCrosshairDirection(camera, tickDelta);
         Vec3 p1 = cameraPos.add(lookDir);
@@ -208,11 +205,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
 
         if (bob == 0.0f) {
             // No bobbing active: the true camera forward is already screen-centre.
-            //? if >=1.21.11 {
-            /*return Vec3.directionFromRotation(camera.xRot(), camera.yRot());
-             *///? } else {
-            return Vec3.directionFromRotation(camera.getXRot(), camera.getYRot());
-            //?}
+            return Vec3.directionFromRotation(CameraCompat.xRot(camera), CameraCompat.yRot(camera));
         }
 
         // Replicate the bob rotation angles from bobView():
