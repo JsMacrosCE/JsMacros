@@ -9,11 +9,10 @@ plugins {
 
 // Use Stonecutter-aware property access
 // Properties are resolved from the versioned project's gradle.properties (via commonMod)
-val mod_id = commonMod.prop("mod_id")
+val mod_id = commonMod.modId
 val minecraft_version = commonMod.mc
 val java_version = commonMod.prop("java_version")
 
-val minecraft_version_range = commonMod.propOrNull("minecraft_version_range") ?: "[$minecraft_version]"
 val fabric_minecraft_version_range = commonMod.propOrNull("fabric_minecraft_version_range") ?: minecraft_version
 val neoforge_minecraft_version_range = commonMod.propOrNull("neoforge_minecraft_version_range") ?: "[$minecraft_version]"
 val fabric_version = commonMod.propOrNull("fabric_version") ?: ""
@@ -125,7 +124,6 @@ tasks {
             "version" to project.version,
             "group" to project.group,
             "minecraft_version" to minecraft_version,
-            "minecraft_version_range" to minecraft_version_range,
             "fabric_minecraft_version_range" to fabric_minecraft_version_range,
             "neoforge_minecraft_version_range" to neoforge_minecraft_version_range,
             "fabric_version" to fabric_version,
@@ -133,7 +131,7 @@ tasks {
             "mod_name" to mod_name,
             "mod_author" to mod_author,
             "mod_id" to mod_id,
-            "access_widener" to if (stonecutterBuild.eval(minecraft_version, ">=26.1")) "$minecraft_version-$mod_id-official.accesswidener" else "$minecraft_version-$mod_id.accesswidener",
+            "access_widener" to commonMod.fabricAccessWidener,
             "license" to license,
             "description" to project.description,
             "neoforge_version" to neoforge_version,

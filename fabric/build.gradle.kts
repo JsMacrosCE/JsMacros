@@ -8,17 +8,9 @@ plugins {
     alias(libs.plugins.fletching.fabric)
 }
 
-val mod_id = commonMod.prop("mod_id")
-val minecraft_version = commonMod.prop("minecraft_version")
-val fabric_minecraft_version_range = commonMod.propOrNull("fabric_minecraft_version_range") ?: minecraft_version
+val mod_id = commonMod.modId
+val minecraft_version = commonMod.mc
 var mod_version = project.version.toString()
-
-// 26.1+ ships unobfuscated: Loom skips access-widener remapping, so the file must declare `official`.
-val accessWidenerFile = if (stonecutterBuild.eval(minecraft_version, ">=26.1")) {
-    "$minecraft_version-$mod_id-official.accesswidener"
-} else {
-    "$minecraft_version-$mod_id.accesswidener"
-}
 
 base {
     archivesName.set("$mod_id-$minecraft_version-fabric-$mod_version")
@@ -87,23 +79,15 @@ tasks.named<ProcessResources>("processResources") {
         expand(mapOf("dependencies" to getExtensionJarPaths()))
     }
 
-    // Expand fabric.mod.json5 with minecraft version
-    filesMatching("fabric.mod.json5") {
-        expand(
-            mapOf(
-                "version" to mod_version,
-                "minecraft_version" to minecraft_version,
-                "fabric_minecraft_version_range" to fabric_minecraft_version_range,
-                "access_widener" to accessWidenerFile
-            )
-        )
-    }
+    // fabric.mod.json5 is expanded by multiloader-common, which already supplies version,
+    // minecraft_version, fabric_minecraft_version_range and access_widener.
 }
 
-// Copy the version-specific access widener and rename it for the jar
+// Loom reads the widener straight off disk; it must be the one matching this loader's namespace.
 loom {
-    // Use the version-specific access widener
-    accessWidenerPath.set(project(":common").file("src/main/resources/accesswideners/$accessWidenerFile"))
+    accessWidenerPath.set(
+        project(":common").file("src/main/resources/accesswideners/${commonMod.fabricAccessWidener}")
+    )
 
     mixin {
         defaultRefmapName.set("$mod_id.refmap.json")

@@ -8,9 +8,8 @@ plugins {
     alias(libs.plugins.fletching.fabric)
 }
 
-val mod_id = commonMod.prop("mod_id")
-val minecraft_version = commonMod.prop("minecraft_version")
-val fabric_minecraft_version_range = commonMod.propOrNull("fabric_minecraft_version_range") ?: minecraft_version
+val mod_id = commonMod.modId
+val minecraft_version = commonMod.mc
 var mod_version = project.version.toString()
 
 base {
@@ -62,19 +61,14 @@ tasks.named<ProcessResources>("processResources") {
         expand(mapOf("dependencies" to getExtensionJarPaths()))
     }
 
-    filesMatching("fabric.mod.json5") {
-        expand(
-            mapOf(
-                "version" to mod_version,
-                "minecraft_version" to minecraft_version,
-                "fabric_minecraft_version_range" to fabric_minecraft_version_range
-            )
-        )
-    }
+    // fabric.mod.json5 is expanded by multiloader-common, which already supplies version,
+    // minecraft_version, fabric_minecraft_version_range and access_widener.
 }
 
 loom {
-    accessWidenerPath.set(project(":common").file("src/main/resources/accesswideners/$minecraft_version-$mod_id-official.accesswidener"))
+    accessWidenerPath.set(
+        project(":common").file("src/main/resources/accesswideners/${commonMod.fabricAccessWidener}")
+    )
 
     mixin {
         defaultRefmapName.set("$mod_id.refmap.json")

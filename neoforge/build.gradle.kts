@@ -14,8 +14,8 @@ plugins {
     alias(libs.plugins.fletching.neoforge)
 }
 
-val mod_id = commonMod.prop("mod_id")
-val minecraft_version = commonMod.prop("minecraft_version")
+val mod_id = commonMod.modId
+val minecraft_version = commonMod.mc
 val neoforge_minecraft_version_range = commonMod.propOrNull("neoforge_minecraft_version_range") ?: "[$minecraft_version]"
 var mod_version = project.version.toString()
 var neoforge_version = commonMod.prop("neoforge_version")
@@ -37,11 +37,11 @@ neoForge {
         layout.buildDirectory.file("generated/access-transformer/accesstransformer.cfg")
     )
 
-    val supportsParchment = stonecutterBuild.eval(stonecutterBuild.current.version, "<26.1")
+    // Only declared for obfuscated versions; 26.1+ is unobfuscated and has no Parchment release.
     val parchment_minecraft = commonMod.propOrNull("parchment_minecraft")
     val parchment_version = commonMod.propOrNull("parchment_version")
 
-    if (supportsParchment && parchment_minecraft != null && parchment_version != null) {
+    if (parchment_minecraft != null && parchment_version != null) {
         parchment {
             minecraftVersion = parchment_minecraft
             mappingsVersion = parchment_version

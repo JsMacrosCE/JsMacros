@@ -143,8 +143,6 @@ val mcVersion = mcVersionsToBuild.first() // for backward compatibility
 
 val loaders = listOf("fabric", "neoforge")
 
-fun usesFabricRemap(version: String): Boolean = stonecutter.eval(version, "<26.1")
-
 data class ExtensionSpec(val path: String, val extId: String)
 val jsmExtensions: List<ExtensionSpec> = listOf(
     ExtensionSpec(path = ":extension:graal:python", extId = "graalpy")
@@ -364,7 +362,7 @@ gradle.projectsEvaluated {
         loaders.flatMap { loader ->
             mcVersionsToBuild.map { version ->
                 val loaderProject = project(":$loader:$version")
-                val sourceTaskName = if (loader == "fabric" && usesFabricRemap(version)) "remapJar" else "jar"
+                val sourceTaskName = loaderProject.modJarTaskName(loader)
                 val taskName = "package${loader.replaceFirstChar { it.uppercase() }}ModJar${version.replace(".", "")}"
 
                 tasks.register(taskName, Copy::class.java) {
@@ -498,8 +496,8 @@ gradle.projectsEvaluated {
                 val mcSegment = targetMcVersion.replace(".", "")
                 loaders.forEach { loader ->
                     val platformName = "modrinth${loader.replaceFirstChar { it.uppercase() }}$mcSegment"
-                    val sourceTaskName = if (loader == "fabric" && usesFabricRemap(targetMcVersion)) "remapJar" else "jar"
                     val loaderProject = project(":$loader:$targetMcVersion")
+                    val sourceTaskName = loaderProject.modJarTaskName(loader)
 
                     modrinth(platformName) {
                         projectId.set(modrinthProjectId)

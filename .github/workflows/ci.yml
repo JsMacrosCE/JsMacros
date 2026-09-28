@@ -28,18 +28,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # Mirrors usesFabricRemap() in stonecutter.gradle.kts.
-          - mc_version: '1.21.5'
-            fabric_package_task: remapJar
-          - mc_version: '1.21.8'
-            fabric_package_task: remapJar
-          - mc_version: '1.21.10'
-            fabric_package_task: remapJar
-          - mc_version: '1.21.11'
-            fabric_package_task: remapJar
-          - mc_version: '26.1.2'
-            fabric_package_task: jar
+        # Keep in sync with `versions(...)` in settings.gradle.kts.
+        mc_version:
+          - '1.21.5'
+          - '1.21.8'
+          - '1.21.10'
+          - '1.21.11'
+          - '26.1.2'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,10 +54,11 @@ jobs:
           cache-overwrite-existing: true
 
       # `classes` runs stonecutterGenerate, resource processing and compilation.
-      # The packaging task catches mixin remap problems, and
-      # validateAccessWidener is the only member-level check on access wideners
-      # (the NeoForge access transformer is a plain text conversion of the same
-      # file and resolves nothing).
+      # The packaging task (registered in stonecutter.gradle.kts) picks remapJar or jar by
+      # asking Loom which exists, so CI no longer has to know which is which; running it
+      # still catches mixin remap problems. validateAccessWidener is the only member-level
+      # check on access wideners (the NeoForge access transformer is a plain text conversion
+      # of the same file and resolves nothing).
       - name: Compile ${{ matrix.mc_version }}
         run: |
           ./gradlew --console=plain --stacktrace \
@@ -70,15 +66,17 @@ jobs:
             :fabric:${{ matrix.mc_version }}:classes \
             :neoforge:${{ matrix.mc_version }}:classes \
             :fabric:${{ matrix.mc_version }}:validateAccessWidener \
-            :fabric:${{ matrix.mc_version }}:${{ matrix.fabric_package_task }}
+            :packageFabricModJar${{ matrix.mc_version.replaceAll('.', '') }}
 
-      # Loom only validates the -official widener, so guard against the one
-      # common/NeoForge convert drifting away from it. Header line may differ.
+      # From 26.1 the Fabric widener must declare `official` while the AW->AT conversion
+      # feeding NeoForge still needs a `named` one, so the version ships both files. They
+      # are byte-identical below the header; guard against the two drifting apart.
       - name: Check 26.1 access wideners are in sync
-        if: matrix.mc_version == '26.1.2'
+        if: startsWith(matrix.mc_version, '26.1')
         run: |
-          diff <(tail -n +2 common/src/main/resources/accesswideners/26.1.2-jsmacrosce.accesswidener) \
-               <(tail -n +2 common/src/main/resources/accesswideners/26.1.2-jsmacrosce-official.accesswidener)
+          dir=common/src/main/resources/accesswideners
+          diff <(tail -n +2 "$dir/${{ matrix.mc_version }}-jsmacrosce.accesswidener") \
+               <(tail -n +2 "$dir/${{ matrix.mc_version }}-jsmacrosce-official.accesswidener")
 
   extensions:
     name: Compile extensions
