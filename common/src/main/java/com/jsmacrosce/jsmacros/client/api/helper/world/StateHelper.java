@@ -8,11 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-//? if >=1.21.11 {
-/*import net.minecraft.util.Util;
-*///? } else {
 import net.minecraft.Util;
-//? }
 
 /**
  * @author Etheradon

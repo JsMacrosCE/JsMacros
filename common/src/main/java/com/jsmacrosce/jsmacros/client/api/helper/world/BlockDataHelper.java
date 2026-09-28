@@ -18,11 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-//? if >=1.21.11 {
-/*import net.minecraft.util.Util;
-*///? } else {
 import net.minecraft.Util;
-//? }
 
 /**
  * @author Wagyourtail

@@ -4,11 +4,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
-//? if >=1.21.11 {
-/*import net.minecraft.advancements.criterion.NbtPredicate;
-*///? } else {
 import net.minecraft.advancements.critereon.NbtPredicate;
-//? }
 
 /**
  * @since 1.9.1

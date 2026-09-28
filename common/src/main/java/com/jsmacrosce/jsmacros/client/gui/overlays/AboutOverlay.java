@@ -14,11 +14,7 @@ import com.jsmacrosce.wagyourgui.overlays.OverlayContainer;
 
 import java.util.List;
 
-//? if >=1.21.11 {
-/*import net.minecraft.util.Util;
-*///? } else {
 import net.minecraft.Util;
-//? }
 
 public class AboutOverlay extends OverlayContainer {
     private List<FormattedCharSequence> text;

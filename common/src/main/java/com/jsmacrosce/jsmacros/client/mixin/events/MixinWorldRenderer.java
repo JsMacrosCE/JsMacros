@@ -39,9 +39,10 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.renderer.gizmos.DrawableGizmoPrimitives;
 import net.minecraft.gizmos.Gizmos;
 import net.minecraft.gizmos.SimpleGizmoCollector;
-import net.minecraft.util.Util;
 import net.minecraft.util.profiling.Profiler;
 *///? }
+
+import net.minecraft.Util;
 
 //? if >=26.1 {
 /*import net.minecraft.client.renderer.state.level.CameraRenderState;
