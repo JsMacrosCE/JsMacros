@@ -244,6 +244,16 @@ Fully documented (90/90); work is examples.
 8. **Build commands are unqualified.** The doclet tasks are registered on the *root* project via
    Stonecutter's `centralScript`: `./gradlew generatePyDoc generateTSDoc generateWebDoc`.
    `:common:1.21.8:generatePyDoc` does not exist.
+9. **Never `{@link}` a field whose declared type is primitive — it renders as a dead link.**
+   `ClassParser.getURL` returns `href=""` when `type.asType().getKind().isPrimitive()`, which
+   fires for a primitive-typed *field* but never for a *method* (an `ExecutableElement`'s type kind
+   is `EXECUTABLE`). So `{@link Foo#isEmpty()}` is fine, `{@link #someIntField}` is dead. Use
+   `{@code fieldName}` for primitive fields. 14 pre-existing sites exist; batch-02 fixed 5.
+10. **A `*/` cannot appear inside a javadoc comment.** So a `/** @type {...} */` TypeScript
+    annotation cannot be shown in an example — the `*\/` escape renders literally in the generated
+    docs. Restructure the example instead (batch-02 removed the offending variable).
+11. **`@Nullable` on a generic field mangles the Python stub** — it emits a TypeVar declaration
+    instead of a type. Pre-existing; not introduced by any batch.
 
 ## Validation (every batch)
 

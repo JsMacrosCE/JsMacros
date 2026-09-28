@@ -17,7 +17,9 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * For the local player only, {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventDamage}
  * and {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventHealthChange} fire
  * alongside this event.<br>
- * This event is not cancellable, the health change has already happened when it fires.
+ * This event is not cancellable, and it fires just before the new value is written, not after.
+ * The mixin injects at the head of {@code setHealth}, so {@code health} already carries the
+ * incoming value while reading the entity's health back from the world still gives the old one.
  * example:
  * <pre>
  * JsMacros.on("EntityDamaged", JavaWrapper.methodToJava(function (event) {
