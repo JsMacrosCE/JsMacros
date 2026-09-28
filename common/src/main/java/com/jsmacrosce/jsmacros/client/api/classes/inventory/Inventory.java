@@ -189,13 +189,15 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
      */
     @DocletReplaceParams("slots: int[], mouseButton: Bit")
     public Inventory<T> dragClick(int[] slots, int mouseButton) {
-        // TODO: Magic numbers!
-        mouseButton = mouseButton == 0 ? 1 : 5;
-        clickContainer(-999, mouseButton - 1, InventoryAction.QUICK_CRAFT); // start drag click
+        int quickCraftType = mouseButton == 0
+                ? AbstractContainerMenu.QUICKCRAFT_TYPE_CHARITABLE
+                : AbstractContainerMenu.QUICKCRAFT_TYPE_GREEDY;
+        // start drag click
+        clickContainer(AbstractContainerMenu.SLOT_CLICKED_OUTSIDE, AbstractContainerMenu.getQuickcraftMask(AbstractContainerMenu.QUICKCRAFT_HEADER_START, quickCraftType), InventoryAction.QUICK_CRAFT);
         for (int i : slots) {
-            clickContainer(i, mouseButton, InventoryAction.QUICK_CRAFT);
+            clickContainer(i, AbstractContainerMenu.getQuickcraftMask(AbstractContainerMenu.QUICKCRAFT_HEADER_CONTINUE, quickCraftType), InventoryAction.QUICK_CRAFT);
         }
-        clickContainer(-999, mouseButton + 1, InventoryAction.QUICK_CRAFT);
+        clickContainer(AbstractContainerMenu.SLOT_CLICKED_OUTSIDE, AbstractContainerMenu.getQuickcraftMask(AbstractContainerMenu.QUICKCRAFT_HEADER_END, quickCraftType), InventoryAction.QUICK_CRAFT);
 
         return this;
     }
@@ -377,7 +379,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     public Inventory<T> closeAndDrop() {
         ItemStack held = handler.getCarried();
         if (!held.isEmpty()) {
-            clickContainer(-999, 0, InventoryAction.PICKUP);
+            clickContainer(AbstractContainerMenu.SLOT_CLICKED_OUTSIDE, 0, InventoryAction.PICKUP);
         }
         close();
         return this;
@@ -558,7 +560,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
         }
         Slot s = ((IInventory) this.inventory).jsmacros_getSlotUnder(x, y);
         if (s == null) {
-            return -999;
+            return AbstractContainerMenu.SLOT_CLICKED_OUTSIDE;
         }
         return this.handler.slots.indexOf(s);
     }

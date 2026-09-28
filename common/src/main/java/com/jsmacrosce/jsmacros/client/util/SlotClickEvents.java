@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.util;
 
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventClickSlot;
 import com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventDropSlot;
 
@@ -30,7 +31,7 @@ public final class SlotClickEvents {
             return true;
         }
 
-        if (isThrow || slotId == -999) {
+        if (isThrow || slotId == AbstractContainerMenu.SLOT_CLICKED_OUTSIDE) {
             EventDropSlot eventDrop = new EventDropSlot(screen, slotId, button == 1);
             eventDrop.trigger();
             return eventDrop.isCanceled();
