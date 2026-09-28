@@ -127,6 +127,9 @@ stonecutter {
     replacements.string(current.parsed >= "26.1") {
         replace("GuiGraphics", "GuiGraphicsExtractor")
 
+        // fabric-command-api-v2 3.0.5 renamed this
+        replace("ClientCommandManager", "ClientCommands")
+
         // Conflicts
         // NeoForge's ScreenEvent.Render.Post accessor, which is still spelled this way
         replace("getGuiGraphics", "getGuiGraphics")

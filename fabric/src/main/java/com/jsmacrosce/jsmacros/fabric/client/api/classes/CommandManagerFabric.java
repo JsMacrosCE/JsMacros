@@ -2,11 +2,7 @@ package com.jsmacrosce.jsmacros.fabric.client.api.classes;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.tree.CommandNode;
-//? if >=26.1 {
-/*import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
-*///?} else {
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
-//?}
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -24,11 +20,7 @@ public class CommandManagerFabric extends CommandManager {
 
     @Override
     public CommandNodeHelper unregisterCommand(String command) throws IllegalAccessException {
-        //? if >=26.1 {
-        /*CommandDispatcher<FabricClientCommandSource> activeDispatcher = ClientCommands.getActiveDispatcher();
-        *///?} else {
         CommandDispatcher<FabricClientCommandSource> activeDispatcher = ClientCommandManager.getActiveDispatcher();
-        //?}
         CommandNode<?> cnf = activeDispatcher == null ? null : CommandNodeAccessor.remove(activeDispatcher.getRoot(), command);
         CommandNode<?> cn = null;
         ClientPacketListener p = Minecraft.getInstance().getConnection();
@@ -42,11 +34,7 @@ public class CommandManagerFabric extends CommandManager {
     @Override
     public void reRegisterCommand(CommandNodeHelper node) {
         if (node.fabric != null) {
-            //? if >=26.1 {
-            /*CommandDispatcher<FabricClientCommandSource> activeDispatcher = ClientCommands.getActiveDispatcher();
-            *///?} else {
             CommandDispatcher<FabricClientCommandSource> activeDispatcher = ClientCommandManager.getActiveDispatcher();
-            //?}
             if (activeDispatcher != null) {
                 activeDispatcher.getRoot().addChild((CommandNode) node.fabric);
             }
