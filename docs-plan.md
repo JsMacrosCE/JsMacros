@@ -265,16 +265,117 @@ make all 45 classes' existing docs correct as written. That is a code fix, out o
 
 1. **Never write `=>` in an example.** The pydoclet drops the `&gt;` entity, so `=>` renders as a
    bare `=` in the shipped Python stubs (`methodToJava((event) = {`). Use
-   `function (event) { ... }`. The same applies to `>` in prose inside `{@code}`.
-   **Note:** this is about *example code*. `<br>` in prose is fine and is the pervasive house
-   style — the doclet emits it deliberately, and every already-documented file uses it.
+   `function (event) { ... }`.
+   **Corrected in batch-09:** this item used to add *"The same applies to `>` in prose inside
+   `{@code}`"*, which contradicted item 4. Both halves advised against writing `&gt;` inside
+   `{@code}`, but for **different reasons**: in ordinary prose the entity is **deleted**, whereas
+   inside `{@code}` it **survives verbatim** as the literal characters (item 4). The advice stands; the
+   stated reason was wrong, and the two items no longer contradict each other.
+   **Note:** this is about *example code*. `<br>` in prose is the pervasive house style and the **web**
+   doclet emits it deliberately, so it is correct there — but see item 6: **`pydoclet` drops it**, so
+   it is lost in the Python stubs (cosmetic: a lost line break, not lost content). Writing `<br>` is
+   still right; just do not expect the Python stub to show the break.
 2. **Never add `@see`.** The web doclet ignores `@see` entirely — it renders nowhere in the web
    docs and leaks as raw `@see` lines into the shipped `.d.ts`. Use inline `{@link}` instead.
 3. **`{@link}` silently resolves to the wrong overload** if the parameter type is not imported or
    fully qualified — the doclet falls back to matching on the simple name. Fully qualify the
    parameter type, or add the import. Verify the emitted anchor in the generated HTML.
-4. **No bare `&` or `<` in javadoc character data.** `XMLBuilder` does no escaping at all, so a
-   stray `&`/`<` ships malformed XML. Build passing is NOT sufficient — inspect the generated HTML.
+4. **REWRITTEN IN BATCH-09 after a validator caught two false claims in the first rewrite. Trust the
+   table below; the prose around it has been wrong twice already.** The original one-liner ("`XMLBuilder`
+   does no escaping at all, so a stray `&`/`<` ships malformed XML") is **half right** — right about
+   the *web* doclet, wrong about `pydoclet`. Ground truth from running all three doclets against a
+   probe file:
+
+   | source javadoc | `.py` (pydoclet) | `.html` (webdoclet) | `.d.ts` (tsdoclet) |
+   |---|---|---|---|
+   | `&lt;` | **deleted** → `i 3` ❌ | `&lt;` → renders `<` ✅ | `<` ✅ |
+   | `&amp;` | **deleted** ✅(harmless here) | `&amp;` ✅ | decodes ✅ |
+   | `&#167;` | **deleted** | `&#167;` ✅ | ✅ |
+   | bare `&` (`a && b`) | **deleted** → `a b` ❌ | raw `&` → **malformed XML** ❌ | — |
+
+   **Mechanism:** `pydoclet/parsers/ClassParser.createDescription` switches on `DocTree.Kind` with cases
+   for only `TEXT`, `CODE`, `LINK`, `LINK_PLAIN`, `START_ELEMENT` and **no `default:`** — so every
+   `EntityTree` (`&lt;`/`&gt;`/`&amp;`/`&#167;`) and every bare `&` is **silently dropped**. `XMLBuilder`
+   does one transform (`\n`→indent) and **no escaping at all**, which is why the *web* doclet ships a
+   bare `&` as malformed XML. Both mechanisms are real; they live in different doclets.
+
+   **The consequence that matters: `&lt;` in an example ships broken JavaScript to Python users.**
+   Batch-09 had 13 of them, e.g. source `for (let i = 0; i &lt; found.size(); i++)` →
+   `.py` `for (let i = 0; i found.size(); i++)`. `.d.ts` and `.html` were correct in every case.
+
+   **This survives both normal gates, which is why it needs its own check.** The build is green, and
+   the example still type-checks under `tsc` — because the damage exists only in the `.py`, and the
+   Python still *parses* (it is inside a docstring). **A green build and a clean type-check are
+   necessary and NOT sufficient.** Diff the generated `.py` against the source, or grep it.
+
+   **The rule — and it is NARROWER than batch-09 first wrote it.** Only **entities** are destructive.
+   A **bare** `<`, `>` or `&` is ordinary TEXT and survives all three doclets intact — verified
+   against 20+ live instances in batch-09 (`>> 4`, `difficulty >= 3`, `lit > 0`, `if (++ticks > 100)`,
+   `is(">=", 10)` all ship correctly). So the precise rule is:
+
+   > **Never write an HTML entity (`&lt;` `&gt;` `&amp;` `&#167;`) inside an example or in prose that
+   > reaches the Python stub. Write the bare character instead.**
+
+   Batch-09 initially told its fix-writer "no `<` and no `&` inside an example at all" and had 13
+   working examples needlessly restructured to avoid bare brackets — producing an internally
+   inconsistent file (bare `>=` used freely in 6 examples while 13 others were contorted) and, in one
+   case, a **new type error** from an over-clever rewrite. **Do not repeat that.**
+
+   ### THE ACTUAL RULE — and the "bare character" version is ALSO WRONG
+
+   A fix-writer tested "just use the bare character" by building it, and it **still shipped broken**:
+
+   | source | shipped `.py` |
+   |---|---|
+   | `escapes & to && since 1.9.0` | `escapes to since 1.9.0` ❌ |
+   | `@return § -> &` | `§ ->` ❌ |
+   | `Consumer<Boolean>,` | `Consumer Boolean >,` ❌ |
+
+   **Cause: a bare `&` and a bare `<` are not `TEXT` in javac's doc-comment parser** — they parse as
+   non-`TEXT` trees. `tsdoclet` and `webdoclet` have a `default -> append(docTree)` arm so they keep
+   them, which is why the `.d.ts` and `.html` looked fine and the premise seemed true; **`pydoclet` has
+   no `default:` and drops them.** So the safe set is narrower than it looks:
+
+   | written as | `.py` | `.d.ts` / `.html` |
+   |---|---|---|
+   | `&amp;` `&lt;` `&gt;` `&#167;` (entity) | ❌ dropped / literal | ✅ or decoded |
+   | bare `&`, bare `<` (non-TEXT) | ❌ **dropped** | ✅ kept |
+   | bare `>`, bare `§` (TEXT) | ✅ kept | ✅ |
+   | **`{@code X}`** | ✅ `getBody()` unmodified | ✅ unmodified |
+
+   > **The only form that is correct in all three doclets is `{@code X}`.** `pydoclet`'s `case CODE`
+   > emits `getBody()` verbatim and the other two doclets pass it through too, so a bare character
+   > wrapped in `{@code}` survives everywhere. This is also the convention `FChat` already uses for
+   > ampersands (`{@code \x26}`).
+
+   **There is no representation that is simultaneously perfect everywhere** — the three doclets
+   disagree by construction. Prefer `{@code X}` for any of `& < >`, accept the Python stub's quoted
+   form (`'&'`, `'<'`) as the cost, and do **not** restructure working examples to avoid characters.
+
+   **A literal `&` in an *example*** is a separate case: the `\x26` form is correct there, because the
+   generated docstring is non-raw and Python decodes it to a real `&`. **But note the resulting
+   inconsistency**, which is a real open question: a file can end up documenting the same literal two
+   ways (`{@code &a}` in prose, `"\x26a"` in the example). `FChat` is in exactly that state — flagged,
+   not resolved, because either spelling is *correct* and only one can be canonical.
+
+6. **NEW IN BATCH-09: `<br>` in prose is silently dropped by `pydoclet`** — same root cause (it
+   switches on `DocTree.Kind` with no `BR` case). Verified: `FChat.java` has **11** `<br>` in prose and
+   **0** survive into `FChat.py`; the sentences simply run together. `webdoclet` *does* emit `<br>`, so
+   the web docs are correct, which is why the pervasive house style has never looked broken.
+   **Severity: cosmetic** — a lost paragraph break, not lost content, unlike the entity cases.
+   Blast radius: **100 `<br>` across batch-09's 7 files alone**, plus every earlier batch.
+   **Decision: recorded, not fixed.** Repairing it means restructuring prose in ~100 places for a
+   cosmetic Python-stub gain, which is a worse risk than the defect. Do not "fix" it opportunistically
+   in a later batch.
+
+   **A literal `&` (Minecraft colour codes): `\x26` is the right answer, `&amp;` is not.**
+   `pydoclet`'s `case CODE` emits `getBody()` **unmodified**, so an entity inside `{@code}` survives —
+   which makes `&amp;` *look* right and is a trap: it ships the literal 5 characters `&amp;a` into
+   the Python stub. `"\x26a"` is correct because the generated docstring is **non-raw**, so Python
+   decodes it to a real `&` at parse time (verified by executing the generated module's docstring).
+   Cost to record, not to hide: a literal `\x26` is what the reader sees in the `.d.ts` and `.html`.
+   And `\x26` is a *string* escape, so it only works inside a JS string literal — `&&` in boolean
+   position has no such dodge, which is exactly why the rule above is "nest the `if`s".
 5. **`isCanceled()` does not exist in the generated TypeScript.** `tsdoclet/Main.java` hard-codes
    `interface Cancellable { cancel(): void; }`, so a script cannot observe cancellation state. Do
    not use `isCanceled()` in an example.
