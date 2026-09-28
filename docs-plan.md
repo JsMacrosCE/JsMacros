@@ -279,6 +279,20 @@ make all 45 classes' existing docs correct as written. That is a code fix, out o
     docs. Restructure the example instead (batch-02 removed the offending variable).
 11. **`@Nullable` on a generic field mangles the Python stub** — it emits a TypeVar declaration
     instead of a type. Pre-existing; not introduced by any batch.
+12. **A doclet-hostile tag may be *replaced*, never silently dropped** (learned in batch-06).
+    `@see` is ignored by the web doclet and leaks raw into the shipped `.d.ts`. When removing one,
+    carry the information across as prose or an `{@link}`, and report every substitution.
+13. **Do not document a `java.lang.Object` override** (`equals`, `hashCode`, `toString`, `clone`, …).
+    `tsdoclet`'s `AbstractParser.isObjectMethod` excludes one from the shipped `.d.ts` **only while
+    it has no javadoc**, so documenting one makes a brand-new member appear in the user-facing
+    typings. Batches 01-06 all leave them bare for this reason. (`compareTo` is fine — not an
+    Object method.)
+14. **A class absent from the shipped `.d.ts` must not get a `Java.type(...)` example.**
+    `Java.type` resolves through `Packages`, so a missing class types as `unknown` and cannot be
+    `new`-ed — it fails `tsc` under both configs. Batch-06 removed `Plane3D`'s example for this
+    reason and let the prose carry it. Root cause of such absences: `tsdoclet/Main.java:41-43`
+    whitelists only `client.api.helper.` and `client.api.classes.inventory.`; everything else is
+    discovered only by being referenced from a whitelisted signature.
 
 ## Validation (every batch)
 
