@@ -4,11 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;

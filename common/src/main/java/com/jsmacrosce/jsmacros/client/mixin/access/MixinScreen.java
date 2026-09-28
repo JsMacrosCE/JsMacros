@@ -46,11 +46,9 @@ import java.util.function.BooleanSupplier;
 
 //? if >=26.1 {
 /*import net.minecraft.client.gui.ActiveTextCollector;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.TextAlignment;
-*///? } else {
+*///?}
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 
 @SuppressWarnings("AddedMixinMembersNamePattern")
 @Mixin(Screen.class)
@@ -921,11 +919,7 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     }
 
     @Override
-    //? if >=26.1 {
-    /*public void jsmacros_render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
-    *///? } else {
     public void jsmacros_render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-    //? }
         if (drawContext == null) {
             return;
         }

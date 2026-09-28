@@ -15,11 +15,7 @@ import com.jsmacrosce.jsmacros.client.access.IScreenInternal;
 import com.jsmacrosce.jsmacros.client.api.classes.InteractionProxy;
 import com.jsmacrosce.jsmacros.client.api.classes.render.ScriptScreen;
 
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//?}
 
 @MixinEnvironment("fabric")
 @Mixin(value = GameRenderer.class)

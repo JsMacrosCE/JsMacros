@@ -3,11 +3,7 @@ package com.jsmacrosce.jsmacros.forge.client.forgeevents;
 import com.google.common.collect.ImmutableSet;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
-//?}
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.neoforge.client.event.*;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
@@ -76,11 +72,7 @@ public class ForgeEvents {
         ((IScreenInternal) event.getScreen()).jsmacros_mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY());
     }
 
-    //? if >=26.1 {
-    /*public static void renderHudListener(GuiGraphicsExtractor guiGraphics, DeltaTracker partialTicks) {
-    *///?} else {
     public static void renderHudListener(GuiGraphics guiGraphics, DeltaTracker partialTicks) {
-    //?}
         for (IDraw2D<Draw2D> h : ImmutableSet.copyOf(FHud.overlays).stream().sorted(Comparator.comparingInt(IDraw2D::getZIndex)).collect(Collectors.toList())) {
             try {
                 h.render(guiGraphics);

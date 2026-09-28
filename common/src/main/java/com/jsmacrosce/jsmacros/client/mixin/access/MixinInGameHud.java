@@ -2,11 +2,7 @@ package com.jsmacrosce.jsmacros.client.mixin.access;
 
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.Gui;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

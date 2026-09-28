@@ -11,11 +11,7 @@ import com.jsmacrosce.wagyourgui.overlays.OverlayContainer;
 import java.util.ArrayList;
 import java.util.List;
 
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 
 public abstract class MultiElementContainer<T extends IContainerParent> implements IContainerParent {
     protected List<AbstractWidget> buttons = new ArrayList<>();

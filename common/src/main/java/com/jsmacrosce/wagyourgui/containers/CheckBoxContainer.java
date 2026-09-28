@@ -7,11 +7,7 @@ import com.jsmacrosce.wagyourgui.elements.Button;
 
 import java.util.function.Consumer;
 
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
-//?}
 
 public class CheckBoxContainer extends MultiElementContainer<IContainerParent> {
     private boolean state;

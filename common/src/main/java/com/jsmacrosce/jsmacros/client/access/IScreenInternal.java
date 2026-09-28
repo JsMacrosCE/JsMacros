@@ -3,19 +3,13 @@ package com.jsmacrosce.jsmacros.client.access;
 //? if >=26.1 {
 /*import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///?} else {
+*///?}
 import net.minecraft.client.gui.GuiGraphics;
-//?}
 import com.jsmacrosce.doclet.DocletIgnore;
 
 @DocletIgnore
 public interface IScreenInternal {
-    //? if >=26.1 {
-    /*void jsmacros_render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta);
-    *///?} else {
     void jsmacros_render(GuiGraphics drawContext, int mouseX, int mouseY, float delta);
-    //?}
 
     void jsmacros_mouseClicked(double mouseX, double mouseY, int button);
 

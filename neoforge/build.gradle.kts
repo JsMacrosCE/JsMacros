@@ -212,4 +212,12 @@ stonecutter {
         replace("base.writeResourceLocation", "base.writeIdentifier")
         replace("@return the raw minecraft Identifier.", "@return the raw minecraft Identifier.")
     }
+
+    replacements.string(current.parsed >= "26.1") {
+        replace("GuiGraphics", "GuiGraphicsExtractor")
+
+        // Conflicts
+        // NeoForge's ScreenEvent.Render.Post accessor, which is still spelled this way
+        replace("getGuiGraphics", "getGuiGraphics")
+    }
 }

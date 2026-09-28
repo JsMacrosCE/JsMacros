@@ -2,11 +2,7 @@ package com.jsmacrosce.jsmacros.client.gui.containers;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 import net.minecraft.network.chat.Component;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.gui.overlays.TextOverlay;

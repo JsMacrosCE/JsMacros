@@ -14,11 +14,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.function.Consumer;
 
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 
 //? if >1.21.8 {
 /*import net.minecraft.client.input.KeyEvent;

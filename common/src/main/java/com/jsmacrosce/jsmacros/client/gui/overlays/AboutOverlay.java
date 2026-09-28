@@ -1,11 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.overlays;
 
 import net.minecraft.client.gui.Font;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import com.jsmacrosce.wagyourgui.elements.Button;
@@ -46,11 +42,7 @@ public class AboutOverlay extends OverlayContainer {
         this.vcenter = ((height - 12) - (lines * textRenderer.lineHeight)) / 2;
     }
 
-    //? if >=26.1 {
-    /*protected void renderMessage(GuiGraphicsExtractor drawContext) {
-    *///? } else {
     protected void renderMessage(GuiGraphics drawContext) {
-    //? }
         for (int i = 0; i < lines; ++i) {
             int w = textRenderer.width(text.get(i));
             //? if >=26.1 {

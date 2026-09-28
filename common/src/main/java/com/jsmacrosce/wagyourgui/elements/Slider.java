@@ -23,11 +23,7 @@ import java.util.function.Function;
 import net.minecraft.client.input.MouseButtonEvent;
 *///?}
 
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
-//?}
 
 /**
  * @author Etheradon

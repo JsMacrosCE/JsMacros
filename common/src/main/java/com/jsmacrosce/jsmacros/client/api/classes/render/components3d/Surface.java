@@ -4,11 +4,7 @@ import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//?}
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.BlockPos;
@@ -529,11 +525,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         return new Vector3f((float) Math.toDegrees(radianX), (float) Math.toDegrees(radianY), (float) Math.toDegrees(radianZ));
     }
 
-    //? if >=26.1 {
-    /*private void renderElements3D(GuiGraphicsExtractor drawContext, Iterator<RenderElement> iter) {
-    *///?} else {
     private void renderElements3D(GuiGraphics drawContext, Iterator<RenderElement> iter) {
-    //?}
         while (iter.hasNext()) {
             RenderElement element = iter.next();
             // Render each draw2D element individually so that the cull and renderBack settings are used
@@ -545,11 +537,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         }
     }
 
-    //? if >=26.1 {
-    /*private void renderDraw2D3D(GuiGraphicsExtractor drawContext, Draw2DElement element) {
-    *///?} else {
     private void renderDraw2D3D(GuiGraphics drawContext, Draw2DElement element) {
-    //?}
         // TODO: Does setupMatrix operate the same here? Why does it have the final translation?
         //? if >1.21.5 {
         Matrix3x2fStack matrixStack = drawContext.pose();
@@ -581,11 +569,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         *///?}
     }
 
-    //? if >=26.1 {
-    /*private void renderElement3D(GuiGraphicsExtractor drawContext, RenderElement element) {
-    *///?} else {
     private void renderElement3D(GuiGraphics drawContext, RenderElement element) {
-    //?}
         // TODO: Someone removed this around 1.21.5, is it needed?
         /*
         if (renderBack) {
@@ -618,11 +602,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     }
 
     @Override
-    //? if >=26.1 {
-    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
-    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-    //?}
         // This does nothing I guess?
     }
 

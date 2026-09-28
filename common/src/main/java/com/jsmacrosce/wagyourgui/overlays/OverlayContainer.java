@@ -15,11 +15,7 @@ import java.util.Map;
 import net.minecraft.client.input.MouseButtonEvent;
 *///?}
 
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 
 public abstract class OverlayContainer extends MultiElementContainer<IOverlayParent> implements IOverlayParent {
     public Map<AbstractWidget, Boolean> savedBtnStates = new HashMap<>();
@@ -132,11 +128,7 @@ public abstract class OverlayContainer extends MultiElementContainer<IOverlayPar
     public void onClose() {
     }
 
-    //? if >=26.1 {
-    /*public void renderBackground(GuiGraphicsExtractor drawContext) {
-    *///? } else {
     public void renderBackground(GuiGraphics drawContext) {
-    //? }
         // black bg
         drawContext.fill(x, y, x + width, y + height, 0xFF000000);
         // 2 layer border

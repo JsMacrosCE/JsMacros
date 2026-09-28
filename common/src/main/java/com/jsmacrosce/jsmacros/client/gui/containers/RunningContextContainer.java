@@ -1,11 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.containers;
 
 import net.minecraft.client.gui.Font;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 import net.minecraft.network.chat.Component;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 import com.jsmacrosce.jsmacros.client.JsMacros;

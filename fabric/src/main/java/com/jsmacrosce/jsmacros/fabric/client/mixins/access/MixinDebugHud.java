@@ -13,11 +13,7 @@ import com.jsmacrosce.jsmacros.client.api.library.impl.FHud;
 
 import java.util.Comparator;
 
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//?}
 
 @MixinEnvironment("fabric")
 @Mixin(DebugScreenOverlay.class)
@@ -42,11 +38,7 @@ class MixinDebugHud {
 
     @Unique
     private void jsmacrosce_renderOverlays(
-            //? if >=26.1 {
-            /*GuiGraphicsExtractor context
-            *///? } else {
             GuiGraphics context
-            //? }
     ) {
         DebugScreenOverlay self = (DebugScreenOverlay) (Object) this;
         if (!self.showDebugScreen()) return;

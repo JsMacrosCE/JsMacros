@@ -9,11 +9,7 @@ import java.util.function.Consumer;
 /*import net.minecraft.client.input.InputWithModifiers;
 *///?}
 
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 
 public class AnnotatedCheckBox extends Button {
     public boolean value;
@@ -48,11 +44,7 @@ public class AnnotatedCheckBox extends Button {
     }
 
     @Override
-    //? if >=26.1 {
-    /*protected void renderMessage(GuiGraphicsExtractor drawContext) {
-    *///?} else {
     protected void renderMessage(GuiGraphics drawContext) {
-    //?}
         int width = this.width - height;
         for (int i = 0; i < visibleLines; ++i) {
             int w = textRenderer.width(textLines.get(i));

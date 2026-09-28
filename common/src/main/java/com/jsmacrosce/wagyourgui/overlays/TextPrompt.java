@@ -9,11 +9,7 @@ import com.jsmacrosce.wagyourgui.elements.TextInput;
 
 import java.util.function.Consumer;
 
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 
 public class TextPrompt extends OverlayContainer {
     private final Component message;

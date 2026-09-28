@@ -1,11 +1,7 @@
 package com.jsmacrosce.wagyourgui.overlays;
 
 import net.minecraft.client.gui.Font;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import com.jsmacrosce.wagyourgui.elements.Button;
@@ -54,11 +50,7 @@ public class ConfirmOverlay extends OverlayContainer {
 
     }
 
-    //? if >=26.1 {
-    /*protected void renderMessage(GuiGraphicsExtractor drawContext) {
-    *///? } else {
     protected void renderMessage(GuiGraphics drawContext) {
-    //? }
         for (int i = 0; i < lines; ++i) {
             int w = textRenderer.width(text.get(i));
             int centeredX = (int) (hcenter ? x + width / 2F - w / 2F : x + 3);

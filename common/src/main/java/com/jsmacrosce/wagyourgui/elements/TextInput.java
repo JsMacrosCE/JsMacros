@@ -15,11 +15,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 *///?}
 
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///?} else {
 import net.minecraft.client.gui.GuiGraphics;
-//?}
 
 public class TextInput extends Button {
     public Consumer<String> onChange;
@@ -259,11 +255,7 @@ public class TextInput extends Button {
     }
 
     @Override
-    //? if >=26.1 {
-    /*protected void renderMessage(GuiGraphicsExtractor drawContext) {
-    *///?} else {
     protected void renderMessage(GuiGraphics drawContext) {
-    //?}
         drawContext.fill(selStart, height > 9 ? getY() + 2 : getY(), Math.min(selEnd, getX() + width - 2), (height > 9 ? getY() + 2 : getY()) + textRenderer.lineHeight, selColor);
         //? if >=26.1 {
         /*drawContext.text(textRenderer, textRenderer.plainSubstrByWidth(content, width - 4), getX() + 2, height > 9 ? getY() + 2 : getY(), textColor);

@@ -2,11 +2,7 @@ package com.jsmacrosce.jsmacros.client.gui.settings;
 
 import com.google.common.collect.Lists;
 import net.minecraft.client.gui.Font;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 //? if >1.21.8 {
 /*import net.minecraft.client.input.KeyEvent;
 *///?}

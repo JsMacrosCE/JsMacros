@@ -2,11 +2,7 @@ package com.jsmacrosce.jsmacros.client.gui.overlays;
 
 import com.google.common.collect.ImmutableList;
 import net.minecraft.client.gui.Font;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;

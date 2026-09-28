@@ -2,11 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//?}
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
@@ -294,21 +290,13 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     @Override
-    //? if >=26.1 {
-    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
-    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-    //?}
         render(drawContext, mouseX, mouseY, delta, false);
     }
 
     @Override
     @DocletIgnore
-    //? if >=26.1 {
-    /*public void render3D(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
-    *///?} else {
     public void render3D(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-    //?}
         render(drawContext, mouseX, mouseY, delta, true);
     }
 
@@ -343,11 +331,7 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     @DocletIgnore
-    //? if >=26.1 {
-    /*public void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta, boolean is3dRender) {
-    *///?} else {
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta, boolean is3dRender) {
-    //?}
         if (item == null) {
             return;
         }

@@ -1,11 +1,7 @@
 package com.jsmacrosce.wagyourgui.elements;
 
 import net.minecraft.client.gui.Font;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
@@ -85,11 +81,7 @@ public class Button extends AbstractButton {
         this.textColor = ColorUtil.fixAlpha(color);
     }
 
-    //? if >=26.1 {
-    /*protected void renderMessage(GuiGraphicsExtractor drawContext) {
-    *///?} else {
     protected void renderMessage(GuiGraphics drawContext) {
-    //?}
         for (int i = 0; i < visibleLines; ++i) {
             int w = textRenderer.width(textLines.get(i));
             //? if >=26.1 {

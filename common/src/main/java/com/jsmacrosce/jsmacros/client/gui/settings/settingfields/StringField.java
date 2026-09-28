@@ -1,11 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingfields;
 
 import net.minecraft.client.gui.Font;
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? } else {
 import net.minecraft.client.gui.GuiGraphics;
-//? }
 import net.minecraft.client.gui.components.AbstractWidget;
 import com.jsmacrosce.jsmacros.client.gui.settings.SettingsOverlay;
 import com.jsmacrosce.jsmacros.client.gui.settings.settingcontainer.AbstractSettingContainer;
