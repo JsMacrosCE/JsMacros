@@ -264,7 +264,39 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   `&lt;init&gt;` in the shipped Python stub, because `pydoclet` emits `{@code}` bodies raw into a
   docstring where the entity is not decoded. There is no source form that satisfies both doclets;
   trading a Python-stub cosmetic for well-formed web docs is the right call.
-- [ ] batch-09 (client.api.library.impl, 7) — in-progress (NEXT)
+- [x] batch-09 (client.api.library.impl, 7) — done: 202/207 members, **199 `example:` blocks** (the
+  package had zero), 4 gaps closed, 36 duplicate `@param`/`@return` removed. Committed `39053d29`.
+  Build green, **199/199** examples type-check, 0 non-comment lines, 0 `@Doclet*` changes, 6/7 stubs
+  `ast.parse` (FWorld.py:21 is the pre-existing `@Nullable` TypeVar mangling). Took **4 rounds** plus a
+  conditional pass — the largest batch so far, and the one that produced the reusable findings.
+
+  **The four defects that were found, in order:** 13 `&lt;`/`&gt;` examples shipping broken JS into the
+  Python stubs; an `y = 10` gloss calling it "sea level"; a duplicate `@param gameMode` that silently
+  deleted a whole example from `FPlayer.py`; a dead `{@link Reflection#getClass(String)}` (no such
+  class — it is `FReflection`); an `Array.from` rewrite that didn't type-check; and a wrong
+  `createTexture` null contract (a readable non-image NPEs in `CustomImage`'s ctor rather than
+  returning null).
+
+  **Two rules I got wrong and a subagent caught — the most transferable outcome of the batch:**
+  - I claimed "pydoclet deletes `&` and `<`" and cited **Java code lines** as javadoc evidence. There
+    are in fact **zero** bare `&` in these files' javadoc; the writer had already done the nested-`if`
+    rewrite correctly.
+  - I then claimed "a bare character is always fine." A fix-writer built it, and the `.py` was
+    **still broken**: a bare `&` and bare `<` are *not* `TEXT` in javac's parser — they are non-`TEXT`
+    trees that `pydoclet` (no `default:` arm) drops while `tsdoclet`/`webdoclet` keep them.
+    **`{@code X}` is the only form correct in all three.** My earlier "no `<` and no `&` in an example"
+    rule was *over*-broad, needlessly contorted 13 working examples, and **caused** the `Array.from`
+    type error.
+  - **Method that caught both: run the doclets and diff the artefacts.** Inferring behaviour from
+    doclet source was wrong three times. Now recorded in docs-plan.md and in
+    `.opencode/references/doclet-behaviour.md`.
+
+  **Accepted trade-offs (flagged, not fixed):** `FPlayer.writeSign`'s example lost its "skip lines
+  over 15 chars" guard, since that cannot be written without `<`/`>` and `Math.min(l.length,15)===l.length`
+  is unreadable; the method's prose still states the real limit. The two TPS examples no longer branch
+  on a threshold, they just log. `FChat` now documents the same literal two ways (`{@code &a}` in
+  prose, `"\x26a"` in the example) — **both correct, only one can be canonical; that is a maintainer's
+  editorial call, not a defect.**
 - [ ] batch-10 (client.api.helper top-level, 19) — pending
 - [ ] batch-11 (client.api.classes.worldscanner.filter.**, 17) — pending
 - [ ] batch-12 (worldscanner + client.api.classes core, 7) — pending

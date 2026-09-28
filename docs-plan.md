@@ -247,6 +247,51 @@ make all 45 classes' existing docs correct as written. That is a code fix, out o
 
 ---
 
+## Known docgen defects — DEFERRED to the docgen rework (not this effort's to fix)
+
+All four live in `buildSrc` (`pydoclet` / `tsdoclet`) and are **deliberately not fixed here**: the
+docgen is being reworked on another branch. Recorded so the work is not lost and so no later batch
+tries to work around them in javadoc. Verified empirically in batch-09 by running all three doclets
+and diffing the artefacts — not inferred from source, which was wrong three separate times.
+
+1. **`<br>` in prose is silently dropped by `pydoclet`.** All three doclets switch on `DocTree.Kind`;
+   `pydoclet` has no arm for it, and this JDK's `DocTree.Kind` has **no `BR` constant at all**
+   (verified: `ATTRIBUTE AUTHOR CODE … TEXT THROWS …`), so `<br>` falls through to nothing.
+   `webdoclet` emits it, which is why the pervasive house style has never looked broken.
+   *Impact:* prose line breaks run together in the Python stubs. **~100 instances across batch-09's
+   7 files alone**, plus every earlier batch. **Cosmetic** — a lost line break, not lost content.
+   *Not repaired* by rewriting ~100 prose sites; that is a worse risk than the defect.
+
+2. **`JavaList` (and `JavaArray`, `JavaSet`, `JavaMap`, `JavaCollection`, `JavaClass`, `JavaObject`) are
+   error types.** `tsdoclet/PackageTree.java:53-55` **deliberately skips** `predefinedClasses`
+   (`java.util.List`, `java.lang.Collection`, `java.util.Map`, `java.util.Set`, `java.lang.Class`,
+   `java.lang.Object`, …) when building the `Packages` tree, assuming a static header declares them.
+   `Graal.d.ts:689-694` then aliases to them (`type JavaList<T> = Packages.java.util.List<T>`), and
+   `java.lang.Array` is neither in `predefinedClasses` nor emitted. Nothing declares any of them, so
+   every alias dangles and the **~296 `JavaList<...>` uses in the shipped `.d.ts` resolve to nothing**.
+   *Impact:* invisible only because the shipped tsconfig sets `skipLibCheck: true`; with it off,
+   `Graal.d.ts` alone reports **532 errors**. In practice `Array.from(someJavaList)` degrades to
+   `unknown[]`, so `Player.addInputs(PlayerInput[])` fails with `TS2345` — which is why the
+   `createPlayerInputsFromCsv` example uses the `.size()`/`.get(i)` idiom.
+
+3. **A duplicated `@param` silently discards a description.** `pydoclet`'s `getParamDescriptions` uses
+   `paramMap.put`, so the **last** wins — and javadoc attributes everything after a block tag to that
+   tag, so the prose *and* the `example:` following a first `@param` vanish from the Python stub
+   while the `.d.ts` and `.html` stay correct. `@return` uses `findFirst()`, so the **first** wins;
+   `tsdoclet` emits both when non-empty. Found 36 such duplicates in batch-09, all introduced by it.
+
+4. **52 of 632 generated Python stubs fail `ast.parse`.** `pydoclet`'s `getImports()` does
+   `.replace(".", "_")` on a `TypeMirror` that renders annotated types as `pkg.@ann Type`, leaving
+   spaces inside the identifier: `net_minecraft_client_multiplayer_@org_jetbrains_annotations_Nullable
+   ClientLevel = TypeVar(...)`. Pre-existing, long-standing, and unrelated to any doc text.
+
+**Consequence for the remaining batches:** a green build and a clean `tsc` pass do **not** establish
+that a javadoc change is correct, because `pydoclet` damage exists only in the generated `.py` — which
+still parses, so `ast.parse` does not catch it either. **Diff the generated `.py` against the source
+javadoc**; that is the only check covering the class of defect that matters most here.
+
+---
+
 ## Conventions (applies to every batch)
 
 - Edit **only** javadoc comments and the `com.jsmacrosce.doclet` annotations
