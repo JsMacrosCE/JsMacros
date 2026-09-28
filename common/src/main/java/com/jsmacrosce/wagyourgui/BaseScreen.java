@@ -22,11 +22,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
 *///?}
 
-//? if <26.1 {
 import net.minecraft.client.gui.GuiGraphics;
-//? } else {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///? }
 
 public abstract class BaseScreen extends Screen implements IOverlayParent {
     protected Screen parent;
