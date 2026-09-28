@@ -8,6 +8,23 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
+ * Fires for every living entity in the client world whose health goes up, including the local
+ * player and every mob or animal the client is tracking.<br>
+ * The event is derived from health changes, not from damage sources, so it also fires for health
+ * that is restored by a mod or by a command, and it does not fire in singleplayer worlds for the
+ * integrated server's copy of the player.<br>
+ * For the local player only, {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventHeal}
+ * and {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventHealthChange} fire
+ * alongside this event.<br>
+ * This event is not cancellable, the health change has already happened when it fires.
+ * example:
+ * <pre>
+ * JsMacros.on("EntityHealed", JavaWrapper.methodToJava(function (event) {
+ *   if (event.entity.getType() === "minecraft:villager") {
+ *     Chat.log(`Villager regained ${event.damage} health, ${event.health} hp now`);
+ *   }
+ * }))
+ * </pre>
  * @author FlareStormGaming
  * @since 1.6.5
  */
@@ -15,8 +32,24 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @DocletCategory("World")
 @Event("EntityHealed")
 public class EventEntityHealed extends BaseEvent {
+    /**
+     * the entity that regained health. It is wrapped in the most specific
+     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper} subclass for its
+     * type, so it can be narrowed further with {@code asLiving()}, {@code asPlayer()} and the
+     * other {@code as...()} helpers. Its type is available from
+     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getType() getType()}
+     * and its name from
+     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getName() getName()}.
+     */
     public final EntityHelper<?> entity;
+    /**
+     * the entity's health after the gain, in half hearts as the vanilla health bar counts them.
+     */
     public final float health;
+    /**
+     * how much health the entity gained, the difference between its health before and after the
+     * change. Always positive.
+     */
     public final float damage;
 
     public EventEntityHealed(Entity e, float health, float amount) {
