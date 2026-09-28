@@ -640,15 +640,18 @@ public class FWorld extends BaseLibrary {
     /**
      * ticks passed since world was started INCLUDING those skipped when nights were cut short with sleeping.
      *
-     * @return the current world time of day. {@code -1} if world is not loaded.
+     * @return the current dimension's time-of-day ticks, or {@code -1} if no world is loaded.
+     * On 26.1+, dimensions with a default clock use it; dimensions without one use the overworld clock.
      * @since 1.1.5
      */
     public long getTimeOfDay() {
         ClientLevel world = mc.level;
         if (world == null) return -1;
         //? if >=26.1 {
-        /*return world.getDefaultClockTime();
-        *///?} else {
+        /*return world.dimensionType().defaultClock().isPresent()
+                ? world.getDefaultClockTime()
+                : world.getOverworldClockTime();
+        *///? } else {
         return world.getDayTime();
         //?}
     }
