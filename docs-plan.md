@@ -472,12 +472,23 @@ javadoc**; that is the only check covering the class of defect that matters most
     the precise form of quirk 13, and it means "did documenting this change the `.d.ts`?" usually has
     the answer "no, only descriptions changed".
 
-17. **`node --check` does NOT catch the damage in item 5 above** (found in batch-10, and it is the
-    reason a green build, a clean `tsc` and a clean `node --check` together still shipped broken
-    JavaScript). A deleted `&&` leaves `if (a !== null a.getX() === 10 …)`, which is **still valid
-    JavaScript that means something entirely different**, so the check passes. The same applies to a
-    deleted `<` inside a comparison. **Count the bytes in the generated `.py`; that is the only
-    reliable check for this class of defect.**
+17. **CORRECTED IN BATCH-16 — the earlier version of this item was WRONG.** It previously claimed
+    `node --check` **passes** deleted-`&&`/`<` damage, on the strength of one writer's report. The
+    batch-16 validator tested 9 shapes and it is the other way round: `node --check` **rejects every
+    one** (`if (a  b) {}`, `for (let i = 0; i 3; i++) {}`, `if (c>0 c<m()) {}` …). The reason it never
+    fuses: `pydoclet` deletes the `&&`/`<` but **leaves the surrounding whitespace**, so the operands
+    stay two separate tokens and the result is always a parse error.
+    **So `node --check` IS a real gate for this corruption class — use it, and still byte-count the
+    generated `.py`**, because the byte count is what proves *which* tokens were lost, and the token
+    diff against the source is what catches a **block-count mismatch** (see 18).
+18. **Assert the example-block COUNT, not only that no matched pair loses a token** (batch-16). A
+    duplicated `example:` inside one javadoc shipped to **all three** trees, concatenating two bodies
+    onto one line in the `.py` — and it was the *sole* discrepancy in the writer's own token diff:
+    **83 java blocks against 82 `.py` blocks**. A count mismatch is the cheapest possible red flag, so
+    a source↔`.py` comparison must fail when the counts differ, before it looks at token loss at all.
+19. **`pydoclet` emits no docstring for field members anywhere**, so field examples never reach the
+    Python stubs (the web doc and `.d.ts` still get them). Unfixable in javadoc — do not contort the
+    text or reach for exotic markup.
 18. **`pydoclet` emits field *declarations* but never field *javadoc*** (batch-10). So an `example:`
     attached to a **field** is invisible to Python readers no matter how well written it is, because
     the comment is never emitted. The web doc and the `.d.ts` still get it. Unfixable in javadoc —

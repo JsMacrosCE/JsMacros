@@ -786,7 +786,79 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   (`ERROR_UNKNOWN_SLOT` / `ERROR_ONLY_SINGLE_SLOT_ALLOWED`), and the accepted names are prefixes —
   bare `armor`/`player`/`hotbar` do not parse but `hotbar.*` does.
 
-- [ ] batch-16 (client.api.classes.inventory, remaining) — pending
+- [x] batch-16 (client.api.classes.inventory, remaining 11) — done: **83 `example:` blocks** (the
+  package had zero) plus a class-level slot table for every class. **0 documentable method gaps** — the
+  22 undocumented members are 11 constructors and 10 `toString` overrides, both categories that must
+  stay bare. Build green, **0/11** non-comment changes, 0 `&`/`<` in any example, 0 documented
+  `toString`, 0 T2 anchoring problems across 82 blocks. 2 rounds.
+
+  **THE BATCH'S HEADLINE: 38 OF THE WRITER'S OWN 83 EXAMPLES SHIPPED BROKEN, and its primary gate
+  was "passing vacuously".** `pydoclet` deletes every `&&` and every `<`:
+  `if (inv.is("Anvil") && inv.getLeftInput()…)` shipped as `if (inv.is("Anvil") inv.getLeftInput()…)`.
+  The count-based gate (`&`=0, `<`=0 in the `.py`) **passed** — because after deletion there is
+  nothing left to count. What caught it was a **source↔`.py` token diff** (0 of 83 examples lose a
+  token, after the fix; 38 before). This is the single most important methodological finding of the
+  batch: **counting the bytes in the output is not enough — you must compare the output against the
+  source**, because the failure mode is a *deletion*.
+
+  **A duplicated `example:` block was the sole discrepancy in that token diff and it was not surfaced.**
+  Two byte-identical examples sat back to back in one `BeaconInventory` javadoc, shipping to all three
+  trees and concatenating onto one line in the `.py` (invalid JavaScript). The diff compared **83 java
+  blocks against 82 `.py` blocks** — the cheapest possible red flag. **So a source↔output comparison
+  must assert the counts are EQUAL before it checks token loss.** Now a standing rule.
+
+  **A claim built on half the evidence, in five places, and the fix was found in the decompiled source
+  rather than the bytecode.** `BEACON_EFFECTS` has **FOUR** tiers (`List.of(Object,Object,Object,
+  Object)`: SPEED/HASTE, RESISTANCE/JUMP_BOOST, STRENGTH, **REGENERATION**). The writer's evidence was
+  the `i <= 2` loop in `BeaconScreen.init()` — but there is a **second** loop there that reads
+  `BEACON_EFFECTS.get(3)`. Four shipped claims were wrong, the worst being *"the regeneration special
+  case cannot be reached, because regeneration is not one of the effects a beacon offers"* — it is,
+  and the branch is reachable on any level-≥4 beacon. The `IndexOutOfBoundsException` is real but only
+  reachable at **level 5**, which vanilla never produces (`MAX_LEVELS = 4`). The fix-writer found a
+  **fifth** site from the same re-derivation. **Lesson: one loop is not a bound on the data it loops
+  over — read the whole initialiser.**
+
+  **8 pre-existing false claims corrected**, the sharpest being **`SmithingInventory.getOutput()`**:
+  documented as "the expected output item" when slot 2 is `SmithingMenu.ADDITIONAL_SLOT` and the
+  smithed result is **slot 3** — so the method name *and* the slot both lie. The validator confirmed it
+  twice, from `createInputSlotDefinitions` and independently from `getMap()["output"]` = `{3}`. Also:
+  grindstone max is `2*simulateXp() − 1` (not ×2, because `getExperienceAmount` returns
+  `i + random.nextInt(i)` with `i = ceil(xp/2)`); anvil repair cost is the `minecraft:repair_cost`
+  component, not a quantity; `getMerchantRewardedExperience()` is `activeOffer.getXp()` (the selected
+  trade's reward), not a running total; the cartography material slot accepts **paper, map or glass
+  pane**; a horse's `getInventorySize()` is **15 or 0**, never 2 or 3.
+
+  **Every slot index was re-derived from bytecode, and the validator checked them by a second,
+  independent path** — `Inventory.getMapInternal()`, which computes each section from
+  `getTotalSlots()`. Both agree on all 11, including `LoomMenu` banner 0 / dye 1 / **pattern 2** /
+  result 3 and `SmithingMenu` template 0 / base 1 / additional 2 / result 3.
+
+  **TWO TOOLING CORRECTIONS THAT MATTER FOR THE REST OF THE EFFORT.**
+  - **A `node --check` rule in `docs-plan.md` was wrong, and I had written it from an unverified
+    claim.** It said `node --check` *passes* deleted-`&&` damage. The batch-16 validator tested 9 shapes
+    and it **rejects every one** — `pydoclet` leaves the surrounding whitespace, so the operands stay
+    two separate tokens. `node --check` **is** a real gate here. **Corrected in docs-plan.md** (quirk
+    17), which had also been contradicted in-session by a writer that could not reproduce it.
+  - **`tsc` was reported as giving "near-zero coverage of member names" on these classes** (because
+    `inv.is("Beacon")` was thought not to narrow). The fix-writer injected `inv.__nope__()` into
+    **all 82** guarded examples and `tsc` caught **82/82**: `Inventory.is()` is declared as a **type
+    predicate** (`is<T extends ScreenName>(…): this is T extends keyof InvNameToTypeMap ? …`), so it
+    does narrow. **`tsc` is a real member-existence gate** — though it still cannot see a class absent
+    from the header tree, so cross-checking symbols against source remains necessary.
+  - Also worth carrying: that writer's **first `tsc` run was silently vacuous** — invoked from the
+    wrong cwd it printed `TS5058: path does not exist` and the error-parser reported "0 errors". Its
+    harness now hard-fails on `TS5058`/`TS6046` before counting. **A type-check that never ran reports
+    0 errors, in the same words as one that passed.**
+
+  **Source defects found (documented, not fixed):** `EnchantInventory`'s three option readers call
+  `orElseThrow()`, so they throw `NoSuchElementException` whenever the table offers fewer than three
+  enchantments (an empty slot leaves the clue at −1 and `MappedRegistry.get(int)` returns empty for a
+  negative id) — and `:109`'s `if ((enchantment) != null)` is dead code; `LoomInventory`'s guard is
+  `index <= patterns.size()` where `clickMenuButton` needs `< size`; `RecipeInventory` declares
+  `throws InterruptedException` and `@Nullable` where nothing can throw or return null;
+  `VillagerInventory.getMerchantRewardedExperience()` is misnamed.
+
+- [ ] batch-17 (client.api.helper.world + helper.inventory, 20) — pending
 - [ ] batch-16 (client.api.classes.inventory, 11) — pending
 - [ ] batch-17 (client.api.helper.world + helper.inventory, 20) — pending
 - [ ] batch-18 (client.api.helper.world.entity + helper.screen, 21) — pending
