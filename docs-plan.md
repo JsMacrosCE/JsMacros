@@ -588,6 +588,25 @@ half of them):
 > 3. **Every sentence naming another class's *documentation*** — confirm that document exists and
 >    says that. One batch-11 blocker was a claim about a discrepancy in a javadoc block that was in
 >    fact bare at HEAD, so the sentence referred to itself.
+> 4. **EVERY SIBLING PAIR, checked member by member — established in batch-18, where this became the
+>    single most productive audit in the effort.** The dominant defect is not random: it is **one
+>    member's documentation carried onto its twin, sometimes with the sense inverted.** Batch-17 found
+>    `getConflictingEnchantments` documented as the inverse of the *correct* `getCompatibleEnchantments`.
+>    Batch-18 found `getRightInput` as the inverse of the correct `getLeftInput`, and `turnLeft` as the
+>    inverse of `turnRight`; then, on sweeping the same file, it found **the same inversion in three
+>    further members** that nothing had reported.
+>
+>    For each class, enumerate every pair sharing a stem (`getLeft`/`getRight`, `getMin`/`getMax`,
+>    `getCostA`/`getCostB`, `isX`/`isNotX`, `setValue`/`getValue`, `before`/`after`) and **diff the two
+>    descriptions against the two bodies.** Do not assume they agree because they read alike, and do not
+>    assume they differ because the names do. Check the **class doc and any aggregate/overview method**
+>    (`getInput()`, `toMap()`, `getSummary()`) for the same carry-over — in batch-18 the class doc, an
+>    aggregate getter and a third method each carried a variant of one inverted claim.
+>
+>    The tell is **one fact stated three times in three slightly different ways**: a
+>    `SliderWidgetHelper` saying "ninths" in its builder and "tenths" in two methods is not two
+>    independent errors but one claim copied wrong — which means the bodies were read once and the
+>    prose written from memory twice. Fix the source of the copy, not the copies.
 
 Two rules for the writers that follow from this:
 
@@ -685,3 +704,12 @@ not just the initializer. **If a count of 16 comes out 14, suspect the parse bef
    Corollary now recorded from the same batch: **a false finding can still sit next to a real
    defect.** `getLevel()`'s scale prose was right but its *example* was genuinely broken. Discard
    only the specific claim that is wrong, then keep auditing the surrounding block.
+   - **A *negative* result is the most suspicious kind of finding.** In batch-18 the validator
+     reported "I found **no** `instabuild`/permission check anywhere in `BaseCommandBlock` or
+     `CommandBlock`" and treated the doc claim as unverified. The check was in a **third class**:
+     `Player.canUseGameMasterBlocks()` at `Player.java:1920-1921`, consulted from
+     `CommandBlock.java:128`. "I could not find it" is a statement about **where you looked**, never
+     about whether it exists — especially for a claim that spans a call chain.
+   - **Two methods with near-identical names can have opposite ranges.** `Vec3D.getYaw()` negates
+     `Mth.wrapDegrees` (so `(−180, 180]`) and `EntityHelper.getYaw()` does not (so `[−180, 180)`).
+     Reading one and carrying it to the other is the batch's defect class in its purest form.

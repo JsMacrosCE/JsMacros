@@ -941,7 +941,91 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   `TeamHelper` and the large `UniversalBlockStateHelper`, whose `LIT` property carries exactly the
   shape of unverified enumerative prose.
 
-- [ ] batch-18 (client.api.helper.world.entity + helper.screen, 21) — pending
+- [x] batch-18 (client.api.helper.world.entity + helper.screen, 21) — done: 11
+  `client.api.helper.world.entity` + 10 `client.api.helper.screen` classes, **340 `example:` blocks**
+  (both packages had **zero**), 21/21 class docs, every empty `@param`/`@return` filled, 13 Object
+  overrides left bare. Committed `b168b2a8`. Build green (40 tasks, `--rerun-tasks`), **0 non-comment
+  lines** in all 21 files, **340 source `example:` = 340 in the `.py`** per class **including all 7
+  nested-class builder stubs**, **0 `&` / 0 `<`** in any `.py` example body, **0 stranded
+  descriptions** across 347 rendered member blocks, 0 entities, 0 `@see`, `tsc` **0 errors over 346
+  files** with a firing positive control. 2 rounds.
+
+  **THE HEADLINE: THE "TWIN METHOD COPIED WITH THE SENSE INVERTED" DEFECT IS SYSTEMATIC, NOT A
+  ONE-OFF — and it is now the most productive thing to hunt in the remaining batches.** Two of the
+  four round-1 blockers had exactly this shape, and when the fix-writer swept the siblings it found
+  **seven more of the same class**, not new unrelated errors:
+  - `CyclingButtonWidgetHelper.setValue(T)` — body is `return lastVal.equals(base.getValue())`, and
+    vanilla `CycleButton.updateValue` assigns unconditionally, so it returns **`true` when the value
+    did NOT change**. The prose, **the example's comments**, and `@return` were **all three** inverted —
+    the example actively taught the inverse. (The method name is the real problem; the doc now says so.)
+  - `TradeOfferHelper.getRightInput()` — claimed cost B is demand-adjusted. `MerchantOffer.getCostA()`
+    (`:100-101`) applies `getModifiedCostCount(baseCostA)`; `getCostB()` (`:110-111`) is
+    `costB.map(ItemCost::itemStack)` and **never** adjusted — the only other `getModifiedCostCount`
+    call site (`:195`) is also `baseCostA`. **The sweep then found the same inversion in the class
+    doc, in `getInput()`, and in `getOriginalFirstInput()`** (which claimed to be "what
+    `getLeftInput()` is not" when they return the same stack).
+  - `ClientPlayerEntityHelper.turnLeft()` — body is `getYaw() - 90`; doc said "the same as **adding**
+    ninety". Same shape, different package.
+  - `SliderWidgetHelper` — the builder's `initially()` said "five out of ten steps is five **ninths**"
+    while `getValue()` said "nine **tenths**" and `getSteps()` said "tenths". **A file contradicting
+    itself in three places**, and the body (`steps = requested - 1`, `round(v·steps)/steps`) agrees
+    with the *builder*, not the other two. `setSteps()` also claimed the widget coerces counts under 2
+    to 2 — true of the **constructor** only; `Slider.setSteps` is a bare `steps - 1`, so `1` divides
+    by zero.
+
+  **TWO OF THE FOUR ROUND-1 FINDINGS WERE FALSE AGAIN (batch-17 makes it 2 batches running).**
+  - The **operator-command-block claim was CORRECT.** The validator searched `BaseCommandBlock`/
+    `CommandBlock` and found no permission check; the check is in **`Player.java:1920-1921`** —
+    `canUseGameMasterBlocks() = instabuild && permissions().hasPermission(Permissions.COMMANDS_GAMEMASTER)` —
+    which `CommandBlock.java:128` consults. **The validator was looking in the wrong class.** The
+    fix-writer kept the claim and strengthened it by naming the method and the permission.
+  - `Mth.wrapDegrees` is `>= 180 → −360`, so the range is **[−180, 180)** and 180 reads back as −180.
+    I initially thought this contradicted batch-06's `Vec3D.getYaw` finding — **it does not**, and the
+    near-miss is instructive: `Vec3D.getYaw()` **negates** the wrapped value (hence `(−180, 180]`)
+    while `EntityHelper.getYaw()` does not (hence `[−180, 180)`). **Two methods, same-sounding name,
+    opposite ranges — check the body, not the sibling.**
+
+  **A tag that contradicts the prose beside it is BLOCKING, not cosmetic** (round 1, blocker 3).
+  `MerchantEntityHelper.getTrades()`'s `@return` said "read off the open trading screen rather than the
+  entity" while the body reads `base.getOffers()` (the entity) and the prose directly above said so
+  correctly — the tag was describing the *recommended* `VillagerInventory` route instead. Its sibling
+  `refreshTrades()`'s tag was right, so two siblings disagreed. The fix is to correct the tag, never
+  to apologise for it in prose.
+
+  **A false finding can still sit next to a real one — discard only the wrong claim.** This fired
+  again: the operator-command-block *sentence* was wrongly doubted, but the **same paragraph**'s
+  "stops a mob from dropping anything when killed" was genuinely false — `preventsBlockDrops()` has
+  exactly 7 call sites, **all block drops** (`DoublePlantBlock:100`, `BeehiveBlock:271`,
+  `BedBlock:180`, `PistonHeadBlock:71`, `ShulkerBoxBlock:109`, `CreakingHeartBlock:185`,
+  `ServerPlayerGameMode:285`), and `LivingEntity.hasInfiniteMaterials()` (`:4067`) returns `false` and
+  is never called there, so a mob always fails it and it cannot be the mechanism. **It stops *blocks*
+  from dropping items.**
+
+  **The validator declined to sign off the batch**, stating plainly that its semantic audit covered the
+  entity folder but only *sampled* the widget builders (`AbstractWidgetBuilder` 30 examples,
+  `ClickableWidgetHelper` 29, `TextFieldWidgetHelper` 25, `ClientPlayerEntityHelper` 29). The fix-writer
+  then found two more real defects in exactly that unaudited region — which is **the strongest evidence
+  in this batch that "type-checks clean and links resolve" proves nothing about semantics**, and the
+  reason its recommendation is to run the inverted audit there next.
+
+  **Source defects found (documented, not fixed).** `MerchantEntityHelper.getTrades()` and
+  `refreshTrades()` **always throw `IllegalStateException("Cannot load Villager offers on the client")`**
+  (verified, exact string) — the working route is `Inventory.create(screen)` →
+  `VillagerInventory.getTrades()`. `VillagerEntityHelper.getStyle()` returns
+  `"Reference{...VillagerType@<hash>}"` — a holder `toString` with a per-run object hash, not a style
+  name (the writer's vaguer prose is the accurate one; the literal string in its own report was wrong).
+  `EntityHelper.asServerEntity()` **always throws** (its own `TODO`), so its `@Nullable` is unreachable.
+  `ClickableWidgetHelper.getParentWidth/Height()` **NPE with no screen open** (`Minecraft.getInstance()
+  .screen.width`, unguarded) unlike `AbstractWidgetBuilder`'s form. `CyclingButtonWidgetHelper.setValue`
+  returns `true` when **unchanged**. `getPriceMultiplier`'s arithmetic was corrected: `⌊base · demand ·
+  multiplier⌋`, so `d=10, m=0.1` is a whole base price and `m=0.5` is five times it.
+
+  **In-game test queue:** all `TradeOfferHelper`/`MerchantEntityHelper`/`VillagerEntityHelper` examples
+  (each needs an open trading screen); `PlayerAbilitiesHelper`'s operator-command-block sentence (the
+  validator could not locate the permission check, the fix-writer did — needs a live check);
+  `EntityHelper`'s 360° yaw seam (`getDirection()` uses raw `yRot` while `getYaw()` wraps);
+  `ClickableWidgetHelper.click()`'s press point on a partially-clickable widget.
+
 - [ ] batch-19 (entity.specialized boss/decoration/display/other/projectile/vehicle, 21) — pending
 - [ ] batch-20 (entity.specialized.mob, 21) — pending
 - [ ] batch-21 (entity.specialized.passive, 30) — pending
