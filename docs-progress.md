@@ -1098,8 +1098,140 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   server-authoritative client; the in-game reading of `AreaEffectCloud.getColor()` on a team-coloured
   cloud; and `AreaEffectCloudEntityHelper`/`BoatEntityHelper` behaviours needing a live world.
 
-- [ ] batch-20 (entity.specialized.mob, 21) — pending
-- [ ] batch-21 (entity.specialized.passive, 30) — pending
+- [x] batch-20 (entity.specialized.mob, 21) — done: 21 classes, **73 `example:` blocks** (0 before),
+  all 52 methods + 21 class docs documented, 8 method gaps closed. Committed `6216e765`. Build green
+  (40 tasks, `--rerun-tasks`), **0 non-comment lines**, **0 files touched outside `mob/`**,
+  **73 source `example:` = 73 in the `.py`** per class, **0 `&` / 0 `<`**, 0 entities, 0 `@see`,
+  `tsc` **0 errors over 79 files** with `checkJs` confirmed **ON** and 2 injected bogus members caught,
+  **`.d.ts` member set byte-identical (94 → 94)**. 1 round.
+
+  **THE SIBLING-PAIR SWEEP FOUND THREE SENSE INVERSIONS IN ONE PASS — it is now clearly the
+  highest-yield audit in the effort** (batch-18: 2 + 7 on a follow-up sweep; batch-19: 2; batch-20: 3).
+  - **`CreeperEntityHelper.isCharged()` — the headline.** Body is `base.isPowered()` =
+    `entityData.get(DATA_IS_POWERED)`, the **lightning** flag; the doc said "true if the creeper is
+    charged", i.e. the fuse. The sibling `isIgnited()` reads the genuinely different
+    `DATA_IS_IGNITED`, so the file conflated two flags. **The copied fact appeared three times** —
+    `isCharged`, `getMaxFuseTime` ("can be **charged** for") and `isIgnited` — and the writer fixed
+    it **at source rather than at the copies**, which is exactly the right instinct.
+  - **`BlazeEntityHelper.isOnFire()` shadows `EntityHelper.isOnFire()` with the OPPOSITE meaning.**
+    Vanilla `Blaze.isOnFire()` **overrides** `Entity.isOnFire()` to return its *attack-charge* bit
+    (`Blaze.java:137-139`). Same signature, different question: the base reads "is this entity
+    burning", the override reads "is this blaze winding up a fireball". **A blaze standing in lava
+    answers `false` through both.** Corrected, and the class-level note about the shadowing kept.
+  - **`GuardianEntityHelper.hasSpikesRetracted()` — a name/body inversion** (`return !base.isMoving()`,
+    which is the spikes-*out* state). The vanilla animation moves toward 1.0 when stationary, so the
+    **prose was right and the name is wrong** — documented honestly and routed to a maintainer.
+  - Also `SlimeEntityHelper.isSmall()`'s threshold: "size less than 1" → the boundary is exactly 1
+    (`isTiny()` is `getSize() <= 1`, and `setSize` clamps to `[1, 127]`).
+
+  **A WRITER CAUGHT ITSELF MAKING A CODE CHANGE — the anchoring/comment-only gate working as
+  designed.** It had rewritten a Stonecutter `else`-branch import in `ZombieVillagerEntityHelper` from
+  `...entity.monster.ZombieVillager` to `...entity.monster.zombie.ZombieVillager` and **reverted it
+  before building**. This is the second time in three batches that a subagent's own gate caught a
+  code-semantics slip; it is why the gate is stated as a hard requirement rather than a guideline.
+
+  **The `<`/`&` damage class has now slipped through `gradlew`, `tsc` AND `node --check` in THREE
+  separate batches** (16: 38 examples; 19: 12 examples; 20: 3 examples). This batch's were
+  `if (creeper.getFuseChange() 0)`, `if (left 0)` and `if (left = 10)` — **valid-looking, wrong JavaScript**.
+  Nothing but the source↔`.py` token diff sees this class. **It is now the most-reproduced defect in
+  the effort, and the token diff is a mandatory gate, not a nicety.**
+
+  **The writer's own instruments failed twice before working, and it reported both.** Its extractor
+  **failed its own self-test** (a missing `<pre>` silently merged two blocks) and was rewritten to scope
+  each example to one javadoc comment; it now fires on `NO_PRE`, fires on `NO_CLOSE`, and does not
+  false-positive on an `example:` inside a non-javadoc `/* */`. And it **cross-checked the example count
+  across four independent tools** (73 from each of: extractor, `grep example:`, `grep <pre>`, `grep` in
+  the generated `.py`) plus the `.d.ts` split (21 class + 52 method = 73). **That four-way count
+  cross-check is the best vacuity detector used anywhere in this effort — copy it.**
+
+  **7 more errors found in its own prose** by the inverted audit, including two that would have been
+  confidently wrong: `SpellcastingIllagerEntityHelper`'s "in the current game means the evoker" (false —
+  `Illusioner` extends `SpellcasterIllager` too), and "a provoked enderman is always screaming" (false —
+  `EndermanLookForPlayerGoal.start()` calls `setBeingStaredAt()` but the target is assigned ~5 ticks
+  later, so provoked *leads* screaming rather than implying it).
+
+  **Source defects found (documented, not fixed).** `CreeperEntityHelper.isCharged` and
+  `GuardianEntityHelper.hasSpikesRetracted` are both named against their bodies.
+  `IllagerEntityHelper.getState()`'s `default: throw` is **unreachable** (all 8 `IllagerArmPose`
+  constants are mapped). `GuardianEntityHelper.getTarget()` can **raise rather than return `null`** —
+  `hasTarget()` is true whenever a target *id* is synced, but `getActiveAttackTarget()` returns `null`
+  client-side if that entity is not loaded, and `EntityHelper.create` is `@NotNull` and throws.
+  `PillagerEntityHelper.isCaptain()` / `VindicatorEntityHelper.isJohnny()` are equipment/name
+  heuristics, not the flags the game keeps.
+
+  **In-game test queue:** `WardenEntityHelper.isChargingSonicBoom()` — `sonicBoomAnimationState` is
+  only ever `start()`ed (entity event 62) and **never `stop()`ed anywhere in `Warden`**, so the writer
+  believes it should latch `true` permanently after a warden's first sonic boom. It documented that,
+  but it is a strong claim. Also `CreeperEntityHelper.getFuseTime()`/`getRemainingFuseTime()` being
+  the **raw `swell`** rather than the interpolated `getSwelling(a)` the client renders;
+  `AbstractPiglinEntityHelper.canBeZombified()` reading `true` on every ordinary piglin (no vanilla
+  path sets the flag at runtime in 26.1.2); and `VindicatorEntityHelper.isJohnny()`.
+
+- [x] batch-21 (entity.specialized.passive, 30) — done — **FINAL BATCH**: 30 classes, **71
+  `example:` blocks** (0 before), all 30 class-level descriptions written from scratch (there were
+  none), every method description extended from a `@return`-only stub to a body-derived one.
+  Committed `b7a50244`. Build green (40 tasks, `--rerun-tasks`), **0 non-comment lines** in all 30
+  files, **0 files touched outside `passive/`**, **71 source `example:` = 71 in the `.py`**, **0 `&` /
+  0 `<`**, 0 entities, 0 `@see`, `tsc` **0 errors over 71 files** with `checkJs` confirmed **ON** and
+  a firing positive control, **`.d.ts` member set byte-identical (122 → 122)**. 1 round.
+
+  **THE SIBLING SWEEP'S HIGHEST SINGLE-CLASS YIELD: SEVEN carry-overs, four of them in
+  `FoxEntityHelper`.** This closes the arc started in batch-18 — the rule was derived there, then paid
+  2 + 7, 2, 3, and now 7:
+  - **`AbstractHorseEntityHelper.isAngry()` returns `base.isStanding()` — the REARING flag** — and was
+    documented as anger, which is what the **same-named** `Bee.isAngry()` / `Wolf.isAngry()` (a
+    `NeutralMob` anger *timer*) actually mean. **Same method name, different question, different
+    class** — the batch-20 Blaze-vs-`Entity` shadowing pattern again, and the clearest instance of it
+    in the whole effort.
+  - **`Goat.hasRightHorn()` read "if this goat has its right horn still **left**"** — a pure copy-paste
+    inversion from its `hasLeftHorn()` twin.
+  - `Fox.isDefending()` is `DefendTrustedTargetGoal` — defending an entity the fox **trusts** (usually
+    the player who tamed it), not "another fox". `Fox.getSecondOwner()` returns a **UUID**, not a
+    name. `Fox.isWandering()` is the **~2 s flop after a missed pounce** (`isFaceplanted()`, FLAG_64).
+    `Fox.hasFoundTarget()` is the crouched stationary lock-on within 6 blocks — the pounce itself is
+    `isPouncing()`'s. `Wolf.isBegging()` does **not** require taming: `registerGoals` adds `BegGoal`
+    **unconditionally**, so an untamed wolf begs.
+
+  **THE COMMENT-ONLY GATE CAUGHT THREE REAL CODE DRIFTS THE WRITER HAD ITSELF INTRODUCED** — a
+  spurious `import MobEntityHelper` in `BeeEntityHelper`, a rename of `getMoistness` to
+  `getMoistnessLevel` in `DolphinEntityHelper`, and a dropped space in a `//?` Stonecutter marker in
+  `MooshroomEntityHelper`. All reverted. **Third time in four batches that a subagent's own gate has
+  caught a code-semantics slip**, which is the strongest argument for making it a hard requirement.
+
+  **A WRITER CONCLUDED THE DOCLET WAS RUNNING AGAINST 1.21.8, NOT 26.1.2 — and was wrong**, but the
+  way to settle it is worth recording. It reasoned from `stonecutter.active`, which says `1.21.8`.
+  The decisive evidence is the **compiled class**: `common/versions/26.1.2/.../TropicalFishEntityHelper.class`
+  calls `TropicalFish$Pattern.getPackedId()` — the `>=1.21.11` Stonecutter branch — so 26.1.2 is what
+  builds. (`getCapeUrl` in the `.d.ts` and `version=26.1.2` in the web doc's mapping URLs agree.)
+  **Its caution was still useful: it described the two version-branched methods neutrally, so the docs
+  are correct under either reading.** Note also that **26.1.2 reorganises packages**
+  (`entity/animal/horse/` → `entity/animal/equine/`), which is an easy way to fail a source lookup.
+
+  **A `&` INSIDE THREE EXAMPLES — the same damage class, caught only by the token diff** while
+  `gradlew`, `tsc` AND `node --check` were all green. Bitwise `&` deleted by pydoclet would have
+  shipped `packed 0xFF` — syntactically valid, silently wrong. Rewritten as `% 256`. **That is the
+  fourth batch in a row this class got past every other gate.**
+
+  **Source defects found (documented, not fixed).** `AbstractHorse.isBred()` has **no writer anywhere
+  in the 26.1.2 tree** — the flag is only read from and written to the entity's own save data, so it is
+  always `0` in practice. `AbstractHorseEntityHelper.canWearArmor()` is **constant `true`**
+  (`canUseSlot(BODY)` → `LivingEntity.canUseSlot` → `true`). `DolphinEntityHelper.getTreasurePos()` is
+  `@Nullable` with **no initialiser**, assigned only under an `instanceof ServerLevel` guard, so on
+  the client it is `null` and `new BlockPosHelper(null)` wraps nothing — **reading `getX()` throws
+  rather than returning 0**, which is what the pre-existing doc said. `AbstractHorseEntityHelper.getOwner()`
+  is **unsynced** (a plain field, unlike `TamableAnimal`'s `DATA_OWNERUUID_ID`).
+  `WolfEntityHelper.isWet()` is **always `false` on the client** (the clearing shake runs under
+  `!isClientSide()`). `getMinHealthStat()`/`getMaxHealthStat()` are **offspring-inheritance bounds**
+  (15/30), not the attribute's clamp range.
+
+  **In-game test queue:** `Fox.isDefending()`'s runtime duration; `AbstractHorse.getHorseJumpHeight()`'s
+  cubic (a JsMacros fit with no vanilla counterpart, documented as a fit and not asserted accurate);
+  `TropicalFishEntityHelper.getVarietyId()`'s exact bit layout if a precise version is wanted.
+
+**ALL 21 BATCHES ARE NOW COMPLETE** (batch-01 … batch-21, plus batch-22 which was pulled forward out
+of order in batch-05). The plan's script-exposed surface is fully documented: 534 files in
+`common/src/main/java` fed to the doclets, every `example:` block in the codebase now traced to a
+batch — the codebase went from **1** pre-existing `example:` to **~1,400**.
 
 ## In-game test queue (examples that could not be fully verified)
 
@@ -1127,3 +1259,5 @@ Batch-10 (all runtime behaviour; everything static is bytecode-verified):
    `World.isWorldLoaded()`/`getBlock`/`getEntities`, `Client.getGameOptions()`, item NBT, and the
    `InteractionManagerHelper` block-breaking examples. Also `JavaWrapper.methodToJava` callback
    threading for `breakBlockAsync`.
+
+ALL_COMPLETE

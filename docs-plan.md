@@ -1,5 +1,32 @@
 # JsMacrosCE — Script-Exposed Java API Javadoc Plan
 
+> **STATUS: ALL 21 BATCHES COMPLETE** (plus batch-22, pulled forward out of order in batch-05).
+> `ALL_COMPLETE` is recorded at the foot of `docs-progress.md`. The codebase went from **1**
+> pre-existing `example:` block to roughly **1,400**. Continue reading the sections below for the
+> findings — they are the reusable part, and several of them cost more to discover than the writing
+> they govern.
+
+## What the effort actually taught (read this first if you are continuing)
+
+The javadoc **text** was never the hard part. Four things dominated, and all four are recorded here
+because they will recur on any future pass:
+
+1. **The defect class is one member's documentation carried onto its twin, sometimes sense-inverted.**
+   It is not random. Yield per batch once the rule was adopted: batch-18 → 2 then **7 more** on a
+   follow-up sweep; batch-19 → 2; batch-20 → 3; batch-21 → **7** (four in one class). The rule is
+   audit step 4 under *How to audit a batch*.
+2. **A green build, a clean `tsc` and a clean `node --check` prove almost nothing.** The `<`/`&`
+   corruption class got past all three in **four separate batches** (16: 38 examples; 19: 12; 20: 3;
+   21: 3). Only a **source↔`.py` token diff** catches it, and the count must be asserted *first*.
+3. **A surprising report is wrong roughly one time in three.** Two of five findings were false in
+   batch-17 and again in batch-18; in each case acting on them would have corrupted correct files.
+   **"Verify before editing" must be an explicit instruction to every fix-writer** — it was the
+   behaviour that saved the work each time.
+4. **A checker that examines nothing reports `0` in exactly the same words as one that finds
+   nothing.** This bit the orchestrator, a writer and a validator across three roles, in five distinct
+   mechanisms now recorded. **Prove every checker by injection; cross-check counts between two
+   independent tools** — the cheapest vacuity detector in the effort.
+
 **Deliverable:** improved javadoc comments (plus doclet annotations) on the script-exposed Java
 API. Web docs / TypeScript `.d.ts` / Python stubs are generated from these by the custom doclets
 in `buildSrc` (`pydoclet`, `tsdoclet`, `webdoclet`) via the `generatePyDoc` / `generateTSDoc` /
