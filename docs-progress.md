@@ -1026,7 +1026,78 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   `EntityHelper`'s 360° yaw seam (`getDirection()` uses raw `yRot` while `getYaw()` wraps);
   `ClickableWidgetHelper.click()`'s press point on a partially-clickable widget.
 
-- [ ] batch-19 (entity.specialized boss/decoration/display/other/projectile/vehicle, 21) — pending
+- [x] batch-19 (entity.specialized boss/decoration/display/other/projectile/vehicle, 21) — done:
+  21 classes across `boss` `decoration` `display` `other` `projectile` `vehicle`, **109 `example:`
+  blocks** (the whole `specialized` tree had **zero**), 88/88 methods documented, `.d.ts` member
+  sets **byte-identical (131 → 131)**. Committed `be2b3730`. Build green (40 tasks,
+  `--rerun-tasks`), **0 non-comment lines** in all 21 files, **0 files touched in `mob/` or
+  `passive/`** (batches 20-21), 0 anchoring defects (checker proven non-vacuous), **109 source
+  `example:` = 109 in the `.py`** per class, **0 `&` / 0 `<`**, 0 entities, 0 `@see`, `tsc` **0 errors
+  over 109 example files** with a firing positive control. 1 round.
+
+  **THE SIBLING-PAIR RULE PAID OFF IMMEDIATELY, AND IT IS THE PRODUCTIVE AUDIT — 31 pairs
+  enumerated, 2 sense-inversions found on the first pass.**
+  - **`WitherSkullEntityHelper.isCharged()` was INVERTED.** The writer had written that a charged
+    skull is the aimed shot, not the one lobbed while circling. `WitherBoss` says the opposite: the
+    circling shot is `performRangedAttack(i+1, xt, yt, zt, **true**)` (charged) and the *aimed* shot
+    is charged only when `head == 0 && random.nextFloat() < 0.001F`. **The charged skull is the
+    common one.**
+  - **`WitherEntityHelper.isFirstPhase()` — the same defect class, next file.** It claimed to read
+    `true` on the arrival countdown; `WitherSkullBlock` calls `makeInvulnerable()`, which sets health
+    to `maxHealth/3`, and `isPowered()` is `health <= maxHealth/2`. **A freshly summoned wither is
+    already in phase 2**, so `isFirstPhase()` is `false` on arrival.
+  - Two more carry-overs found by the same sweep: `ArmorStandEntityHelper`'s **six** `get*Rotation`
+    members each carried a *differently-worded* version of one unverified geometry claim ("forward
+    and outward", "a fraction of a degree", "equal and opposite") — replaced with the actual default
+    tuples read off `ArmorStand`; and `DisplayEntityHelper`'s `getShadowRadius`/`getShadowStrength`
+    pair had drifted into inventing an "invisible shadow" outcome, both reduced to verified meanings.
+  - A **dead link** removed: `ArmorStandEntityHelper.isVisible()` linked `#isInvisible()`, which
+    **does not exist on `EntityHelper`** — the web HTML rendered it as literal text.
+
+  **A WRITER CHALLENGED MY OWN `{@link}` LABEL RULE AND WAS WRONG — the rule stands.** The writer
+  cited `<a href="#isMarker-">isMarker()</a>` as proof labels survive; that is the **target** text,
+  not a label. I re-verified against a real labelled link: source `{@link #getPos() getPos()}` renders
+  as `EntityHelper#getPos()` — label discarded. **But the writer's underlying point was partly right
+  and I amended the rule:** 110 files at HEAD already use the labelled style, so a label that merely
+  repeats its own target is **inert-but-harmless and tolerated** (55 such here). Only a label naming
+  something *different* from its target (`{@link #getLerpProgress(double) the display's own
+  progress}`) loses real information. **Do not churn existing files to strip labels.**
+
+  **THE `tsc` GATE WAS ITSELF VACUOUS AT FIRST — and this is the third distinct way that has
+  happened.** The writer's first run reported **0 errors for a bogus member** because `checkJs: false`
+  meant its `.js` example files were **never checked at all**. Fixed, and the now-live gate **caught a
+  real bug in the writer's own example** (`TextDisplayEntityHelper.getWidth()` does not exist — it is
+  `getDisplayWidth()`). A second instrument, `struct.py`, silently dropped **10 of 109** blocks via a
+  `//?}` Stonecutter form, caught only by **cross-checking its count against a second checker**.
+  **Cross-check counts between two independent tools** — the cheapest vacuity detector there is.
+
+  **12 examples were shipping syntactically invalid JavaScript** (`if (left < 20)` → `if (left 20)`),
+  found by a source↔`.py` cross-check. **Again: `gradlew`, `tsc` and `node --check` were all clean
+  throughout.** This is the third batch where that exact class of damage got through every other gate.
+
+  **Source defects found (documented, not fixed).** `AreaEffectCloudEntityHelper.getColor()` returns
+  `Entity.getTeamColor()` — the **scoreboard team colour** (`0xFFFFFF` off-team), *not* the potion
+  colour, which rides on the particle. A boat in `UNDER_FLOWING_WATER` makes **all four**
+  `BoatEntityHelper` predicates `false` (26.1.2 has 5 statuses). `EndCrystalEntityHelper.isNatural()`
+  reads `showsBottom()`, which **defaults to `true`**, so a hand-placed crystal also answers `true`.
+  `TridentEntityHelper.hasLoyalty()` is **server-only** (worked out from the item at throw time).
+  `InteractionEntityHelper.setCanHit()` is **client-only** and lost on any chunk reload.
+  `BoatEntityHelper.isChestBoat()` excludes `ChestRaft`. `TextDisplayEntityHelper.getTextOpacity()`
+  defaults to the synced byte **`-1`** (not 255), rendered opaque via `textOpacity << 24 | 16777215`.
+  `ItemDisplayEntityHelper.getTransform()`'s return list was missing `on_shelf`, which exists in 26.1.2.
+
+  **Left alone deliberately:** the one constructor without a javadoc
+  (`TextDisplayEntityHelper$TextDisplayDataHelper`) — **0 of the baseline constructors in these 21
+  files had one**, so this is the repo's existing convention, not a regression, and constructors are
+  not script-facing. `EndCrystalEntityHelper.isNatural()`'s original first line ("naturally
+  generated… player placed ones will not") is left in place as *unverified* with the real default
+  stated, because removing it was judged the larger risk.
+
+  **In-game test queue:** the rendered difference between a display shadow **radius** of `0.0` and a
+  **strength** of `0.0`; whether `getTextOpacity()` passes `-1` through unchanged on a
+  server-authoritative client; the in-game reading of `AreaEffectCloud.getColor()` on a team-coloured
+  cloud; and `AreaEffectCloudEntityHelper`/`BoatEntityHelper` behaviours needing a live world.
+
 - [ ] batch-20 (entity.specialized.mob, 21) — pending
 - [ ] batch-21 (entity.specialized.passive, 30) — pending
 

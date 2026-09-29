@@ -236,7 +236,8 @@ Well documented (28/31, 0 examples). Work is **examples + closing the last gaps*
 Fully documented (90/90); work is examples.
 
 ### batch-20 — `client.api.helper.world.entity.specialized.mob` (21)
-47/52 documented; 5 gaps + examples.
+47/52 documented; 5 gaps + examples. **Sibling-pair sweep is the headline** (see audit step 4) — it
+found 2 sense-inversions on its first pass in batch-19 and 7 more on a follow-up sweep in batch-18.
 
 ### batch-21 — `client.api.helper.world.entity.specialized.passive` (30)
 122/122 documented; work is examples.
