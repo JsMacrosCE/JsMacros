@@ -18,6 +18,52 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
+ * A block state with a named method for every block state property the game has, each one reading
+ * that property and giving the value back already typed.<br>
+ * This is the class to reach for when a script knows which property it is after.
+ * {@link StateHelper#toMap()} gives every property on a state as a name, which is the right tool
+ * for reading a property whose name is a variable, and this gives one method per property, which is
+ * the right tool for reading a property whose name is written down in the script. The difference
+ * shows in what comes back: a name for a property read through the map, and the value itself here,
+ * so a facing is a direction rather than a word, and an age is a number rather than digits in a
+ * string.
+ * <p>
+ * Every method here reads one fixed property, and it is an error to ask a state that has no such
+ * property rather than something that comes back false or null. That is the trade for the speed:
+ * these are reads rather than lookups, and a script that wants to know what a state has should ask
+ * {@link StateHelper#toMap()} first. The four number families are the exception worth knowing
+ * about, since they try a list of properties in turn and raise if the state has none of them:
+ * {@link #getLevel()} and its min and max, {@link #getDistance()} and its min and max, and
+ * {@link #getAge()} with {@link #getMaxAge()}.
+ * <p>
+ * A script gets one from {@link BlockStateHelper#getUniversal()}.
+ * example:
+ * <pre>
+ * // the typed view of a state, against the map view of the same state
+ * const reg = Client.getRegistryManager();
+ * const state = reg.getBlockState("minecraft:oak_stairs", "[facing=east,half=bottom]");
+ * const universal = state.getUniversal();
+ *
+ * Chat.log(universal.getHorizontalFacing().getName());   // a direction
+ * Chat.log(universal.getBlockHalf());                    // a word
+ * Chat.log(universal.isWaterlogged());                    // a boolean
+ *
+ * for (const [name, value] of state.toMap()) {
+ *   Chat.log(`${name} is ${value}`);                      // every property, as names
+ * }
+ *
+ * // a property the state does not have is an error, not a false
+ * try {
+ *   universal.getHoneyLevel();
+ * } catch (e) {
+ *   Chat.log("a stair has no honey level");
+ * }
+ *
+ * // and the number families try several properties before giving up
+ * const wheat = reg.getBlockState("minecraft:wheat").getUniversal();
+ * Chat.log(`age ${wheat.getAge()} of ${wheat.getMaxAge()}`);
+ * </pre>
+ *
  * @author Etheradon
  * @since 1.8.4
  */
@@ -30,7 +76,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code BELL_ATTACHMENT} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getAttachment() {
@@ -38,7 +84,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code EAST_WALL} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getEastWallShape() {
@@ -46,7 +92,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code NORTH_WALL} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getNorthWallShape() {
@@ -54,7 +100,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code SOUTH_WALL} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getSouthWallShape() {
@@ -62,7 +108,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code WEST_WALL} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getWestWallShape() {
@@ -70,7 +116,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code EAST_REDSTONE} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getEastWireConnection() {
@@ -78,7 +124,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code NORTH_REDSTONE} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getNorthWireConnection() {
@@ -86,7 +132,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code SOUTH_REDSTONE} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getSouthWireConnection() {
@@ -94,7 +140,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code WEST_REDSTONE} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getWestWireConnection() {
@@ -102,7 +148,20 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code HALF} property's value, as the name the game gives it.
+     * example:
+     * <pre>
+     * // which half of a two block shape this is
+     * const bed = Client.getRegistryManager().getBlockState("minecraft:red_bed", "[part=head]").getUniversal();
+     * Chat.log(`bed part ${bed.getBedPart()}, half ${bed.getBlockHalf()}`);
+     *
+     * // slabs and stairs, which use a different pair of properties for the same idea
+     * const slab = Client.getRegistryManager().getBlockState("minecraft:oak_slab", "[type=top]").getUniversal();
+     * Chat.log(`slab type ${slab.getSlabType()}`);
+     * const pillar = Client.getRegistryManager()
+     *   .getBlockState("minecraft:oak_fence", "[half=upper]").getUniversal();
+     * Chat.log(`fence half ${pillar.getBlockHalf()}`);
+     * </pre>
      * @since 1.8.4
      */
     public String getBlockHalf() {
@@ -110,7 +169,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code DOUBLE_BLOCK_HALF} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getDoubleBlockHalf() {
@@ -118,7 +177,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code RAIL_SHAPE} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getRailShape() {
@@ -126,7 +185,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code RAIL_SHAPE_STRAIGHT} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getStraightRailShape() {
@@ -134,7 +193,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code ORIENTATION} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getOrientation() {
@@ -142,7 +201,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code HORIZONTAL_AXIS} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getHorizontalAxis() {
@@ -150,7 +209,21 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code AXIS} property's value, as the name the game gives it.
+     * example:
+     * <pre>
+     * // a log's axis, which is the one property a log is mostly about
+     * const reg = Client.getRegistryManager();
+     * const state = reg.getBlockState("minecraft:oak_log", "[axis=x]");
+     * Chat.log(`${state.getUniversal().getAxis()} and ${state.toMap().axis}`);
+     *
+     * // and the one place a pillar can point
+     * for (const axis of ["x", "y", "z"]) {
+     *   const turned = Client.getRegistryManager().getBlockState("minecraft:oak_log", `[axis=${axis}]`)
+     *     .getUniversal();
+     *   Chat.log(`${turned.getAxis()}`);
+     * }
+     * </pre>
      * @since 1.8.4
      */
     public String getAxis() {
@@ -158,7 +231,18 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code HORIZONTAL_FACING} property, as a direction.
+     * example:
+     * <pre>
+     * // a facing, as a direction rather than as a word
+     * const reg = Client.getRegistryManager();
+     * const stairs = reg.getBlockState("minecraft:oak_stairs", "[facing=east]");
+     * const facing = stairs.getUniversal().getHorizontalFacing();
+     * Chat.log(`${facing.getName()} is on the ${facing.getAxis()} axis, yaw ${facing.getYaw()}`);
+     *
+     * // and the same word, as the property map spells it
+     * Chat.log(stairs.toMap().facing);
+     * </pre>
      * @since 1.8.4
      */
     public DirectionHelper getHorizontalFacing() {
@@ -166,7 +250,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code FACING_HOPPER} property, as a direction.
      * @since 1.8.4
      */
     public DirectionHelper getHopperFacing() {
@@ -174,7 +258,17 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code FACING} property, as a direction.
+     * example:
+     * <pre>
+     * // the six directions a furnace can face
+     * for (const name of ["north", "south", "east", "west", "up", "down"]) {
+     *   const block = Client.getRegistryManager()
+     *     .getBlockState("minecraft:furnace", `[facing=${name}]`).getUniversal();
+     *   const facing = block.getFacing();
+     *   Chat.log(`${facing.getName()}, pitch ${facing.getPitch()}`);
+     * }
+     * </pre>
      * @since 1.8.4
      */
     public DirectionHelper getFacing() {
@@ -182,7 +276,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code UP} property's value.
      * @since 1.8.4
      */
     public boolean isUp() {
@@ -190,7 +284,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code DOWN} property's value.
      * @since 1.8.4
      */
     public boolean isDown() {
@@ -198,7 +292,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code NORTH} property's value.
      * @since 1.8.4
      */
     public boolean isNorth() {
@@ -206,7 +300,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code SOUTH} property's value.
      * @since 1.8.4
      */
     public boolean isSouth() {
@@ -214,7 +308,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code EAST} property's value.
      * @since 1.8.4
      */
     public boolean isEast() {
@@ -222,7 +316,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code WEST} property's value.
      * @since 1.8.4
      */
     public boolean isWest() {
@@ -232,7 +326,20 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on beehives.
      *
-     * @return
+     * @return the {@code LEVEL_HONEY} property's value.
+     * example:
+     * <pre>
+     * // how full a beehive or a bottle is, from zero to five
+     * const reg = Client.getRegistryManager();
+     * for (let n = 0; n !== 6; n += 1) {
+     *   const hive = reg.getBlockState("minecraft:beehive", `[honey_level=${n}]`).getUniversal();
+     *   Chat.log(`honey level ${hive.getHoneyLevel()}`);
+     * }
+     *
+     * // and the state a filled bottle is in
+     * const bottle = reg.getBlockState("minecraft:honey_bottle").getUniversal();
+     * Chat.log(`a honey bottle is level ${bottle.getHoneyLevel()}`);
+     * </pre>
      * @since 1.8.4
      */
     public int getHoneyLevel() {
@@ -242,7 +349,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on scaffolding.
      *
-     * @return
+     * @return the {@code BOTTOM} property's value.
      * @since 1.8.4
      */
     public boolean isBottom() {
@@ -252,7 +359,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on bubble columns.
      *
-     * @return
+     * @return the {@code DRAG} property's value.
      * @since 1.8.4
      */
     @Ignore({"hasDrag"})
@@ -263,7 +370,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on bubble columns.
      *
-     * @return
+     * @return the {@code DRAG} property's value, negated.
      * @since 1.8.4
      */
     @Ignore
@@ -274,7 +381,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on trip wire hooks.
      *
-     * @return
+     * @return the {@code ATTACHED} property's value.
      * @since 1.8.4
      */
     public boolean isAttached() {
@@ -284,7 +391,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on trip wires.
      *
-     * @return
+     * @return the {@code DISARMED} property's value.
      * @since 1.8.4
      */
     public boolean isDisarmed() {
@@ -294,7 +401,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on command blocks.
      *
-     * @return
+     * @return the {@code CONDITIONAL} property's value.
      * @since 1.8.4
      */
     public boolean isConditional() {
@@ -304,7 +411,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on hoppers.
      *
-     * @return
+     * @return the {@code ENABLED} property's value.
      * @since 1.8.4
      */
     public boolean isEnabled() {
@@ -314,7 +421,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on pistons.
      *
-     * @return
+     * @return the {@code EXTENDED} property's value.
      * @since 1.8.4
      */
     public boolean isExtended() {
@@ -324,7 +431,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on piston heads.
      *
-     * @return
+     * @return the {@code SHORT} property's value.
      * @since 1.8.4
      */
     public boolean isShort() {
@@ -334,7 +441,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on end portal frames.
      *
-     * @return
+     * @return the {@code EYE} property's value.
      * @since 1.8.4
      */
     public boolean hasEye() {
@@ -344,7 +451,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on fluids.
      *
-     * @return
+     * @return the {@code FALLING} property's value.
      * @since 1.8.4
      */
     public boolean isFalling() {
@@ -360,9 +467,30 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     };
 
     /**
+     * The level of this state, read from the first of the game's level properties the state turns
+     * out to have. The list is tried in order and the first match wins, so a state that has more
+     * than one of them answers with the earliest rather than with the most meaningful.<br>
+     * A state with none of them is an error rather than a zero, so this is only worth asking of a
+     * block that is one of the level-carrying kinds.
+     * example:
+     * <pre>
+     * // the level of a fluid, and the same number through the property map
+     * const reg = Client.getRegistryManager();
+     * const water = reg.getFluidState("minecraft:water").getBlockState().getUniversal();
+     * Chat.log(`level ${water.getLevel()}, between ${water.getMinLevel()} and ${water.getMaxLevel()}`);
+     *
+     * // and a block with no level property at all
+     * try {
+     *   reg.getBlockState("minecraft:stone").getUniversal().getLevel();
+     * } catch (e) {
+     *   Chat.log("stone has no level");
+     * }
+     * </pre>
+     *
      * Used on fluids and stuff
      *
-     * @return
+     * @return the level of this state, from the first of the game's level properties it has.
+     * @throws IllegalStateException if the state has none of the level properties.
      * @since 1.8.4
      */
     @Ignore({"getLevel1_8", "getLevel3", "getLevel8", "getLevel15"})
@@ -376,7 +504,19 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * The largest value the level property this state has could hold, worked out from the property
+     * itself rather than from any particular value. The same list of properties is tried as
+     * {@link #getLevel()}, and the first one the state has is the one measured.
+     * example:
+     * <pre>
+     * // the range a level can take here
+     * const lava = Client.getRegistryManager().getFluidState("minecraft:lava")
+     *   .getBlockState().getUniversal();
+     * Chat.log(`${lava.getMinLevel()} to ${lava.getMaxLevel()}`);
+     * </pre>
+     *
+     * @return the largest value the level property this state has can hold.
+     * @throws IllegalStateException if the state has none of the level properties.
      * @since 1.8.4
      */
     @Ignore
@@ -390,7 +530,19 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * The smallest value the level property this state has could hold, worked out from the property
+     * itself. The same list of properties is tried as {@link #getLevel()}, and the first one the
+     * state has is the one measured.
+     * example:
+     * <pre>
+     * // the range a level can take here
+     * const water = Client.getRegistryManager().getFluidState("minecraft:water")
+     *   .getBlockState().getUniversal();
+     * Chat.log(`${water.getMinLevel()} to ${water.getMaxLevel()}`);
+     * </pre>
+     *
+     * @return the smallest value the level property this state has can hold.
+     * @throws IllegalStateException if the state has none of the level properties.
      * @since 1.8.4
      */
     @Ignore
@@ -406,7 +558,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on lanterns.
      *
-     * @return
+     * @return the {@code HANGING} property's value.
      * @since 1.8.4
      */
     public boolean isHanging() {
@@ -416,7 +568,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on brewing stands.
      *
-     * @return
+     * @return the {@code HAS_BOTTLE_0} property's value.
      * @since 1.8.4
      */
     public boolean hasBottle0() {
@@ -426,7 +578,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on brewing stands.
      *
-     * @return
+     * @return the {@code HAS_BOTTLE_1} property's value.
      * @since 1.8.4
      */
     public boolean hasBottle1() {
@@ -436,7 +588,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on brewing stands.
      *
-     * @return
+     * @return the {@code HAS_BOTTLE_2} property's value.
      * @since 1.8.4
      */
     public boolean hasBottle2() {
@@ -446,7 +598,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on jukeboxes.
      *
-     * @return
+     * @return the {@code HAS_RECORD} property's value.
      * @since 1.8.4
      */
     public boolean hasRecord() {
@@ -456,7 +608,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on lecterns.
      *
-     * @return
+     * @return the {@code HAS_BOOK} property's value.
      * @since 1.8.4
      */
     public boolean hasBook() {
@@ -466,7 +618,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on daylight sensors.
      *
-     * @return
+     * @return the {@code INVERTED} property's value.
      * @since 1.8.4
      */
     public boolean isInverted() {
@@ -476,7 +628,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on fence gates.
      *
-     * @return
+     * @return the {@code IN_WALL} property's value.
      * @since 1.8.4
      */
     public boolean isInWall() {
@@ -486,7 +638,21 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on fence gates, barrels, trap doors and doors.
      *
-     * @return
+     * @return the {@code OPEN} property's value.
+     * example:
+     * <pre>
+     * // everything in one place that opens, and whether it is open
+     * const reg = Client.getRegistryManager();
+     * for (const id of ["minecraft:oak_door", "minecraft:oak_trapdoor", "minecraft:iron_door",
+     *                   "minecraft:oak_gate", "minecraft:barrel", "minecraft:chest"]) {
+     *   try {
+     *     const state = reg.getBlockState(id, "[open=true]").getUniversal();
+     *     Chat.log(`${id}: ${state.isOpen()}`);
+     *   } catch (e) {
+     *     Chat.log(`${id} has no open property`);
+     *   }
+     * }
+     * </pre>
      * @since 1.8.4
      */
     public boolean isOpen() {
@@ -496,7 +662,17 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on candles, all types of furnaces, campfires and redstone torches.
      *
-     * @return
+     * @return the {@code LIT} property's value.
+     * example:
+     * <pre>
+     * // which of the burning things are alight
+     * const reg = Client.getRegistryManager();
+     * for (const id of ["minecraft:furnace", "minecraft:blast_furnace", "minecraft:campfire",
+     *                   "minecraft:torch", "minecraft:candle"]) {
+     *   const state = reg.getBlockState(id, "[lit=true]").getUniversal();
+     *   Chat.log(`${id} is lit: ${state.isLit()}`);
+     * }
+     * </pre>
      * @since 1.8.4
      */
     public boolean isLit() {
@@ -506,7 +682,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on repeaters.
      *
-     * @return
+     * @return the {@code LOCKED} property's value.
      * @since 1.8.4
      */
     public boolean isLocked() {
@@ -516,7 +692,16 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on repeaters.
      *
-     * @return
+     * @return the {@code DELAY} property's value.
+     * example:
+     * <pre>
+     * // the four repeater settings
+     * for (let d = 1; d !== 5; d += 1) {
+     *   const rep = Client.getRegistryManager()
+     *     .getBlockState("minecraft:repeater", `[delay=${d}]`).getUniversal();
+     *   Chat.log(`delay ${rep.getDelay()}, locked ${rep.isLocked()}`);
+     * }
+     * </pre>
      * @since 1.8.4
      */
     public int getDelay() {
@@ -526,7 +711,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on beds.
      *
-     * @return
+     * @return the {@code OCCUPIED} property's value.
      * @since 1.8.4
      */
     public boolean isOccupied() {
@@ -536,7 +721,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on leaves.
      *
-     * @return
+     * @return the {@code PERSISTENT} property's value.
      * @since 1.8.4
      */
     public boolean isPersistent() {
@@ -549,9 +734,31 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     };
 
     /**
+     * The distance property of this state, read from the first of the game's distance properties
+     * the state turns out to have. The list is tried in order and the first match wins, so a state
+     * that has both answers with the earlier one.
+     * <p>
+     * A state with none of them is an error rather than a zero.
+     * example:
+     * <pre>
+     * // how far a leaf block is from its trunk
+     * const leaves = Client.getRegistryManager()
+     *   .getBlockState("minecraft:oak_leaves", "[distance=5,persistent=true]").getUniversal();
+     * Chat.log(`distance ${leaves.getDistance()} of ${leaves.getMaxDistance()}`);
+     * Chat.log(`and it is persistent: ${leaves.isPersistent()}`);
+     *
+     * // a state with no distance property at all
+     * try {
+     *   Client.getRegistryManager().getBlockState("minecraft:stone").getUniversal().getDistance();
+     * } catch (e) {
+     *   Chat.log("stone has no distance");
+     * }
+     * </pre>
+     *
      * Used on leaves and scaffold.
      *
-     * @return
+     * @return the distance of this state, from the first of the game's distance properties it has.
+     * @throws IllegalStateException if the state has none of the distance properties.
      * @since 1.8.4
      */
     @Ignore({"getDistance0_7", "getDistance1_7"})
@@ -565,9 +772,19 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
+     * The largest value the distance property this state has could hold, worked out from the
+     * property itself. The same list of properties is tried as {@link #getDistance()}.
+     * example:
+     * <pre>
+     * // how far a leaf block can decay
+     * const leaves = Client.getRegistryManager().getBlockState("minecraft:oak_leaves").getUniversal();
+     * Chat.log(`${leaves.getMinDistance()} to ${leaves.getMaxDistance()}`);
+     * </pre>
+     *
      * Used on leaves and scaffold.
      *
-     * @return
+     * @return the largest value the distance property this state has can hold.
+     * @throws IllegalStateException if the state has none of the distance properties.
      * @since 1.8.4
      */
     @Ignore
@@ -581,9 +798,19 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
+     * The smallest value the distance property this state has could hold, worked out from the
+     * property itself. The same list of properties is tried as {@link #getDistance()}.
+     * example:
+     * <pre>
+     * // how far a leaf block counts from its trunk
+     * const leaves = Client.getRegistryManager().getBlockState("minecraft:oak_leaves").getUniversal();
+     * Chat.log(`${leaves.getMinDistance()} to ${leaves.getMaxDistance()}`);
+     * </pre>
+     *
      * Used on leaves and scaffold.
      *
-     * @return
+     * @return the smallest value the distance property this state has can hold.
+     * @throws IllegalStateException if the state has none of the distance properties.
      * @since 1.8.4
      */
     @Ignore
@@ -601,7 +828,22 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
      * lightning rods, note blocks, observers, powered rails, pressure plates, trap doors, trip wire
      * hooks and trip wires.
      *
-     * @return
+     * @return the {@code POWERED} property's value.
+     * example:
+     * <pre>
+     * // the long list of blocks the game marks as powered
+     * const reg = Client.getRegistryManager();
+     * let count = 0;
+     * for (const id of ["minecraft:redstone_torch", "minecraft:lever", "minecraft:redstone_block",
+     *                   "minecraft:oak_pressure_plate", "minecraft:stone", "minecraft:observer"]) {
+     *   const state = reg.getBlockState(id);
+     *   if (state.getUniversal().isPowered()) {
+     *     count += 1;
+     *     Chat.log(`${id} is powered`);
+     *   }
+     * }
+     * Chat.log(`${count} of those six`);
+     * </pre>
      * @since 1.8.4
      */
     public boolean isPowered() {
@@ -611,7 +853,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on campfires.
      *
-     * @return
+     * @return the {@code SIGNAL_FIRE} property's value.
      * @since 1.8.4
      */
     public boolean isSignalFire() {
@@ -621,7 +863,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on snowy dirt blocks.
      *
-     * @return
+     * @return the {@code SNOWY} property's value.
      * @since 1.8.4
      */
     public boolean isSnowy() {
@@ -631,7 +873,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on dispensers.
      *
-     * @return
+     * @return the {@code TRIGGERED} property's value.
      * @since 1.8.4
      */
     public boolean isTriggered() {
@@ -641,7 +883,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on tnt.
      *
-     * @return
+     * @return the {@code UNSTABLE} property's value.
      * @since 1.8.4
      */
     public boolean isUnstable() {
@@ -654,7 +896,19 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
      * hanging roots, ladders, lanterns, light blocks, lightning rods, pointed dripstone,
      * scaffolding , sculk sensors, sea pickles, signs, stairs, slabs, trap doors and walls
      *
-     * @return
+     * @return the {@code WATERLOGGED} property's value.
+     * example:
+     * <pre>
+     * // is there water in this block rather than around it
+     * const reg = Client.getRegistryManager();
+     * const dry = reg.getBlockState("minecraft:oak_fence", "[waterlogged=false]").getUniversal();
+     * const wet = reg.getBlockState("minecraft:oak_fence", "[waterlogged=true]").getUniversal();
+     * Chat.log(`dry ${dry.isWaterlogged()}, wet ${wet.isWaterlogged()}`);
+     *
+     * // and what the wet one actually holds
+     * const state = reg.getBlockState("minecraft:oak_fence", "[waterlogged=true]");
+     * Chat.log(state.getFluidState().getId());
+     * </pre>
      * @since 1.8.4
      */
     public boolean isWaterlogged() {
@@ -662,7 +916,16 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code BED_PART} property's value, as the name the game gives it.
+     * example:
+     * <pre>
+     * // the two halves of a bed, read apart
+     * const reg = Client.getRegistryManager();
+     * for (const part of ["head", "foot"]) {
+     *   const half = reg.getBlockState("minecraft:red_bed", `[part=${part}]`).getUniversal();
+     *   Chat.log(`${part}: ${half.getBedPart()}`);
+     * }
+     * </pre>
      * @since 1.8.4
      */
     public String getBedPart() {
@@ -670,7 +933,23 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code DOOR_HINGE} property's value, as the name the game gives it.
+     * example:
+     * <pre>
+     * // which side a door is hinged on
+     * const door = Client.getRegistryManager()
+     *   .getBlockState("minecraft:oak_door", "[hinge=left,open=true]").getUniversal();
+     * Chat.log(`hinge ${door.getDoorHinge()}, open ${door.isOpen()}`);
+     *
+     * // all four combinations the game allows
+     * for (const hinge of ["left", "right"]) {
+     *   for (const open of ["true", "false"]) {
+     *     const d = Client.getRegistryManager()
+     *       .getBlockState("minecraft:oak_door", `[hinge=${hinge},open=${open}]`).getUniversal();
+     *     Chat.log(`${d.getDoorHinge()} ${d.isOpen()}`);
+     *   }
+     * }
+     * </pre>
      * @since 1.8.4
      */
     public String getDoorHinge() {
@@ -678,7 +957,16 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code NOTEBLOCK_INSTRUMENT} property's value, as the name the game gives it.
+     * example:
+     * <pre>
+     * // what a note block is set to
+     * const reg = Client.getRegistryManager();
+     * for (const name of ["harp", "basedrum", "snare", "hat", "guitar", "bell", "chime"]) {
+     *   const note = reg.getBlockState("minecraft:note_block", `[instrument=${name}]`).getUniversal();
+     *   Chat.log(`${note.getInstrument()} is note ${note.getNote()}`);
+     * }
+     * </pre>
      * @since 1.8.4
      */
     public String getInstrument() {
@@ -686,7 +974,16 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code PISTON_TYPE} property's value, as the name the game gives it.
+     * example:
+     * <pre>
+     * // sticky and not
+     * for (const type of ["normal", "sticky"]) {
+     *   const piston = Client.getRegistryManager()
+     *     .getBlockState("minecraft:piston", `[type=${type},facing=up]`).getUniversal();
+     *   Chat.log(`${piston.getPistonType()}, facing ${piston.getFacing().getName()}, extended ${piston.isExtended()}`);
+     * }
+     * </pre>
      * @since 1.8.4
      */
     public String getPistonType() {
@@ -694,7 +991,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code SLAB_TYPE} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getSlabType() {
@@ -702,7 +999,16 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code STAIRS_SHAPE} property's value, as the name the game gives it.
+     * example:
+     * <pre>
+     * // the four shapes a stair can be
+     * for (const shape of ["straight", "inner_left", "inner_right", "outer_left", "outer_right"]) {
+     *   const stair = Client.getRegistryManager()
+     *     .getBlockState("minecraft:oak_stairs", `[shape=${shape}]`).getUniversal();
+     *   Chat.log(`${stair.getStairShape()}, half ${stair.getBlockHalf()}`);
+     * }
+     * </pre>
      * @since 1.8.4
      */
     public String getStairShape() {
@@ -710,7 +1016,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code STRUCTUREBLOCK_MODE} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getStructureBlockMode() {
@@ -718,7 +1024,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code BAMBOO_LEAVES} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getBambooLeaves() {
@@ -726,7 +1032,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code TILT} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getTilt() {
@@ -734,7 +1040,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code VERTICAL_DIRECTION} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getVerticalDirection() {
@@ -742,7 +1048,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code DRIPSTONE_THICKNESS} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getThickness() {
@@ -750,7 +1056,23 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code CHEST_TYPE} property's value, as the name the game gives it.
+     * example:
+     * <pre>
+     * // the two kinds of chest the game has
+     * for (const type of ["single", "double"]) {
+     *   const chest = Client.getRegistryManager()
+     *     .getBlockState("minecraft:chest", `[type=${type}]`).getUniversal();
+     *   Chat.log(`${chest.getChestType()}`);
+     * }
+     *
+     * // and a block that has no such property
+     * try {
+     *   Client.getRegistryManager().getBlockState("minecraft:stone").getUniversal().getChestType();
+     * } catch (e) {
+     *   Chat.log("stone has no chest type");
+     * }
+     * </pre>
      * @since 1.8.4
      */
     public String getChestType() {
@@ -758,7 +1080,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code MODE_COMPARATOR} property's value, as the name the game gives it.
      * @since 1.8.4
      */
     public String getComparatorMode() {
@@ -768,7 +1090,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on cave vine roots.
      *
-     * @return
+     * @return the {@code BERRIES} property's value.
      * @since 1.8.4
      */
     public boolean hasBerries() {
@@ -788,9 +1110,30 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     };
 
     /**
+     * The age of this state, read from the first of the game's age properties the state turns out
+     * to have. The list is tried in order and the first match wins, so a block that grows through
+     * several ages is read off whichever of those properties it actually uses rather than off a
+     * single one scaled to fit.
+     * <p>
+     * A state with none of them is an error rather than a zero.
+     * example:
+     * <pre>
+     * // how grown a crop is
+     * const wheat = Client.getRegistryManager().getBlockState("minecraft:wheat").getUniversal();
+     * Chat.log(`age ${wheat.getAge()} of ${wheat.getMaxAge()}`);
+     *
+     * // and a block that is not one of the growing kinds
+     * try {
+     *   Client.getRegistryManager().getBlockState("minecraft:stone").getUniversal().getAge();
+     * } catch (e) {
+     *   Chat.log("stone has no age");
+     * }
+     * </pre>
+     *
      * crop age and such
      *
-     * @return
+     * @return the age of this state, from the first of the game's age properties it has.
+     * @throws IllegalStateException if the state has none of the age properties.
      * @author Wagyourtail
      * @since 1.8.4
      */
@@ -804,6 +1147,23 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
         throw new IllegalStateException("No age property found");
     }
 
+    /**
+     * The largest value the age property this state has could hold, which is how grown a block of
+     * this kind can get. The same list of properties is tried as {@link #getAge()}.
+     * example:
+     * <pre>
+     * // the age range of a few things that grow
+     * const reg = Client.getRegistryManager();
+     * for (const id of ["minecraft:wheat", "minecraft:oak_sapling", "minecraft:sugar_cane"]) {
+     *   const grown = reg.getBlockState(id).getUniversal();
+     *   Chat.log(`${id}: up to ${grown.getMaxAge()}`);
+     * }
+     * </pre>
+     *
+     * @return the largest value the age property this state has can hold.
+     * @throws IllegalStateException if the state has none of the age properties.
+     * @since 1.8.4
+     */
     @Ignore
     public int getMaxAge() {
         for (IntegerProperty property : ages) {
@@ -817,7 +1177,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on cakes.
      *
-     * @return
+     * @return the {@code BITES} property's value.
      * @since 1.8.4
      */
     public int getBites() {
@@ -827,7 +1187,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on candles.
      *
-     * @return
+     * @return the {@code CANDLES} property's value.
      * @since 1.8.4
      */
     public int getCandles() {
@@ -837,7 +1197,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on turtle eggs.
      *
-     * @return
+     * @return the {@code EGGS} property's value.
      * @since 1.8.4
      */
     public int getEggs() {
@@ -847,7 +1207,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on turtle eggs.
      *
-     * @return
+     * @return the {@code HATCH} property's value.
      * @since 1.8.4
      */
     @Ignore("getHatch")
@@ -858,7 +1218,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on snow layers.
      *
-     * @return
+     * @return the {@code LAYERS} property's value.
      * @since 1.8.4
      */
     public int getLayers() {
@@ -868,7 +1228,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on farmland.
      *
-     * @return
+     * @return the {@code MOISTURE} property's value.
      * @since 1.8.4
      */
     public int getMoisture() {
@@ -878,7 +1238,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on note blocks.
      *
-     * @return
+     * @return the {@code NOTE} property's value.
      * @since 1.8.4
      */
     public int getNote() {
@@ -888,7 +1248,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on sea pickles.
      *
-     * @return
+     * @return the {@code PICKLES} property's value.
      * @since 1.8.4
      */
     public int getPickles() {
@@ -899,7 +1259,20 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
      * Used on daylight sensors, redstone wires, sculk sensors, target blocks, weighted pressure
      * plates.
      *
-     * @return
+     * @return the {@code POWER} property's value.
+     * example:
+     * <pre>
+     * // the power a redstone wire is carrying
+     * const reg = Client.getRegistryManager();
+     * for (let p = 0; p !== 16; p += 5) {
+     *   const wire = reg.getBlockState("minecraft:redstone_wire", `[power=${p}]`).getUniversal();
+     *   Chat.log(`power ${wire.getPower()}`);
+     * }
+     *
+     * // and a daylight sensor, which shares the property
+     * const sensor = reg.getBlockState("minecraft:daylight_detector", "[power=15]").getUniversal();
+     * Chat.log(`sensor reads ${sensor.getPower()}, inverted ${sensor.isInverted()}`);
+     * </pre>
      * @since 1.8.4
      */
     public int getPower() {
@@ -909,7 +1282,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on bamboo, saplings.
      *
-     * @return
+     * @return the {@code STAGE} property's value.
      * @since 1.8.4
      */
     public int getStage() {
@@ -919,7 +1292,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on respawn anchors.
      *
-     * @return
+     * @return the {@code RESPAWN_ANCHOR_CHARGES} property's value.
      * @since 1.8.4
      */
     public int getCharges() {
@@ -929,7 +1302,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on sculk sensors.
      *
-     * @return
+     * @return the {@code SHRIEKING} property's value.
      * @since 1.8.4
      */
     public boolean isShrieking() {
@@ -939,7 +1312,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on sculk sensors.
      *
-     * @return
+     * @return the {@code CAN_SUMMON} property's value.
      * @since 1.8.4
      */
     public boolean canSummon() {
@@ -949,7 +1322,14 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     /**
      * Used on sculk sensors.
      *
-     * @return
+     * @return the {@code SCULK_SENSOR_PHASE} property's value, as the name the game gives it.
+     * example:
+     * <pre>
+     * // the sculk sensor's own phase property, beside the two flags it works from
+     * const sensor = Client.getRegistryManager().getBlockState("minecraft:sculk_sensor").getUniversal();
+     * Chat.log(`phase ${sensor.getSculkSensorPhase()}`);
+     * Chat.log(`shrieking ${sensor.isShrieking()}, can summon ${sensor.canSummon()}`);
+     * </pre>
      * @since 1.8.4
      */
     public String getSculkSensorPhase() {
@@ -957,7 +1337,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code BLOOM} property's value.
      * @since 1.8.4
      */
     public boolean isBloom() {
@@ -965,7 +1345,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code ROTATION_16} property's value.
      * @since 1.8.4
      */
     public int getRotation() {
@@ -973,7 +1353,34 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code SLOT_0_OCCUPIED} property's value.
+     * example:
+     * <pre>
+     * // the six slots of a chiseled bookshelf
+     * for (let i = 0; i !== 6; i += 1) {
+     *   let occupied = false;
+     *   if (i === 0) {
+     *     occupied = Client.getRegistryManager()
+     *       .getBlockState("minecraft:chiseled_bookshelf", "[slot0_occupied=true]").getUniversal().isSlot0Occupied();
+     *   } else if (i === 1) {
+     *     occupied = Client.getRegistryManager()
+     *       .getBlockState("minecraft:chiseled_bookshelf", "[slot1_occupied=true]").getUniversal().isSlot1Occupied();
+     *   } else if (i === 2) {
+     *     occupied = Client.getRegistryManager()
+     *       .getBlockState("minecraft:chiseled_bookshelf", "[slot2_occupied=true]").getUniversal().isSlot2Occupied();
+     *   } else if (i === 3) {
+     *     occupied = Client.getRegistryManager()
+     *       .getBlockState("minecraft:chiseled_bookshelf", "[slot3_occupied=true]").getUniversal().isSlot3Occupied();
+     *   } else if (i === 4) {
+     *     occupied = Client.getRegistryManager()
+     *       .getBlockState("minecraft:chiseled_bookshelf", "[slot4_occupied=true]").getUniversal().isSlot4Occupied();
+     *   } else {
+     *     occupied = Client.getRegistryManager()
+     *       .getBlockState("minecraft:chiseled_bookshelf", "[slot5_occupied=true]").getUniversal().isSlot5Occupied();
+     *   }
+     *   Chat.log(`slot ${i}: ${occupied}`);
+     * }
+     * </pre>
      * @since 1.8.4
      */
     public boolean isSlot0Occupied() {
@@ -985,7 +1392,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code SLOT_1_OCCUPIED} property's value.
      * @since 1.8.4
      */
     public boolean isSlot1Occupied() {
@@ -997,7 +1404,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code SLOT_2_OCCUPIED} property's value.
      * @since 1.8.4
      */
     public boolean isSlot2Occupied() {
@@ -1009,7 +1416,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code SLOT_3_OCCUPIED} property's value.
      * @since 1.8.4
      */
     public boolean isSlot3Occupied() {
@@ -1021,7 +1428,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code SLOT_4_OCCUPIED} property's value.
      * @since 1.8.4
      */
     public boolean isSlot4Occupied() {
@@ -1033,7 +1440,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @return
+     * @return the {@code SLOT_5_OCCUPIED} property's value.
      * @since 1.8.4
      */
     public boolean isSlot5Occupied() {
@@ -1046,7 +1453,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
 
     /**
      * @since 1.9.0
-     * @return
+     * @return the {@code FLOWER_AMOUNT} property's value.
      */
     public int getFlowerAmount() {
         return base.getValue(BlockStateProperties.FLOWER_AMOUNT);
@@ -1054,7 +1461,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
 
     /**
      * @since 1.9.0
-     * @return
+     * @return the {@code ATTACH_FACE} property's value, as the name the game gives it.
      */
     public String getBlockFace() {
         return base.getValue(BlockStateProperties.ATTACH_FACE).getSerializedName();
@@ -1062,7 +1469,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
 
     /**
      * @since 1.9.0
-     * @return
+     * @return the {@code DUSTED} property's value.
      */
     public int getDusted() {
         return base.getValue(BlockStateProperties.DUSTED);
@@ -1070,7 +1477,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
 
     /**
      * @since 1.9.0
-     * @return
+     * @return the {@code CRACKED} property's value.
      */
     public boolean isCracked() {
         return base.getValue(BlockStateProperties.CRACKED);
@@ -1078,6 +1485,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
 
     /**
      * @since 2.0.0
+     * @return the {@code CRAFTING} property's value.
      */
     public boolean isCrafting() {
         return base.getValue(BlockStateProperties.CRAFTING);
@@ -1085,6 +1493,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
 
     /**
      * @since 2.0.0
+     * @return the {@code TRIAL_SPAWNER_STATE} property's value, as the name the game gives it.
      */
     public String getTrialSpawnerState() {
         return base.getValue(BlockStateProperties.TRIAL_SPAWNER_STATE).getSerializedName();
@@ -1092,6 +1501,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
 
     /**
      * @since 2.0.0
+     * @return the {@code VAULT_STATE} property's value, as the name the game gives it.
      */
     public String getVaultState() {
         return base.getValue(BlockStateProperties.VAULT_STATE).getSerializedName();
@@ -1099,6 +1509,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
 
     /**
      * @since 2.0.0
+     * @return the {@code OMINOUS} property's value.
      */
     public boolean isOminous() {
         return base.getValue(BlockStateProperties.OMINOUS);
