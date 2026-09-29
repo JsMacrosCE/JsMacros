@@ -573,9 +573,33 @@ not just the initializer. **If a count of 16 comes out 14, suspect the parse bef
    >   / `JavaMap` / `Packages` alias, because those are the dangling error types above — so the
    >   examples' gate is the `skipLibCheck: true` run.
    >
+   > **`build/docs/typescript/tsconfig.json` is a weak check, not a gate.** It compiles **one**
+   > zero-byte `scripts/test.ts` plus the header, under `skipLibCheck: true` — so it verifies the
+   > header parses and the program links, and **exercises not a single example**. Useful as a smoke
+   > test; never quote it as evidence that the examples are sound.
+   >
    > The structural guarantee that no *shipped member set* changed is **gate 5 (zero non-comment
    > lines)**, not a `tsc` count: javadoc can only reach the `.d.ts` as comment text, so untouched
    > signatures and untouched `@Doclet*` annotations mean the emitted interface is unchanged.
+   >
+   > **Always run a positive control** (inject a call to a non-existent method and confirm it is
+   > caught) before believing a clean example count, and **state the compiled-file count** — a run
+   > that compiles zero or one file is vacuous.
+
+   **Validate your checkers, or do not report a number from them.** This has bitten in **both** roles
+   in batch-14, and the failure is silent: a checker that examines nothing reports `0` in exactly the
+   same words as one that finds nothing. Concrete instances worth guarding against:
+   - A **method-existence** grep whose corpus **includes comments** self-matches the injected text
+     and returns a vacuous pass. Use a **comment-stripped** corpus.
+   - A **word-set** prose diff reports "0 deleted prose" for an injected sentence whose words all occur
+     elsewhere. **Set difference cannot see that** — use a **sentence-level multiset**.
+   - A line filter that rejects every line reports "0 across N blocks" having examined nothing. Prove
+     each checker by injecting a known defect into a **copy** and requiring **both** that it fires on
+     the injection **and** that it reports 0 on pristine.
+   - A negative control that silently fails 0/9 is worse than no control — fail loudly instead.
+   - If a checker cannot be made reliable, **say so and fall back to reading**, rather than quoting a
+     green number from it. Both the batch-14 validator and its fix-writer did exactly this, and it is
+     the behaviour to copy.
 4. Flag (never silently drop) unverifiable examples; list them for the in-game test queue.
 5. **Byte-level check of the generated `.py`** — `&` and `<` must be 0 inside every `example:`.
    Grepping for entities is useless (the damage is a *deletion*); and `node --check` passes the

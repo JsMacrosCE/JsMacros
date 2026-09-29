@@ -637,6 +637,91 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   decision, deliberately untouched.
 
 - [ ] batch-14 (client.api.classes.render.components, 9) — pending
+- [x] batch-14 (client.api.classes.render.components, 9) — done: **65 of 65 previously-undocumented
+  public fields** documented (0 at HEAD) plus `RenderElement.mc`, all 38 method gaps closed, and
+  **409 `example:` blocks** (the package had zero). Build green, **0/9** non-comment changes, **0
+  `tsc` errors** across 417 examples with the correct combined header set, 0 `&`/`<` in any example.
+  2 rounds.
+
+  **THE MOST CONSEQUENTIAL DEFECT OF THE EFFORT SO FAR: a javadoc block anchored on the WRONG
+  declaration.** `Line.Builder.getZIndex()`'s text — description, example *and* `@return` — was
+  attached to `getScaledTop()`, which returns `Math.min(y1, y2)`. So **`getScaledTop()` shipped
+  documented as returning a z-index**, in both `Line.py` and the shipped
+  `JsMacrosCE-2.0.0.d.ts` (`getScaledTop(): number`), while the real `Builder.getZIndex()` sat bare
+  and `Line.getZIndex()` had **no javadoc at all**. This is the misfile-after-block-tags corruption
+  mode, and it is the one defect a reader is guaranteed to act on wrongly. **An anchor sweep across
+  all 9 files found it was the only one** (531 blocks, 0 signal-B misfiles remaining). *Why the
+  writer's own "0 misfiled" check missed it:* it only tested **adjacency** — was prose after a block
+  tag — which cannot see a block that is well-formed but attached to the wrong member.
+
+  **The fix-writer DROPPED a clause rather than relocating it, and that was right.** The misfiled
+  block also contained *"and the built line folds the rotation down where this builder does not"* — a
+  rotation fact in a z-index doc. It verified the statement already appears at **eight** sites
+  including `Builder.rotation`, so relocating would be pure duplication. Recorded because "never
+  delete prose" must not become "never remove a misplaced sentence": drop it, report it, and show
+  the information already exists elsewhere.
+
+  **A false claim the writer got right in three places and backwards in the two it added.** `Item`:
+  *"turning this on with no text shows the count when the stack is more than one."* False for any
+  **builder-made** icon, which is what both attached examples build — `Item.Builder.ovText`
+  initialises to `""` (`:1136`), and both the 2D and 3D paths test `ovText != null`, so `""` wins and
+  a **zero-length string is drawn and no count appears** (probed: builder default with count 5 draws
+  nothing on both paths; the constructor default `null` draws `"5"`). The writer's own prose at
+  `:116-120`, `:1364-1366` and `:1372-1375` states the distinction correctly. The round-2 sweep then
+  found the **same false claim a third time** at `Builder.item(String,int)`, plus a `@param` and
+  `shouldShowOverlay`. **Five sites fixed.** The contrast that now carries it: `Draw2D.addItem` routes
+  through the 7-arg constructor, so *those* methods really do show the count.
+
+  **B1, B3, B4 from round 1, all closed and independently verified:** `Alignable.parsePercentage`'s
+  prose said a decimal or leading space gives `-1` while its own `@throws` said a non-whole-number
+  throws (it does — probed `50.5%` and `" 50%"` both throw); the "flatten that depth" claim, which was
+  false on 1.21.8 where **both `is3dRender` branches make the identical `drawContext.renderItem(item,
+  x, y)` call** and the ≤1.21.5 `matrices.scale(…)` that did the flattening is dead (the flattening is
+  real on the `PoseStack` variant, which is what was conflated); and a false exclusive enumeration
+  that missed `Text` and `Item` overriding `render3D`.
+
+  **The writer corrected MY brief twice, both times correctly.** I told it `Builder.scale()` throws on
+  `scale <= 0` so two "rounds down" sites were fine — true for `Text`/`Item`, but `Draw2DElement`'s
+  builder is unguarded, so it qualified those two as well. And I listed 4 "rounds down" sites when
+  only 2 needed it, because the builder copies really do throw. It also **partly disagreed** rather
+  than complying: `Draw2D.setScale` *does* refuse non-positive values, so only the builder path is
+  reachable, and it said so.
+
+  **BOTH ROLES SHIPPED VACUOUS CHECKERS IN THIS BATCH — now a standing rule in docs-plan.md.** The
+  writer found its truncation/misfiling checker was "silently examining nothing" (its line filter
+  rejected every line, so "0 across 524 blocks" was vacuous). The **validator** then reported that
+  **three of its own checkers were vacuous** — including a word-set prose diff that reported "0
+  deleted prose" for an injected sentence whose words all recur elsewhere, which is impossible for a
+  set to detect — and **declined to certify its misfile checker at all**, falling back to a manual
+  read. The round-2 fix-writer found three more bugs in its own instruments, including a comment-strip
+  lexer whose block-comment opener test compared against `'"'` instead of `'/'`. The rule now recorded:
+  **prove every checker by injecting a known defect into a copy and requiring both that it fires and
+  that it reports 0 on pristine; and if a checker cannot be made reliable, say so rather than quoting a
+  green number from it.** A checker that examines nothing says "0" in exactly the same words as one
+  that finds nothing.
+
+  **The project's own tsconfig is a WEAK check, not a gate — corrected in docs-plan.md.** It compiles
+  **one zero-byte** `scripts/test.ts` plus the header under `skipLibCheck: true`, so it exercises not a
+  single example. Useful as a smoke test; never quote it as evidence the examples are sound. The
+  meaningful gate is the per-example run with the combined header set, **with a positive control and a
+  stated compiled-file count**.
+
+  **A live defect the byte-checker's positive control caught:** `pydoclet` silently deletes a bare
+  `&`, so three of the writer's own examples shipped as `icon.getColor() 0x00FFFFFF` and
+  `Chat.log(… 0x123456)` — valid-looking JavaScript, wrong code. All rewritten. This is the third
+  time that checker has earned its keep.
+
+  **Source defects found (documented, not fixed):** `Mth.wrapDegrees` is applied **inconsistently**
+  across the six elements (`Rect` wraps in ctor and setter, `Text` in both, `Line` ctor only,
+  `Item`/`Image` setter only, `Draw2DElement` never); `Draw2DElement`'s constructor binds
+  `draw2D.widthSupplier` to the builder's suppliers **by value**, so a later `width`/`size` call
+  resizes the element but leaves the nested overlay reporting the outer overlay's size; `Line`'s stroke
+  band is `(int)-halfWidth`…`(int)halfWidth`, so a thickness of 1 gives `-0.5`→0 and `0.5`→0;
+  `Alignable.split("on")` with no `on` throws `ArrayIndexOutOfBoundsException`, and `parsePercentage` is
+  handed the whole string, so **every** percentage in the two-element form throws; and
+  `Line.Builder.moveTo` rebuilds from `Math.abs` extents, so magnitudes survive but **signs do not**
+  and a right-to-left line comes out mirrored.
+
 - [ ] batch-15 (client.api.classes.inventory, 11) — pending
 - [ ] batch-16 (client.api.classes.inventory, 11) — pending
 - [ ] batch-17 (client.api.helper.world + helper.inventory, 20) — pending
