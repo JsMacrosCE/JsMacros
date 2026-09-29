@@ -858,9 +858,93 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   `throws InterruptedException` and `@Nullable` where nothing can throw or return null;
   `VillagerInventory.getMerchantRewardedExperience()` is misnamed.
 
-- [ ] batch-17 (client.api.helper.world + helper.inventory, 20) — pending
-- [ ] batch-16 (client.api.classes.inventory, 11) — pending
-- [ ] batch-17 (client.api.helper.world + helper.inventory, 20) — pending
+- [x] batch-17 (client.api.helper.world + helper.inventory, 20) — done: 14 `helper.world` + 6
+  `helper.inventory` classes, **363 `example:` blocks** (the package had **zero**), 20/20 class docs
+  written from scratch, 419/450 methods documented. Committed `6ea6580e`. Build green (40 tasks
+  executed, 40 s), **0 non-comment lines** in all 20 files, 25 Object overrides left bare,
+  **363 source `example:` = 363 in the `.py`** per class (all deltas 0), **0 `&` / 0 `<`** in any
+  `.py` example body, **0 stranded descriptions** across 466 rendered member blocks, 363/363 examples
+  type-check under the combined header set with a firing positive control. 2 rounds.
+
+  **The package is UNCONSTRAINED by the vitepress branch** — the comment-only diff over all 20 files
+  found the branch's only "new" comment lines are Stonecutter `//? if` directives, i.e. **no new
+  prose at all**. Checked before writing, so there was nothing to stay consistent with.
+
+  **All 20 classes ARE in the shipped `.d.ts`** (`client.api.helper.` is whitelisted by
+  `tsdoclet/Main.java:41-43`), unlike batches 11/12's worldscanner classes. So `Java.type(...)` is
+  viable and `tsc` is a real gate — which is why the `tsc` result here is trustworthy rather than
+  structurally vacuous.
+
+  **TWO OF THE FIVE BLOCKING FINDINGS WERE FALSE — and I made both errors myself, which is the
+  batch's most transferable lesson.** The validator reported 5 blocking prose defects; the fix-writer
+  verified before acting and **disproved 2 of them**, from the 26.1.2 sources:
+  - `DirectionHelper.getYaw()`: the validator took `data2d` to be the **first** enum argument, but
+    `Direction.java:66` is `Direction(int data3d, int oppositeIndex, int data2d, …)` — it is the
+    **third**. `DOWN(0,1,−1)` and `UP(1,0,−1)` therefore both carry `data2d == −1`, and
+    `(−1 & 3) * 90 = 270`, so up and down really **do** report the same value and the doc was right.
+    (I independently confirmed this from the source and from the bytecode — `DOWN`/`UP` both
+    `iconst_m1`.) The same slip also transposed the example's four headings.
+  - `FluidStateHelper.getLevel()`: the validator assumed the pre-1.20 `level` convention of `0..7`.
+    At 26.1.2 it is `BlockStateProperties.LEVEL_FLOWING = IntegerProperty.create("level", 1, 8)`
+    (`BlockStateProperties.java:113`) — **1..8** — and `LavaFluid`'s source returns the constant `8`,
+    so "a still source sits at the top of that scale and a thin sheet at the bottom" was **correct**.
+    Acting on either finding would have corrupted two correct files. **This is batch-10's lesson
+    recurring, and it is now the third batch where it fires — the writer's instinct to verify a
+    surprising finding *before* editing is the thing that actually saved the work.**
+
+  **THE REAL DEFECTS (3 of 5, all confirmed twice):** `getConflictingEnchantments()` said the list
+  "does not include this enchantment itself" when `areCompatible(a,b) = !a.equals(b) && …` makes
+  `!areCompatible(self,self)` **true**, so it does (the sense-inverted twin of the *correct*
+  `getCompatibleEnchantments()` doc — the batch's recurring "copy of the neighbour with the sense
+  inverted" shape); `hasCape()` said a capeless player gets `null` from **both** cape calls, but
+  `getCapeUrl()` reads `getSkin().body()`, so it returns a non-null URL; and `getCapeUrl()`'s
+  `@return` still said "cape texture" while the prose 14 lines above said "body texture" — **tag and
+  prose contradicting each other**, which only the fixed tag resolves.
+
+  **A REAL defect hiding inside a false finding** — worth separating, because the fix-writer did:
+  `getLevel()`'s *scale* prose was right, but its **example** was genuinely broken, looping
+  `minecraft:lava`'s `toMap()` (which yields only `falling`) and then claiming the same number comes
+  back through `getLevel()`. A source has **no `level` property at all**. Likewise `getHeight()`'s
+  "a still surface reaches the top of its block" is wrong — `getOwnHeight()` is `getAmount()/9`, so
+  8/9 ≈ 0.889. **A false finding can still point at a real defect nearby; check, then discard only
+  the specific claim that is wrong.**
+
+  **`tsc` gating has a silent-void trap now recorded.** The obvious invocation — concatenating the
+  header set into one `all.d.ts` — is **invalid**: a top-level `import`/`export` anywhere in it makes
+  the whole file a *module*, so every global vanishes (`Packages`, `Java` "cannot find") **and a
+  bogus method on a real helper does not error at all**. That configuration reports a clean run having
+  checked nothing. Headers must be passed as **separate `files` entries**, and with that wiring **no
+  ambient shim is needed** — `World`/`Chat`/`Client` resolve as real globals from the tsdoclet header.
+
+  **Source defects found (documented, not fixed).** `CreativeItemStackHelper.removeEnchantment(String)`
+  is a **no-op** (builds an `ItemEnchantments.Mutable` copy, `removeIf`, `return this`, never writes
+  back) — I verified the body independently. `ItemStackHelper`'s `areEnchantmentsHidden()` /
+  `areModifiersHidden()` / `isUnbreakableHidden()` all read `DataComponents.TOOLTIP_DISPLAY` and so can
+  never be true. `PlayerListEntryHelper.getCapeUrl()` returns the **skin** URL (copy-paste of
+  `getSkinUrl()`). `ItemHelper.canBeRepairedWith(ItemStackHelper)` NPEs on an item with no
+  `REPAIRABLE` component. `ScoreboardsHelper.getPlayerTeam()` can wrap `null` while
+  `PlayerListEntryHelper.getTeam()` correctly returns `null`. `ScoreboardsHelper.toString()` NPEs with
+  no sidebar. `ChunkHelper.forEach` never visits the topmost block. `PlayerListEntryHelper.getPublicKey()`
+  returns `null` with no chat session despite a non-null `.d.ts` declaration. And
+  **`getMaxBuildHeight()` is NOT an off-by-one** — `LevelHeightAccessor.getMaxY()` is
+  `getMinY() + getHeight() - 1`, so it genuinely is the highest valid block y; the validator raised
+  this and then disproved it.
+
+  **Three MY OWN CHECKERS were silently vacuous this batch, and the assertion caught all three** —
+  the first `.py` example scanner reported "0 `&`, 0 `<`" while examining **0 blocks** (wrong glob);
+  the first HTML order-checker found 0 of 0 regions (wrong element name) and reported "0 stranded"
+  for a file that does contain 466 member blocks; and my first source-level "stranded description"
+  checker flagged 53 false positives, because a **wrapped `@return` line is indistinguishable by
+  position** from a misfiled description. **The rendered-HTML check is the only reliable form of
+  that test** (a description appearing after `</table>`), and it is 0 here. Recorded in docs-plan.md.
+
+  **Open follow-ups (not defects):** 4 more stale-after-`example:` duplicate paragraphs in
+  `EnchantmentHelper` (`getWeight`, `isCursed`, `isTreasure`) and one in `ChunkHelper`, which
+  `pydoclet` appends onto the end of the example body in the `.py`; and a deeper prose pass over
+  `BlockDataHelper`, `BlockHelper`, `FoodComponentHelper`, `HitResultHelper`, `ServerInfoHelper`,
+  `TeamHelper` and the large `UniversalBlockStateHelper`, whose `LIT` property carries exactly the
+  shape of unverified enumerative prose.
+
 - [ ] batch-18 (client.api.helper.world.entity + helper.screen, 21) — pending
 - [ ] batch-19 (entity.specialized boss/decoration/display/other/projectile/vehicle, 21) — pending
 - [ ] batch-20 (entity.specialized.mob, 21) — pending

@@ -35,6 +35,25 @@ Out of scope (internal implementation, never exposed to scripts): `client/mixin/
 `core/language`, `client/config`, `client/util`, `core/threads`, `util/**`, `extension/graal/**`
 (10 files, internal Graal plumbing).
 
+### The active build target is **26.1.2**, not 1.21.8 (verified in batch-17)
+
+`stonecutter.gradle.kts:141` reads `val mcVersionsToBuild = if (IS_CI) supportedVersions else
+listOf("26.1.2")`. The `stonecutter.active` file says `1.21.8`, but that is the *backport* marker —
+the code that is actually compiled, doclet-processed and shipped is 26.1.2. Confirmed three
+independent ways: `mcVersionsToBuild`; the presence of `getCapeUrl` in the generated
+`JsMacrosCE-2.0.0.d.ts` (a `//? if >1.21.8` branch); and `version=26.1.2` in the mapping-viewer URLs
+the web doclet emits into every page.
+
+**This is the verification baseline for every batch, and getting it wrong is not a small error.**
+Two of batch-17's five blocking findings were false precisely because they were derived against
+**1.21-era conventions** — `level` running `0..7` rather than `1..8`. Read behaviour from the
+**generated/active** sources or the **compiled class**, never from memory of an older version.
+
+A Stonecutter-free decompiled sources jar for vanilla 26.1.2 is available for vanilla classes:
+`neoforge/versions/26.1.2/build/moddev/artifacts/minecraft-patched-26.1.2.109-sources.jar`
+(`unzip -p <jar> net/minecraft/…`). Prefer it over `//?`-gated source for anything behavioural, and
+`javap -c` for anything numeric.
+
 ## Current state (audit baseline, `.hermes-audit/audit.py`)
 
 Whole `com/jsmacrosce/jsmacros` tree: **495 classes, 3550 public methods, 2418 documented,
@@ -503,6 +522,38 @@ javadoc**; that is the only check covering the class of defect that matters most
     `Character.class` and no numeric export is exposed, so a `char` arrives as a one-character
     *string*. Consequences: `{@code String.fromCharCode(c)}` is wrong (`fromCharCode("c")` is `\0`);
     use `"§" + c`. **Do not "correct" prose to match the buggy `.d.ts` type.**
+21. **`pydoclet` drops every inline HTML element, and leaves the whitespace behind** (batch-17).
+    Verified empirically across **12 independent files**, not inferred: every one of
+    `DyeColorHelper`, `FormattingHelper`, `AdvancementHelper`, `CommandNodeHelper`,
+    `SuggestionsBuilderHelper`, `StyleHelper`, `PacketByteBufferHelper`,
+    `InteractionManagerHelper`, `StatsHelper`, `StateHelper`, `StatusEffectHelper` and
+    `EnchantmentHelper` has `<b>` in its Java and **0** in its generated `.py`. Same root cause as
+    quirk 6 (`<br>`): `pydoclet` switches on `DocTree.Kind` with no arm for these elements.
+    The cost is cosmetic but *visible* — `…in that list too<b>,</b>` becomes `…in that list too ,`
+    with a stray space before the punctuation, which reads as a typo in the stub. `.html` and `.d.ts`
+    render it correctly. `<b>` is already used in **35 files** in `common/`, so it is an established
+    convention and **batch-17 accepted it** rather than treating the 3 new uses as defects. Do not
+    reach for it in *new* prose where `{@code}` or sentence structure will do, but do not "fix" the
+    35 existing files either — same reasoning as quirk 6.
+22. **The `tsc` example gate has a silent-void trap: do NOT concatenate the headers into one file**
+    (batch-17). A top-level `import`/`export` anywhere in the set makes the whole thing a *module*,
+    so every global disappears — `Packages` and `Java` both report "cannot find" — and, fatally,
+    **a bogus method call on a real helper does not error at all.** That configuration reports a
+    clean run having checked nothing. Pass the headers as **separate `files` entries** to `tsc`. With
+    that wiring **no ambient shim file is required**: `World`/`Chat`/`Client` resolve as real global
+    namespaces straight from the tsdoclet header, and a fake method genuinely errors
+    (`Property 'getTOTALLY_BOGUS_9' does not exist on type 'BlockDataHelper'`). This is the batch-17
+    validator's finding and it is the strictest form of the "a check that never ran reports 0 errors,
+    in the same words as one that passed" rule.
+23. **"Stranded description" is only checkable on the RENDERED HTML, never by line position in the
+    source** (batch-17). A source-level check compares the first block tag to the first following
+    prose line, which fires identically on a **wrapped `@return` description**
+    (`@return {@code true} if …,\n{@code false} otherwise.`) — 53 false positives on batch-17's 20
+    files, against a true baseline of 0. The real signature in `build/docs/web/**.html` is a
+    `<p class="description">` appearing **after** `</table>` inside a `classItem` block: the doclet
+    wraps the example *inside* the description `<p>`, so a description after the params table is
+    unambiguous. That check is 0 across batch-17's 466 member blocks. **If you cannot make a source
+    checker reliable, fall back to the artefact rather than quoting a green number from it.**
 
 ### How to audit a batch — learned the hard way in batch-10 (6 validation rounds)
 
@@ -620,3 +671,17 @@ not just the initializer. **If a count of 16 comes out 14, suspect the parse bef
    the only check that finds the dominant defect class; see the audit section above.
 7. **Disprove any surprising report before acting on it.** Two of batch-10's validator findings were
    false. Re-derive the number yourself; a tally that came out short means the parse dropped entries.
+   **Batch-17 makes this the third batch where it fires, and in that one 2 of 5 findings were false —
+   so the prior is now roughly 1-in-3, not a rarity.** Both false ones were the *same* mistake: a
+   plausible-but-wrong reading of a convention, applied confidently and specifically.
+   - `Direction.toYRot()` is `(data2d & 3) * 90`, and `data2d` is the **third** enum argument, not the
+     first — so `DOWN` and `UP` both carry `−1` and both give `270`.
+   - `BlockStateProperties.LEVEL_FLOWING` is `1..8`, **not** the pre-1.20 `0..7`.
+   The tell in both: the report was *specific* and cited a real file and line, yet rested on an
+   assumption nobody had checked. **A citation is not a derivation.** When a finding says "X reads
+   field F", verify that F is the field being read — especially when the name is suggestive.
+   **Make "verify before editing" an explicit instruction to every fix-writer**; both times in
+   batch-17 the fix-writer's refusal to edit is what saved correct documentation.
+   Corollary now recorded from the same batch: **a false finding can still sit next to a real
+   defect.** `getLevel()`'s scale prose was right but its *example* was genuinely broken. Discard
+   only the specific claim that is wrong, then keep auditing the surrounding block.
