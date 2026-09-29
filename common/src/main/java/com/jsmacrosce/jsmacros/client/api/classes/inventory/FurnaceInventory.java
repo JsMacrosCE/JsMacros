@@ -24,6 +24,30 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
         super(inventory);
     }
 
+    /**
+     * the result slot, which is what the furnace is working towards.
+     * <p>
+     * This reads the slot rather than working out the recipe, so it is whatever the client
+     * currently has there. The input it is working from is {@link #getSmeltedItem()}, and
+     * whether the furnace is lit at all is {@link #isBurning()}, so those three together say
+     * more about the state of the furnace than this does on its own.
+     * <p>
+     * It is slot 2 of the menu, the same as {@code getSlot(2)}; the furnace's three slots are
+     * the input, the fuel and then this one.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * if (inv.is("Furnace")) {
+     *   const out = inv.getOutput();
+     *   if (!out.isEmpty()) {
+     *     Chat.log(`smelting into ${out.getName()}`);
+     *   }
+     * }
+     * </pre>
+     *
+     * @return the item in the result slot
+     * @since 1.8.4
+     */
     @Override
     public ItemStackHelper getOutput() {
         return new ItemStackHelper(inventory.getMenu().getResultSlot().getItem());
@@ -39,16 +63,42 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
         return getSmeltedItem();
     }
 
+    /**
+     * always 1, because a furnace has a single input slot rather than a grid.
+     * <p>
+     * The furnace is a recipe inventory only in the sense that it has an input and an output, so
+     * the grid measurements are fixed rather than read from anything. Both of them being 1 is
+     * what makes {@link #getInputSize()} come back as 1 here.
+     * @return 1
+     * @since 1.8.4
+     */
     @Override
     public int getCraftingWidth() {
         return 1;
     }
 
+    /**
+     * always 1, because a furnace has a single input slot rather than a grid.
+     * <p>
+     * The furnace is a recipe inventory only in the sense that it has an input and an output, so
+     * the grid measurements are fixed rather than read from anything.
+     * @return 1
+     * @since 1.8.4
+     */
     @Override
     public int getCraftingHeight() {
         return 1;
     }
 
+    /**
+     * always 1, the number of input slots a furnace has.
+     * <p>
+     * This is the count of input slots, so the fuel slot is not part of it. It agrees with
+     * {@link #getCraftingWidth()} times {@link #getCraftingHeight()} here, which is what
+     * {@link #getInputSize()} computes.
+     * @return 1
+     * @since 1.8.4
+     */
     @Override
     public int getCraftingSlotCount() {
         return 1;

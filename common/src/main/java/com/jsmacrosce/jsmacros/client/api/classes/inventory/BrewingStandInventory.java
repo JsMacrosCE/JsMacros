@@ -15,6 +15,32 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
+ * a brewing stand with the three potion slots, the ingredient slot and the fuel slot broken
+ * out by name.
+ * <p>
+ * The slots this exposes are fixed, so unlike a chest there is no map to read:
+ * {@link #getFirstPotion()}, {@link #getSecondPotion()} and {@link #getThirdPotion()} are the
+ * bottles, {@link #getIngredient()} is what is being put in them, and {@link #getFuel()} is
+ * whatever is in the fuel slot, which is usually but not necessarily blaze powder.
+ * <p>
+ * The pair worth knowing about is the preview pair. {@link #previewPotions()} works out what
+ * the three bottles <i>would</i> become from the current ingredient without touching the
+ * stand, which is the cheap way to ask a brewing stand a question, and
+ * {@link #canBrewCurrentInput()} is the yes or no version of the same question.
+ * example:
+ * <pre>
+ * const inv = Player.openInventory();
+ * if (inv.is("Brewing Stand")) {
+ *   // what would the three bottles become?
+ *   for (const potion of inv.previewPotions()) {
+ *     Chat.log(potion.getName());
+ *   }
+ *   // and is it worth doing at all
+ *   if (inv.canBrewCurrentInput()) {
+ *     Chat.log(`brewing for another ${inv.getRemainingTicks()} ticks`);
+ *   }
+ * }
+ * </pre>
  * @author Etheradon
  * @since 1.8.4
  */

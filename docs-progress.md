@@ -722,7 +722,71 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   `Line.Builder.moveTo` rebuilds from `Math.abs` extents, so magnitudes survive but **signs do not**
   and a right-to-left line comes out mirrored.
 
-- [ ] batch-15 (client.api.classes.inventory, 11) — pending
+- [x] batch-15 (client.api.classes.inventory, 10) — done: **55 script-visible method gaps closed**,
+  `CommandManager`'s undocumented public field documented, and **56 `example:` blocks** added (the
+  package had zero). Build green, **0/10** non-comment changes, 0 `tsc` errors, 0 `&`/`<` in any
+  example, **0 documented `toString`** (8 exist in these files and must stay bare). 2 rounds.
+  *(My brief said "11 files" but enumerated 10; the writer flagged the discrepancy rather than
+  inventing an eleventh.)*
+
+  **THE SECOND SILENT VOID, and the same root cause as batch-14's worst defect: ANCHORING, NOT
+  ADJACENCY.** The writer put 12 javadoc blocks **between** `@Override` and the declaration
+  (`CraftingInventory` ×4, `FurnaceInventory` ×4, `PlayerInventory` ×4). Measured: **268** methods
+  repo-wide use the normal `/** */`→`@Override` order and exactly **12** used the anomalous one — all
+  12 from this batch. The effect is that the method ships with an **empty docstring** and the prose
+  appears in **zero** of the three output trees (`.py`, `.html` **and** `.d.ts`), while the normally
+  anchored control `FiltererModulus.test` ships fine. **~200 lines of prose and 6 of the batch's 56
+  examples were void** — the largest silent loss in the effort. The writer's own anchor sweep reported
+  "8 findings, 0 genuine"; the validator's found **13, all 13 genuine, all 13 created by this batch**.
+  **Lesson: an adjacency check — "is prose after a block tag?" — structurally cannot see either of
+  this effort's two worst defects. You need an anchor check: does the member named in the first
+  sentence, the example, and `@return` match the declaration immediately below?**
+
+  **The writer's stated cause for the above was wrong, and worth recording:** it concluded *"`pydoclet`
+  drops `@Override` docstrings, so 6 examples are `.html`/`.d.ts`-only."* **All three** doclets drop
+  them — they reach **none** of the outputs. That is a pre-existing docgen behaviour, not something
+  javadoc can work around, and misreading it is what hid the placement bug.
+
+  **B2 was the batch's own central mechanic, documented three different wrong ways.** `or()` **pops
+  two and pushes one merged node**, so calling it after a *multi-level* branch leaves the next argument
+  **under that branch's innermost node** (`/count/set/amount/show`, not `/count/set/show`). The class
+  doc, the `or()` example and the `or(2)` example each asserted a flatter shape, and `or()`'s own prose
+  (*"build a branch to its end, call this, then build the next one"*) is precisely the sequence that
+  produces the shape its own example comment **denied** — the file was self-contradictory about its
+  central mechanic. All three re-derived and fixed, the `or()` example now really produces
+  `/count show` and the `or(2)` example correctly says the next literal lands *under* `set`.
+
+  **Three more single wrong facts, all the signature class:** `CommandManager` was described as
+  *"owning two things"* when `CommandManagerFabric`/`Forge` **have no fields at all** (the command list
+  is read live from the connection and the builder map is `private static` on `CommandBuilder*`);
+  `PlayerInventory` said `getInputSize()` "works" when it is `getCraftingHeight() * getCraftingWidth()`
+  = `0 * 0` = `0`, **contradicting the writer's own correct text 30 lines later**; and `CommandBuilder`
+  claimed the slot-name set was "not fully enumerable from the class file" when
+  `javap -c` prints `SlotRanges.method_58084` **in full**.
+
+  **Writer self-caught, and the audit did its job:** its 4-part audit found **7 errors in its own new
+  prose** (including an *inverted* `literalArg`/`suggests` claim and a class doc saying a builder "can
+  be registered again" when `register()` pops the stack — probe: second call throws
+  `EmptyStackException`). It also filled 4 pre-existing **empty** `@param` tags in `Inventory`,
+  repaired a pre-existing misfiled block in `unregister()` that sat after `@since`, and removed its own
+  **`* NOTE for the validator:` scaffolding that was shipping to end users in 6 generated artifacts** —
+  which the validator caught, the writer had not noticed.
+
+  **A tooling failure that passed two gates.** The writer's helper script wrote example `if`/`}` lines
+  with **no leading `*`** — 14 malformed javadoc lines — and **the build passed and the non-comment
+  gate passed**, because the text is still lexically inside the comment; only the doclets' per-line
+  `*`-stripping was affected. It wrote a checker to find it (proven on an injection), fixed it, then
+  found its repair had flattened nested indentation and rebuilt the blocks from brace depth. The
+  validator confirmed **0** malformed lines remain across 1692 inner-comment lines.
+
+  **Source defects found (documented, not fixed):** **`CommandBuilder.or()` is loader-dependent** —
+  Fabric no-ops at the head (`if (size>1){…}`, no `else`) while NeoForge throws
+  `AssertionError("Can't use or() on the head of the command")`; documented honestly rather than
+  picking one. `itemSlotArg` parses a **named slot range that must cover exactly one slot**
+  (`ERROR_UNKNOWN_SLOT` / `ERROR_ONLY_SINGLE_SLOT_ALLOWED`), and the accepted names are prefixes —
+  bare `armor`/`player`/`hotbar` do not parse but `hotbar.*` does.
+
+- [ ] batch-16 (client.api.classes.inventory, remaining) — pending
 - [ ] batch-16 (client.api.classes.inventory, 11) — pending
 - [ ] batch-17 (client.api.helper.world + helper.inventory, 20) — pending
 - [ ] batch-18 (client.api.helper.world.entity + helper.screen, 21) — pending
