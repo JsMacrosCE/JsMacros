@@ -475,6 +475,82 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   `href="#"` links from the doclet's own generic `@return` type links (1236 site-wide).
 
 - [ ] batch-12 (worldscanner + client.api.classes core, 7) — pending
+- [x] batch-12 (worldscanner + client.api.classes core, 7) — done: `WorldScannerBuilder` **0 → 25**
+  documented, `FakeServerCommandSource` 0 → 13, `InteractionProxy` 0 → 1, plus the `CustomImage`
+  field and 4 small gaps; **169 `example:` blocks** (the package had zero). Build green, **0/7**
+  non-comment changes, 0 `&`/`<` inside any example, `tsc` clean over the examples. 3 rounds.
+  `InteractionProxy`'s `toString()` left bare.
+
+  **The first pass was a REGRESSION and had to be repaired — the most important thing in this
+  entry.** The validator found **6 blocking defects, 3 of them mechanical corruption of the work
+  itself**:
+  - **11 lines of correct pre-existing documentation deleted** from `InteractionProxy`, leaving
+    *"Can be one of the following reason:"* with **nothing following** and a dangling "for example"
+    with no antecedent — while the `@DocletDeclareType` still emitted all 11 reason literals, so
+    readers saw 11 opaque strings. **Restored verbatim from HEAD.** This is the "a tag may be
+    replaced, never silently dropped" rule generalised to *prose*, and it is now a standing check.
+  - **27 sentences truncated mid-clause** (0 at HEAD), e.g. `* Without this the` followed by empty
+    `* ` lines — 11 in `FakeServerCommandSource`, 16 in `RegistryHelper`, leaving 121 stray
+    whitespace-only lines. All 27 completed from the bodies.
+  - **83 description paragraphs misfiled *after* their block tags** (0 at HEAD), so in the shipped
+    web doc the **version badge carried the whole paragraph and the example** with the real
+    one-line summary stranded after them. 74 blocks reordered to the canonical
+    **description → `example:` → block tags**; the shipped HTML was checked afterwards.
+
+  **The 3 factual defects were the usual class:** `WorldScanner`'s map keys were described wrongly on
+  **both** branches — `ignoreState=true` gives `Block{minecraft:stone}` (not `minecraft:stone`, it is
+  `Block.toString()`'s recipe) and `ignoreState=false` was claimed to be "the id with its property
+  list" when the fix-writer had to check `StateHolder`; `CustomImage.IMAGES` keys documented as
+  `jsmimage/overlay` when `ResourceLocation.parse` puts them in the **default namespace**, so the
+  example could never match (and its `if (found !== undefined)` guard did not narrow, because the
+  typings declare `Map.get` as returning `V | null` — **2 real `TS18047` errors**); and `TextBuilder`
+  documented as finishing a nested builder when `BaseHelper` stores the reference, so it is **live**.
+
+  **A writer claim about the tsc baseline was an ARTIFACT and I nearly accepted it.** The fix-writer
+  reported "58 `Cannot find name 'Java'` errors" and could not reproduce the 532 baseline. I ran the
+  check myself: `Graal.d.ts` alone makes every `Java.type(...)` return `unknown` and leaves `Chat`
+  undeclared, so **58 of those were the missing-headers trap, not real defects.** With the generated
+  `.d.ts` **combined with** `docs/typescript/headers/*.d.ts`, all 56 `Java.type` examples produce
+  **2** errors — both the `TS18047` above, now fixed. The correct invocation compiles **233 files**;
+  a headers-less run reports tens of thousands of errors and is meaningless. **This is now gate 6
+  in docs-plan.md, and the "532" figure only means anything with the full header set.**
+
+  **The one error left is a typings gap, not a bad example:** `FakeServerCommandSource`'s
+  `customSuggestion` example gets `TS7006` because the class is effectively **absent from the shipped
+  `.d.ts`** (2 mentions, no class block), so `getSource()` is `any` and the callback is untyped.
+  Left as-is deliberately — annotating would trade it for `TS2304` plus another parameter
+  annotation.
+
+  **2 pre-existing broken examples fixed (this is BATCH-12's own file, as batch-11 flagged).**
+  `WorldScannerBuilder`'s `.contains("stone")` does **not** type-check: `Contains<BlockToString, S>`
+  collapses to the whole `` `BlockHelper:{"id": "${string}"}` `` template, so the argument is not a
+  substring search at all. Replaced with `matches(".*_ore.*")`, verified by reproducing the exact
+  `TS2345` first. The same forms in `FWorld.java` are batch-09 and **committed — left untouched**;
+  this needs a follow-up on a branch that owns that file.
+
+  **Pre-existing false claims corrected:** `toString` was documented as giving `{minecraft:stone}`
+  (it is `BlockHelper:{"id": "minecraft:stone"}`); `getChunkRange`'s `@return` said "a list of all
+  matching block positions" (it is a list of `ChunkPos`); `getClipBounds` said "an array" (a
+  `Rectangle`); and a new line the writer wrote itself — "0 to 10 is eleven blocks wide" — was
+  **ten**, because the exclusive overload passes `x2-1` into an inclusive loop. That last one is the
+  method both earlier batches used to trust: **run your own arithmetic, do not assume your prose
+  matches your probe.**
+
+  **Source defects found (documented, not fixed).** `CustomImage.drawImage(9-arg)` passes `image`
+  where `img` is meant, so it draws the wrong image; `CustomImage.saveImage` calls `mkdirs()` on a
+  path ending `.png`; `CustomImage.createWidget(String,String)` NPEs because `ImageIO.read` returns
+  `null` silently, so the `@Nullable` only covers the `IOException`; `WorldScannerBuilder.java:273`
+  instantiates `StringifyFilter<BlockStateFilter>` against a `BlockStateHelper` field (compiles only
+  via an unchecked cast, while the block branch is right); the dead `case XOR:`; and the `char`
+  branch of `ClassWrapperFilter.getFilter`, unreachable because no helper declares a `char`-returning
+  method. Four `@see` on `CustomImage.loadImage` were removed — they were leaking raw into the
+  shipped `.d.ts` — with the information carried into prose and examples.
+
+  **A proven docgen win, worth keeping:** the six-operator list in `WorldScannerBuilder` used a
+  pre-existing `&lt;` that pydoclet **deletes**, so Python readers saw only four operators and
+  `&lt;=` rendered as `' ='` — actively misleading. `{@code "<"}` makes the bare `<` survive and all
+  six now render.
+
 - [ ] batch-13 (client.api.classes.render + components3d, 12) — pending
 - [ ] batch-14 (client.api.classes.render.components, 9) — pending
 - [ ] batch-15 (client.api.classes.inventory, 11) — pending

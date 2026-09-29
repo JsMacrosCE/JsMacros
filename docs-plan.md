@@ -550,7 +550,15 @@ not just the initializer. **If a count of 16 comes out 14, suspect the parse bef
 1. `./gradlew generatePyDoc generateTSDoc generateWebDoc` must succeed — javadoc parse errors
    are a hard failure.
 2. Every new/modified `example:` resolved symbol-by-symbol against the actual Java source.
-3. Where feasible, type-check examples against the generated TypeScript definitions.
+3. Where feasible, type-check examples against the generated TypeScript definitions. **Run `tsc`
+   against the fresh `build/docs/typescript/headers/JsMacrosCE-2.0.0.d.ts` **combined with**
+   `docs/typescript/headers/*.d.ts`, and confirm a non-zero compiled-file count.** Compiling the
+   headers alone, or `Graal.d.ts` alone, is meaningless: `Graal.d.ts` alone makes every
+   `Java.type(...)` return `unknown` and leaves the `@Library` globals (`Chat`, `World`, …)
+   undeclared, which manufactures **dozens of fake errors** and a four-figure `skipLibCheck:false`
+   count. A batch-12 round reported "58 `Cannot find name 'Java'` errors" from exactly this mistake;
+   with the correct invocation the same examples produced **2**. The only meaningful
+   `skipLibCheck:false` baseline is **532**, and it is meaningless without the full header set.
 4. Flag (never silently drop) unverifiable examples; list them for the in-game test queue.
 5. **Byte-level check of the generated `.py`** — `&` and `<` must be 0 inside every `example:`.
    Grepping for entities is useless (the damage is a *deletion*); and `node --check` passes the
