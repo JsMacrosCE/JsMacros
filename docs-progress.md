@@ -393,7 +393,6 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   support at all** (0 `Raises:` across 632 generated files vs 47 Java files using `@throws`).
   `tsdoclet` and `pydoclet` **disagree on `char` returns** — `number` vs `str`; the pydoclet is
   correct, since Truffle exports `Character` as a string.
-- [ ] batch-11 (client.api.classes.worldscanner.filter.**, 17) — pending
 - [x] batch-11 (client.api.classes.worldscanner.filter.**, 17) — done: the package the plan called
   the worst-documented in the codebase (**31 methods, 1 documented, 0 examples**) is now **59
   documented members and 48 `example:` blocks**, with all 17 class docs present. Build green,
@@ -474,7 +473,6 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   `StringCompareFilter` example renders without the marker; and the 17 pages carry 20 degenerate
   `href="#"` links from the doclet's own generic `@return` type links (1236 site-wide).
 
-- [ ] batch-12 (worldscanner + client.api.classes core, 7) — pending
 - [x] batch-12 (worldscanner + client.api.classes core, 7) — done: `WorldScannerBuilder` **0 → 25**
   documented, `FakeServerCommandSource` 0 → 13, `InteractionProxy` 0 → 1, plus the `CustomImage`
   field and 4 small gaps; **169 `example:` blocks** (the package had zero). Build green, **0/7**
@@ -551,7 +549,6 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   `&lt;=` rendered as `' ='` — actively misleading. `{@code "<"}` makes the bare `<` survive and all
   six now render.
 
-- [ ] batch-13 (client.api.classes.render + components3d, 12) — pending
 - [x] batch-13 (client.api.classes.render + components3d, 12) — done: **342 `example:` blocks** (the
   package had zero), ~63 method gaps and 28 public fields closed, 178 javadoc blocks reordered to the
   canonical **description → `example:` → block tags**, and `Draw3D`'s class doc replaced (it was the
@@ -636,7 +633,6 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   repo-wide count of the 31 known ones is unchanged. That convention is a separate repo-wide
   decision, deliberately untouched.
 
-- [ ] batch-14 (client.api.classes.render.components, 9) — pending
 - [x] batch-14 (client.api.classes.render.components, 9) — done: **65 of 65 previously-undocumented
   public fields** documented (0 at HEAD) plus `RenderElement.mc`, all 38 method gaps closed, and
   **409 `example:` blocks** (the package had zero). Build green, **0/9** non-comment changes, **0
