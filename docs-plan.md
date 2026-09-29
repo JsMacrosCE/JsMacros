@@ -477,11 +477,19 @@ javadoc**; that is the only check covering the class of defect that matters most
     reason and let the prose carry it. Root cause of such absences: `tsdoclet/Main.java:41-43`
     whitelists only `client.api.helper.` and `client.api.classes.inventory.`; everything else is
     discovered only by being referenced from a whitelisted signature.
-15. **The web doclet silently drops `{@link}` labels** (found in batch-22, doclet-wide). `{@link
-    Foo#bar() Bar}` renders as `<a …>Foo#bar()</a>` — the label `Bar` is discarded, so the reader
-    sees the raw Java reference instead of the prose word the author intended. Not a correctness
-    problem, but a labelled link is worse than an unlabelled one. **Write `{@link Foo#bar()}` or
-    put the friendly word in the surrounding sentence** — do not rely on a label.
+15. **The web doclet silently drops `{@link}` labels** (found in batch-22, doclet-wide).
+    `{@link Foo#bar() Bar}` renders as `<a …>Foo#bar()</a>` — the label `Bar` is discarded, so the
+    reader sees the raw Java reference instead of the prose word the author intended. Not a
+    correctness problem, but a labelled link is worse than an unlabelled one. **Write `{@link
+    Foo#bar()}` or put the friendly word in the surrounding sentence** — do not rely on a label.
+    **Re-verified in batch-19:** a source `{@link #getPos() getPos()}` renders as
+    `EntityHelper#getPos()` (the target), the label gone. A writer challenged this rule citing a
+    rendering that was in fact a *target*, not a label. **The rule stands.** Note, however, that
+    **110 files at HEAD already use the labelled style**, so a label that merely repeats its own
+    target is inert-but-harmless and **tolerated** in new prose; only a label that names something
+    *different* from its target (e.g. `{@link #getLerpProgress(double) the display's own progress}`)
+    is worth avoiding, because there the dropped label loses real information. Do not churn existing
+    files to strip labels.
 16. **`tsdoclet` emits members regardless of javadoc**, except for Object overrides. The real rule in
     `ClassParser.genTSInterface():206-215` is that every public field/constructor and every
     non-obfuscated, non-Object method is emitted unconditionally; the *only* javadoc-conditional
