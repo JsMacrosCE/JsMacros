@@ -552,6 +552,90 @@ One line per batch. Updated after every batch. `ALL_COMPLETE` is appended when e
   six now render.
 
 - [ ] batch-13 (client.api.classes.render + components3d, 12) — pending
+- [x] batch-13 (client.api.classes.render + components3d, 12) — done: **342 `example:` blocks** (the
+  package had zero), ~63 method gaps and 28 public fields closed, 178 javadoc blocks reordered to the
+  canonical **description → `example:` → block tags**, and `Draw3D`'s class doc replaced (it was the
+  single line `{@link Draw2D} is cool`). Build green, **0/12** non-comment changes, **0 errors across
+  339 examples** under `tsc --strict` with the correct combined header set, 0 `&`/`<` in any example.
+  2 rounds. The writer **could not spawn an independent validator** (subagent depth limit), which is
+  why this batch got one — worth knowing for later batches.
+
+  **The first pass shipped 17 unusable examples and a regression; both fixed in round 2.** The 9
+  `IScreen` widget-builder examples called `buildAndAdd()`, which exists **only on the 6 Draw3D
+  element builders** — the screen builders terminate on `build()`. 7 examples called
+  `player.getInventory()`, which **exists nowhere** (only `getInventorySize()` on a horse helper), and
+  1 called `button.getScreen()`, likewise absent. The round-2 writer read all 7 builder classes and
+  replaced them with real methods (`.message`/`.action`/`.initially`/`.enabledTexture`/…), and while
+  doing so discovered `AbstractWidgetBuilder.build()` *does* call `screen.reAddElement` — so the
+  original reasoning was right and only the name was wrong.
+
+  **A `@see` RE-POINTING that made things worse — now a standing ruling: report and leave, never
+  re-point.** The first pass "fixed" 5 stale `@see` on `Draw2D.addItem` and pointed **all 12** at the
+  simplest 3-arg overload, so six `ItemStackHelper` methods linked to a `String` overload — and
+  amplified the known raw-`@see`-leaks-into-the-`.d.ts` defect from 12 correct values to 12 identical
+  wrong ones. At HEAD there were only **6** and they were already correct and distinct. **Reverted to
+  the HEAD values**; the same pass had added 16 more such tags on `addText`/`addImage`/`addRect`/
+  `removeLine`, which were also reverted. Rule now in the writer brief: `@see` is a bad lever (the
+  web doclet ignores it, `tsdoclet` emits it raw), so touching it buys nothing and risks exactly this.
+
+  **`Surface`'s subdivision default was a one-number-two-truths split — the signature defect class.**
+  `Surface.java:68` claimed "the default subdivision count of `200`", but `Surface.Builder` initialises
+  `minSubdivisions = 1`; 200 is only what `Draw3D.addDraw2D`'s short forms pass literally. It also
+  contradicted the writer's **own** text 1500 lines later ("The default here is `1`") and its own
+  example ("the default is a single pixel"). Fixed, then swept all 30 field initialisers across the
+  five `components3d` builders and all 74 "the default is" sentences — every other one verified
+  correct, including two genuine builder-vs-instance inversions (`rotateCenter`, `renderBack`) that
+  were left and are properly documented.
+
+  **A false `@param` was "corrected" by apologising for it, which is worse.** `IScreen`'s
+  `setOnScroll` said the second argument is a `Double`; the code passes a `Pos2D`. The first pass
+  left the tag byte-identical to HEAD and added prose *asserting the tag was wrong* — which also
+  called the tag "above" when it is below, and left the false `Double` shipping into the `.d.ts`. The
+  round-2 writer fixed the tag itself and deleted the apology. The underlying finding was sound
+  (`MixinScreen.java:1059` passes `new Pos2D(horiz, vert)`), and the shipped header now reads
+  `BiConsumer<Pos2D, Pos2D>`.
+
+  **THE `tsc` "532" BASELINE IS NOISE — corrected in docs-plan.md, and this cost real time.** Across
+  rounds subagents reported the "same" header baseline as **528 / 532 / 549 / 153 / 10427**, because
+  the number depends entirely on which files are handed to `tsc`. I could not reproduce 532 either
+  (my file set gives 153). Two things are actually verifiable and both hold: the **project's own
+  tsconfig** (`tsc -p build/docs/typescript/tsconfig.json --noEmit`) gives **0 errors**, and the
+  **examples** type-check at **0** against the correct combined header set. The structural guarantee
+  that no shipped member set changed is **zero non-comment lines**, not a `tsc` count — javadoc only
+  reaches the `.d.ts` as comment text. Also note a `skipLibCheck: false` run *always* shows errors for
+  any example touching a `JavaList`/`JavaMap`/`Packages` alias, because those are the dangling error
+  types, so the examples' gate must be the `skipLibCheck: true` run.
+
+  **A writer caught and corrected one of its own numbers, twice, which is the right instinct:**
+  `addSlider` was first documented as "10 steps moves in tenths", then corrected to **ten positions in
+  ninths** (`steps = (steps>1?steps:2)-1` with `roundValue(v)=round(v*steps)/steps`, so `steps<=1`
+  becomes 2); and the unset button textures were first said to fall back to the enabled sprite, which
+  is false because `ButtonWidgetHelper.java:229` uses the 4-arg canonical `WidgetSprites` record (checked
+  against five MC source trees). It also found a stale `0.5`-as-waist-height claim duplicated at
+  `Draw3D.java:726`.
+
+  **The `cull` flag is genuinely the inverse of its name, in all three places, and that is now
+  documented** (validator-confirmed): `Box` `seeThrough = !this.cull` (`:474`), `Line3D`
+  `cull = !alwaysOnTop` (`:315`), `Surface` `(!cull) != alwaysOnTop` (`:736`, algebraically identical
+  to `Draw3D.java:1435`, **not** a discrepancy).
+
+  **Source defects found (documented, not fixed):** `Draw2D.addItem(int,int,int,…)` has an
+  unconditional `return null`; `SurfaceRenderTypes.lines(boolean)` has **no caller** and its two culled
+  `quads` variants are unreachable (`Rect.java:360` and `Line.java:356` both hard-code `cull=false`),
+  so nothing is ever built at all; `Box.compareToSame`'s `instanceof Box` branch is always true;
+  `Surface.Builder.pos(Pos3D)` hands the builder's **same** `Pos3D` to the surface it builds, so
+  `surface.setPos(...)` moves the builder's position too; `Draw2D.init()` with no init function leaves
+  nested overlays uninitialised (the recursive call is inside the `if (onInit != null)` branch); and
+  `ScriptScreen.onClose()` with no parent traps the player (`openParent()` → `setScreen(null)`).
+
+  **`SurfaceRenderTypes` correctly has 0 examples** — it has 0 occurrences in the shipped `.d.ts`
+  (it is not referenced from any whitelisted signature), so a `Java.type(...)` example would type as
+  `unknown`. The other 11 classes are all present and their examples work.
+
+  **No TypeScript parameter annotations were added** in this batch (HEAD has 0 in all 12 files), so the
+  repo-wide count of the 31 known ones is unchanged. That convention is a separate repo-wide
+  decision, deliberately untouched.
+
 - [ ] batch-14 (client.api.classes.render.components, 9) — pending
 - [ ] batch-15 (client.api.classes.inventory, 11) — pending
 - [ ] batch-16 (client.api.classes.inventory, 11) — pending

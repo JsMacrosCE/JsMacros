@@ -555,10 +555,27 @@ not just the initializer. **If a count of 16 comes out 14, suspect the parse bef
    `docs/typescript/headers/*.d.ts`, and confirm a non-zero compiled-file count.** Compiling the
    headers alone, or `Graal.d.ts` alone, is meaningless: `Graal.d.ts` alone makes every
    `Java.type(...)` return `unknown` and leaves the `@Library` globals (`Chat`, `World`, …)
-   undeclared, which manufactures **dozens of fake errors** and a four-figure `skipLibCheck:false`
-   count. A batch-12 round reported "58 `Cannot find name 'Java'` errors" from exactly this mistake;
-   with the correct invocation the same examples produced **2**. The only meaningful
-   `skipLibCheck:false` baseline is **532**, and it is meaningless without the full header set.
+   undeclared, which manufactures **dozens of fake errors**. A batch-12 round reported "58
+   `Cannot find name 'Java'` errors" from exactly this mistake; with the correct invocation the same
+   examples produced **2**.
+
+   > **Do NOT gate on a bare "532". Corrected in batch-13.** That number was an artefact of one
+   > ad-hoc file set, and across rounds subagents variously reported **528 / 532 / 549 / 153 /
+   > 10427** for the "same" check — because the result depends entirely on *which* files are handed
+   > to `tsc`. The two figures that actually mean something, and which I have verified:
+   >
+   > - **The project's own tsconfig** — `tsc -p build/docs/typescript/tsconfig.json --noEmit` —
+   >   gives **0 errors**, and is what a user or CI runs. It sets `skipLibCheck: true`; with that flag
+   >   off the header tree produces a large, file-set-dependent number that means nothing on its own.
+   > - **The examples, individually, against the correct combined header set** — must be **0**. Wrap
+   >   each example in `{ }` in its own file so every error is attributable, and note that a
+   >   `skipLibCheck: false` run will *always* show errors for any example that touches a `JavaList`
+   >   / `JavaMap` / `Packages` alias, because those are the dangling error types above — so the
+   >   examples' gate is the `skipLibCheck: true` run.
+   >
+   > The structural guarantee that no *shipped member set* changed is **gate 5 (zero non-comment
+   > lines)**, not a `tsc` count: javadoc can only reach the `.d.ts` as comment text, so untouched
+   > signatures and untouched `@Doclet*` annotations mean the emitted interface is unchanged.
 4. Flag (never silently drop) unverifiable examples; list them for the in-game test queue.
 5. **Byte-level check of the generated `.py`** — `&` and `<` must be 0 inside every `example:`.
    Grepping for entities is useless (the damage is a *deletion*); and `node --check` passes the
