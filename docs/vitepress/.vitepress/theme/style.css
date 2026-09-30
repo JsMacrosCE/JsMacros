@@ -190,11 +190,55 @@
 
 .vp-doc .overload-body pre {
   overflow-x: auto;
+  overflow-y: hidden;
   margin: 0.65rem 0;
   padding: 0.85rem 1rem;
   border-radius: 6px;
-  background: var(--vp-code-block-bg);
   line-height: 1.5;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.vp-doc .overload-body pre.shiki {
+  /* Shiki's inline light background otherwise wins over the theme. */
+  background-color: var(--vp-code-block-bg) !important;
+}
+
+html.dark .vp-doc .overload-body pre.shiki,
+html.dark .vp-doc .overload-body pre.shiki span {
+  color: var(--shiki-dark, inherit) !important;
+  font-style: var(--shiki-dark-font-style, inherit) !important;
+  font-weight: var(--shiki-dark-font-weight, inherit) !important;
+  text-decoration: var(--shiki-dark-text-decoration, inherit) !important;
+}
+
+.vp-doc .overload-body pre:hover,
+.vp-doc .overload-body pre:focus-visible {
+  scrollbar-color: var(--vp-c-text-3) transparent;
+}
+
+.vp-doc .overload-body pre::-webkit-scrollbar {
+  height: 8px;
+}
+
+.vp-doc .overload-body pre::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: transparent;
+}
+
+.vp-doc .overload-body pre:hover::-webkit-scrollbar-thumb,
+.vp-doc .overload-body pre:focus-visible::-webkit-scrollbar-thumb {
+  background: var(--vp-c-text-3);
+}
+
+@media (hover: none) {
+  .vp-doc .overload-body pre {
+    scrollbar-color: var(--vp-c-text-3) transparent;
+  }
+
+  .vp-doc .overload-body pre::-webkit-scrollbar-thumb {
+    background: var(--vp-c-text-3);
+  }
 }
 
 .vp-doc .overload-body pre code {
