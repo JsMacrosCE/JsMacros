@@ -328,11 +328,11 @@ public class MarkdownWriter {
 
         String desc = formatDescription(clz.docComment(), clz);
         String descText = desc.isEmpty() ? "TODO: No description supplied\n" : desc;
+        md.paragraph(descText);
         if (clz.group() == ClassGroup.Library) {
             String accessName = clz.alias() == null || clz.alias().isEmpty() ? clz.name() : clz.alias();
-            descText += "<br>Accessible in scripts via the global " + MarkdownBuilder.codeSpan(accessName) + " variable.";
+            md.paragraph("Accessible in scripts via the global " + MarkdownBuilder.codeSpan(accessName) + " variable.");
         }
-        md.paragraph(descText);
 
         // Skip constructors for libraries
         if (clz.group() != ClassGroup.Library) {

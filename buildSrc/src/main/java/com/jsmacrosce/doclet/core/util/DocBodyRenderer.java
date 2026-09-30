@@ -278,8 +278,9 @@ public final class DocBodyRenderer {
         s = s.replaceAll("<br ?/?>", "\n");
         // <p> continuation → newline (strip the tag itself)
         s = s.replaceAll("\n ?<p>", "\n").replaceAll("^<p>", "");
-        // <pre>...</pre> → fenced code block
-        s = s.replaceAll("</?pre>", "```");
+        // Javadoc script examples are JavaScript; let VitePress highlight them.
+        // Terminate the closing fence before any adjacent <br> or prose.
+        s = s.replace("<pre>", "```js").replace("</pre>", "```\n");
         // Leave <a href> intact — the outer step converts it to a Markdown link.
         return s;
     }
