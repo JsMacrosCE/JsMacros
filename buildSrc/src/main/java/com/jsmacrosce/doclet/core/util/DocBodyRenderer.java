@@ -161,7 +161,11 @@ public final class DocBodyRenderer {
                 case DocBodyNode.Html(var raw) -> sb.append(processHtmlForInline(raw));
             }
         }
-        return sb.toString().trim();
+        // The Javadoc <pre> marker and the first line of an example are
+        // separate nodes. Do not leave that separator as an empty code line.
+        return sb.toString().trim()
+            .replaceAll("(<pre><code>)\\s+", "$1")
+            .replaceAll("\\s+(</code></pre>)", "$1");
     }
 
     /**

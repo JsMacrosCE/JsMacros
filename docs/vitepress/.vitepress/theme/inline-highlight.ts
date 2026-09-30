@@ -1,5 +1,9 @@
 import type { MarkdownRenderer } from 'vitepress'
 
+// Generated Javadoc examples live inside raw HTML overload panels, where
+// Markdown's normal fenced-code highlighter never sees them.
+const generatedExample = /<pre><code>([\s\S]*?)<\/code><\/pre>/g
+
 function getInlineCodeLang(token: { attrs?: [string, string][] }): string | null {
   if (!token.attrs?.length) return null
 
@@ -47,6 +51,27 @@ export function inlineHighlightPlugin(
   md: MarkdownRenderer,
   highlighter: any
 ) {
+  const originalHtmlBlock = md.renderer.rules.html_block ??
+    ((tokens, idx) => tokens[idx].content)
+
+  md.renderer.rules.html_block = (tokens, idx, options, env, self) => {
+    const html = originalHtmlBlock(tokens, idx, options, env, self)
+    if (!html.includes('<pre><code>')) return html
+
+    return html.replace(generatedExample, (_match, encoded: string) => {
+      // Doclet HTML has escaped both newlines and JavaScript operators.
+      // Strip any Javadoc inline tags before decoding; Shiki escapes the
+      // resulting source again in its highlighted output.
+      const source = md.utils.unescapeAll(
+        encoded.replace(/<\/?(?:code|a)(?:\s[^>]*)?>/g, '')
+      ).trim()
+      return highlighter.codeToHtml(source, {
+        lang: 'javascript',
+        themes: { light: 'github-light', dark: 'github-dark' }
+      })
+    })
+  }
+
   const originalInlineCode =
     md.renderer.rules.code_inline ??
     ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options))
