@@ -17,7 +17,6 @@ import net.minecraft.world.entity.animal.horse.AbstractChestedHorse;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 //? }
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
@@ -37,6 +36,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+//? if >=26.1 {
+/*import net.minecraft.world.inventory.ContainerInput;
+*///? } else {
+import net.minecraft.world.inventory.ClickType;
+//? }
+
 /**
  * @author Wagyourtail
  * @since 1.0.8
@@ -44,6 +49,16 @@ import java.util.stream.IntStream;
 @DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public class Inventory<T extends AbstractContainerScreen<?>> {
+    private enum InventoryAction {
+        PICKUP,
+        CLONE,
+        QUICK_CRAFT,
+        THROW,
+        QUICK_MOVE,
+        PICKUP_ALL,
+        SWAP
+    }
+
     protected T inventory;
     protected AbstractContainerMenu handler;
     protected Map<String, int[]> map;
@@ -115,6 +130,30 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
         this.syncId = handler.containerId;
     }
 
+    private void clickContainer(int slot, int button, InventoryAction action) {
+        //? if >=26.1 {
+        /*man.handleContainerInput(syncId, slot, button, switch (action) {
+            case PICKUP -> ContainerInput.PICKUP;
+            case CLONE -> ContainerInput.CLONE;
+            case QUICK_CRAFT -> ContainerInput.QUICK_CRAFT;
+            case THROW -> ContainerInput.THROW;
+            case QUICK_MOVE -> ContainerInput.QUICK_MOVE;
+            case PICKUP_ALL -> ContainerInput.PICKUP_ALL;
+            case SWAP -> ContainerInput.SWAP;
+        }, player);
+        *///? } else {
+        man.handleInventoryMouseClick(syncId, slot, button, switch (action) {
+            case PICKUP -> ClickType.PICKUP;
+            case CLONE -> ClickType.CLONE;
+            case QUICK_CRAFT -> ClickType.QUICK_CRAFT;
+            case THROW -> ClickType.THROW;
+            case QUICK_MOVE -> ClickType.QUICK_MOVE;
+            case PICKUP_ALL -> ClickType.PICKUP_ALL;
+            case SWAP -> ClickType.SWAP;
+        }, player);
+        //? }
+    }
+
     /**
      * @param slot
      * @return
@@ -129,14 +168,13 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
      * Clicks a slot with a mouse button.~~if the slot is a container, it will click the first slot in the container
      *
      * @param slot
-     * @param mousebutton
+     * @param mouseButton
      * @return
      * @since 1.0.8
      */
-    @DocletReplaceParams("slot: int, mousebutton: Trit")
-    public Inventory<T> click(int slot, int mousebutton) {
-        ClickType act = mousebutton == 2 ? ClickType.CLONE : ClickType.PICKUP;
-        man.handleInventoryMouseClick(syncId, slot, mousebutton, act, player);
+    @DocletReplaceParams("slot: int, mouseButton: Trit")
+    public Inventory<T> click(int slot, int mouseButton) {
+        clickContainer(slot, mouseButton, mouseButton == 2 ? InventoryAction.CLONE : InventoryAction.PICKUP);
         return this;
     }
 
@@ -144,17 +182,21 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
      * Does a drag-click with a mouse button. (the slots don't have to be in order or even adjacent, but when vanilla minecraft calls the underlying function they're always sorted...)
      *
      * @param slots
-     * @param mousebutton
+     * @param mouseButton
      * @return
      */
-    @DocletReplaceParams("slots: int[], mousebutton: Bit")
-    public Inventory<T> dragClick(int[] slots, int mousebutton) {
-        mousebutton = mousebutton == 0 ? 1 : 5;
-        man.handleInventoryMouseClick(syncId, -999, mousebutton - 1, ClickType.QUICK_CRAFT, player); // start drag click
+    @DocletReplaceParams("slots: int[], mouseButton: Bit")
+    public Inventory<T> dragClick(int[] slots, int mouseButton) {
+        int quickCraftType = mouseButton == 0
+                ? AbstractContainerMenu.QUICKCRAFT_TYPE_CHARITABLE
+                : AbstractContainerMenu.QUICKCRAFT_TYPE_GREEDY;
+        // start drag click
+        clickContainer(AbstractContainerMenu.SLOT_CLICKED_OUTSIDE, AbstractContainerMenu.getQuickcraftMask(AbstractContainerMenu.QUICKCRAFT_HEADER_START, quickCraftType), InventoryAction.QUICK_CRAFT);
         for (int i : slots) {
-            man.handleInventoryMouseClick(syncId, i, mousebutton, ClickType.QUICK_CRAFT, player);
+            clickContainer(i, AbstractContainerMenu.getQuickcraftMask(AbstractContainerMenu.QUICKCRAFT_HEADER_CONTINUE, quickCraftType), InventoryAction.QUICK_CRAFT);
         }
-        man.handleInventoryMouseClick(syncId, -999, mousebutton + 1, ClickType.QUICK_CRAFT, player);
+        clickContainer(AbstractContainerMenu.SLOT_CLICKED_OUTSIDE, AbstractContainerMenu.getQuickcraftMask(AbstractContainerMenu.QUICKCRAFT_HEADER_END, quickCraftType), InventoryAction.QUICK_CRAFT);
+
         return this;
     }
 
@@ -163,7 +205,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
      * @since 1.5.0
      */
     public Inventory<T> dropSlot(int slot) {
-        man.handleInventoryMouseClick(syncId, slot, 0, ClickType.THROW, player);
+        clickContainer(slot, 0, InventoryAction.THROW);
         return this;
     }
 
@@ -174,7 +216,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
      * @since 1.8.4
      */
     public Inventory<T> dropSlot(int slot, boolean stack) {
-        man.handleInventoryMouseClick(syncId, slot, stack ? 1 : 0, ClickType.THROW, player);
+        clickContainer(slot, stack ? 1 : 0, InventoryAction.THROW);
         return this;
     }
 
@@ -335,7 +377,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     public Inventory<T> closeAndDrop() {
         ItemStack held = handler.getCarried();
         if (!held.isEmpty()) {
-            man.handleInventoryMouseClick(syncId, -999, 0, ClickType.PICKUP, player);
+            clickContainer(AbstractContainerMenu.SLOT_CLICKED_OUTSIDE, 0, InventoryAction.PICKUP);
         }
         close();
         return this;
@@ -358,7 +400,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
      * @return
      */
     public Inventory<T> quick(int slot) {
-        man.handleInventoryMouseClick(syncId, slot, 0, ClickType.QUICK_MOVE, player);
+        clickContainer(slot, 0, InventoryAction.QUICK_MOVE);
         return this;
     }
 
@@ -391,7 +433,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
                     && slot2.container == hoverSlotInv
                     && AbstractContainerMenu.canItemQuickReplace(slot2, cursorStack, true)) {
                 count += slot2.getItem().getCount();
-                man.handleInventoryMouseClick(syncId, slot2.index, button, ClickType.QUICK_MOVE, player);
+                clickContainer(slot2.index, button, InventoryAction.QUICK_MOVE);
             }
         }
         return count;
@@ -434,8 +476,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
         if (!getSlot(slot1).isEmpty() || !getSlot(slot2).isEmpty()) {
             throw new Exception("slots must be empty.");
         }
-        man.handleInventoryMouseClick(syncId, slot1, 1, ClickType.PICKUP, player);
-        man.handleInventoryMouseClick(syncId, slot2, 0, ClickType.PICKUP, player);
+        clickContainer(slot1, 1, InventoryAction.PICKUP);
+        clickContainer(slot2, 0, InventoryAction.PICKUP);
         return this;
     }
 
@@ -446,8 +488,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
      * @return
      */
     public Inventory<T> grabAll(int slot) {
-        man.handleInventoryMouseClick(syncId, slot, 0, ClickType.PICKUP, player);
-        man.handleInventoryMouseClick(syncId, slot, 0, ClickType.PICKUP_ALL, player);
+        clickContainer(slot, 0, InventoryAction.PICKUP);
+        clickContainer(slot, 0, InventoryAction.PICKUP_ALL);
         return this;
     }
 
@@ -467,11 +509,11 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
             return this;
         }
         if (!is1) {
-            man.handleInventoryMouseClick(syncId, slot1, 0, ClickType.PICKUP, player);
+            clickContainer(slot1, 0, InventoryAction.PICKUP);
         }
-        man.handleInventoryMouseClick(syncId, slot2, 0, ClickType.PICKUP, player);
+        clickContainer(slot2, 0, InventoryAction.PICKUP);
         if (!is2) {
-            man.handleInventoryMouseClick(syncId, slot1, 0, ClickType.PICKUP, player);
+            clickContainer(slot1, 0, InventoryAction.PICKUP);
         }
         return this;
     }
@@ -492,7 +534,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
                 throw new IllegalArgumentException("hotbarSlot must be between 0 and 8 or 40 for offhand.");
             }
         }
-        man.handleInventoryMouseClick(syncId, slot, hotbarSlot, ClickType.SWAP, player);
+        clickContainer(slot, hotbarSlot, InventoryAction.SWAP);
         return this;
     }
 
@@ -516,7 +558,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
         }
         Slot s = ((IInventory) this.inventory).jsmacros_getSlotUnder(x, y);
         if (s == null) {
-            return -999;
+            return AbstractContainerMenu.SLOT_CLICKED_OUTSIDE;
         }
         return this.handler.slots.indexOf(s);
     }

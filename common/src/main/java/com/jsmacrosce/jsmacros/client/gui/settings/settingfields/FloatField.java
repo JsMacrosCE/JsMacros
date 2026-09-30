@@ -47,8 +47,16 @@ public class FloatField extends AbstractSettingField<Float> {
     }
 
     @Override
-    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //? if >=26.1 {
+    /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
+    *///? } else {
+    public void render(final GuiGraphics drawContext, int mouseX, int mouseY, final float delta) {
+    //? }
+        //? if >=26.1 {
+        /*drawContext.text(textRenderer, BaseScreen.trimmed(textRenderer, settingName, width / 2), x + 2, y + 1, 0xFFFFFFFF, false);
+        *///? } else {
         drawContext.drawString(textRenderer, BaseScreen.trimmed(textRenderer, settingName, width / 2), x + 2, y + 1, 0xFFFFFFFF, false);
+        //? }
     }
 
 }

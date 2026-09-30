@@ -28,11 +28,23 @@ public class TextOverlay extends OverlayContainer {
     }
 
     @Override
-    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //? if >=26.1 {
+    /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
+    *///? } else {
+    public void render(final GuiGraphics drawContext, int mouseX, int mouseY, final float delta) {
+    //? }
         renderBackground(drawContext);
         int x = this.centered ? Math.max(this.x + 3, this.x + 3 + (this.width - 6) / 2 - this.textRenderer.width(this.text) / 2) : this.x + 3;
+        //? if >=26.1 {
+        /*drawContext.textWithWordWrap(textRenderer, this.text, x, this.y + 5, width - 6, 0xFFFFFFFF, false);
+        *///? } else {
         drawContext.drawWordWrap(textRenderer, this.text, x, this.y + 5, width - 6, 0xFFFFFFFF, false);
+        //? }
+        //? if >=26.1 {
+        /*super.extractRenderState(drawContext, mouseX, mouseY, delta);
+        *///? } else {
         super.render(drawContext, mouseX, mouseY, delta);
+        //? }
     }
 
 }

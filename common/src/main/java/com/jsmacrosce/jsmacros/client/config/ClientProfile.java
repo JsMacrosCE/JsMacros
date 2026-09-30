@@ -39,15 +39,9 @@ import com.jsmacrosce.jsmacros.core.language.BaseWrappedException;
 
 import java.util.Arrays;
 
-//? if >=1.21.11 {
-/*import net.minecraft.advancements.criterion.BlockPredicate;
-import net.minecraft.advancements.criterion.NbtPredicate;
-import net.minecraft.advancements.criterion.StatePropertiesPredicate;
-*///? } else {
 import net.minecraft.advancements.critereon.BlockPredicate;
 import net.minecraft.advancements.critereon.NbtPredicate;
 import net.minecraft.advancements.critereon.StatePropertiesPredicate;
-//? }
 
 @DocletCategory("Configuration/Profiles")
 public class ClientProfile extends BaseProfile {
@@ -228,7 +222,7 @@ public class ClientProfile extends BaseProfile {
         runner.registerHelper(AdvancementProgress.class, AdvancementProgressHelper.class);
         runner.registerHelper(BlockPredicate.class, BlockPredicateHelper.class);
 //        runner.registerHelper(CommandContext.class, CommandContextHelper.class);
-        runner.registerHelper(CommandNode.class, CommandNodeHelper.class);
+        runner.registerHelper((Class) CommandNode.class, CommandNodeHelper.class);
         runner.registerHelper(DyeColor.class, DyeColorHelper.class);
         runner.registerHelper(ChatFormatting.class, FormattingHelper.class);
         runner.registerHelper(MultiPlayerGameMode.class, InteractionManagerHelper.class);

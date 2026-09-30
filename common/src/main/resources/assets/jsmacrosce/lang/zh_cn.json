@@ -32,7 +32,7 @@
   "jsmacrosce.stopped": "已停止",
   "jsmacrosce.disablewithscreen": "当任意界面开启时，禁用按键宏",
   "jsmacrosce.about": "关于",
-  "jsmacrosce.aboutinfo": "JS Macros 社区版\n作者: East_Arctica\n\n我的世界的 Javascript 宏模组。\n\n如需帮助，请参考网站或加入 Discord！",
+  "jsmacrosce.aboutinfo": "JS Macros 社区版\n作者: East_Arctica\n基于 WagYourTail 的工作\n\n我的世界的 Javascript 宏模组。\n\n如需帮助，请参考网站或加入 Discord！",
   "jsmacrosce.back": "返回",
   "jsmacrosce.erroropening": "打开文件时发生错误... \n\n",
   "jsmacrosce.save": "保存",

@@ -4,13 +4,26 @@ plugins {
     `java-library`
 }
 
+// Get minecraft version from stonecutter.active file
+val minecraftVersion = rootProject.file("stonecutter.active").readText().trim()
+val versionProject = project(":${minecraftVersion}")
+val targetJavaVersion = versionProject.property("java_version").toString().toInt()
+
+configurations.configureEach {
+    if (isCanBeResolved) {
+        attributes.attribute(org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, targetJavaVersion)
+    }
+}
+
 base {
     archivesName.set("${property("mod_id")}-graal")
 }
 
 java {
+    sourceCompatibility = JavaVersion.toVersion(targetJavaVersion)
+    targetCompatibility = JavaVersion.toVersion(targetJavaVersion)
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(property("java_version").toString().toInt()))
+        languageVersion.set(JavaLanguageVersion.of(targetJavaVersion))
     }
     withSourcesJar()
 }
@@ -18,9 +31,6 @@ java {
 repositories {
     mavenCentral()
 }
-
-// Get minecraft version from stonecutter.active file
-val minecraftVersion = rootProject.file("stonecutter.active").readText().trim()
 
 // Configuration for runtime dependencies to embed in the extension jar
 val embedDeps by configurations.creating {
@@ -36,40 +46,40 @@ dependencies {
     compileOnly(project(":common:${minecraftVersion}"))
 
     // Graal core dependencies - these get embedded
-    api("org.graalvm.sdk:graal-sdk:24.0.1")
-    implementation("org.graalvm.truffle:truffle-api:24.0.1")
-    implementation("org.graalvm.regex:regex:24.0.1")
-    implementation("org.graalvm.polyglot:polyglot:24.0.1")
+    api(libs.graal.sdk)
+    implementation(libs.graal.truffle.api)
+    implementation(libs.graal.regex)
+    implementation(libs.graal.polyglot)
 
     // Common library dependencies, google deps must align with neoforged
-    implementation("com.google.guava:guava:31.1-jre")
-    implementation("com.google.code.gson:gson:2.10")
-    implementation("org.slf4j:slf4j-api:2.0.16")
-    implementation("it.unimi.dsi:fastutil:8.5.15")
+    implementation(libs.guava.extension)
+    implementation(libs.gson)
+    implementation(libs.slf4j)
+    implementation(libs.fastutil)
 
     // Embed GraalVM dependencies
-    add(embedDeps.name, "org.graalvm.sdk:graal-sdk:24.0.1")
-    add(embedDeps.name, "org.graalvm.regex:regex:24.0.1")
-    add(embedDeps.name, "org.graalvm.truffle:truffle-api:24.0.1")
-    add(embedDeps.name, "org.graalvm.polyglot:polyglot:24.0.1")
-    add(embedDeps.name, "org.graalvm.sdk:collections:24.0.1")
-    add(embedDeps.name, "org.graalvm.sdk:nativeimage:24.0.1")
-    add(embedDeps.name, "org.graalvm.sdk:word:24.0.1")
+    add(embedDeps.name, libs.graal.sdk)
+    add(embedDeps.name, libs.graal.regex)
+    add(embedDeps.name, libs.graal.truffle.api)
+    add(embedDeps.name, libs.graal.polyglot)
+    add(embedDeps.name, libs.graal.collections)
+    add(embedDeps.name, libs.graal.nativeimage)
+    add(embedDeps.name, libs.graal.word)
 
     // Chrome Inspector and Profiler tools
-    implementation("org.graalvm.tools:chromeinspector-tool:24.0.1")
-    implementation("org.graalvm.tools:profiler-tool:24.0.1")
+    implementation(libs.graal.chromeinspector)
+    implementation(libs.graal.profiler)
 
     // Embed them
-    add(embedDeps.name, "org.graalvm.tools:chromeinspector-tool:24.0.1")
-    add(embedDeps.name, "org.graalvm.tools:profiler-tool:24.0.1")
+    add(embedDeps.name, libs.graal.chromeinspector)
+    add(embedDeps.name, libs.graal.profiler)
 
     // Test dependencies
     testImplementation(project(":extension"))
     testImplementation(project(":common:${minecraftVersion}"))
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testImplementation("org.jetbrains:annotations:20.1.0")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+    testImplementation(libs.junit.api)
+    testImplementation(libs.jetbrains.annotations)
+    testRuntimeOnly(libs.junit.engine)
 }
 
 // Collect embedded dependency paths for the json file

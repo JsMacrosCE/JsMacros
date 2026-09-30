@@ -1,10 +1,9 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
 import com.google.common.collect.ImmutableList;
-import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.components.events.AbstractContainerEventHandler;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -13,13 +12,18 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
+
 import org.apache.commons.lang3.StringUtils;
+
 import org.jetbrains.annotations.Nullable;
+
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.access.CustomClickEvent;
 import com.jsmacrosce.jsmacros.api.math.Pos2D;
 import com.jsmacrosce.jsmacros.api.math.Vec2D;
@@ -39,6 +43,12 @@ import com.jsmacrosce.wagyourgui.elements.Slider;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+
+//? if >=26.1 {
+/*import net.minecraft.client.gui.ActiveTextCollector;
+import net.minecraft.client.gui.TextAlignment;
+*///?}
+import net.minecraft.client.gui.GuiGraphics;
 
 @SuppressWarnings("AddedMixinMembersNamePattern")
 @Mixin(Screen.class)
@@ -706,12 +716,12 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
 
     @Override
     public CyclingButtonWidgetHelper<?> addCyclingButton(int x, int y, int width, int height, int zIndex, String[] values, String initial, MethodWrapper<CyclingButtonWidgetHelper<?>, IScreen, Object, ?> callback) {
-        return addCyclingButton(x, y, width, height, 0, values, null, initial, null, callback);
+        return addCyclingButton(x, y, width, height, zIndex, values, null, initial, "", callback);
     }
 
     @Override
     public CyclingButtonWidgetHelper<?> addCyclingButton(int x, int y, int width, int height, int zIndex, String[] values, String[] alternatives, String initial, String prefix, MethodWrapper<CyclingButtonWidgetHelper<?>, IScreen, Object, ?> callback) {
-        return addCyclingButton(x, y, width, height, 0, values, alternatives, initial, prefix, null, callback);
+        return addCyclingButton(x, y, width, height, zIndex, values, alternatives, initial, prefix, null, callback);
     }
 
     @Override
@@ -733,7 +743,8 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
         builder.withInitialValue(initial);
         //? }
 
-        if (prefix == null || StringUtils.isBlank(prefix)) {
+        prefix = prefix == null ? "" : prefix;
+        if (StringUtils.isBlank(prefix)) {
             builder.displayOnlyValue();
         }
 
@@ -920,17 +931,28 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
             while (iter.hasNext()) {
                 RenderElement e = iter.next();
                 e.render(drawContext, mouseX, mouseY, delta);
-                if (e instanceof Text) {
-                    Text t = (Text) e;
-                    if (mouseX > t.x && mouseX < t.x + t.width && mouseY > t.y && mouseY < t.y + font.lineHeight) {
+                if (e instanceof Text t) {
+                    if (mouseX > t.x && mouseX < t.x + t.getWidth() && mouseY > t.y && mouseY < t.y + font.lineHeight) {
                         hoverText = t;
                     }
                 }
             }
 
+            //? if >=26.1 {
+            /*if (hoverText != null) {
+                ActiveTextCollector textCollector = drawContext.textRenderer();
+                textCollector.accept(
+                    TextAlignment.LEFT,
+                    hoverText.x,
+                    hoverText.y,
+                    textCollector.defaultParameters().withOpacity(0.0F),
+                    hoverText.text);
+            }
+            *///? } else {
             if (hoverText != null) {
                 drawContext.renderComponentHoverEffect(font, TextUtil.componentStyleAtWidth(font, hoverText.text, mouseX - hoverText.x), mouseX, mouseY);
             }
+            //? }
         }
     }
 
@@ -957,7 +979,7 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
         synchronized (elements) {
             for (RenderElement e : elements) {
                 if (e instanceof Text t) {
-                    if (mouseX > t.x && mouseX < t.x + t.width && mouseY > t.y && mouseY < t.y + font.lineHeight) {
+                    if (mouseX > t.x && mouseX < t.x + t.getWidth() && mouseY > t.y && mouseY < t.y + font.lineHeight) {
                         hoverText = t;
                         break;
                     }
@@ -990,7 +1012,7 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     public void jsmacros_mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
         if (onMouseDrag != null) {
             try {
-                onMouseDrag.accept(new Vec2D(mouseX, mouseY, deltaX, deltaY), button);
+                onMouseDrag.accept(new Vec2D(mouseX, mouseY, mouseX + deltaX, mouseY + deltaY), button);
             } catch (Throwable e) {
                 JsMacrosClient.clientCore.profile.logError(e);
             }
@@ -1073,12 +1095,12 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     *///? } else if >1.21.5 {
     @Inject(method = "handleComponentClicked", at = @At("HEAD"), cancellable = true)
     private void onHandleTextClick(Style style, CallbackInfoReturnable<Boolean> cir) {
-        handleCustomClickEvent(style.getClickEvent(), cir);
+        handleCustomClickEvent(style == null ? null : style.getClickEvent(), cir);
     }
     //?} else {
     /*@Inject(at = @At(value = "INVOKE", target = "Lorg/slf4j/Logger;error(Ljava/lang/String;Ljava/lang/Object;)V", remap = false), method = "handleComponentClicked", cancellable = true)
     public void onHandleTextClick(Style style, CallbackInfoReturnable<Boolean> cir) {
-        handleCustomClickEvent(style.getClickEvent(), cir);
+        handleCustomClickEvent(style == null ? null : style.getClickEvent(), cir);
     }
     *///?}
 

@@ -1,99 +1,60 @@
+# Dependencies shared across Minecraft targets. Target-specific Minecraft, loader,
+# mappings and Mod Menu versions belong in versions/<minecraft>/gradle.properties.
 [versions]
-java = "21"
-
-minecraft = "1.21.8"
-yarn = "1"
-
-fabric_loader = "0.17.3"
-forge = "52.0.19"
-neoforge = "21.8.51"
-
-# Architectury/loom versions
-architectury = "3.4-SNAPSHOT"
-loom = "1.13-SNAPSHOT"
-
-mixin = "0.8.7"
-mixin_extra = "0.5.0"
-
-asm = "9.8"
 prism4j = "2.0.0"
 joor = "0.9.15"
-nv_websocket = "2.14"
-junit = "5.8.1"
-jb_annotations = "20.1.0"
+nv-websocket = "2.14"
 javassist = "3.30.2-GA"
-
-fapi = "0.136.0+1.21.8"
-modmenu = "15.0.0"
-
-shadow = "8.3.6"
-
-# Additional dependencies for common module
-guava = "33.4.8-jre"
-gson = "2.13.1"
-slf4j = "2.0.16"
-fastutil = "8.5.15"
-commons_codec = "1.17.1"
-commons_io = "2.20.0"
-commons_lang3 = "3.19.0"
-joml = "1.10.8"
-
-# Unified Graal version for extension system
+mixinextras = "0.3.5"
 graal = "24.0.1"
+junit = "5.8.1"
 
 [libraries]
+mixin = { module = "org.spongepowered:mixin", version = "0.8.5" }
+mixinextras = { module = "io.github.llamalad7:mixinextras-common", version.ref = "mixinextras" }
+asm-tree = { module = "org.ow2.asm:asm-tree", version = "9.6" }
 prism4j = { module = "io.noties:prism4j", version.ref = "prism4j" }
-
-mixin = { module = "org.spongepowered:mixin", version.ref = "mixin" }
-mixin_extra = { module = "io.github.llamalad7:mixinextras-common", version.ref = "mixin_extra" }
-
-asm = { module = "org.ow2.asm:asm", version.ref = "asm" }
-asm_tree = { module = "org.ow2.asm:asm-tree", version.ref = "asm" }
 joor = { module = "org.jooq:joor", version.ref = "joor" }
-nv_websocket = { module = "com.neovisionaries:nv-websocket-client", version.ref = "nv_websocket" }
-nv_websocket_client = { module = "com.neovisionaries:nv-websocket-client", version.ref = "nv_websocket" }
+nv-websocket = { module = "com.neovisionaries:nv-websocket-client", version.ref = "nv-websocket" }
 javassist = { module = "org.javassist:javassist", version.ref = "javassist" }
 
-modmenu = { module = "com.terraformersmc:modmenu", version.ref = "modmenu" }
-minecraft = { module = "com.mojang:minecraft", version.ref = "minecraft" }
-neoforge = { module = "net.neoforged:neoforge", version.ref = "neoforge" }
-fabric_loader = { module = "net.fabricmc:fabric-loader", version.ref = "fabric_loader" }
-fabric_api = { module = "net.fabricmc.fabric-api:fabric-api", version.ref = "fapi" }
+slf4j = { module = "org.slf4j:slf4j-api", version = "2.0.16" }
+# Keep Guava 31.1: the extension's version must align with NeoForge.
+guava-extension = { module = "com.google.guava:guava", version = "31.1-jre" }
+gson = { module = "com.google.code.gson:gson", version = "2.14.0" }
+fastutil = { module = "it.unimi.dsi:fastutil", version = "8.5.15" }
+junit-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+junit-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
+jetbrains-annotations = { module = "org.jetbrains:annotations", version = "20.1.0" }
 
-junit_api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
-junit_engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
-junit_runtime = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
-
-jb_annotations = { module = "org.jetbrains:annotations", version.ref = "jb_annotations" }
-
-# Additional libraries for common module
-guava = { module = "com.google.guava:guava", version.ref = "guava" }
-gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
-slf4j_api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
-fastutil = { module = "it.unimi.dsi:fastutil", version.ref = "fastutil" }
-commons_codec = { module = "commons-codec:commons-codec", version.ref = "commons_codec" }
-commons_io = { module = "commons-io:commons-io", version.ref = "commons_io" }
-commons_lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons_lang3" }
-joml = { module = "org.joml:joml", version.ref = "joml" }
-
-# Graal libraries for extension system
-graal_sdk = { module = "org.graalvm.sdk:graal-sdk", version.ref = "graal" }
-truffle_api = { module = "org.graalvm.truffle:truffle-api", version.ref = "graal" }
-graal_js = { module = "org.graalvm.polyglot:js", version.ref = "graal" }
-graal_regex = { module = "org.graalvm.regex:regex", version.ref = "graal" }
-graal_python = { module = "org.graalvm.polyglot:python", version.ref = "graal" }
-graal_llvm = { module = "org.graalvm.polyglot:llvm", version.ref = "graal" }
-
-[bundles]
-# Common dependency bundles for easier management
-common_libs = ["guava", "gson", "slf4j_api", "fastutil"]
-minecraft_libs = ["asm", "asm_tree", "javassist"]
-scripting_libs = ["prism4j", "joor", "nv_websocket_client"]
-graal_core = ["graal_sdk", "truffle_api", "graal_regex"]
-graal_languages = ["graal_js", "graal_python", "graal_llvm"]
+graal-sdk = { module = "org.graalvm.sdk:graal-sdk", version.ref = "graal" }
+graal-collections = { module = "org.graalvm.sdk:collections", version.ref = "graal" }
+graal-nativeimage = { module = "org.graalvm.sdk:nativeimage", version.ref = "graal" }
+graal-word = { module = "org.graalvm.sdk:word", version.ref = "graal" }
+graal-nativebridge = { module = "org.graalvm.sdk:nativebridge", version.ref = "graal" }
+graal-jniutils = { module = "org.graalvm.sdk:jniutils", version.ref = "graal" }
+graal-truffle-api = { module = "org.graalvm.truffle:truffle-api", version.ref = "graal" }
+graal-truffle-enterprise = { module = "org.graalvm.truffle:truffle-enterprise", version.ref = "graal" }
+graal-truffle-runtime = { module = "org.graalvm.truffle:truffle-runtime", version.ref = "graal" }
+graal-truffle-compiler = { module = "org.graalvm.truffle:truffle-compiler", version.ref = "graal" }
+graal-regex = { module = "org.graalvm.regex:regex", version.ref = "graal" }
+graal-polyglot = { module = "org.graalvm.polyglot:polyglot", version.ref = "graal" }
+graal-js-runtime = { module = "org.graalvm.polyglot:js", version.ref = "graal" }
+graal-js-language = { module = "org.graalvm.js:js-language", version.ref = "graal" }
+graal-python-runtime = { module = "org.graalvm.polyglot:python", version.ref = "graal" }
+graal-python-community = { module = "org.graalvm.polyglot:python-community", version.ref = "graal" }
+graal-python-language = { module = "org.graalvm.python:python-language", version.ref = "graal" }
+graal-python-resources = { module = "org.graalvm.python:python-resources", version.ref = "graal" }
+graal-llvm-runtime = { module = "org.graalvm.polyglot:llvm", version.ref = "graal" }
+graal-llvm-community = { module = "org.graalvm.polyglot:llvm-community", version.ref = "graal" }
+graal-llvm-api = { module = "org.graalvm.llvm:llvm-api", version.ref = "graal" }
+graal-chromeinspector = { module = "org.graalvm.tools:chromeinspector-tool", version.ref = "graal" }
+graal-profiler = { module = "org.graalvm.tools:profiler-tool", version.ref = "graal" }
 
 [plugins]
-shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
-fabric_loom = { id = "fabric-loom", version.ref = "loom" }
-architectury_plugin = { id = "architectury-plugin", version.ref = "architectury" }
-architectury_loom = { id = "dev.architectury.loom", version.ref = "loom" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version = "2.2.10" }
+ksp = { id = "com.google.devtools.ksp", version = "2.2.10-2.0.2" }
+fletching-common = { id = "dev.kikugie.fletching-table", version = "0.1.0-alpha.22" }
+fletching-fabric = { id = "dev.kikugie.fletching-table.fabric", version = "0.1.0-alpha.22" }
+fletching-neoforge = { id = "dev.kikugie.fletching-table.neoforge", version = "0.1.0-alpha.22" }
+mod-publish = { id = "me.modmuss50.mod-publish-plugin", version = "2.2.0" }

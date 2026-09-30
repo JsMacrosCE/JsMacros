@@ -1,10 +1,11 @@
 package com.jsmacrosce.wagyourgui.overlays;
 
+import com.jsmacrosce.doclet.DocletCategory;
+
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import com.jsmacrosce.doclet.DocletCategory;
+
 import com.jsmacrosce.wagyourgui.containers.MultiElementContainer;
 import com.jsmacrosce.wagyourgui.elements.Scrollbar;
 
@@ -15,6 +16,8 @@ import java.util.Map;
 /*import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 *///?}
+
+import net.minecraft.client.gui.GuiGraphics;
 
 @DocletCategory("Screen and UI Elements")
 public abstract class OverlayContainer extends MultiElementContainer<IOverlayParent> implements IOverlayParent {
@@ -144,6 +147,18 @@ public abstract class OverlayContainer extends MultiElementContainer<IOverlayPar
 
     }
 
+
+    //? if >=26.1 {
+    /*@Override
+    public void extractRenderState(final GuiGraphicsExtractor graphics, int mouseX, int mouseY, final float a) {
+        for (AbstractWidget button : buttons) {
+            button.extractRenderState(graphics, mouseX, mouseY, a);
+        }
+        if (overlay != null) {
+            overlay.extractRenderState(graphics, mouseX, mouseY, a);
+        }
+    }
+    *///? } else {
     @Override
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         for (AbstractWidget btn : buttons) {
@@ -152,6 +167,6 @@ public abstract class OverlayContainer extends MultiElementContainer<IOverlayPar
         if (this.overlay != null) {
             this.overlay.render(drawContext, mouseX, mouseY, delta);
         }
-    }
+    }//? }
 
 }

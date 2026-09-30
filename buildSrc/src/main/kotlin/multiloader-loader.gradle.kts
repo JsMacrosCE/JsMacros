@@ -9,7 +9,7 @@ plugins {
 }
 
 // Use Stonecutter-aware property access
-val mod_id = commonMod.prop("mod_id")
+val mod_id = commonMod.modId
 val minecraft_version = commonMod.mc
 
 // Get the common project reference

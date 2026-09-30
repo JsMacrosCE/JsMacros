@@ -18,7 +18,7 @@ java {
 
 dependencies {
     implementation(gradleApi())
-    implementation("com.google.code.gson:gson:2.9.0")
+    implementation("com.google.code.gson:gson:2.14.0")
     implementation("commons-io:commons-io:2.7")
     implementation("dev.kikugie:stonecutter:0.8.3")
 }

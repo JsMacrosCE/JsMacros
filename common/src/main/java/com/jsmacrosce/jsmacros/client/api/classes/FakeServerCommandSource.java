@@ -12,6 +12,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -45,9 +47,27 @@ public class FakeServerCommandSource extends CommandSourceStack {
         return source.getSelectedEntities();
     }
 
-    @Override
-    public Collection<String> getCustomTabSugggestions() {
+
+    //? if >=26.1 {
+    /*@Override
+    *///? }
+    public Collection<String> getCustomTabSuggestions() {
+        //? if >=26.1 {
+        /*return source.getCustomTabSuggestions();
+        *///? } else {
         return source.getCustomTabSugggestions();
+        //? }
+    }
+
+    //? if <26.1 {
+    @Override
+    //? }
+    @Deprecated
+    @DocletIgnore
+    public Collection<String> getCustomTabSugggestions() {
+        // TODO: Implement proper deprecation system
+        System.err.println("Warning: getCustomTabSugggestions() is deprecated and will be removed in the future. Use getCustomTabSuggestions() instead.");
+        return this.getCustomTabSuggestions();
     }
 
     @Override
@@ -92,7 +112,11 @@ public class FakeServerCommandSource extends CommandSourceStack {
 
     @Override
     public void sendSuccess(Supplier<Component> feedbackSupplier, boolean broadcastToOps) {
+        //? if >=26.1 {
+        /*Minecraft.getInstance().player.sendSystemMessage(feedbackSupplier.get());
+        *///? } else {
         Minecraft.getInstance().player.displayClientMessage(feedbackSupplier.get(), false);
+        //? }
     }
 
 }

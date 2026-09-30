@@ -28,6 +28,7 @@ import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.*;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -39,6 +40,7 @@ import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.doclet.DocletReplaceTypeParams;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.math.Pos2D;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.client.access.IMixinEntity;
@@ -70,6 +72,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicl
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.FurnaceMinecartEntityHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.TntMinecartEntityHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
+import com.jsmacrosce.jsmacros.util.ChunkPosCompat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -154,6 +157,24 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
+     * @param partialTicks the fraction of the current tick to interpolate.
+     * @return interpolated entity position.
+     */
+    public Pos3D getPos(float partialTicks) {
+        return new Pos3D(base.getPosition(partialTicks));
+    }
+
+    /**
+     * Interpolated entity position, used for render-time placement.
+     *
+     * @since 2.0.0
+     */
+    @DocletIgnore
+    public Pos3D getInterpolatedPos(float partialTicks) {
+        return getPos(partialTicks);
+    }
+
+    /**
      * @return entity block position.
      * @since 1.6.5
      */
@@ -174,7 +195,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
      * @since 1.6.5
      */
     public Pos2D getChunkPos() {
-        return new Pos2D(base.chunkPosition().x, base.chunkPosition().z);
+        ChunkPos pos = base.chunkPosition();
+        return new Pos2D(ChunkPosCompat.x(pos), ChunkPosCompat.z(pos));
     }
 
     /**

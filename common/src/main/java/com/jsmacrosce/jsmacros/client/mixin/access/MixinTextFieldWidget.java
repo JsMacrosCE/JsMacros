@@ -17,4 +17,7 @@ public interface MixinTextFieldWidget {
     @Accessor
     int getMaxLength();
 
+    @Accessor("highlightPos")
+    int getHighlightPos();
+
 }

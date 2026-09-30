@@ -5,6 +5,7 @@ import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.wagyourgui.elements.Button;
@@ -72,7 +73,15 @@ public class EventChooser extends OverlayContainer {
     }
 
     public void addEvent(String eventName) {
-        EventObj e = new EventObj(eventName, new Button(x + 3 + (events.size() % 5 * (width - 12) / 5), topScroll + (events.size() / 5 * 12), (width - 12) / 5, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacrosce.event." + eventName.toLowerCase(Locale.ROOT)), (btn) -> {
+        String lowerCaseName = eventName.toLowerCase(Locale.ROOT);
+        Component translatedName;
+        if (Language.getInstance().has("jsmacrosce.event." + lowerCaseName)) {
+            translatedName = Component.translatable("jsmacrosce.event." + lowerCaseName);
+        } else {
+            translatedName = Component.literal(eventName);
+        }
+
+        EventObj e = new EventObj(eventName, new Button(x + 3 + (events.size() % 5 * (width - 12) / 5), topScroll + (events.size() / 5 * 12), (width - 12) / 5, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, translatedName, (btn) -> {
             selectEvent(eventName);
         }));
 
@@ -101,15 +110,27 @@ public class EventChooser extends OverlayContainer {
     }
 
     @Override
-    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //? if >=26.1 {
+    /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
+    *///? } else {
+    public void render(final GuiGraphics drawContext, int mouseX, int mouseY, final float delta) {
+    //? }
         renderBackground(drawContext);
 
+        //? if >=26.1 {
+        /*drawContext.textWithWordWrap(textRenderer, eventText, x + 3, y + 3, width - 14, 0xFFFFFFFF, false);
+        *///? } else {
         drawContext.drawWordWrap(textRenderer, eventText, x + 3, y + 3, width - 14, 0xFFFFFFFF, false);
+        //? }
 
         drawContext.fill(x + 2, y + 12, x + width - 2, y + 13, 0xFFFFFFFF);
         drawContext.fill(x + 2, y + height - 15, x + width - 2, y + height - 14, 0xFFFFFFFF);
 //        textRenderer.draw(, mouseX, mouseY, color, shadow, matrix, vertexConsumers, seeThrough, backgroundColor, light)
+        //? if >=26.1 {
+        /*super.extractRenderState(drawContext, mouseX, mouseY, delta);
+        *///? } else {
         super.render(drawContext, mouseX, mouseY, delta);
+        //? }
 
         for (AbstractWidget b : ImmutableList.copyOf(this.buttons)) {
             if (b instanceof Button && ((Button) b).hovering && ((Button) b).cantRenderAllText()) {
@@ -122,7 +143,11 @@ public class EventChooser extends OverlayContainer {
 
                 // fill
                 drawContext.fill(mouseX - 2, mouseY - textRenderer.lineHeight - 3, mouseX + width + 2, mouseY, 0xFF000000);
+                //? if >=26.1 {
+                /*drawContext.text(textRenderer, b.getMessage(), mouseX, mouseY - textRenderer.lineHeight - 1, 0xFFFFFFFF);
+                *///? } else {
                 drawContext.drawString(textRenderer, b.getMessage(), mouseX, mouseY - textRenderer.lineHeight - 1, 0xFFFFFFFF);
+                //? }
             }
         }
     }

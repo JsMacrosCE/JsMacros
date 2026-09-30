@@ -9,11 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-//? if >=1.21.11 {
-/*import net.minecraft.util.Util;
-*///? } else {
 import net.minecraft.Util;
-//? }
 
 /**
  * @author Etheradon
@@ -32,7 +28,17 @@ public abstract class StateHelper<U extends StateHolder<?, ?>> extends BaseHelpe
      * @since 1.8.4
      */
     public Map<String, String> toMap() {
-        return base.getValues().entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey().getName(), entry -> Util.getPropertyName(entry.getKey(), entry.getValue())));
+        //? if >=26.1 {
+        /*return base.getValues().collect(Collectors.toMap(
+                entry -> entry.property().getName(),
+                entry -> Util.getPropertyName(entry.property(), entry.value())
+        ));
+        *///?} else {
+        return base.getValues().entrySet().stream().collect(Collectors.toMap(
+            entry -> entry.getKey().getName(),
+            entry -> Util.getPropertyName(entry.getKey(), entry.getValue()))
+        );
+        //?}
     }
 
     public <T extends Comparable<?>> StateHelper<U> with(String property, String value) {

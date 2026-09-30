@@ -56,16 +56,28 @@ public class ConfirmOverlay extends OverlayContainer {
         for (int i = 0; i < lines; ++i) {
             int w = textRenderer.width(text.get(i));
             int centeredX = (int) (hcenter ? x + width / 2F - w / 2F : x + 3);
+            //? if >=26.1 {
+            /*drawContext.text(textRenderer, text.get(i), centeredX, y + 2 + vcenter + (i * textRenderer.lineHeight), 0xFFFFFFFF, false);
+            *///? } else {
             drawContext.drawString(textRenderer, text.get(i), centeredX, y + 2 + vcenter + (i * textRenderer.lineHeight), 0xFFFFFFFF, false);
+            //? }
         }
     }
 
     @Override
-    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //? if >=26.1 {
+    /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
+    *///? } else {
+    public void render(final GuiGraphics drawContext, int mouseX, int mouseY, final float delta) {
+    //? }
         this.renderBackground(drawContext);
         drawContext.fill(x + 1, y + height - 13, x + width - 1, y + height - 12, 0xFFFFFFFF);
         this.renderMessage(drawContext);
+        //? if >=26.1 {
+        /*super.extractRenderState(drawContext, mouseX, mouseY, delta);
+        *///? } else {
         super.render(drawContext, mouseX, mouseY, delta);
+        //? }
     }
 
 }

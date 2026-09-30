@@ -16,6 +16,7 @@ import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
+import com.jsmacrosce.jsmacros.util.ChunkPosCompat;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -95,7 +96,7 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
      * @since 1.8.4
      */
     public int getChunkX() {
-        return base.getPos().x;
+        return ChunkPosCompat.x(base.getPos());
     }
 
     /**
@@ -103,7 +104,7 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
      * @since 1.8.4
      */
     public int getChunkZ() {
-        return base.getPos().z;
+        return ChunkPosCompat.z(base.getPos());
     }
 
     /**

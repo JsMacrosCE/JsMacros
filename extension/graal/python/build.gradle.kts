@@ -5,13 +5,26 @@ plugins {
     `java-library`
 }
 
+// Get minecraft version from stonecutter.active file
+val minecraftVersion = rootProject.file("stonecutter.active").readText().trim()
+val versionProject = project(":${minecraftVersion}")
+val targetJavaVersion = versionProject.property("java_version").toString().toInt()
+
+configurations.configureEach {
+    if (isCanBeResolved) {
+        attributes.attribute(org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, targetJavaVersion)
+    }
+}
+
 base {
     archivesName.set("${property("mod_id")}-graal-python")
 }
 
 java {
+    sourceCompatibility = JavaVersion.toVersion(targetJavaVersion)
+    targetCompatibility = JavaVersion.toVersion(targetJavaVersion)
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(property("java_version").toString().toInt()))
+        languageVersion.set(JavaLanguageVersion.of(targetJavaVersion))
     }
     withSourcesJar()
 }
@@ -19,9 +32,6 @@ java {
 repositories {
     mavenCentral()
 }
-
-// Get minecraft version from stonecutter.active file
-val minecraftVersion = rootProject.file("stonecutter.active").readText().trim()
 
 val extensionTestOutput = project(":extension")
     .extensions
@@ -60,23 +70,24 @@ dependencies {
     compileOnly(project(":common:${minecraftVersion}"))
 
     // Graal Python specific dependencies
-    implementation("org.graalvm.polyglot:python:24.0.1")
-    implementation("org.graalvm.polyglot:llvm:24.0.1")
+    implementation(libs.graal.python.runtime)
+    implementation(libs.graal.llvm.runtime)
 
     // Embed GraalPython dependencies
-    add(embedDeps.name, "org.graalvm.polyglot:python-community:24.0.1")
-    add(embedDeps.name, "org.graalvm.python:python-language:24.0.1")
-    add(embedDeps.name, "org.graalvm.python:python-resources:24.0.1")
-    add(embedDeps.name, "org.graalvm.polyglot:llvm-community:24.0.1")
-    add(embedDeps.name, "org.graalvm.llvm:llvm-api:24.0.1")
+    add(embedDeps.name, libs.graal.python.community)
+    add(embedDeps.name, libs.graal.python.language)
+    add(embedDeps.name, libs.graal.python.resources)
+    add(embedDeps.name, libs.graal.llvm.community)
+    add(embedDeps.name, libs.graal.llvm.api)
 
     // Test dependencies
     testImplementation(project(":extension"))
     testImplementation(project(":common:${minecraftVersion}"))
     testImplementation(extensionTestOutput)
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
-    testImplementation("org.jetbrains:annotations:20.1.0")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+    testImplementation(libs.junit.api)
+    testImplementation(libs.jetbrains.annotations)
+    testRuntimeOnly(libs.junit.engine)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 // Collect embedded dependency paths for the json file

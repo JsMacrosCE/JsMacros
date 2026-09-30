@@ -32,7 +32,7 @@
   "jsmacrosce.stopped": "Остановлен",
   "jsmacrosce.disablewithscreen": "Отключение срабатывания событий клавиш при любом открытом экране.",
   "jsmacrosce.about": "О моде",
-  "jsmacrosce.aboutinfo": "JS Macros Версия для сообщества\nСоздал: East_Arctica\n\nМод с макросами на Javascript для игры в кубики.\n\nДля помощи посетите наш веб-сайт или зайдите на наш сервер в Discord!!",
+  "jsmacrosce.aboutinfo": "JS Macros Версия для сообщества\nСоздал: East_Arctica\nНа основе работы: WagYourTail\n\nМод с макросами на Javascript для игры в кубики.\n\nДля помощи посетите наш веб-сайт или зайдите на наш сервер в Discord!!",
   "jsmacrosce.back": "Назад",
   "jsmacrosce.erroropening": "Возникла ошибка при открытии этого файла... \n\n",
   "jsmacrosce.save": "Сохранить",

@@ -275,7 +275,11 @@ public class ClickableWidgetHelper<B extends ClickableWidgetHelper<B, T>, T exte
 
     @Override
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+        //? if >=26.1 {
+        /*base.extractRenderState(drawContext, mouseX, mouseY, delta);
+        *///?} else {
         base.render(drawContext, mouseX, mouseY, delta);
+        //?}
         if (base.isMouseOver(mouseX, mouseY) && !tooltips.isEmpty()) {
             //? if >1.21.5 {
             drawContext.setComponentTooltipForNextFrame(mc.font, tooltips, mouseX, mouseY);

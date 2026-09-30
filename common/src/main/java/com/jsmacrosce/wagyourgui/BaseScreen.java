@@ -1,8 +1,8 @@
 package com.jsmacrosce.wagyourgui;
 
 import com.jsmacrosce.doclet.DocletCategory;
+
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -23,6 +23,8 @@ import com.jsmacrosce.wagyourgui.overlays.OverlayContainer;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
 *///?}
+
+import net.minecraft.client.gui.GuiGraphics;
 
 @DocletCategory("Screen and UI Elements")
 public abstract class BaseScreen extends Screen implements IOverlayParent {
@@ -194,6 +196,14 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
     }
     //?}
 
+    //? if >=26.1 {
+    /*@Override
+    public void extractRenderState(final GuiGraphicsExtractor graphics, int mouseX, int mouseY, final float a) {
+        if (overlay != null) {
+            overlay.extractRenderState(graphics, mouseX, mouseY, a);
+        }
+    }
+    *///? } else {
     @Override
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         //? if <=1.21.5 {
@@ -203,6 +213,7 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
             overlay.render(drawContext, mouseX, mouseY, delta);
         }
     }
+    //? }
 
     @Override
     public boolean shouldCloseOnEsc() {

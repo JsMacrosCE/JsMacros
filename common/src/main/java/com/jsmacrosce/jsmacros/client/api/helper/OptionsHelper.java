@@ -221,7 +221,11 @@ public class OptionsHelper extends BaseHelper<Options> {
      */
     @DocletReplaceReturn("Difficulty")
     public String getDifficulty() {
+        //? if >=26.1 {
+        /*return mc.level.getDifficulty().getSerializedName();
+        *///?} else {
         return mc.level.getDifficulty().getKey();
+        //?}
     }
 
     /**
@@ -832,7 +836,11 @@ public class OptionsHelper extends BaseHelper<Options> {
          */
         public VideoOptionsHelper setGuiScale(int scale) {
             base.guiScale().set(scale);
+            //? if >=26.1 {
+            /*mc.execute(mc::resizeGui);
+            *///? } else {
             mc.execute(mc::resizeDisplay);
+            //? }
             return this;
         }
 
@@ -842,16 +850,12 @@ public class OptionsHelper extends BaseHelper<Options> {
          */
         @DocletReplaceReturn("AttackIndicatorType")
         public String getAttackIndicatorType() {
-            switch (base.attackIndicator().get()) {
-                case OFF:
-                    return "off";
-                case CROSSHAIR:
-                    return "crosshair";
-                case HOTBAR:
-                    return "hotbar";
-                default:
-                    throw new IllegalArgumentException();
-            }
+            return switch (base.attackIndicator().get()) {
+                case OFF -> "off";
+                case CROSSHAIR -> "crosshair";
+                case HOTBAR -> "hotbar";
+                default -> throw new IllegalArgumentException();
+            };
         }
 
         /**
@@ -2539,7 +2543,11 @@ public class OptionsHelper extends BaseHelper<Options> {
     @Deprecated
     public OptionsHelper setGuiScale(int scale) {
         base.guiScale().set(scale);
+        //? if >=26.1 {
+        /*mc.execute(mc::resizeGui);
+        *///? } else {
         mc.execute(mc::resizeDisplay);
+        //? }
         return this;
     }
 

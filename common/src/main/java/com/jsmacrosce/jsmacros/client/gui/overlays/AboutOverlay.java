@@ -11,11 +11,7 @@ import com.jsmacrosce.wagyourgui.overlays.OverlayContainer;
 
 import java.util.List;
 
-//? if >=1.21.11 {
-/*import net.minecraft.util.Util;
-*///? } else {
 import net.minecraft.Util;
-//? }
 
 @DocletCategory("Screen and UI Elements")
 public class AboutOverlay extends OverlayContainer {
@@ -51,20 +47,36 @@ public class AboutOverlay extends OverlayContainer {
     protected void renderMessage(GuiGraphics drawContext) {
         for (int i = 0; i < lines; ++i) {
             int w = textRenderer.width(text.get(i));
+            //? if >=26.1 {
+            /*drawContext.text(textRenderer, text.get(i), (int) (x + width / 2F - w / 2F), y + 2 + vcenter + (i * textRenderer.lineHeight), 0xFFFFFFFF, false);
+            *///? } else {
             drawContext.drawString(textRenderer, text.get(i), (int) (x + width / 2F - w / 2F), y + 2 + vcenter + (i * textRenderer.lineHeight), 0xFFFFFFFF, false);
+            //? }
         }
     }
 
     @Override
-    public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+    //? if >=26.1 {
+    /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
+    *///? } else {
+    public void render(final GuiGraphics drawContext, int mouseX, int mouseY, final float delta) {
+    //? }
         renderBackground(drawContext);
 
+        //? if >=26.1 {
+        /*drawContext.textWithWordWrap(textRenderer, Component.translatable("jsmacrosce.about"), x + 3, y + 3, width - 14, 0xFFFFFFFF, false);
+        *///? } else {
         drawContext.drawWordWrap(textRenderer, Component.translatable("jsmacrosce.about"), x + 3, y + 3, width - 14, 0xFFFFFFFF, false);
+        //? }
         renderMessage(drawContext);
 
         drawContext.fill(x + 2, y + 12, x + width - 2, y + 13, 0xFFFFFFFF);
         drawContext.fill(x + 2, y + height - 15, x + width - 2, y + height - 14, 0xFFFFFFFF);
+        //? if >=26.1 {
+        /*super.extractRenderState(drawContext, mouseX, mouseY, delta);
+        *///? } else {
         super.render(drawContext, mouseX, mouseY, delta);
+        //? }
 
     }
 

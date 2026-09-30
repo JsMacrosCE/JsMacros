@@ -4,40 +4,46 @@ import java.nio.file.Path
 plugins {
     id("multiloader-common")
     id("net.neoforged.moddev")
-    id("dev.kikugie.fletching-table") version "0.1.0-alpha.22"
+    alias(libs.plugins.fletching.common)
 }
 
-val mod_id = commonMod.prop("mod_id")
+val mod_id = commonMod.modId
 val minecraft_version = commonMod.mc
 
 neoForge {
-    neoFormVersion = commonMod.prop("neo_form_version")
+    commonMod.propOrNull("neo_form_version")?.let { neoFormVersion = it }
 
     accessTransformers.from(
         layout.buildDirectory.file("generated/access-transformer/accesstransformer.cfg")
     )
 
-    parchment {
-        minecraftVersion = commonMod.prop("parchment_minecraft")
-        mappingsVersion = commonMod.prop("parchment_version")
+    // Only declared for obfuscated versions; 26.1+ is unobfuscated and has no Parchment release.
+    val parchmentMinecraft = commonMod.propOrNull("parchment_minecraft")
+    val parchmentVersion = commonMod.propOrNull("parchment_version")
+
+    if (parchmentMinecraft != null && parchmentVersion != null) {
+        parchment {
+            minecraftVersion = parchmentMinecraft
+            mappingsVersion = parchmentVersion
+        }
     }
 }
 
 dependencies {
-    compileOnly("org.spongepowered:mixin:0.8.5")
+    compileOnly(libs.mixin)
 
     // fabric and neoforge both bundle mixinextras, so it is safe to use it in common
-    compileOnly("io.github.llamalad7:mixinextras-common:0.3.5")
-    annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.5")
+    compileOnly(libs.mixinextras)
+    annotationProcessor(libs.mixinextras)
 
     // ASM for bytecode manipulation
-    compileOnly("org.ow2.asm:asm-tree:9.6")
+    compileOnly(libs.asm.tree)
 
     // Common library dependencies
-    compileOnly("io.noties:prism4j:2.0.0")
-    compileOnly("org.jooq:joor:0.9.15")
-    compileOnly("com.neovisionaries:nv-websocket-client:2.14")
-    compileOnly("org.javassist:javassist:3.30.2-GA")
+    compileOnly(libs.prism4j)
+    compileOnly(libs.joor)
+    compileOnly(libs.nv.websocket)
+    compileOnly(libs.javassist)
 }
 
 val commonJava by configurations.creating {
@@ -102,6 +108,9 @@ stonecutter {
     replacements.string(current.parsed >= "1.21.11") {
         replace("ResourceLocation", "Identifier")
 
+        replace("net.minecraft.Util", "net.minecraft.util.Util")
+        replace("net.minecraft.advancements.critereon", "net.minecraft.advancements.criterion")
+
         // Conflicts
         replace("parseIdentifier", "parseIdentifier")
         replace("getAdvancementsForIdentifiers", "getAdvancementsForIdentifiers")
@@ -114,5 +123,13 @@ stonecutter {
         replace("base.readResourceLocation", "base.readIdentifier")
         replace("base.writeResourceLocation", "base.writeIdentifier")
         replace("@return the raw minecraft Identifier.", "@return the raw minecraft Identifier.")
+    }
+
+    replacements.string(current.parsed >= "26.1") {
+        replace("GuiGraphics", "GuiGraphicsExtractor")
+
+        // Conflicts
+        // NeoForge's ScreenEvent.Render.Post accessor, which is still spelled this way
+        replace("getGuiGraphics", "getGuiGraphics")
     }
 }

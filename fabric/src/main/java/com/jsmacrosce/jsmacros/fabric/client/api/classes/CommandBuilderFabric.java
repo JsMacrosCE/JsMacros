@@ -110,7 +110,10 @@ public class CommandBuilderFabric extends CommandBuilder {
 
     @Override
     public CommandBuilder unregister() throws IllegalAccessException {
-        CommandNodeAccessor.remove(ClientCommandManager.getActiveDispatcher().getRoot(), name);
+        CommandDispatcher<FabricClientCommandSource> dispatcher = ClientCommandManager.getActiveDispatcher();
+        if (dispatcher != null) {
+            CommandNodeAccessor.remove(dispatcher.getRoot(), name);
+        }
         ClientPacketListener p = Minecraft.getInstance().getConnection();
         if (p != null) {
             CommandDispatcher<?> cd = p.getCommands();

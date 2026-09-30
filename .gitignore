@@ -1,6 +1,5 @@
 # gradle
 
-.kotlin/
 .gradle/
 build/
 out/
@@ -42,11 +41,6 @@ docs/web/[0-9]*
 # Affinity Photo
 *.af~lock~
 *.af~lock~:com.dropbox.ignored
-
-# Vitepress docgen
-node_modules/
-**/.vitepress/cache/
-**/.vitepress/dist/
 
 # General working dir for anything that is needed during development
 working/

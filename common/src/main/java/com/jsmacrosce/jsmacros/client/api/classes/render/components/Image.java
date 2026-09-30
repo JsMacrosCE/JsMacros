@@ -12,11 +12,28 @@ import com.jsmacrosce.jsmacros.client.api.classes.CustomImage;
 import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.doclet.DocletIgnore;
 
 //? if <=1.21.5 {
 /*import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.RenderType;
 *///? }
+
+//? if >=1.21.11 {
+/*import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import org.joml.Quaternionf;
+import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
+*///? } else {
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import org.joml.Quaternionf;
+import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
+//? }
 
 /**
  * @author Wagyourtail
@@ -338,6 +355,40 @@ public class Image implements RenderElement, Alignable<Image> {
         //?} else {
         /*matrices.popPose();
         *///?}
+    }
+
+    // Draws the image into the surface's world-space buffer source. Textured
+    // images cannot be represented as gizmos, so this is the direct path.
+    @DocletIgnore
+    @Override
+    public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+        matrixStack.pushPose();
+        matrixStack.translate(x, y, 0);
+        if (rotateCenter) {
+            matrixStack.translate(width / 2d, height / 2d, 0);
+        }
+        matrixStack.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        if (rotateCenter) {
+            matrixStack.translate(-width / 2d, -height / 2d, 0);
+        }
+        matrixStack.translate(-x, -y, 0);
+
+        float a = ((color >> 24) & 0xFF) / 255.0f;
+        float r = ((color >> 16) & 0xFF) / 255.0f;
+        float g = ((color >> 8) & 0xFF) / 255.0f;
+        float b = (color & 0xFF) / 255.0f;
+        float u0 = imageX / (float) textureWidth;
+        float v0 = imageY / (float) textureHeight;
+        float u1 = (imageX + regionWidth) / (float) textureWidth;
+        float v1 = (imageY + regionHeight) / (float) textureHeight;
+
+        VertexConsumer vc = consumers.getBuffer(SurfaceRenderTypes.images(imageid, !seeThrough));
+        PoseStack.Pose pose = matrixStack.last();
+        vc.addVertex(pose, x, y, 0).setColor(r, g, b, a).setUv(u0, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
+        vc.addVertex(pose, x, y + height, 0).setColor(r, g, b, a).setUv(u0, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
+        vc.addVertex(pose, x + width, y + height, 0).setColor(r, g, b, a).setUv(u1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
+        vc.addVertex(pose, x + width, y, 0).setColor(r, g, b, a).setUv(u1, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
+        matrixStack.popPose();
     }
 
     public Image setParent(IDraw2D<?> parent) {
@@ -729,6 +780,7 @@ public class Image implements RenderElement, Alignable<Image> {
          */
         public Builder color(int color) {
             this.color = color;
+            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
             return this;
         }
 

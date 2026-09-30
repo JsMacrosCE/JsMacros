@@ -273,7 +273,11 @@ public class Text implements RenderElement, Alignable<Text> {
         *///?}
 
         setupMatrix(matrices, x, y, (float) scale, rotation, getWidth(), getHeight(), rotateCenter);
+        //? if >=26.1 {
+        /*drawContext.text(mc.font, text, x, y, color, shadow);
+        *///?} else {
         drawContext.drawString(mc.font, text, x, y, color, shadow);
+        //?}
 
         //? if >1.21.5 {
         matrices.popMatrix();
@@ -327,6 +331,29 @@ public class Text implements RenderElement, Alignable<Text> {
          //?} else {
         /*matrices.popPose();
         *///?}
+    }
+
+    @Override
+    @DocletIgnore
+    public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+        matrixStack.pushPose();
+        matrixStack.translate(x, y, 0);
+        matrixStack.scale((float) scale, (float) scale, 1);
+        if (rotateCenter) {
+            matrixStack.translate(getWidth() / 2d, getHeight() / 2d, 0);
+        }
+        matrixStack.mulPose(new org.joml.Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        if (rotateCenter) {
+            matrixStack.translate(-getWidth() / 2d, -getHeight() / 2d, 0);
+        }
+        matrixStack.translate(-x, -y, 0);
+
+        // The font renderer applies the packed light via its lightmap; keep the
+        // requested text color unchanged so lighting is not applied twice.
+        mc.font.drawInBatch(text, (float) x, (float) y, color, shadow, matrixStack.last().pose(), consumers,
+                seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL, 0, light);
+
+        matrixStack.popPose();
     }
 
     public Text setParent(IDraw2D<?> parent) {

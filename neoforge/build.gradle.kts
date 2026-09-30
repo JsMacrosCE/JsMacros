@@ -7,15 +7,16 @@ import java.io.File
 import java.nio.file.Path
 
 plugins {
-    kotlin("jvm") version "2.2.10"
-    id("com.google.devtools.ksp") version "2.2.10-2.0.2"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.ksp)
     `multiloader-loader`
     id("net.neoforged.moddev")
-    id("dev.kikugie.fletching-table.neoforge") version "0.1.0-alpha.22"
+    alias(libs.plugins.fletching.neoforge)
 }
 
-val mod_id = commonMod.prop("mod_id")
-val minecraft_version = commonMod.prop("minecraft_version")
+val mod_id = commonMod.modId
+val minecraft_version = commonMod.mc
+val neoforge_minecraft_version_range = commonMod.propOrNull("neoforge_minecraft_version_range") ?: "[$minecraft_version]"
 var mod_version = project.version.toString()
 var neoforge_version = commonMod.prop("neoforge_version")
 
@@ -36,12 +37,15 @@ neoForge {
         layout.buildDirectory.file("generated/access-transformer/accesstransformer.cfg")
     )
 
-    val parchment_minecraft = commonMod.prop("parchment_minecraft")
-    val parchment_version = commonMod.prop("parchment_version")
+    // Only declared for obfuscated versions; 26.1+ is unobfuscated and has no Parchment release.
+    val parchment_minecraft = commonMod.propOrNull("parchment_minecraft")
+    val parchment_version = commonMod.propOrNull("parchment_version")
 
-    parchment {
-        minecraftVersion = parchment_minecraft
-        mappingsVersion = parchment_version
+    if (parchment_minecraft != null && parchment_version != null) {
+        parchment {
+            minecraftVersion = parchment_minecraft
+            mappingsVersion = parchment_version
+        }
     }
 
     runs {
@@ -78,17 +82,17 @@ neoForge {
 
 dependencies {
     // Common library dependencies - implementation for dev, jarJar for bundling in production
-    implementation("io.noties:prism4j:2.0.0")
-    jarJar("io.noties:prism4j:[2.0.0,2.1.0)")
+    implementation(libs.prism4j)
+    jarJar("io.noties:prism4j:[${libs.versions.prism4j.get()},2.1.0)")
 
-    implementation("org.jooq:joor:0.9.15")
-    jarJar("org.jooq:joor:[0.9.15,0.10.0)")
+    implementation(libs.joor)
+    jarJar("org.jooq:joor:[${libs.versions.joor.get()},0.10.0)")
 
-    implementation("com.neovisionaries:nv-websocket-client:2.14")
-    jarJar("com.neovisionaries:nv-websocket-client:[2.14,2.15.0)")
+    implementation(libs.nv.websocket)
+    jarJar("com.neovisionaries:nv-websocket-client:[${libs.versions.nv.websocket.get()},2.15.0)")
 
-    implementation("org.javassist:javassist:3.30.2-GA")
-    jarJar("org.javassist:javassist:[3.30.2-GA,3.31.0)")
+    implementation(libs.javassist)
+    jarJar("org.javassist:javassist:[${libs.versions.javassist.get()},3.31.0)")
 
     // For NeoForge < 1.21.9, external libraries need to be added to additionalRuntimeClasspath
     // to be loaded by the modular classloader during dev runs.
@@ -98,10 +102,10 @@ dependencies {
         configurations.named("additionalRuntimeClasspath").configure {
             exclude(group = "org.jetbrains", module = "annotations-java5")
         }
-        "additionalRuntimeClasspath"("io.noties:prism4j:2.0.0")
-        "additionalRuntimeClasspath"("org.jooq:joor:0.9.15")
-        "additionalRuntimeClasspath"("com.neovisionaries:nv-websocket-client:2.14")
-        "additionalRuntimeClasspath"("org.javassist:javassist:3.30.2-GA")
+        "additionalRuntimeClasspath"(libs.prism4j)
+        "additionalRuntimeClasspath"(libs.joor)
+        "additionalRuntimeClasspath"(libs.nv.websocket)
+        "additionalRuntimeClasspath"(libs.javassist)
     }
 
     // Extension jars to embed
@@ -131,7 +135,8 @@ tasks.named<ProcessResources>("processResources") {
     filesMatching("META-INF/neoforge.mods.toml") {
         expand(mapOf(
             "version" to mod_version,
-            "minecraft_version" to minecraft_version
+            "minecraft_version" to minecraft_version,
+            "neoforge_minecraft_version_range" to neoforge_minecraft_version_range
         ))
     }
 }
@@ -191,6 +196,9 @@ stonecutter {
     replacements.string(current.parsed >= "1.21.11") {
         replace("ResourceLocation", "Identifier")
 
+        replace("net.minecraft.Util", "net.minecraft.util.Util")
+        replace("net.minecraft.advancements.critereon", "net.minecraft.advancements.criterion")
+
         // Conflicts
         replace("parseIdentifier", "parseIdentifier")
         replace("getAdvancementsForIdentifiers", "getAdvancementsForIdentifiers")
@@ -203,5 +211,13 @@ stonecutter {
         replace("base.readResourceLocation", "base.readIdentifier")
         replace("base.writeResourceLocation", "base.writeIdentifier")
         replace("@return the raw minecraft Identifier.", "@return the raw minecraft Identifier.")
+    }
+
+    replacements.string(current.parsed >= "26.1") {
+        replace("GuiGraphics", "GuiGraphicsExtractor")
+
+        // Conflicts
+        // NeoForge's ScreenEvent.Render.Post accessor, which is still spelled this way
+        replace("getGuiGraphics", "getGuiGraphics")
     }
 }

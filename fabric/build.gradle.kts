@@ -1,15 +1,15 @@
 import org.gradle.language.jvm.tasks.ProcessResources
 
 plugins {
-    kotlin("jvm") version "2.2.10"
-    id("com.google.devtools.ksp") version "2.2.10-2.0.2"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.ksp)
     id("fabric-loom")
     id("multiloader-loader")
-    id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.22"
+    alias(libs.plugins.fletching.fabric)
 }
 
-val mod_id = commonMod.prop("mod_id")
-val minecraft_version = commonMod.prop("minecraft_version")
+val mod_id = commonMod.modId
+val minecraft_version = commonMod.mc
 var mod_version = project.version.toString()
 
 base {
@@ -51,10 +51,10 @@ dependencies {
     modImplementation("com.terraformersmc:modmenu:$mod_menu_version")
 
     // Common library dependencies - include for bundling in jar
-    implInclude("io.noties:prism4j:2.0.0")
-    implInclude("org.jooq:joor:0.9.15")
-    implInclude("com.neovisionaries:nv-websocket-client:2.14")
-    implInclude("org.javassist:javassist:3.30.2-GA")
+    implInclude(libs.prism4j.get())
+    implInclude(libs.joor.get())
+    implInclude(libs.nv.websocket.get())
+    implInclude(libs.javassist.get())
 
     // Extension jars to embed
     add(extensionJars.name, project(mapOf("path" to ":extension:graal", "configuration" to "archives")))
@@ -79,21 +79,15 @@ tasks.named<ProcessResources>("processResources") {
         expand(mapOf("dependencies" to getExtensionJarPaths()))
     }
 
-    // Expand fabric.mod.json5 with minecraft version
-    filesMatching("fabric.mod.json5") {
-        expand(
-            mapOf(
-                "version" to mod_version,
-                "minecraft_version" to minecraft_version
-            )
-        )
-    }
+    // fabric.mod.json5 is expanded by multiloader-common, which already supplies version,
+    // minecraft_version, fabric_minecraft_version_range and access_widener.
 }
 
-// Copy the version-specific access widener and rename it for the jar
+// Loom reads the widener straight off disk; it must be the one matching this loader's namespace.
 loom {
-    // Use the version-specific access widener
-    accessWidenerPath.set(project(":common").file("src/main/resources/accesswideners/$minecraft_version-$mod_id.accesswidener"))
+    accessWidenerPath.set(
+        project(":common").file("src/main/resources/accesswideners/${commonMod.fabricAccessWidener}")
+    )
 
     mixin {
         defaultRefmapName.set("$mod_id.refmap.json")
@@ -126,6 +120,9 @@ stonecutter {
     replacements.string(current.parsed >= "1.21.11") {
         replace("ResourceLocation", "Identifier")
 
+        replace("net.minecraft.Util", "net.minecraft.util.Util")
+        replace("net.minecraft.advancements.critereon", "net.minecraft.advancements.criterion")
+
         // Conflicts
         replace("parseIdentifier", "parseIdentifier")
         replace("getAdvancementsForIdentifiers", "getAdvancementsForIdentifiers")
@@ -138,5 +135,16 @@ stonecutter {
         replace("base.readResourceLocation", "base.readIdentifier")
         replace("base.writeResourceLocation", "base.writeIdentifier")
         replace("@return the raw minecraft Identifier.", "@return the raw minecraft Identifier.")
+    }
+
+    replacements.string(current.parsed >= "26.1") {
+        replace("GuiGraphics", "GuiGraphicsExtractor")
+
+        // fabric-command-api-v2 3.0.5 renamed this
+        replace("ClientCommandManager", "ClientCommands")
+
+        // Conflicts
+        // NeoForge's ScreenEvent.Render.Post accessor, which is still spelled this way
+        replace("getGuiGraphics", "getGuiGraphics")
     }
 }

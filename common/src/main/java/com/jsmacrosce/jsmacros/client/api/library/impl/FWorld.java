@@ -2,7 +2,6 @@ package com.jsmacrosce.jsmacros.client.api.library.impl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.LerpingBossEvent;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -21,6 +20,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
@@ -36,9 +36,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
-
+import org.apache.logging.log4j.core.jmx.Server;
 import org.jetbrains.annotations.Nullable;
-
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.doclet.DocletReplaceTypeParams;
@@ -60,7 +59,6 @@ import com.jsmacrosce.jsmacros.core.library.BaseLibrary;
 import com.jsmacrosce.jsmacros.core.library.Library;
 
 import javax.sound.sampled.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -571,11 +569,11 @@ public class FWorld extends BaseLibrary {
      */
     @Nullable
     public EntityHelper<?> rayTraceEntity(double x1, double y1, double z1, double x2, double y2, double z2) {
-        ClientLevel world = mc.level;
-        if (world == null) return null;
+        ClientLevel level = mc.level;
+        if (level == null) return null;
         TargetingConditions target = TargetingConditions.forNonCombat();
         target.selector((e, w) -> e.getBoundingBox().clip(new Vec3(x1, y1, z1), new Vec3(x2, y2, z2)).isPresent());
-        List<LivingEntity> entities = (List) StreamSupport.stream(world.entitiesForRendering().spliterator(), false).filter(e -> e instanceof LivingEntity).collect(Collectors.toList());
+        List<LivingEntity> entities = (List) StreamSupport.stream(level.entitiesForRendering().spliterator(), false).filter(e -> e instanceof LivingEntity).collect(Collectors.toList());
         LivingEntity closest = null;
         double distance = -1;
         Player tester = mc.player;
@@ -642,13 +640,70 @@ public class FWorld extends BaseLibrary {
     /**
      * ticks passed since world was started INCLUDING those skipped when nights were cut short with sleeping.
      *
-     * @return the current world time of day. {@code -1} if world is not loaded.
+     * @return the current dimension's time-of-day ticks, or {@code -1} if no world is loaded.
+     * On 26.1+, dimensions with a default clock use it; dimensions without one use the overworld clock.
      * @since 1.1.5
      */
     public long getTimeOfDay() {
         ClientLevel world = mc.level;
         if (world == null) return -1;
+        //? if >=26.1 {
+        /*return world.dimensionType().defaultClock().isPresent()
+                ? world.getDefaultClockTime()
+                : world.getOverworldClockTime();
+        *///? } else {
         return world.getDayTime();
+        //?}
+    }
+
+    /**
+     * Returns the data-driven timelines active in the current dimension.
+     * <p>
+     * In 26.1, this returns Mojang {@code Holder<Timeline>} objects directly. Each
+     * timeline supplies {@code getCurrentTicks}, {@code getTotalTicks}, and
+     * {@code getPeriodCount}; pass {@code World.getClockManager()} to those
+     * methods. The returned holders retain their registered timeline IDs.
+     * <pre>
+     * const clockManager = World.getClockManager();
+     * for (const timelineHolder of World.getTimelines()) {
+     *     const timeline = timelineHolder.value();
+     *     Chat.log(`${timelineHolder.getRegisteredName()}: ${timeline.getCurrentTicks(clockManager)}`);
+     * }
+     * </pre>
+     *
+     * @return a snapshot of the current dimension's active timeline holders, or an empty list before 26.1 or when no world is loaded.
+     * @since 2.0.0
+     */
+    public List<?> getTimelines() {
+        // TODO: When the docgen system is reworked, implement a proper way to version functions and their returns so we can mitigate cross-version docgen issues.
+        ClientLevel world = mc.level;
+        if (world == null) return Collections.emptyList();
+        //? if >=26.1 {
+        /*return world.dimensionType().timelines().stream().toList();
+        *///? } else {
+        return Collections.emptyList();
+        //? }
+    }
+
+    /**
+     * Returns the current world's Mojang {@code ClockManager}.
+     * <p>
+     * Use this with the raw timelines returned by {@code World.getTimelines()} to read
+     * their current, total, and period-count tick values. It is available only on
+     * 26.1; earlier targets and an unloaded world return {@code null}.
+     *
+     * @return the active Mojang clock manager, or {@code null} when unavailable.
+     * @since 2.0.0
+     */
+    @Nullable
+    public Object getClockManager() {
+        ClientLevel world = mc.level;
+        if (world == null) return null;
+        //? if >=26.1 {
+        /*return world.clockManager();
+        *///? } else {
+        return null;
+        //? }
     }
 
     /**
@@ -747,7 +802,12 @@ public class FWorld extends BaseLibrary {
     public int getMoonPhase() {
         ClientLevel world = mc.level;
         if (world == null) return -1;
-        //? if >=1.21.11 {
+        //? if >=26.1 {
+        /*return (int) Math.floorMod(
+            world.getOverworldClockTime() / net.minecraft.world.level.MoonPhase.PHASE_LENGTH,
+            (long) net.minecraft.world.level.MoonPhase.COUNT
+        );
+        *///? } else if >=1.21.11 {
         /*return (int) (world.getDayTime() / 24000L % 8L + 8L) % 8;
         *///? } else {
         return world.getMoonPhase();

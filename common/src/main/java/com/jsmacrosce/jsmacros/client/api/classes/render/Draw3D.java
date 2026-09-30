@@ -13,6 +13,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.*;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FHud;
+import com.jsmacrosce.jsmacros.client.util.CameraCompat;
 import com.jsmacrosce.jsmacros.core.classes.Registrable;
 
 import java.util.ArrayList;
@@ -403,6 +404,17 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
+     * @since 1.9.0
+     */
+    public EntityTraceLine addEntityTraceLine(EntityHelper<?> entity, int color, int alpha, double yOffset, boolean alwaysOnTop) {
+        EntityTraceLine l = new EntityTraceLine(entity, color, alpha, yOffset, alwaysOnTop);
+        synchronized (elements) {
+            elements.add(l);
+        }
+        return l;
+    }
+
+    /**
      * @return self for chaining
      * @since 1.9.0
      */
@@ -697,11 +709,7 @@ public class Draw3D implements Registrable<Draw3D> {
     @DocletIgnore
     public void render(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-        //? if >=1.21.11 {
-        /*Vec3 cameraPos = camera.position();
-        *///? } else {
-        Vec3 cameraPos = camera.getPosition();
-        //? }
+        Vec3 cameraPos = CameraCompat.position(camera);
 
         poseStack.pushPose();
         poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
@@ -723,5 +731,114 @@ public class Draw3D implements Registrable<Draw3D> {
         }
 
         poseStack.popPose();
+    }
+
+    /**
+     * Renders non-surface elements. Surfaces are drawn separately across every
+     * registered Draw3D so their back-to-front order is global.
+     */
+    @DocletIgnore
+    public void renderDepthPass(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
+        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        Vec3 cameraPos = CameraCompat.position(camera);
+
+        poseStack.pushPose();
+        poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
+
+        EntityTraceLine.dirty = false;
+
+        synchronized (elements) {
+            Collections.sort(elements);
+
+            for (RenderElement3D<?> element : elements) {
+                if (element instanceof Surface) {
+                    continue;
+                }
+                element.render(poseStack, consumers, tickDelta);
+            }
+        }
+
+        if (EntityTraceLine.dirty) {
+            synchronized (elements) {
+                elements.removeIf(e -> e instanceof EntityTraceLine etl && etl.shouldRemove);
+            }
+        }
+
+        poseStack.popPose();
+    }
+
+    /**
+     * Renders only the always-on-top (cull=false) surfaces.
+     */
+    @DocletIgnore
+    public void renderAlwaysOnTopSurfaces(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
+        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        Vec3 cameraPos = CameraCompat.position(camera);
+
+        poseStack.pushPose();
+        poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
+
+        synchronized (elements) {
+            Collections.sort(elements);
+
+            for (RenderElement3D<?> element : elements) {
+                if (element instanceof Surface surface && !surface.cull) {
+                    element.render(poseStack, consumers, tickDelta);
+                }
+            }
+        }
+
+        poseStack.popPose();
+    }
+
+    /**
+     * Renders the elements that draw themselves directly (surfaces and their children:
+     * rect/line/text/image/item) into the buffer source. Must be called inside the render
+     * pass's output override, after the gizmo passes, and flushed by the caller.
+     * {@code alwaysOnTop} selects the group drawn after the always-on-top depth clear.
+     */
+    @DocletIgnore
+    public void renderDirect(PoseStack poseStack, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
+        renderDirectSurfaces(Collections.singleton(this), poseStack, consumers, tickDelta, alwaysOnTop);
+    }
+
+    /**
+     * Surface pipelines do not consistently write depth, so every registered
+     * Draw3D must share the same back-to-front order within each depth group.
+     */
+    @DocletIgnore
+    public static void renderDirectSurfaces(Iterable<Draw3D> draws, PoseStack poseStack, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
+        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        Vec3 cameraPos = CameraCompat.position(camera);
+
+        List<Surface> surfaces = new ArrayList<>();
+        for (Draw3D draw : draws) {
+            synchronized (draw.elements) {
+                for (RenderElement3D<?> element : draw.elements) {
+                    if (element instanceof Surface surface && surface.cull != alwaysOnTop) {
+                        surfaces.add(surface);
+                    }
+                }
+            }
+        }
+        surfaces.sort((a, b) -> Double.compare(distanceSq(b.resolveRenderPos(tickDelta), cameraPos), distanceSq(a.resolveRenderPos(tickDelta), cameraPos)));
+
+        poseStack.pushPose();
+        poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
+        for (Surface surface : surfaces) {
+            //? if >=1.21.11 {
+            /*surface.renderDirect(poseStack, consumers, tickDelta, alwaysOnTop);
+            *///? } else {
+            surface.render(poseStack, consumers, tickDelta);
+            //? }
+        }
+        poseStack.popPose();
+    }
+
+    private static double distanceSq(Pos3D pos, Vec3 cameraPos) {
+        double dx = pos.x - cameraPos.x;
+        double dy = pos.y - cameraPos.y;
+        double dz = pos.z - cameraPos.z;
+        return dx * dx + dy * dy + dz * dz;
     }
 }
