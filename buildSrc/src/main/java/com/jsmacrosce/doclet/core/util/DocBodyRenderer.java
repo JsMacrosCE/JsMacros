@@ -47,8 +47,9 @@ public final class DocBodyRenderer {
     /**
      * Renders nodes to a Markdown string.
      *
-     * <p>HTML structural tags ({@code <p>}, {@code <br>}, {@code <pre>}) are
-     * converted to Markdown equivalents. Remaining HTML angle brackets are
+     * <p>HTML structural and emphasis tags ({@code <p>}, {@code <br>},
+     * {@code <pre>}, {@code <i>}, {@code <b>}) are converted to Markdown equivalents.
+     * Remaining HTML angle brackets are
      * escaped to {@code &lt;}/{@code &gt;} so they render as literal text
      * inside HTML blocks embedded in Markdown. {@code <a href>} tags in
      * {@link DocBodyNode.Html} nodes are converted to Markdown links.
@@ -281,6 +282,10 @@ public final class DocBodyRenderer {
         // Javadoc script examples are JavaScript; let VitePress highlight them.
         // Terminate the closing fence before any adjacent <br> or prose.
         s = s.replace("<pre>", "```js").replace("</pre>", "```\n");
+        // Only translate markup from Javadoc HTML nodes, not literal angle
+        // brackets in text or {@code ...} examples.
+        s = s.replaceAll("(?i)</?(?:i|em)>", "*")
+            .replaceAll("(?i)</?(?:b|strong)>", "**");
         // Leave <a href> intact — the outer step converts it to a Markdown link.
         return s;
     }
