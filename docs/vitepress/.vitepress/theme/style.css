@@ -188,6 +188,21 @@
   font-size: 0.88em;
 }
 
+.vp-doc .overload-body pre {
+  overflow-x: auto;
+  margin: 0.65rem 0;
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
+  background: var(--vp-code-block-bg);
+  line-height: 1.5;
+}
+
+.vp-doc .overload-body pre code {
+  white-space: pre;
+  background: transparent;
+  padding: 0;
+}
+
 .vp-doc .overload-sig .VPBadge {
   margin-left: auto;
 }

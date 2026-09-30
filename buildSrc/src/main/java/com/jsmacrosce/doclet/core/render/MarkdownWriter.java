@@ -431,7 +431,9 @@ public class MarkdownWriter {
             html.append("</div>\n");
         }
         html.append("</div>\n");
-        md.raw("\n" + html);
+        // Markdown-it resumes parsing at blank lines even inside raw HTML.
+        // Keep generated overload groups contiguous so nested HTML remains valid.
+        md.raw("\n" + html.toString().replace("\n", "&#10;") + "\n");
     }
 
     /**
@@ -448,7 +450,10 @@ public class MarkdownWriter {
         // Markdown link syntax ([text](url)) is not processed inside raw HTML by VitePress.
         String desc = formatDescriptionAsHtml(member.docComment(), clz);
         if (!desc.isEmpty()) {
-            html.append("<p>").append(desc).append("</p>\n");
+            // Descriptions can contain block markup such as lists and examples.
+            html.append("<div class=\"overload-description\">")
+                .append(desc)
+                .append("</div>\n");
         }
 
         if (hasDeprecatedTag(member.docComment())) {
@@ -488,9 +493,9 @@ public class MarkdownWriter {
         if (member.kind() == MemberKind.METHOD) {
             String retTag = getTagTextAsHtml(member.docComment(), DocTagKind.RETURN, clz);
             if (!retTag.isEmpty()) {
-                html.append("<p><strong>Returns:</strong> ")
+                html.append("<div class=\"overload-return\"><strong>Returns:</strong> ")
                     .append(retTag)
-                    .append("</p>\n");
+                    .append("</div>\n");
             } else {
                 TypeRef returnType = member.returnType();
                 if (returnType != null && returnType.kind() != TypeKind.VOID) {

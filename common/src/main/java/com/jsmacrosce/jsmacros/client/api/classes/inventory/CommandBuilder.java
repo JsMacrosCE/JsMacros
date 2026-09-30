@@ -406,9 +406,9 @@ public abstract class CommandBuilder implements Registrable<CommandBuilder> {
      * so order does not matter and a character that is not one of the three is quietly ignored
      * rather than rejected:
      * <ul>
-     * <li>{@code i} makes the match ignore case
-     * <li>{@code s} lets a dot match a line break as well as any other character
-     * <li>{@code u} switches on the unicode character classes
+     * <li>{@code i} makes the match ignore case</li>
+     * <li>{@code s} lets a dot match a line break as well as any other character</li>
+     * <li>{@code u} switches on the unicode character classes</li>
      * </ul>
      * example:
      * <pre>

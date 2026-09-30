@@ -281,10 +281,10 @@ public final class DocBodyRenderer {
     }
 
     /**
-     * Passes HTML from a raw Html node through for inline HTML contexts.
-     * Structural block tags ({@code <p>}, {@code <br>}) are converted to
-     * spacing equivalents; everything else (including {@code <a href>}) is
-     * preserved as-is since it is already valid HTML.
+     * Passes HTML from a raw Html node through for HTML contexts.
+     * Structural paragraph tags ({@code <p>}, {@code <br>}) are converted to
+     * spacing equivalents; example blocks remain preformatted, and links are
+     * preserved as HTML.
      */
     private static String processHtmlForInline(String raw) {
         if (raw == null || raw.isBlank()) {
@@ -294,8 +294,8 @@ public final class DocBodyRenderer {
         s = s.replaceAll("<br ?/?>", " ");
         // <p> continuation → space (keep content flowing inline)
         s = s.replaceAll("\n ?<p>", " ").replaceAll("^<p>", "");
-        // <pre> in inline HTML context: just strip the delimiters
-        s = s.replaceAll("</?pre>", "");
+        // Preserve example blocks as preformatted code inside the overload HTML.
+        s = s.replace("<pre>", "<pre><code>").replace("</pre>", "</code></pre>");
         return s;
     }
 

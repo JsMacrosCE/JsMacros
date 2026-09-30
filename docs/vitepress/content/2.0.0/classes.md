@@ -51,7 +51,7 @@ Many APIs return helper classes (`*Helper`, render classes, scanner builders). T
 - helpers' methods are often more efficient than raw reflection
 - helpers try to offer a more stable API across Minecraft versions
 
-When in doubt, inspect the returned helper methods first instead of reaching for [`Reflection`](./libraries/com/jsmacrosce/jsmacros/core/library/impl/FReflection#freflection) or [`getRaw`](./classes/com/jsmacrosce/jsmacros/core/helpers/BaseHelper#com.jsmacrosce.jsmacros.core.helpers.BaseHelper_getRaw-) as they are very brittle between versions.
+When in doubt, inspect the returned helper methods first instead of reaching for `Reflection` or `getRaw`, as they are very brittle between versions.
 
 ## Reliability tips
 
