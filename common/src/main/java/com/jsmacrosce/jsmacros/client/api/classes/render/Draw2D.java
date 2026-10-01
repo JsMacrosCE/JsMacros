@@ -477,7 +477,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     @Override
     @DocletReplaceParams("x: int, y: int, zIndex: int, id: CanOmitNamespace<ItemId>")
     public Item addItem(int x, int y, int zIndex, String id) {
-        return null;
+        return addItem(x, y, zIndex, id, true);
     }
 
     /**
@@ -523,7 +523,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
 
     @Override
     public Item addItem(int x, int y, int zIndex, ItemStackHelper item) {
-        return null;
+        return addItem(x, y, zIndex, item, true);
     }
 
     /**
