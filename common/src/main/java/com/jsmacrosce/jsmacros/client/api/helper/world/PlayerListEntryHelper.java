@@ -87,6 +87,7 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
      * @return
      * @since 1.8.2
      */
+    @Nullable
     public byte[] getPublicKey() {
         RemoteChatSession session = base.getChatSession();
         return session == null ? null : session.profilePublicKey().data().key().getEncoded();
@@ -165,7 +166,7 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
     //? if >1.21.8 {
     /*@Nullable
     public String getCapeUrl() {
-        return base.getSkin().body() instanceof ClientAsset.DownloadedTexture downloadedTexture ? downloadedTexture.url() : null;
+        return base.getSkin().cape() instanceof ClientAsset.DownloadedTexture downloadedTexture ? downloadedTexture.url() : null;
     }
     *///?}
 
