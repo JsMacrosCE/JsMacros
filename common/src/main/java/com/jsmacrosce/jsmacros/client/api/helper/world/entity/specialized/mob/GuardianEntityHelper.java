@@ -39,7 +39,8 @@ public class GuardianEntityHelper extends MobEntityHelper<Guardian> {
      */
     @Nullable
     public EntityHelper<?> getTarget() {
-        return hasTarget() ? EntityHelper.create(base.getActiveAttackTarget()) : null;
+        var target = base.getActiveAttackTarget();
+        return target == null ? null : EntityHelper.create(target);
     }
 
     /**
