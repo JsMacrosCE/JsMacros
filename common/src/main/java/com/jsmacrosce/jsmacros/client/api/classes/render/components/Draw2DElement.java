@@ -36,6 +36,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         this.y = y;
         this.width = width;
         this.height = height;
+        this.draw2D.widthSupplier = () -> this.width.getAsInt();
+        this.draw2D.heightSupplier = () -> this.height.getAsInt();
         this.zIndex = zIndex;
         this.scale = scale;
         this.rotation = Mth.wrapDegrees(rotation);
@@ -317,8 +319,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
             this.draw2D = draw2D;
             this.width = parent::getWidth;
             this.height = parent::getHeight;
-            this.draw2D.widthSupplier = this.width;
-            this.draw2D.heightSupplier = this.height;
+            this.draw2D.widthSupplier = () -> this.width.getAsInt();
+            this.draw2D.heightSupplier = () -> this.height.getAsInt();
         }
 
         /**
