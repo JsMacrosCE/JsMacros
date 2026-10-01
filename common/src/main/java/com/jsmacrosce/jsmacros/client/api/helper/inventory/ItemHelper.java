@@ -63,7 +63,7 @@ public class ItemHelper extends BaseHelper<Item> {
      */
     public boolean canBeRepairedWith(ItemStackHelper stack) {
         var repair = base.components().get(DataComponents.REPAIRABLE);
-        return repair.isValidRepairItem(stack.getRaw());
+        return repair != null && repair.isValidRepairItem(stack.getRaw());
     }
 
     /**
