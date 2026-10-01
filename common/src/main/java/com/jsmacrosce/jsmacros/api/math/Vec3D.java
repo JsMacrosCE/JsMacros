@@ -185,7 +185,12 @@ public class Vec3D extends Vec2D {
         double dy = y2 - y1;
         double dz = z2 - z1;
         double xz = Math.sqrt(dx * dx + dz * dz);
-        return 90F - (float) Mth.wrapDegrees(Math.toDegrees(Math.atan2(xz, -dy)));
+        return (float) Math.toDegrees(Math.atan2(-dy, xz));
+    }
+
+    @Override
+    public Vec3D to3D() {
+        return new Vec3D(this);
     }
 
     public float getYaw() {
