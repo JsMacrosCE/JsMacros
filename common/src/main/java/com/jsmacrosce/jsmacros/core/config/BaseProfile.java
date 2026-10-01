@@ -8,6 +8,7 @@ import com.jsmacrosce.jsmacros.core.event.BaseEventRegistry;
 import com.jsmacrosce.jsmacros.core.event.IEventListener;
 import com.jsmacrosce.jsmacros.core.event.impl.EventCustom;
 import com.jsmacrosce.jsmacros.core.event.impl.EventProfileLoad;
+import com.jsmacrosce.jsmacros.core.event.impl.EventWrappedScript;
 import com.jsmacrosce.jsmacros.core.language.BaseScriptContext;
 import com.jsmacrosce.jsmacros.core.language.EventContainer;
 import com.jsmacrosce.jsmacros.core.library.impl.*;
@@ -176,6 +177,7 @@ public abstract class BaseProfile {
     protected void initRegistries() {
         runner.eventRegistry.addEvent("ANYTHING", true, true);
         runner.eventRegistry.addEvent(EventProfileLoad.class);
+        runner.eventRegistry.addEvent(EventWrappedScript.class);
 
         runner.libraryRegistry.addLibrary(FJsMacros.class);
         runner.libraryRegistry.addLibrary(FFS.class);
