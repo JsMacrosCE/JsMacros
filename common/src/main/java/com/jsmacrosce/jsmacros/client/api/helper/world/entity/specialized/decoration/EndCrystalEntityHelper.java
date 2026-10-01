@@ -17,10 +17,10 @@ public class EndCrystalEntityHelper extends EntityHelper<EndCrystal> {
     }
 
     /**
-     * Naturally generated end crystals will have a bedrock base, while player placed ones will
-     * not.
+     * Tests whether the crystal displays a base, usually indicative it was spawned naturally. A
+     * crystal can be created with this flag independently of whether a player placed it.
      *
-     * @return {@code true} if the end crystal was not placed by a player, {@code false} otherwise.
+     * @return {@code true} if the crystal displays its base.
      * @since 1.8.4
      */
     public boolean isNatural() {
