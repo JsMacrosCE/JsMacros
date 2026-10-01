@@ -7,10 +7,12 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 /*import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
 import net.minecraft.world.entity.vehicle.boat.Boat;
 import net.minecraft.world.entity.vehicle.boat.ChestBoat;
+import net.minecraft.world.entity.vehicle.boat.ChestRaft;
 *///? } else {
 import net.minecraft.world.entity.vehicle.AbstractBoat;
 import net.minecraft.world.entity.vehicle.Boat;
 import net.minecraft.world.entity.vehicle.ChestBoat;
+import net.minecraft.world.entity.vehicle.ChestRaft;
 //?}
 
 /**
@@ -29,7 +31,7 @@ public class BoatEntityHelper extends EntityHelper<AbstractBoat> {
      * @since 1.8.4
      */
     public boolean isChestBoat() {
-        return base instanceof ChestBoat;
+        return base instanceof ChestBoat || base instanceof ChestRaft;
     }
 
     /**
@@ -61,7 +63,7 @@ public class BoatEntityHelper extends EntityHelper<AbstractBoat> {
      * @since 1.8.4
      */
     public boolean isUnderwater() {
-        return getLocation() == Boat.Status.UNDER_WATER;
+        return getLocation() == Boat.Status.UNDER_WATER || getLocation() == Boat.Status.UNDER_FLOWING_WATER;
     }
 
     /**
