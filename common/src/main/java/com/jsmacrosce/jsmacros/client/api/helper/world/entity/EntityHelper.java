@@ -844,23 +844,36 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * @return the entity as a server entity if an integrated server is running and {@code null} otherwise.
+     * Looks up the entity on the integrated server thread. The returned helper wraps a server
+     * entity; callers must only access it on that thread. Returns {@code null} in multiplayer or
+     * when the entity is no longer loaded on the integrated server.
+     *
+     * @return the server entity helper, or {@code null} when unavailable.
      * @since 1.8.4
      */
     @Nullable
     public EntityHelper<?> asServerEntity() {
-        // TODO: Implement server entity retrieval on integrated server from client
-        throw new UnsupportedOperationException("asServerEntity is not supported in client environment.");
-        /*Minecraft client = Minecraft.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (!client.hasSingleplayerServer()) {
             return null;
         }
-        Entity entity = client.getSingleplayerServer().getPlayerList().getPlayer(client.player.getUUID()).serverLevel().getEntity(base.getUUID());
-        if (entity == null) {
-            return null;
-        } else {
-            return create(entity);
-        }*/
+        var server = client.getSingleplayerServer();
+        var dimension = base.level().dimension();
+        var uuid = base.getUUID();
+        java.util.function.Supplier<EntityHelper<?>> lookup = () -> {
+            var level = server.getLevel(dimension);
+            if (level == null) return null;
+            Entity entity = level.getEntity(uuid);
+            return entity == null ? null : create(entity);
+        };
+        try {
+            return server.isSameThread() ? lookup.get() : server.submit(lookup).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted waiting for integrated server", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not look up entity on integrated server", e);
+        }
     }
 
 }
