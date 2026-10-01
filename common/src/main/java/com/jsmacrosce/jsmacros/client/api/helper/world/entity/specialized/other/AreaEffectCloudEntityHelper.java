@@ -1,6 +1,8 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other;
 
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.particles.ColorParticleOption;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.AreaEffectCloud;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
@@ -25,11 +27,14 @@ public class AreaEffectCloudEntityHelper extends EntityHelper<AreaEffectCloud> {
     }
 
     /**
-     * @return the color of this cloud.
+     * @return the color of this cloud's particles, or -1 if its custom particle has no color.
      * @since 1.8.4
      */
     public int getColor() {
-        return base.getTeamColor();
+        if (base.getParticle() instanceof ColorParticleOption particle) {
+            return ARGB.colorFromFloat(particle.getAlpha(), particle.getRed(), particle.getGreen(), particle.getBlue());
+        }
+        return -1;
     }
 
     /**
