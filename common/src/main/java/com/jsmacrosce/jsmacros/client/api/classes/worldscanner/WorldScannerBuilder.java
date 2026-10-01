@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IAdvancedFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
+import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.BasicFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.impl.BlockFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.impl.BlockStateFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.impl.StringifyFilter;
@@ -153,6 +154,18 @@ public final class WorldScannerBuilder {
         return this;
     }
 
+    public WorldScannerBuilder withStateFilter(IFilter<BlockStateHelper> filter) {
+        if (!canCreateNewFilter()) throw new IllegalStateException("Complete the pending filter before replacing it");
+        stateFilter = new BasicFilter<>() {
+            @Override
+            public Boolean apply(BlockStateHelper state) {
+                return filter.apply(state);
+            }
+        };
+        sequential = true;
+        return this;
+    }
+
     public WorldScannerBuilder andStateFilter(String method) {
         createNewFilter(Operation.AND, FilterCategory.STATE, method);
         return this;
@@ -160,6 +173,11 @@ public final class WorldScannerBuilder {
 
     public WorldScannerBuilder orStateFilter(String method) {
         createNewFilter(Operation.OR, FilterCategory.STATE, method);
+        return this;
+    }
+
+    public WorldScannerBuilder xorStateFilter(String method) {
+        createNewFilter(Operation.XOR, FilterCategory.STATE, method);
         return this;
     }
 
@@ -174,6 +192,18 @@ public final class WorldScannerBuilder {
         return this;
     }
 
+    public WorldScannerBuilder withBlockFilter(IFilter<BlockHelper> filter) {
+        if (!canCreateNewFilter()) throw new IllegalStateException("Complete the pending filter before replacing it");
+        blockFilter = new BasicFilter<>() {
+            @Override
+            public Boolean apply(BlockHelper block) {
+                return filter.apply(block);
+            }
+        };
+        sequential = true;
+        return this;
+    }
+
     public WorldScannerBuilder andBlockFilter(String method) {
         createNewFilter(Operation.AND, FilterCategory.BLOCK, method);
         return this;
@@ -181,6 +211,11 @@ public final class WorldScannerBuilder {
 
     public WorldScannerBuilder orBlockFilter(String method) {
         createNewFilter(Operation.OR, FilterCategory.BLOCK, method);
+        return this;
+    }
+
+    public WorldScannerBuilder xorBlockFilter(String method) {
+        createNewFilter(Operation.XOR, FilterCategory.BLOCK, method);
         return this;
     }
 
@@ -205,6 +240,11 @@ public final class WorldScannerBuilder {
         return this;
     }
 
+    public WorldScannerBuilder xorStringBlockFilter() {
+        createNewFilter(Operation.XOR, FilterCategory.BLOCK, "");
+        return this;
+    }
+
     public WorldScannerBuilder withStringStateFilter() {
         createNewFilter(Operation.NEW, FilterCategory.STATE, "");
         return this;
@@ -217,6 +257,11 @@ public final class WorldScannerBuilder {
 
     public WorldScannerBuilder orStringStateFilter() {
         createNewFilter(Operation.OR, FilterCategory.STATE, "");
+        return this;
+    }
+
+    public WorldScannerBuilder xorStringStateFilter() {
+        createNewFilter(Operation.XOR, FilterCategory.STATE, "");
         return this;
     }
 
@@ -271,7 +316,7 @@ public final class WorldScannerBuilder {
     @SuppressWarnings("unchecked")
     private void createStringFilter(String method, String... args) {
         if (selectedCategory == FilterCategory.STATE) {
-            composeFilters(new StringifyFilter<BlockStateFilter>(method).addOption(args));
+            composeFilters(new StringifyFilter<BlockStateHelper>(method).addOption(args));
         } else if (selectedCategory == FilterCategory.BLOCK) {
             composeFilters(new StringifyFilter<BlockHelper>(method).addOption(args));
         } else {
