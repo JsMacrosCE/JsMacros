@@ -567,13 +567,12 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     public void init() {
-        synchronized (elements) {
-            elements.clear();
-        }
         if (onInit != null) {
+            synchronized (elements) {
+                elements.clear();
+            }
             try {
                 onInit.accept(this);
-                getDraw2Ds().forEach(e -> e.getDraw2D().init());
             } catch (Throwable e) {
                 e.printStackTrace();
                 try {
@@ -587,6 +586,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
                 }
             }
         }
+        getDraw2Ds().forEach(e -> e.getDraw2D().init());
     }
 
     @Override
