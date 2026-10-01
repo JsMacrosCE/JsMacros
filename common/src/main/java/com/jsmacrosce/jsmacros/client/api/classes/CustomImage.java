@@ -630,7 +630,12 @@ public class CustomImage {
     public static CustomImage createWidget(String path, String name) {
         try {
             File file = JsMacrosClient.clientCore.config.configFolder.toPath().resolve(path).toFile();
-            return new CustomImage(ImageIO.read(file), name);
+            BufferedImage image = ImageIO.read(file);
+            if (image == null) {
+                JsMacrosClient.clientCore.profile.logError(new RuntimeException("Could not read image: " + file.getAbsolutePath()));
+            }
+
+            return image == null ? null : new CustomImage(image, name);
         } catch (IOException e) {
             JsMacrosClient.clientCore.profile.logError(e);
         }
