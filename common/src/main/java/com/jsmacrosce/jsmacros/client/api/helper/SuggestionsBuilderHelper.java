@@ -132,10 +132,25 @@ public class SuggestionsBuilderHelper extends BaseHelper<SuggestionsBuilder> {
      * @since 1.8.4
      */
     public SuggestionsBuilderHelper suggestPositions(Collection<String> positions) {
-        SharedSuggestionProvider.suggestCoordinates(getRemaining(), positions.stream().map(p -> {
-            String[] split = p.split(" ");
-            return new SharedSuggestionProvider.TextCoordinates(split[0], split[1], split[2]);
-        }).collect(Collectors.toList()), base, s -> true);
+        var coordinates = positions.stream().map(p -> p.trim().split("\\s+"))
+                .peek(parts -> {
+                    if (parts.length != 2 && parts.length != 3) {
+                        throw new IllegalArgumentException("A position must have two or three coordinates");
+                    }
+                }).toList();
+        if (!coordinates.isEmpty()) {
+            int dimensions = coordinates.getFirst().length;
+            if (coordinates.stream().anyMatch(parts -> parts.length != dimensions)) {
+                throw new IllegalArgumentException("Positions must all have the same number of coordinates");
+            }
+            var values = coordinates.stream().map(parts -> new SharedSuggestionProvider.TextCoordinates(
+                    parts[0], dimensions == 3 ? parts[1] : "", parts[dimensions - 1])).toList();
+            if (dimensions == 2) {
+                SharedSuggestionProvider.suggest2DCoordinates(getRemaining(), values, base, s -> true);
+            } else {
+                SharedSuggestionProvider.suggestCoordinates(getRemaining(), values, base, s -> true);
+            }
+        }
         return this;
     }
 
