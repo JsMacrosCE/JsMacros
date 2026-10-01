@@ -74,6 +74,7 @@ public class EventContainer<T extends BaseScriptContext<?>> {
      * @since 1.4.0
      */
     public synchronized void releaseLock() {
+        if (!locked) return;
         locked = false;
         ctx.runner.profile.joinedThreadStack.remove(lockThread);
         for (Runnable runnable : then) {
@@ -94,7 +95,7 @@ public class EventContainer<T extends BaseScriptContext<?>> {
 
     @Override
     public String toString() {
-        return String.format("ContextContainer:{\"locked\": %s, \"lockThread\": \"%s\"}", locked, lockThread.getName());
+        return String.format("ContextContainer:{\"locked\": %s, \"lockThread\": \"%s\"}", locked, lockThread == null ? null : lockThread.getName());
     }
 
 }
