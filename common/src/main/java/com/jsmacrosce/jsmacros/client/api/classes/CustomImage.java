@@ -149,7 +149,7 @@ public class CustomImage {
         try {
             File file = JsMacrosClient.clientCore.config.configFolder.toPath().resolve(path).resolve(fileName + ".png").toFile();
             if (!file.exists()) {
-                if (!file.mkdirs() && !file.createNewFile()) {
+                if ((file.getParentFile() != null && !file.getParentFile().isDirectory() && !file.getParentFile().mkdirs()) || !file.createNewFile()) {
                     JsMacrosClient.clientCore.profile.logError(new RuntimeException("Could not create file: " + file.getAbsolutePath()));
                     return this;
                 }
