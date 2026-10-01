@@ -254,7 +254,7 @@ public class CustomImage {
      * @since 1.8.4
      */
     public CustomImage drawImage(Image img, int x, int y, int width, int height, int sourceX, int sourceY, int sourceWidth, int sourceHeight) {
-        graphics.drawImage(image, x, y, x + width, y + height, sourceX, sourceY, sourceX + sourceWidth, sourceY + sourceHeight, null);
+        graphics.drawImage(img, x, y, x + width, y + height, sourceX, sourceY, sourceX + sourceWidth, sourceY + sourceHeight, null);
         return this;
     }
 
