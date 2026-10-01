@@ -307,9 +307,9 @@ public class Line implements RenderElement, Alignable<Line> {
 
         drawContext.fill(
                 0,
-                (int) -halfWidth,
-                (int) length,
-                (int) halfWidth,
+                -(int) Math.floor(halfWidth),
+                (int) Math.ceil(length),
+                -(int) Math.floor(halfWidth) + Math.max(1, (int) Math.ceil(this.width)),
                 this.color
         );
 
@@ -700,7 +700,7 @@ public class Line implements RenderElement, Alignable<Line> {
 
         @Override
         public Builder moveTo(int x, int y) {
-            return pos(x, y, x + getScaledWidth(), y + getScaledHeight());
+            return pos(x, y, x + (x2 - x1), y + (y2 - y1));
         }
 
         @Override
