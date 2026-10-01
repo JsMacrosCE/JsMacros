@@ -2328,7 +2328,7 @@ public class OptionsHelper extends BaseHelper<Options> {
          * @since 1.8.4
          */
         public AccessibilityOptionsHelper setFovEffect(boolean val) {
-            getBase(base.hideLightningFlash()).forceSetValue(val);
+            getBase(base.fovEffectScale()).forceSetValue(val ? 1.0 : 0.0);
             return this;
         }
 
