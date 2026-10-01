@@ -75,6 +75,8 @@ public class CommandBuilderFabric extends CommandBuilder {
             Pair<Boolean, Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>>> arg = pointer.pop();
             Function<CommandBuildContext, ArgumentBuilder<FabricClientCommandSource, ?>> u = arg.getU();
             pointer.push(new Pair<>(arg.getT(), (ctx) -> u.andThen((e) -> e.then(oldarg.apply(ctx))).apply(ctx)));
+        } else {
+            throw new AssertionError("Can't use or() on the head of the command");
         }
         return this;
     }
