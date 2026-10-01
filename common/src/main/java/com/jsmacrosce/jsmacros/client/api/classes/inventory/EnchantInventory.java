@@ -35,10 +35,9 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
         TextHelper[] enchants = new TextHelper[3];
         var enchRegistry = mc.getConnection().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
         for (int j = 0; j < 3; ++j) {
-            Holder<Enchantment> enchantment = enchRegistry.get(inventory.getMenu().enchantClue[j]).orElseThrow();
-            if ((enchantment) != null) {
-                enchants[j] = TextHelper.wrap(Enchantment.getFullname(enchantment, inventory.getMenu().levelClue[j]));
-            }
+            int index = j;
+            enchRegistry.get(inventory.getMenu().enchantClue[j]).ifPresent(enchantment ->
+                    enchants[index] = TextHelper.wrap(Enchantment.getFullname(enchantment, inventory.getMenu().levelClue[index])));
         }
         return enchants;
     }
@@ -52,7 +51,9 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
         EnchantmentHelper[] enchantments = new EnchantmentHelper[3];
         var enchRegistry = mc.getConnection().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
         for (int i = 0; i < 3; i++) {
-            enchantments[i] = new EnchantmentHelper(enchRegistry.get(handler.enchantClue[i]).orElseThrow(), handler.levelClue[i]);
+            int level = i;
+            enchRegistry.get(handler.enchantClue[i]).ifPresent(enchantment ->
+                    enchantments[level] = new EnchantmentHelper(enchantment, handler.levelClue[level]));
         }
         return enchantments;
     }
@@ -65,8 +66,7 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
         String[] enchants = new String[3];
         var enchRegistry = mc.getConnection().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
         for (int j = 0; j < 3; ++j) {
-            Holder<Enchantment> enchantment = enchRegistry.get(inventory.getMenu().enchantClue[j]).orElseThrow();
-            enchants[j] = enchantment.getRegisteredName();
+            enchants[j] = enchRegistry.get(inventory.getMenu().enchantClue[j]).map(Holder::getRegisteredName).orElse(null);
         }
         return enchants;
     }
