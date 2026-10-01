@@ -281,6 +281,7 @@ public class Line implements RenderElement, Alignable<Line> {
 
     @Override
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+        if (width <= 0) return;
         //? if >1.21.5 {
         Matrix3x2fStack matrices = drawContext.pose();
         matrices.pushMatrix();
