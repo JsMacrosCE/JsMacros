@@ -987,7 +987,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
          */
         public Surface build() {
             Surface surface = new Surface(
-                    pos,
+                    new Pos3D(pos.x, pos.y, pos.z),
                     new Pos3D(xRot, yRot, zRot),
                     new Pos2D(width, height),
                     minSubdivisions,
