@@ -33,7 +33,8 @@ public interface Alignable<B extends Alignable<B>> {
      * @since 1.8.4
      */
     default B alignHorizontally(Alignable<?> other, String alignment, int offset) {
-        String[] alignments = alignment.toLowerCase(Locale.ROOT).split("on");
+        String[] alignments = alignment.toLowerCase(Locale.ROOT).split("on", -1);
+        if (alignments.length != 2) throw new IllegalArgumentException("Invalid alignment: " + alignment);
         String thisAlignment = alignments[0];
         String toAlignment = alignments[1];
         int alignToX;
@@ -48,7 +49,7 @@ public interface Alignable<B extends Alignable<B>> {
                 alignToX = other.getScaledRight();
                 break;
             default:
-                int percent = parsePercentage(alignment);
+                int percent = parsePercentage(toAlignment);
                 if (percent != -1) {
                     alignToX = other.getScaledLeft() + (other.getScaledWidth() * percent / 100);
                     break;
@@ -66,7 +67,7 @@ public interface Alignable<B extends Alignable<B>> {
                 moveToX(alignToX - getScaledWidth() + offset);
                 break;
             default:
-                int percent = parsePercentage(alignment);
+                int percent = parsePercentage(thisAlignment);
                 if (percent != -1) {
                     moveToX(alignToX - (getScaledWidth() * percent / 100) + offset);
                     break;
@@ -145,7 +146,8 @@ public interface Alignable<B extends Alignable<B>> {
      * @since 1.8.4
      */
     default B alignVertically(Alignable<?> other, String alignment, int offset) {
-        String[] alignments = alignment.toLowerCase(Locale.ROOT).split("on");
+        String[] alignments = alignment.toLowerCase(Locale.ROOT).split("on", -1);
+        if (alignments.length != 2) throw new IllegalArgumentException("Invalid alignment: " + alignment);
         String thisAlignment = alignments[0];
         String toAlignment = alignments[1];
         int alignToY;
@@ -160,7 +162,7 @@ public interface Alignable<B extends Alignable<B>> {
                 alignToY = other.getScaledBottom();
                 break;
             default:
-                int percent = parsePercentage(alignment);
+                int percent = parsePercentage(toAlignment);
                 if (percent != -1) {
                     alignToY = other.getScaledTop() + (other.getScaledHeight() * percent / 100);
                     break;
@@ -178,7 +180,7 @@ public interface Alignable<B extends Alignable<B>> {
                 moveToY(alignToY - getScaledHeight() + offset);
                 break;
             default:
-                int percent = parsePercentage(alignment);
+                int percent = parsePercentage(thisAlignment);
                 if (percent != -1) {
                     moveToY(alignToY - (getScaledHeight() * percent / 100) + offset);
                     break;
