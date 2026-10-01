@@ -371,7 +371,7 @@ public class Line implements RenderElement, Alignable<Line> {
 
     @Override
     public Line moveTo(int x, int y) {
-        return setPos(x, y, x + getScaledWidth(), y + getScaledHeight());
+        return setPos(x, y, x + (x2 - x1), y + (y2 - y1));
     }
 
     @Override
