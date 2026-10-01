@@ -215,7 +215,7 @@ public class Line implements RenderElement, Alignable<Line> {
      * @since 1.8.4
      */
     public Line setRotation(double rotation) {
-        this.rotation = (float) rotation;
+        this.rotation = Mth.wrapDegrees((float) rotation);
         return this;
     }
 

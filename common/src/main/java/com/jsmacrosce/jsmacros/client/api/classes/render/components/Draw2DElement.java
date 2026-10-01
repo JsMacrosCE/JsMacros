@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
@@ -37,7 +38,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         this.height = height;
         this.zIndex = zIndex;
         this.scale = scale;
-        this.rotation = rotation;
+        this.rotation = Mth.wrapDegrees(rotation);
     }
 
     /**
@@ -175,7 +176,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
      * @since 1.8.4
      */
     public Draw2DElement setRotation(double rotation) {
-        this.rotation = (float) rotation;
+        this.rotation = Mth.wrapDegrees((float) rotation);
         return this;
     }
 
