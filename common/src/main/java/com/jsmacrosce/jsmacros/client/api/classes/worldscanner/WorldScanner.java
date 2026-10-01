@@ -68,8 +68,12 @@ public class WorldScanner {
      * @param stateFilter a filter method for the block states
      */
     public WorldScanner(Level world, @Nullable Function<BlockHelper, Boolean> blockFilter, @Nullable Function<BlockStateHelper, Boolean> stateFilter) {
+        this(world, blockFilter, stateFilter, false);
+    }
+
+    WorldScanner(Level world, @Nullable Function<BlockHelper, Boolean> blockFilter, @Nullable Function<BlockStateHelper, Boolean> stateFilter, boolean sequential) {
         this.world = world;
-        this.useParallelStream = isParallelStreamAllowed(blockFilter) && isParallelStreamAllowed(stateFilter);
+        this.useParallelStream = !sequential && isParallelStreamAllowed(blockFilter) && isParallelStreamAllowed(stateFilter);
         this.filter = combineFilter(blockFilter, stateFilter);
         cachedFilterStates = new ConcurrentHashMap<>();
     }

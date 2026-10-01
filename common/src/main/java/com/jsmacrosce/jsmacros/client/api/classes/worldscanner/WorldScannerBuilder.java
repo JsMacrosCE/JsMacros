@@ -61,6 +61,7 @@ public final class WorldScannerBuilder {
     private FilterCategory selectedCategory;
     private Operation operation;
     private String method;
+    private boolean sequential;
 
     public WorldScannerBuilder() {
         selectedCategory = FilterCategory.NONE;
@@ -279,7 +280,7 @@ public final class WorldScannerBuilder {
     }
 
     public WorldScanner build() {
-        return new WorldScanner(Minecraft.getInstance().level, blockFilter, stateFilter);
+        return new WorldScanner(Minecraft.getInstance().level, blockFilter, stateFilter, sequential);
     }
 
     private enum Operation {
