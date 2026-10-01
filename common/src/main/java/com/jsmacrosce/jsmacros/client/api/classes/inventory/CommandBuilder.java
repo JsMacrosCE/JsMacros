@@ -378,7 +378,9 @@ public abstract class CommandBuilder implements Registrable<CommandBuilder> {
             }
         }, JsMacrosClient.clientCore.config.getOptions(CoreConfigV2.class).maxLockTime);
         try {
-            callback.accept(new CommandContextHelper(context));
+            CommandContextHelper commandEvent = new CommandContextHelper(context);
+            commandEvent.trigger();
+            callback.accept(commandEvent);
         } finally {
             lock.releaseLock();
         }
