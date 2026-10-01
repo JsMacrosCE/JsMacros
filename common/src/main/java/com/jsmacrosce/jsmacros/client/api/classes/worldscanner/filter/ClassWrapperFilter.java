@@ -11,6 +11,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -35,7 +36,7 @@ public abstract class ClassWrapperFilter<T> extends BasicFilter<T> {
      */
     protected ClassWrapperFilter(String methodName, Map<String, Method> methods, Object[] methodArgs, Object[] filterArgs) {
         this.methodName = methodName;
-        this.method = methods.get(methodName);
+        this.method = Objects.requireNonNull(methods.get(methodName), "Unknown filter method: " + methodName);
         this.methodArgs = methodArgs;
         this.filter = getFilter(method.getReturnType(), filterArgs);
     }
@@ -74,10 +75,12 @@ public abstract class ClassWrapperFilter<T> extends BasicFilter<T> {
     }
 
     protected static Map<String, Method> getPublicNoParameterMethods(Class<?> clazz) {
-        return Arrays.stream(clazz.getDeclaredMethods())
+        return Arrays.stream(clazz.getMethods())
                 .filter(method -> Modifier.isPublic(method.getModifiers()))
+                .filter(method -> method.getDeclaringClass() != Object.class)
                 .filter(method -> method.getParameterCount() == 0)
-                .collect(Collectors.toMap(Method::getName, p -> p));
+                .collect(Collectors.toMap(Method::getName, p -> p,
+                        (first, second) -> first.getDeclaringClass().isAssignableFrom(second.getDeclaringClass()) ? second : first));
     }
 
 }
