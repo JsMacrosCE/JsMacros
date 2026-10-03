@@ -145,7 +145,8 @@ val loaders = listOf("fabric", "neoforge")
 
 data class ExtensionSpec(val path: String, val extId: String)
 val jsmExtensions: List<ExtensionSpec> = listOf(
-    ExtensionSpec(path = ":extension:graal:python", extId = "graalpy")
+    ExtensionSpec(path = ":extension:graal:python", extId = "graalpy"),
+    ExtensionSpec(path = ":extension:ruby", extId = "jruby")
 )
 
 val artifactBaseName = providers.provider { "$modId-$mcVersion-$channel-$version" }
