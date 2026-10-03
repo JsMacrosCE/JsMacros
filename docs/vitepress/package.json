@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "Generated documentation for JsMacros using VitePress",
   "scripts": {
+    "test": "node --test .vitepress/theme/inline-highlight.test.ts",
     "dev": "vitepress dev",
     "build": "vitepress build",
     "preview": "vitepress preview"

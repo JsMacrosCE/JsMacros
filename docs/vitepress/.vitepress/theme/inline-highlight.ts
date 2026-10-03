@@ -2,7 +2,9 @@ import type { MarkdownRenderer } from 'vitepress'
 
 // Generated Javadoc examples live inside raw HTML overload panels, where
 // Markdown's normal fenced-code highlighter never sees them.
-const generatedExample = /<pre><code>([\s\S]*?)<\/code><\/pre>/g
+// The doclet carries explicit language-typescript markers onto the code tag;
+// unmarked examples keep the JavaScript default.
+const generatedExample = /<pre><code(?: class="language-(typescript|javascript)")?>([\s\S]*?)<\/code><\/pre>/g
 
 function getInlineCodeLang(token: { attrs?: [string, string][] }): string | null {
   if (!token.attrs?.length) return null
@@ -56,9 +58,9 @@ export function inlineHighlightPlugin(
 
   md.renderer.rules.html_block = (tokens, idx, options, env, self) => {
     const html = originalHtmlBlock(tokens, idx, options, env, self)
-    if (!html.includes('<pre><code>')) return html
+    if (!html.includes('<pre><code')) return html
 
-    return html.replace(generatedExample, (_match, encoded: string) => {
+    return html.replace(generatedExample, (_match, language: string | undefined, encoded: string) => {
       // Doclet HTML has escaped both newlines and JavaScript operators.
       // Strip any Javadoc inline tags before decoding; Shiki escapes the
       // resulting source again in its highlighted output.
@@ -66,7 +68,7 @@ export function inlineHighlightPlugin(
         encoded.replace(/<\/?(?:code|a)(?:\s[^>]*)?>/g, '')
       ).trim()
       return highlighter.codeToHtml(source, {
-        lang: 'javascript',
+        lang: language ?? 'javascript',
         themes: { light: 'github-light', dark: 'github-dark' }
       })
     })

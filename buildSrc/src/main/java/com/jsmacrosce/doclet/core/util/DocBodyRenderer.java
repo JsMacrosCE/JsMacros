@@ -38,6 +38,10 @@ public final class DocBodyRenderer {
     private static final Pattern HTML_LINK =
         Pattern.compile("<a (?:[\\n.])*?href=\"([^\"]*)\"(?:[\\n.])*?>(.*?)</a>", Pattern.DOTALL);
 
+    private static final Pattern HTML_PRE = Pattern.compile("<pre\\b([^>]*)>", Pattern.CASE_INSENSITIVE);
+    private static final Pattern HTML_CLASS =
+        Pattern.compile("\\bclass\\s*=\\s*([\"'])(.*?)\\1", Pattern.CASE_INSENSITIVE);
+
     private DocBodyRenderer() {}
 
     // -------------------------------------------------------------------------
@@ -53,6 +57,8 @@ public final class DocBodyRenderer {
      * escaped to {@code &lt;}/{@code &gt;} so they render as literal text
      * inside HTML blocks embedded in Markdown. {@code <a href>} tags in
      * {@link DocBodyNode.Html} nodes are converted to Markdown links.
+     * Example blocks default to JavaScript; {@code <pre class="language-typescript">}
+     * (or {@code language-ts}) selects a TypeScript fence.
      *
      * @param nodes        the body node list to render
      * @param linkResolver called for each {@link DocBodyNode.Link} node; should
@@ -140,6 +146,8 @@ public final class DocBodyRenderer {
      * <p>Use this method whenever the output will be placed inside a raw HTML block
      * rather than a Markdown paragraph — Markdown link syntax ({@code [text](url)})
      * does not render inside raw HTML in VitePress/Vue.
+     * Example language classes are carried onto the generated {@code <code>} element
+     * so VitePress can highlight typed examples as TypeScript rather than JavaScript.
      *
      * @param nodes        the body node list to render
      * @param linkResolver called for each {@link DocBodyNode.Link} node; should
@@ -165,7 +173,7 @@ public final class DocBodyRenderer {
         // The Javadoc <pre> marker and the first line of an example are
         // separate nodes. Do not leave that separator as an empty code line.
         return sb.toString().trim()
-            .replaceAll("(<pre><code>)\\s+", "$1")
+            .replaceAll("(<pre><code(?:\\s[^>]*)?>)\\s+", "$1")
             .replaceAll("\\s+(</code></pre>)", "$1");
     }
 
@@ -279,9 +287,11 @@ public final class DocBodyRenderer {
         s = s.replaceAll("<br ?/?>", "\n");
         // <p> continuation → newline (strip the tag itself)
         s = s.replaceAll("\n ?<p>", "\n").replaceAll("^<p>", "");
-        // Javadoc script examples are JavaScript; let VitePress highlight them.
+        // Unmarked script examples are JavaScript; typed examples opt into TypeScript.
         // Terminate the closing fence before any adjacent <br> or prose.
-        s = s.replace("<pre>", "```js").replace("</pre>", "```\n");
+        s = HTML_PRE.matcher(s).replaceAll(match ->
+            "```" + (exampleLanguage(match.group(1)).equals("typescript") ? "ts" : "js"));
+        s = s.replaceAll("(?i)</pre>", "```\n");
         // Only translate markup from Javadoc HTML nodes, not literal angle
         // brackets in text or {@code ...} examples.
         s = s.replaceAll("(?i)</?(?:i|em)>", "*")
@@ -305,7 +315,11 @@ public final class DocBodyRenderer {
         // <p> continuation → space (keep content flowing inline)
         s = s.replaceAll("\n ?<p>", " ").replaceAll("^<p>", "");
         // Preserve example blocks as preformatted code inside the overload HTML.
-        s = s.replace("<pre>", "<pre><code>").replace("</pre>", "</code></pre>");
+        s = HTML_PRE.matcher(s).replaceAll(match ->
+            exampleLanguage(match.group(1)).equals("typescript")
+                ? "<pre><code class=\"language-typescript\">"
+                : "<pre><code>");
+        s = s.replaceAll("(?i)</pre>", "</code></pre>");
         return s;
     }
 
@@ -322,8 +336,20 @@ public final class DocBodyRenderer {
         s = s.replaceAll("<br ?/?>", "\n");
         s = s.replaceAll("\n ?<p>", "\n").replaceAll("^<p>", "");
         // Strip <pre> delimiters in plain text context.
-        s = s.replaceAll("</?pre>", "");
+        s = HTML_PRE.matcher(s).replaceAll("").replaceAll("(?i)</pre>", "");
         // Leave <a href> for the outer Markdown link conversion step.
         return s;
+    }
+
+    private static String exampleLanguage(String attributes) {
+        var classAttribute = HTML_CLASS.matcher(attributes);
+        if (classAttribute.find()) {
+            for (String token : classAttribute.group(2).split("\\s+")) {
+                if (token.equalsIgnoreCase("language-typescript") || token.equalsIgnoreCase("language-ts")) {
+                    return "typescript";
+                }
+            }
+        }
+        return "javascript";
     }
 }
