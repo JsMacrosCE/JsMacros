@@ -29,6 +29,17 @@ public class EventRecvPacket extends BaseEvent {
     }
 
     /**
+     * Checks whether the current packet has a registered phase and a standalone codec.
+     * This does not validate the packet's contents. Bundles are not supported.
+     *
+     * @return whether a standalone packet buffer is supported
+     * @since 2.0.0
+     */
+    public boolean canGetPacketBuffer() {
+        return PacketByteBufferHelper.canSerialize(packet);
+    }
+
+    /**
      * After modifying the buffer, use {@link PacketByteBufferHelper#toPacket()} to get the modified
      * packet and replace this packet with the modified one.
      *

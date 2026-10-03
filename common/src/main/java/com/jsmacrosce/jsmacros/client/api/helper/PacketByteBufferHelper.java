@@ -78,12 +78,15 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     private final Packet<?> packet;
     private final String protocol;
     private final ByteBuf original;
+    @Nullable
+    private final RegistryAccess originalRegistryAccess;
 
     public PacketByteBufferHelper() {
         super(getBuffer(null));
         this.packet = null;
         this.protocol = "play";
         this.original = base.copy();
+        this.originalRegistryAccess = base instanceof RegistryFriendlyByteBuf registryBuffer ? registryBuffer.registryAccess() : null;
     }
 
     public PacketByteBufferHelper(FriendlyByteBuf base) {
@@ -91,6 +94,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         this.packet = null;
         this.protocol = "play";
         this.original = base.copy();
+        this.originalRegistryAccess = base instanceof RegistryFriendlyByteBuf registryBuffer ? registryBuffer.registryAccess() : null;
     }
 
     public PacketByteBufferHelper(Packet<?> packet) {
@@ -119,6 +123,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         }
 
         this.original = base.copy();
+        this.originalRegistryAccess = base instanceof RegistryFriendlyByteBuf registryBuffer ? registryBuffer.registryAccess() : null;
     }
 
     private static FriendlyByteBuf getBuffer(Packet<?> packet) {
@@ -331,7 +336,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public PacketByteBufferHelper reset() {
-        base = new FriendlyByteBuf(original.copy());
+        base = originalRegistryAccess != null
+                ? new RegistryFriendlyByteBuf(original.copy(), originalRegistryAccess)
+                : new FriendlyByteBuf(original.copy());
         return this;
     }
 
@@ -1924,6 +1931,26 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
             if (phase.id().equalsIgnoreCase(protocol) || phase.name().equalsIgnoreCase(protocol)) return phase;
         }
         throw new IllegalArgumentException("Unknown protocol: " + protocol);
+    }
+
+    /**
+     * Checks whether a packet has a registered phase and a standalone codec for that phase.
+     * Uses the same phase selection as {@link #PacketByteBufferHelper(Packet)}. Bundles,
+     * unregistered packets and packets whose phase cannot be selected return {@code false}.
+     * This checks codec availability, not whether encoding the packet's contents will succeed.
+     *
+     * @param packet the packet to check, or {@code null}
+     * @return whether the packet has a supported standalone codec
+     * @since 2.0.0
+     */
+    public static boolean canSerialize(@Nullable Packet<?> packet) {
+        if (packet == null) return false;
+        try {
+            String protocol = preferredProtocol(packet, mc.getConnection() == null ? null : mc.getConnection().protocol());
+            return findCodecField(packet.getClass(), protocol) != null;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
     }
 
     /** Choose the registered phase, preferring the connection's current phase for shared packets. */
