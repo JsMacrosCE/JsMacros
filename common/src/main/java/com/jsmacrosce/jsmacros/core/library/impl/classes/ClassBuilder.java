@@ -62,7 +62,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@code java.util.ArrayList} that already has a {@code String} field named {@code label} on it.
  * That keeps them to the one call being documented.
  * example:
- * <pre>
+ * <pre class="language-typescript">
  * // a class generated at run time, extending one that already exists
  * const builder = Reflection.createClassBuilder("Counting",
  *   Reflection.getClass("java.util.ArrayList"));
@@ -411,7 +411,7 @@ public class ClassBuilder<T> {
      * Nothing is on the class until {@link AnnotationBuilder#finish() finish} is called, and the
      * member it was reached from is what comes back, so the calls chain.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // an annotation with nothing on it. the cast is for the editor's
      * // benefit: the shipped typings do not describe the annotation types
      * builder.addAnnotation(Reflection.getClass("java.lang.FunctionalInterface") as any)
@@ -641,7 +641,7 @@ public class ClassBuilder<T> {
          * what the annotation's retention says decides whether it goes on as one the runtime can
          * see or as one only the reflection library can.
          * example:
-         * <pre>
+         * <pre class="language-typescript">
          * builder.addField(Reflection.getClass("int"), "calls")
          *   .addAnnotation(Reflection.getClass("java.lang.Deprecated") as any)
          *   .finish()
@@ -1115,7 +1115,7 @@ public class ClassBuilder<T> {
          * code calling it is allowed to catch that kind by name rather than by class, and it does
          * not stop an unchecked exception from coming out of it.
          * example:
-         * <pre>
+         * <pre class="language-typescript">
          * const read = builder.addMethod(Reflection.getClass("java.lang.String"), "read");
          * read.makePublic();
          * read.exceptions(Reflection.getClass("java.io.IOException") as any);
@@ -1351,7 +1351,7 @@ public class ClassBuilder<T> {
          * rather than built up, and the handler is called once, on the thread doing the building,
          * so anything slow in it holds that thread up.
          * example:
-         * <pre>
+         * <pre class="language-typescript">
          * const reset = builder.addMethod(Reflection.getClass("void"), "reset");
          * reset.makePublic();
          * reset.body(JavaWrapper.methodToJava(function (clazz, method) {
@@ -1412,7 +1412,7 @@ public class ClassBuilder<T> {
          * what the annotation's retention says decides whether it goes on as one the runtime can
          * see or as one only the reflection library can.
          * example:
-         * <pre>
+         * <pre class="language-typescript">
          * const old = builder.addMethod(Reflection.getClass("void"), "legacy");
          * old.makePublic();
          * old.addAnnotation(Reflection.getClass("java.lang.Deprecated") as any).finish();
@@ -1682,7 +1682,7 @@ public class ClassBuilder<T> {
      * same class again by the name it was built under, and a {@code ClassBuilder} for a library
      * registers the result as well as returning it.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * const CountingClass = builder.finishBuildAndFreeze();
      *
      * // typed as what it extends, so an added method needs a cast
@@ -1716,7 +1716,7 @@ public class ClassBuilder<T> {
      * started from is what that hands back, so the calls chain. A member of the annotation that is
      * never given a value is left with whatever the annotation type declares as its default.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * builder.addAnnotation(Reflection.getClass("java.lang.SuppressWarnings") as any)
      *   .putArray("value")
      *   .putString("unchecked")
@@ -1915,7 +1915,7 @@ public class ClassBuilder<T> {
          * is a builder for the array, and finishing it hands back this builder, so this builder
          * has to be finished as well: two {@code finish} calls, one for each.
          * example:
-         * <pre>
+         * <pre class="language-typescript">
          * builder.addAnnotation(Reflection.getClass("java.lang.SuppressWarnings") as any)
          *   .putArray("value")
          *   .putString("unchecked")
@@ -1942,7 +1942,7 @@ public class ClassBuilder<T> {
          * goes on as one only the reflection library can see, which is worked out from the
          * annotation type rather than chosen here.
          * example:
-         * <pre>
+         * <pre class="language-typescript">
          * // an annotation with nothing on it, which is all a marker needs
          * builder.addAnnotation(Reflection.getClass("java.lang.FunctionalInterface") as any)
          *   .finish();
@@ -2159,7 +2159,7 @@ public class ClassBuilder<T> {
              * one more {@code finish} on the annotation. A builder left unfinished is an array the
              * annotation does not have a value for.
              * example:
-             * <pre>
+             * <pre class="language-typescript">
              * builder.addAnnotation(Reflection.getClass("java.lang.SuppressWarnings") as any)
              *   .putArray("value")
              *   .putString("unchecked")

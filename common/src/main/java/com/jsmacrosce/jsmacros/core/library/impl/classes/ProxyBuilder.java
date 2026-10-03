@@ -138,7 +138,7 @@ public class ProxyBuilder<T> {
      * function. Primitive arguments arrive boxed, and a number returned for a primitive return is
      * narrowed on the way out.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * const builder = Reflection.createClassProxyBuilder(
      *   Reflection.getClass("java.util.ArrayList"));
      *
@@ -419,7 +419,7 @@ public class ProxyBuilder<T> {
      * A script does not make one of these; it is what the builder fills in and passes to whatever
      * was added through {@link ProxyBuilder#addMethod(String, MethodWrapper) addMethod}.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // `self` is the instance the method was called on, so the methods that
      * // were not named still work on it
      * builder.addMethod("get", JavaWrapper.methodToJava(function (ref, args) {

@@ -479,7 +479,7 @@ public class FWorld extends BaseLibrary {
      * a slow one makes the scan slow. They also run off the main thread, so a filter that
      * touches the world is not safe.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // every loaded block that is solid and is not dirt. naming the parameter type
      * // is what tells the wrapper what it is being handed
      * const scanner = World.getWorldScanner(
@@ -667,7 +667,7 @@ public class FWorld extends BaseLibrary {
      * makes the search slow. The result is {@code null} when there is no player, which is what
      * this form is checked on rather than on the world.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // chests in the player's chunks, but not barrels
      * const found = World.findBlocksMatching(
      *   JavaWrapper.methodToJava(function (block: BlockHelper) {
@@ -712,7 +712,7 @@ public class FWorld extends BaseLibrary {
      * The filters are called once per block in range rather than once per match, so a slow one
      * makes the search slow. The result is {@code null} with no world loaded.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // leaves in the nine chunks around a chunk, for a macro that clears them
      * const found = World.findBlocksMatching(
      *   0, 0,
@@ -1079,7 +1079,7 @@ public class FWorld extends BaseLibrary {
      * The entity handed to the filter is a wrapper rather than the game's own object, so the
      * filter reads through the helper methods rather than reaching into raw fields.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // every entity that is a mob rather than an item, a block or a player
      * const mobs = World.getEntities(JavaWrapper.methodToJava(function (entity: EntityHelper) {
      *   return entity.asLiving() !== null;

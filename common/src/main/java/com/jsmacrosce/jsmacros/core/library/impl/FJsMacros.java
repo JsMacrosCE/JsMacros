@@ -712,7 +712,7 @@ public class FJsMacros extends PerExecLibrary {
      * missed, and the event lock the thread was holding is released before it blocks, since
      * holding it would stop the event from ever arriving.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // block until the next block entity update, and only one that is an entity
      * // rather than a plain block changing
      * const result = JsMacros.waitForEvent("BlockUpdate",
@@ -799,7 +799,7 @@ public class FJsMacros extends PerExecLibrary {
      * it ran on. The context is how a joined event is let go of early, by calling
      * {@link EventContainer#releaseLock()} on it, rather than waiting for the handler to finish.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // the full form: joined, filtered, with nothing to run before the wait.
      * // join only does anything on a joinable event, and SendMessage is a
      * // cancellable one, so the client is held on the event until the lock is

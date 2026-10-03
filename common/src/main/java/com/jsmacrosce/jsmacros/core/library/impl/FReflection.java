@@ -58,7 +58,7 @@ import java.util.*;
  * {@link #invokeMethod(Method, Object, Object...) invokeMethod} rather than a direct call, and a
  * private field has to be made accessible first.
  * example:
- * <pre>
+ * <pre class="language-typescript">
  * // a class by its fully qualified name
  * const ArrayList = Reflection.getClass("java.util.ArrayList");
  * const list = Reflection.newInstance(ArrayList);
@@ -107,7 +107,7 @@ public class FReflection extends PerExecLibrary {
      * There is a second name form for the case where the first name is not found on this build,
      * which is {@link #getClass(String, String) getClass(name, name2)}.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // a JDK class, resolved by name
      * const ArrayList = Reflection.getClass("java.util.ArrayList");
      * // the primitive names are answered without a lookup

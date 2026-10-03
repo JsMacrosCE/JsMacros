@@ -48,7 +48,7 @@ import java.util.function.Function;
  * whitelisted signature names it, because {@code wrapScriptRun} is declared as returning a
  * {@code MethodWrapper}, so the type parameters below are only visible in these docs.
  * example:
- * <pre>
+ * <pre class="language-typescript">
  * // the calling side. the wrapper is what gets passed to whatever Java API
  * // wants a callback, and this form blocks the caller until the script is done
  * const wrapper = JsMacros.wrapScriptRun("adder.js");

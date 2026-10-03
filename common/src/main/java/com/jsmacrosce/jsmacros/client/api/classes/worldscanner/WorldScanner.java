@@ -54,7 +54,7 @@ import java.util.stream.Stream;
  * a point and a distance. A chunk coordinate is the block coordinate divided by sixteen, and the
  * parameter names say which of the two a method is expecting.
  * example:
- * <pre>
+ * <pre class="language-typescript">
  * // a scanner of one kind of block, reused so the second scan is cheap
  * const scanner = World.getWorldScanner(
  *   JavaWrapper.methodToJava(function (block: BlockHelper) {
@@ -102,7 +102,7 @@ public class WorldScanner {
      * over as a java wrapper only gets one when the script context it came from is itself
      * multi-threaded, and this is worked out once here rather than per scan.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // naming the parameter type is what tells the wrapper what it is being
      * // handed. The two are stages: a block is kept when the block filter and
      * // the state filter both accept it
@@ -138,7 +138,7 @@ public class WorldScanner {
      * 0 is the one centre chunk and a range of 1 is nine chunks, and the list runs x outer and z
      * inner, both ascending. Nothing here checks whether a chunk exists.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // the nine chunks around a chunk, as chunk positions rather than
      * // block ones, which is what the scan methods take
      * const scanner = World.getWorldScanner(
@@ -234,7 +234,7 @@ public class WorldScanner {
      * ends are counted, so a range of 0 is that one block. The y range is clamped to the world's,
      * and a cube entirely above or below it is empty.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // the 3x3x3 cube around a block position, both ends counted
      * const scanner = World.getWorldScanner(
      *   JavaWrapper.methodToJava(function (block: BlockHelper) {
@@ -266,7 +266,7 @@ public class WorldScanner {
      * and both ends are counted, so a range of 0 is that one block. The y range is clamped to the
      * world's, and a cube entirely above or below it is empty.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // the same cube written as three numbers rather than a position
      * const scanner = World.getWorldScanner(
      *   JavaWrapper.methodToJava(function (block: BlockHelper) {
@@ -304,7 +304,7 @@ public class WorldScanner {
      * are, and the y range is clamped to the world's, so a box entirely above or below it is empty
      * too. This differs from the overload taking a range, which is a cube counted on both ends.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // a box that includes the first corner and stops short of the second,
      * // so it is 10 blocks on a side here, ending at 9 on each axis
      * const scanner = World.getWorldScanner(
@@ -339,7 +339,7 @@ public class WorldScanner {
      * the others are, and the y range is clamped to the world's, so a box entirely above or below it is empty
      * too. This differs from the overload taking a range, which is a cube counted on both ends.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // the same ten block box written as six numbers rather than two positions
      * const scanner = World.getWorldScanner(
      *   JavaWrapper.methodToJava(function (block: BlockHelper) {
@@ -382,7 +382,7 @@ public class WorldScanner {
      * y range is clamped to the world's, so a box entirely above or below it is empty. A single
      * block is the two positions being the same.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // the same two corners as the non inclusive form, which makes
      * // this eleven blocks on a side rather than ten
      * const scanner = World.getWorldScanner(
@@ -416,7 +416,7 @@ public class WorldScanner {
      * is eleven blocks on an axis rather than the ten the other form gives. The y range is
      * clamped to the world's, so a box entirely above or below it is empty.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // the same closed box as the two position form, written as six numbers
      * const scanner = World.getWorldScanner(
      *   JavaWrapper.methodToJava(function (block: BlockHelper) {
@@ -455,7 +455,7 @@ public class WorldScanner {
      * centre to centre one, so a block is in when its corner is within the radius rather than when
      * its centre is. The y range is clamped to the world's.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // a radius of 20 is under the threshold, so this walks a 41 block cube
      * // and then discards what falls outside the sphere
      * const scanner = World.getWorldScanner(
@@ -489,7 +489,7 @@ public class WorldScanner {
      * block at the given numbers to the block position of each candidate rather than to its
      * centre, so the same half a block applies on each axis.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // the same sphere written as three numbers and a radius
      * const scanner = World.getWorldScanner(
      *   JavaWrapper.methodToJava(function (block: BlockHelper) {
@@ -554,7 +554,7 @@ public class WorldScanner {
      * actually reach some part of its shape, so a block that is not a full cube and whose shape
      * stops short of the reach is left out. With no player this is an empty list.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // blocks of one kind the player could reach right now, which is the
      * // shape checked form and so leaves out a torch on a far wall
      * const scanner = World.getWorldScanner(
@@ -587,7 +587,7 @@ public class WorldScanner {
      * the block's bounding box is within reach, which is a larger answer for anything that is not a
      * full cube. With no player this is an empty list.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // false drops the shape check, so this also finds a torch standing on
      * // the far side of a block the player's reach does not quite reach
      * const scanner = World.getWorldScanner(
@@ -621,7 +621,7 @@ public class WorldScanner {
      * form is used, and the reach is measured to the nearest point of a block's bounding box before
      * the shape is consulted.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // a search from a fixed point rather than from the player, so the
      * // answer does not move as the player does
      * const scanner = World.getWorldScanner(
@@ -653,7 +653,7 @@ public class WorldScanner {
      * than taken from the player, so it is the form to use for a reach the player's client does not
      * report, such as a reach a tool grants. The strict form is used.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // a reach of the script's own choosing, which is how a longer one from
      * // a tool is searched for without depending on the player's client
      * const scanner = World.getWorldScanner(
@@ -689,7 +689,7 @@ public class WorldScanner {
      * to the nearest point of that box, so a block the player is looking past the edge of still
      * counts when any part of its box is close enough.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // the full form, with the strict shape check turned off and a reach
      * // of the script's own choosing
      * const scanner = World.getWorldScanner(
@@ -727,7 +727,7 @@ public class WorldScanner {
      * of each candidate, which is half a block short on each axis from a centre to centre measure.
      * Two blocks equally near are decided by the order the scan found them in.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // the nearest block of one kind the player could reach, or null when
      * // there is none, which is why the result is checked rather than read
      * const scanner = World.getWorldScanner(
@@ -765,7 +765,7 @@ public class WorldScanner {
      * out. A non strict nearest is the nearest by bounding box, which for a block that is not a full
      * cube can be a different block from the nearest one the player could actually touch.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // the nearest by bounding box rather than by shape, which is the
      * // looser of the two and so can name a block out of touch
      * const scanner = World.getWorldScanner(
@@ -806,7 +806,7 @@ public class WorldScanner {
      * each axis that the sphere searches measure by. The reach test itself is a true point to box
      * distance, so only the ranking is affected by this.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // the full form, from a fixed point with a reach of the script's own
      * // choosing and the shape check turned off
      * const scanner = World.getWorldScanner(
@@ -980,7 +980,7 @@ public class WorldScanner {
      * A chunk the client has not been sent is skipped rather than failing, so this can be an empty
      * map for a chunk that is not loaded, and the counts are of the whole height of that one chunk.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // a count of the ores in one chunk. The centre here is a chunk
      * // coordinate, not a block one, so 0 is the chunk at the origin rather
      * // than the block at 0, 0
@@ -1018,7 +1018,7 @@ public class WorldScanner {
      * in three chunks of the square is counted three times. Chunks the client has not been sent are
      * skipped.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // a count of the ores in the nine chunks around a chunk. The key
      * // comes from the block itself and has nothing to do with how the
      * // filter was built, so the filter's form is not what is shown here
@@ -1115,7 +1115,7 @@ public class WorldScanner {
      * second scan of the same area leaves it where it was, and a scanner with no filter at all
      * still reaches a number because the states are cached either way.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // scanning the same area twice finds the same blocks the second time,
      * // because the second scan reads the cache rather than the filter
      * const scanner = World.getWorldScanner(

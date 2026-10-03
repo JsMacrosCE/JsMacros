@@ -258,7 +258,7 @@ public class TextBuilder {
      * being chosen here. As many may be given and a section may take more than one. A section that
      * already had decorations has them replaced, not added to, exactly as the boolean form does.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // a text helper can hand over the formattings its own style carries,
      * // which is how a decoration is copied from one piece of text to
      * // another rather than chosen
@@ -492,7 +492,7 @@ public class TextBuilder {
      * so the way to keep part of a section's styling is to read it, change what is needed and
      * write it back rather than to call this after the other methods.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * // this replaces the whole style, so a colour set earlier on the
      * // same section is gone afterwards. The visitor below hands over the
      * // style of a section that has both a colour and a decoration
