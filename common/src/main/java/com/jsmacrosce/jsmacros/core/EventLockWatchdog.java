@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.core;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.jsmacros.core.event.BaseListener;
 import com.jsmacrosce.jsmacros.core.event.IEventListener;
 import com.jsmacrosce.jsmacros.core.language.EventContainer;
 
@@ -16,6 +17,9 @@ public class EventLockWatchdog {
                         if (!lock.isLocked()) {
                             return;
                         }
+                    }
+                    if (listener instanceof BaseListener baseListener) {
+                        baseListener.off();
                     }
                     lock.getCtx().closeContext();
                     lock.getCtx().runner.profile.logError(new WatchdogException(String.format("Script \n\"%s\"\n joined longer than allowed time of %d ms.", listener, maxTime)));
