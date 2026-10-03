@@ -190,7 +190,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     * The one that was given rather than an edge: the corners can be in either order, so
     * on a rectangle drawn right to left this is the larger of the two x positions.
     * example:
-    * <pre>     * const draw = Hud.createDraw2D();
+    * <pre>
+    * const draw = Hud.createDraw2D();
     * const rect = draw.addRect(10, 20, 110, 70, 0xFFFF0000);
     * draw.register();
     * Chat.log(`corners ${rect.getX1()},${rect.getY1()} and ${rect.getX2()},${rect.getY2()}`);
@@ -232,7 +233,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     * The one that was given rather than an edge, the same way {@code getX1} is rather
     * than a left edge.
     * example:
-    * <pre>     * const draw = Hud.createDraw2D();
+    * <pre>
+    * const draw = Hud.createDraw2D();
     * const rect = draw.addRect(10, 20, 110, 70, 0xFFFF0000);
     * draw.register();
     * Chat.log(`corners ${rect.getX1()},${rect.getY1()} and ${rect.getX2()},${rect.getY2()}`);
@@ -298,7 +300,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     * <p>
     * The one that was given rather than an edge, the same way {@code getX1} is.
     * example:
-    * <pre>     * const draw = Hud.createDraw2D();
+    * <pre>
+    * const draw = Hud.createDraw2D();
     * const rect = draw.addRect(10, 20, 110, 70, 0xFFFF0000);
     * draw.register();
     * Chat.log(`corners ${rect.getX1()},${rect.getY1()} and ${rect.getX2()},${rect.getY2()}`);
@@ -339,7 +342,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     * <p>
     * The one that was given rather than an edge, the same way {@code getY1} is.
     * example:
-    * <pre>     * const draw = Hud.createDraw2D();
+    * <pre>
+    * const draw = Hud.createDraw2D();
     * const rect = draw.addRect(10, 20, 110, 70, 0xFFFF0000);
     * draw.register();
     * Chat.log(`corners ${rect.getX1()},${rect.getY1()} and ${rect.getX2()},${rect.getY2()}`);
@@ -896,7 +900,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     * There is no scale on a rectangle, so this is exactly {@code getWidth} and it is
     * here because the align methods measure against it.
     * example:
-    * <pre>     * const draw = Hud.createDraw2D();
+    * <pre>
+    * const draw = Hud.createDraw2D();
     * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
     * draw.register();
     * Chat.log(`${rect.getScaledWidth()} scaled, ${rect.getWidth()} plain`);
@@ -916,7 +921,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     * This is what the parent-relative align methods measure against, so a rectangle
     * that has not been added still aligns against the screen.
     * example:
-    * <pre>     * const draw = Hud.createDraw2D();
+    * <pre>
+    * const draw = Hud.createDraw2D();
     * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
     * draw.register();
     * Chat.log(`measured against ${rect.getParentWidth()}`);
@@ -935,7 +941,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     * The counterpart of {@code getScaledWidth}, and for the same reason: there is no
     * scale on a rectangle.
     * example:
-    * <pre>     * const draw = Hud.createDraw2D();
+    * <pre>
+    * const draw = Hud.createDraw2D();
     * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
     * draw.register();
     * Chat.log(`${rect.getScaledHeight()} scaled, ${rect.getHeight()} plain`);
@@ -954,7 +961,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     * <p>
     * The counterpart of {@code getParentWidth}, and read the same way.
     * example:
-    * <pre>     * const draw = Hud.createDraw2D();
+    * <pre>
+    * const draw = Hud.createDraw2D();
     * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
     * draw.register();
     * Chat.log(`measured against ${rect.getParentHeight()}`);
@@ -1108,7 +1116,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         * <p>
         * Zero until an {@code x1} or a {@code pos1} call says otherwise.
         * example:
-        * <pre>     * const draw = Hud.createDraw2D();
+        * <pre>
+        * const draw = Hud.createDraw2D();
         * const rect = draw.rectBuilder().pos1(20, 20).size(100, 50).color(0xFFFF0000).buildAndAdd();
         * draw.register();
         * Chat.log(`corner at ${rect.getX1()}, ${rect.getY1()}`);
@@ -1146,7 +1155,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         * <p>
         * Zero until a {@code y1} or a {@code pos1} call says otherwise.
         * example:
-        * <pre>     * const draw = Hud.createDraw2D();
+        * <pre>
+        * const draw = Hud.createDraw2D();
         * const rect = draw.rectBuilder().pos1(20, 20).size(100, 50).color(0xFFFF0000).buildAndAdd();
         * draw.register();
         * Chat.log(`corner at ${rect.getX1()}, ${rect.getY1()}`);
@@ -1208,7 +1218,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         * <p>
         * Worked out from the corner and the size when the size is the one that was set.
         * example:
-        * <pre>     * const draw = Hud.createDraw2D();
+        * <pre>
+        * const draw = Hud.createDraw2D();
         * const rect = draw.rectBuilder().pos1(20, 20).size(100, 50).color(0xFFFF0000).buildAndAdd();
         * draw.register();
         * Chat.log(`far corner at ${rect.getX2()}, ${rect.getY2()}`);
@@ -1247,7 +1258,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         * <p>
         * Worked out from the corner and the size when the size is the one that was set.
         * example:
-        * <pre>     * const draw = Hud.createDraw2D();
+        * <pre>
+        * const draw = Hud.createDraw2D();
         * const rect = draw.rectBuilder().pos1(20, 20).size(100, 50).color(0xFFFF0000).buildAndAdd();
         * draw.register();
         * Chat.log(`far corner at ${rect.getX2()}, ${rect.getY2()}`);
