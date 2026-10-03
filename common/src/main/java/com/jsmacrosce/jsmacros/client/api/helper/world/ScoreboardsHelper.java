@@ -35,7 +35,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     @Nullable
     public ScoreboardObjectiveHelper getObjectiveForTeamColorIndex(int index) {
         Objective obj = null;
-        if (index >= 0) {
+        if (index >= 0 && index < DisplaySlot.values().length - 3) {
             obj = base.getDisplayObjective(DisplaySlot.values()[index + 3]);
         }
         return obj == null ? null : new ScoreboardObjectiveHelper(obj);
@@ -52,7 +52,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     @Nullable
     public ScoreboardObjectiveHelper getObjectiveSlot(int slot) {
         Objective obj = null;
-        if (slot >= 0) {
+        if (slot >= 0 && slot < DisplaySlot.values().length) {
             obj = base.getDisplayObjective(DisplaySlot.values()[slot]);
         }
         return obj == null ? null : new ScoreboardObjectiveHelper(obj);
@@ -152,16 +152,20 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
      * @return
      * @since 1.3.0
      */
+    @Nullable
     public TeamHelper getPlayerTeam(PlayerEntityHelper<Player> p) {
-        return new TeamHelper(getPlayerTeam(p.getRaw()));
+        PlayerTeam team = getPlayerTeam(p.getRaw());
+        return team == null ? null : new TeamHelper(team);
     }
 
     /**
      * @return team for client player
      * @since 1.6.5
      */
+    @Nullable
     public TeamHelper getPlayerTeam() {
-        return new TeamHelper(getPlayerTeam(Minecraft.getInstance().player));
+        PlayerTeam team = getPlayerTeam(Minecraft.getInstance().player);
+        return team == null ? null : new TeamHelper(team);
     }
 
     /**
@@ -171,7 +175,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
      */
     @Nullable
     protected PlayerTeam getPlayerTeam(Player p) {
-        return base.getPlayerTeam(p.getScoreboardName());
+        return p == null ? null : base.getPlayerTeam(p.getScoreboardName());
     }
 
     /**
@@ -191,7 +195,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
      */
     @Nullable
     protected ChatFormatting getPlayerTeamColor(Player player) {
-        PlayerTeam t = base.getPlayerTeam(player.getScoreboardName());
+        PlayerTeam t = getPlayerTeam(player);
         if (t == null) {
             return null;
         }
@@ -215,7 +219,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
 
     @Override
     public String toString() {
-        return String.format("ScoreboardsHelper:{\"current\": %s}", getCurrentScoreboard().toString());
+        return String.format("ScoreboardsHelper:{\"current\": %s}", getCurrentScoreboard());
     }
 
 }

@@ -86,7 +86,7 @@ public class Image implements RenderElement, Alignable<Image> {
         setPos(x, y, width, height);
         setColor(color, alpha);
         setImage(id, imageX, imageY, regionWidth, regionHeight, textureWidth, textureHeight);
-        this.rotation = rotation;
+        this.rotation = Mth.wrapDegrees(rotation);
     }
 
     /**

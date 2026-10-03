@@ -110,6 +110,8 @@ abstract class MixinClientPlayerEntity extends AbstractClientPlayer {
         if (moveInput == null) {
             return;
         }
+        this.setYRot(moveInput.yaw);
+        this.setXRot(moveInput.pitch);
         // Replicates KeyboardInput#tick
         this.input.keyPresses = new net.minecraft.world.entity.player.Input(
                 moveInput.movementForward > 0,

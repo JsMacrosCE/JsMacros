@@ -135,6 +135,7 @@ public class CreativeItemStackHelper extends ItemStackHelper {
         ItemEnchantments enchantments = base.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
         ItemEnchantments.Mutable builder = new ItemEnchantments.Mutable(enchantments);
         builder.removeIf((e) -> e.is(ResourceLocation.parse(id)));
+        base.set(DataComponents.ENCHANTMENTS, builder.toImmutable());
 
         return this;
     }

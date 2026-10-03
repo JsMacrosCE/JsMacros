@@ -156,7 +156,7 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
         // Maybe adapt this to the WorldScanner way?
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
-                for (int y = base.getMinY(); y < base.getMaxY(); y++) {
+                for (int y = base.getMinY(); y <= base.getMaxY(); y++) {
                     BlockPos pos = base.getPos().getBlockAt(x, y, z);
                     BlockState state = base.getBlockState(pos);
                     if (!includeAir && state.isAir()) {

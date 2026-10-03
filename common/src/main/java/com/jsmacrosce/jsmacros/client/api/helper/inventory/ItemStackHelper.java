@@ -568,7 +568,7 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      * @since 1.8.4
      */
     public boolean areEnchantmentsHidden() {
-        return isHidden(DataComponents.TOOLTIP_DISPLAY);
+        return isHidden(DataComponents.ENCHANTMENTS);
     }
 
     /**
@@ -576,7 +576,7 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      * @since 1.8.4
      */
     public boolean areModifiersHidden() {
-        return isHidden(DataComponents.TOOLTIP_DISPLAY);
+        return isHidden(DataComponents.ATTRIBUTE_MODIFIERS);
     }
 
     /**
@@ -584,7 +584,7 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      * @since 1.8.4
      */
     public boolean isUnbreakableHidden() {
-        return isHidden(DataComponents.TOOLTIP_DISPLAY);
+        return isHidden(DataComponents.UNBREAKABLE);
     }
 
     /**

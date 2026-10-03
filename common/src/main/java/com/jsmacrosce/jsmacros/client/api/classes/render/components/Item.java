@@ -91,7 +91,7 @@ public class Item implements RenderElement, Alignable<Item> {
         this.item = itemStack.getRaw();
         this.overlay = overlay;
         this.scale = scale;
-        this.rotation = rotation;
+        this.rotation = Mth.wrapDegrees(rotation);
         this.zIndex = zIndex;
         this.ovText = ovText;
     }

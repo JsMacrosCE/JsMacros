@@ -378,7 +378,11 @@ public class FJsMacros extends PerExecLibrary {
                     Thread t = Thread.currentThread();
                     t.setName(this.toString());
                     try {
-                        callback.accept(e, p);
+                        if (e.cancellable() || joined) {
+                            callback.apply(e, p);
+                        } else {
+                            callback.accept(e, p);
+                        }
                     } catch (Throwable ex) {
                         runner.eventRegistry.removeListener(event, this);
                         runner.profile.logError(ex);
@@ -388,6 +392,24 @@ public class FJsMacros extends PerExecLibrary {
                 });
                 p.setLockThread(ot == null ? th : ot);
                 return p;
+            }
+
+            @Override
+            public void triggerInline(BaseEvent e) {
+                if (filterer != null && !filterer.test(e)) return;
+                EventContainer<?> container = new EventContainer<>(callback.getCtx());
+                try {
+                    if (e.cancellable()) {
+                        callback.apply(e, container);
+                    } else {
+                        callback.accept(e, container);
+                    }
+                } catch (Throwable ex) {
+                    runner.eventRegistry.removeListener(event, this);
+                    runner.profile.logError(ex);
+                } finally {
+                    container.releaseLock();
+                }
             }
 
             @Override
@@ -472,7 +494,11 @@ public class FJsMacros extends PerExecLibrary {
 
                     t.setName(this.toString());
                     try {
-                        callback.accept(e, p);
+                        if (e.cancellable() || joined) {
+                            callback.apply(e, p);
+                        } else {
+                            callback.accept(e, p);
+                        }
                     } catch (Throwable ex) {
                         runner.profile.logError(ex);
                     } finally {
@@ -481,6 +507,23 @@ public class FJsMacros extends PerExecLibrary {
                 });
                 p.setLockThread(ot == null ? th : ot);
                 return p;
+            }
+
+            @Override
+            public void triggerInline(BaseEvent e) {
+                runner.eventRegistry.removeListener(event, this);
+                EventContainer<?> container = new EventContainer<>(callback.getCtx());
+                try {
+                    if (e.cancellable()) {
+                        callback.apply(e, container);
+                    } else {
+                        callback.accept(e, container);
+                    }
+                } catch (Throwable ex) {
+                    runner.profile.logError(ex);
+                } finally {
+                    container.releaseLock();
+                }
             }
 
             @Override
@@ -902,6 +945,9 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     public interface ScriptEventListener extends IEventListener {
+        default void triggerInline(BaseEvent event) {
+            trigger(event);
+        }
         String getCreatorName();
 
         @Nullable

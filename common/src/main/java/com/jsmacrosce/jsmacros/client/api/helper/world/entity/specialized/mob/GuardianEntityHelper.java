@@ -39,15 +39,16 @@ public class GuardianEntityHelper extends MobEntityHelper<Guardian> {
      */
     @Nullable
     public EntityHelper<?> getTarget() {
-        return hasTarget() ? EntityHelper.create(base.getActiveAttackTarget()) : null;
+        var target = base.getActiveAttackTarget();
+        return target == null ? null : EntityHelper.create(target);
     }
 
     /**
-     * @return {@code true} if this guardian has its spikes extended, {@code false} otherwise.
+     * @return {@code true} if this guardian has its spikes retracted, {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean hasSpikesRetracted() {
-        return !base.isMoving();
+        return base.isMoving();
     }
 
 }

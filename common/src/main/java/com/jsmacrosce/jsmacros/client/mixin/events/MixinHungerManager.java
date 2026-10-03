@@ -17,7 +17,7 @@ public class MixinHungerManager {
     @Inject(at = @At("HEAD"), method = "setFoodLevel")
     public void onSetFoodLevel(int foodLevel, CallbackInfo info) {
         if (foodLevel != this.foodLevel) {
-            new EventHungerChange(foodLevel);
+            new EventHungerChange(foodLevel).trigger();
         }
     }
 

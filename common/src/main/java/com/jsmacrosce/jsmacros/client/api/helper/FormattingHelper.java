@@ -15,11 +15,12 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
     }
 
     /**
-     * @return the color value of this formatting.
+     * @return the color value, or {@code -1} for non-color formats.
      * @since 1.8.4
      */
     public int getColorValue() {
-        return base.getColor();
+        Integer color = base.getColor();
+        return color == null ? -1 : color;
     }
 
     /**

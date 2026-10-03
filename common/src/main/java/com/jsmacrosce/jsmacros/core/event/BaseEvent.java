@@ -11,11 +11,13 @@ public class BaseEvent {
     }
 
     public boolean cancellable() {
-        return this.getClass().getAnnotation(Event.class).cancellable();
+        Event annotation = this.getClass().getAnnotation(Event.class);
+        return annotation != null && annotation.cancellable();
     }
 
     public boolean joinable() {
-        return cancellable() || this.getClass().getAnnotation(Event.class).joinable();
+        Event annotation = this.getClass().getAnnotation(Event.class);
+        return cancellable() || annotation != null && annotation.joinable();
     }
 
     /**
@@ -34,7 +36,8 @@ public class BaseEvent {
     }
 
     public String getEventName() {
-        return this.getClass().getAnnotation(Event.class).value();
+        Event annotation = this.getClass().getAnnotation(Event.class);
+        return annotation == null ? getClass().getSimpleName() : annotation.value();
     }
 
     public void trigger() {

@@ -60,13 +60,20 @@ public class HTTPRequest {
         return this;
     }
 
+    private HttpURLConnection openConnection() throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) conn.openConnection();
+        connection.setConnectTimeout(connectTimeout);
+        connection.setReadTimeout(readTimeout);
+        return connection;
+    }
+
     /**
      * @return
      * @throws IOException
      * @since 1.1.8
      */
     public Response get() throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -84,7 +91,7 @@ public class HTTPRequest {
      */
     public Response post(String data) throws IOException {
         byte[] b = data.getBytes(StandardCharsets.UTF_8);
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -108,7 +115,7 @@ public class HTTPRequest {
      * @since 1.8.4
      */
     public Response post(byte[] data) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -133,7 +140,7 @@ public class HTTPRequest {
      */
     public Response put(String data) throws IOException {
         byte[] b = data.getBytes(StandardCharsets.UTF_8);
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -157,7 +164,7 @@ public class HTTPRequest {
      * @since 1.8.4
      */
     public Response put(byte[] data) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -179,7 +186,7 @@ public class HTTPRequest {
      * @return
      */
     public Response send(String method) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -198,7 +205,7 @@ public class HTTPRequest {
      */
     public Response send(String method, String data) throws IOException {
         byte[] b = data.getBytes(StandardCharsets.UTF_8);
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -223,7 +230,7 @@ public class HTTPRequest {
      * @since 1.8.4
      */
     public Response send(String method, byte[] data) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }

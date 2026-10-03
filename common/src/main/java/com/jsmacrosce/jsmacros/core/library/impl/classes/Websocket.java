@@ -68,7 +68,7 @@ public class Websocket {
                     try {
                         onDisconnect.accept(ws, new Disconnected(serverFrame, clientFrame, isServer));
                     } catch (Throwable e) {
-                        BaseScriptContext<?> ctx = onConnect.getCtx();
+                        BaseScriptContext<?> ctx = onDisconnect.getCtx();
                         if (ctx != null) {
                             ctx.runner.profile.logError(e);
                         } else {
@@ -89,7 +89,7 @@ public class Websocket {
                     try {
                         onError.accept(websocket, ex);
                     } catch (Throwable e) {
-                        BaseScriptContext<?> ctx = onConnect.getCtx();
+                        BaseScriptContext<?> ctx = onError.getCtx();
                         if (ctx != null) {
                             ctx.runner.profile.logError(e);
                         } else {
@@ -105,7 +105,7 @@ public class Websocket {
                     try {
                         onFrame.accept(ws, frame);
                     } catch (Throwable e) {
-                        BaseScriptContext<?> ctx = onConnect.getCtx();
+                        BaseScriptContext<?> ctx = onFrame.getCtx();
                         if (ctx != null) {
                             ctx.runner.profile.logError(e);
                         } else {
@@ -121,7 +121,7 @@ public class Websocket {
                     try {
                         onTextMessage.accept(ws, text);
                     } catch (Throwable e) {
-                        BaseScriptContext<?> ctx = onConnect.getCtx();
+                        BaseScriptContext<?> ctx = onTextMessage.getCtx();
                         if (ctx != null) {
                             ctx.runner.profile.logError(e);
                         } else {

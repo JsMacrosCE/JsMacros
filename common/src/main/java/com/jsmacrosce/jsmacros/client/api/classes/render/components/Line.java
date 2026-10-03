@@ -215,7 +215,7 @@ public class Line implements RenderElement, Alignable<Line> {
      * @since 1.8.4
      */
     public Line setRotation(double rotation) {
-        this.rotation = (float) rotation;
+        this.rotation = Mth.wrapDegrees((float) rotation);
         return this;
     }
 
@@ -281,6 +281,7 @@ public class Line implements RenderElement, Alignable<Line> {
 
     @Override
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+        if (width <= 0) return;
         //? if >1.21.5 {
         Matrix3x2fStack matrices = drawContext.pose();
         matrices.pushMatrix();
@@ -306,9 +307,9 @@ public class Line implements RenderElement, Alignable<Line> {
 
         drawContext.fill(
                 0,
-                (int) -halfWidth,
-                (int) length,
-                (int) halfWidth,
+                -(int) Math.floor(halfWidth),
+                (int) Math.ceil(length),
+                -(int) Math.floor(halfWidth) + Math.max(1, (int) Math.ceil(this.width)),
                 this.color
         );
 
@@ -370,7 +371,9 @@ public class Line implements RenderElement, Alignable<Line> {
 
     @Override
     public Line moveTo(int x, int y) {
-        return setPos(x, y, x + getScaledWidth(), y + getScaledHeight());
+        int dx = x - getScaledLeft();
+        int dy = y - getScaledTop();
+        return setPos(x1 + dx, y1 + dy, x2 + dx, y2 + dy);
     }
 
     @Override
@@ -699,7 +702,9 @@ public class Line implements RenderElement, Alignable<Line> {
 
         @Override
         public Builder moveTo(int x, int y) {
-            return pos(x, y, x + getScaledWidth(), y + getScaledHeight());
+            int dx = x - getScaledLeft();
+            int dy = y - getScaledTop();
+            return pos(x1 + dx, y1 + dy, x2 + dx, y2 + dy);
         }
 
         @Override

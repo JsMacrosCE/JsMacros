@@ -149,7 +149,7 @@ public class CustomImage {
         try {
             File file = JsMacrosClient.clientCore.config.configFolder.toPath().resolve(path).resolve(fileName + ".png").toFile();
             if (!file.exists()) {
-                if (!file.mkdirs() && !file.createNewFile()) {
+                if ((file.getParentFile() != null && !file.getParentFile().isDirectory() && !file.getParentFile().mkdirs()) || !file.createNewFile()) {
                     JsMacrosClient.clientCore.profile.logError(new RuntimeException("Could not create file: " + file.getAbsolutePath()));
                     return this;
                 }
@@ -254,7 +254,7 @@ public class CustomImage {
      * @since 1.8.4
      */
     public CustomImage drawImage(Image img, int x, int y, int width, int height, int sourceX, int sourceY, int sourceWidth, int sourceHeight) {
-        graphics.drawImage(image, x, y, x + width, y + height, sourceX, sourceY, sourceX + sourceWidth, sourceY + sourceHeight, null);
+        graphics.drawImage(img, x, y, x + width, y + height, sourceX, sourceY, sourceX + sourceWidth, sourceY + sourceHeight, null);
         return this;
     }
 
@@ -630,7 +630,12 @@ public class CustomImage {
     public static CustomImage createWidget(String path, String name) {
         try {
             File file = JsMacrosClient.clientCore.config.configFolder.toPath().resolve(path).toFile();
-            return new CustomImage(ImageIO.read(file), name);
+            BufferedImage image = ImageIO.read(file);
+            if (image == null) {
+                JsMacrosClient.clientCore.profile.logError(new RuntimeException("Could not read image: " + file.getAbsolutePath()));
+            }
+
+            return image == null ? null : new CustomImage(image, name);
         } catch (IOException e) {
             JsMacrosClient.clientCore.profile.logError(e);
         }

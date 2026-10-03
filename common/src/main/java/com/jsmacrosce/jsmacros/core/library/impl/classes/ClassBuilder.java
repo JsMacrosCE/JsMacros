@@ -147,6 +147,7 @@ public class ClassBuilder<T> {
         return this;
     }
 
+    /** Builds a static class initializer; unlike a constructor, it has no {@code this} receiver. */
     public ConstructorBuilder addClinit() {
         return new ConstructorBuilder(new CtClass[0], true);
     }
@@ -512,6 +513,10 @@ public class ClassBuilder<T> {
 
         @Override
         public ClassBuilder<T> body(String code_src) throws CannotCompileException {
+            if (MethodInfo.nameClinit.equals(methodName)) {
+                ctClass.makeClassInitializer().setBody(code_src);
+                return ClassBuilder.this;
+            }
             CtConstructor constructor = CtNewConstructor.make(this.params, this.exceptions, code_src, ctClass);
             constructor.setModifiers(this.methodMods);
             constructor.getMethodInfo().addAttribute(methodAnnotations);
@@ -522,6 +527,14 @@ public class ClassBuilder<T> {
 
         @Override
         public ClassBuilder<T> guestBody(MethodWrapper<Object, Object, Object, ?> methodBody) throws CannotCompileException, NotFoundException {
+            if (MethodInfo.nameClinit.equals(methodName)) {
+                String guestName = ClassBuilder.this.className + ";" + methodName + Descriptor.ofMethod(methodReturnType, params);
+                ctClass.makeClassInitializer().setBody("{ ((com.jsmacrosce.jsmacros.core.MethodWrapper) "
+                        + "com.jsmacrosce.jsmacros.core.library.impl.classes.ClassBuilder.methodWrappers.get(\""
+                        + guestName + "\")).apply(null, new Object[]{}); }");
+                methodWrappers.put(guestName, methodBody);
+                return ClassBuilder.this;
+            }
             if (params.length != 0) {
                 throw new IllegalArgumentException("must use one of the other body methods as this one can't call super...");
             }
@@ -593,6 +606,10 @@ public class ClassBuilder<T> {
 
         @Override
         public BodyBuilder buildBody() throws CannotCompileException {
+            if (MethodInfo.nameClinit.equals(methodName)) {
+                CtConstructor initializer = ctClass.makeClassInitializer();
+                return new BodyBuilder(initializer, ClassBuilder.this.className + ";" + methodName + Descriptor.ofMethod(methodReturnType, params));
+            }
             CtConstructor method = new CtConstructor(this.params, ctClass);
             method.setModifiers(this.methodMods);
             method.getMethodInfo().addAttribute(methodAnnotations);
@@ -604,6 +621,10 @@ public class ClassBuilder<T> {
 
         @Override
         public ClassBuilder<T> body(MethodWrapper<CtClass, CtBehavior, Object, ?> buildBody) throws CannotCompileException {
+            if (MethodInfo.nameClinit.equals(methodName)) {
+                buildBody.apply(ctClass, ctClass.makeClassInitializer());
+                return ClassBuilder.this;
+            }
             CtConstructor constructor = new CtConstructor(this.params, ctClass);
             constructor.setModifiers(this.methodMods);
             constructor.getMethodInfo().addAttribute(methodAnnotations);
@@ -837,7 +858,7 @@ public class ClassBuilder<T> {
                     .append("com.jsmacrosce.jsmacros.core.library.impl.classes.ClassBuilder.methodWrappers.get(\"")
                     .append(guestName).append(": ").append(guestCount)
                     .append("\")).").append("apply").append("(")
-                    .append("$0, new Object[]{")
+                    .append(ctBehavior instanceof CtConstructor && ((CtConstructor) ctBehavior).isClassInitializer() ? "null, new Object[]{" : "$0, new Object[]{")
                     .append(argsAsObjects)
                     .append("}));\n");
             methodWrappers.put(guestName + ": " + (guestCount++), code);

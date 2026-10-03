@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passi
 
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
+import org.jetbrains.annotations.Nullable;
 
 //? if >=1.21.11 {
 /*import net.minecraft.world.entity.animal.dolphin.Dolphin;
@@ -29,13 +30,12 @@ public class DolphinEntityHelper extends MobEntityHelper<Dolphin> {
     }
 
     /**
-     * The position will be 0 0 0 by default.
-     *
-     * @return the position of the treasure the dolphin is looking for.
+     * @return the position of the treasure the dolphin is looking for, or null if not available on the client.
      * @since 1.8.4
      */
+    @Nullable
     public BlockPosHelper getTreasurePos() {
-        return new BlockPosHelper(base.treasurePos);
+        return base.treasurePos == null ? null : new BlockPosHelper(base.treasurePos);
     }
 
     /**

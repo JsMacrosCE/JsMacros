@@ -151,6 +151,8 @@ public class ClientProfile extends BaseProfile {
     public void initRegistries() {
         super.initRegistries();
 
+        runner.eventRegistry.addEvent(CommandContextHelper.class);
+
         runner.eventRegistry.addEvent(EventAirChange.class);
         runner.eventRegistry.addEvent(EventArmorChange.class);
         runner.eventRegistry.addEvent(EventAttackBlock.class);

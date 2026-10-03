@@ -86,7 +86,7 @@ public class LoomInventory extends Inventory<LoomScreen> {
     public boolean selectPattern(int index) {
         List<Holder<BannerPattern>> patterns = getPatternsFor(inventory.getMenu().getSlot(2).getItem());
 
-        if (index >= 0 && index <= patterns.size() && ((ILoomScreen) inventory).jsmacros_canApplyDyePattern() &&
+        if (index >= 0 && index < patterns.size() && ((ILoomScreen) inventory).jsmacros_canApplyDyePattern() &&
                 inventory.getMenu().clickMenuButton(player, index)) {
             assert mc.gameMode != null;
             mc.gameMode.handleInventoryButtonClick(syncId, index);

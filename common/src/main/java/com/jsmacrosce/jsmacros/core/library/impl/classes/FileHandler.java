@@ -90,9 +90,7 @@ public class FileHandler {
             if (f.length() > Integer.MAX_VALUE) {
                 throw new IOException("File is too large to read into memory. (max size: " + Integer.MAX_VALUE + ")");
             }
-            byte[] bytes = new byte[(int) f.length()];
-            in.read(bytes);
-            return bytes;
+            return in.readAllBytes();
         }
     }
 

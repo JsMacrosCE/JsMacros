@@ -121,7 +121,11 @@ public class ScriptScreen extends BaseScreen {
 
     @Override
     public void onClose() {
-        openParent();
+        if (parent != null) {
+            openParent();
+        } else {
+            super.onClose();
+        }
     }
 
     @Override

@@ -71,7 +71,7 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
      * @since 1.8.4
      */
     public boolean isPermanent() {
-        return false;
+        return base.isInfiniteDuration();
     }
 
     /**
