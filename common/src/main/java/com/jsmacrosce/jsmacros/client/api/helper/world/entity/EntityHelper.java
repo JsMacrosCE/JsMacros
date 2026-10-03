@@ -79,7 +79,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 //? if >=1.21.11 {
-/*import net.minecraft.world.entity.vehicle.boat.Boat;
+/*import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
 import net.minecraft.world.entity.vehicle.minecart.MinecartFurnace;
 import net.minecraft.world.entity.vehicle.minecart.MinecartTNT;
 import net.minecraft.world.entity.npc.villager.AbstractVillager;
@@ -117,7 +117,7 @@ import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
 import net.minecraft.world.entity.projectile.hurtingprojectile.WitherSkull;
 import net.minecraft.world.entity.animal.polarbear.PolarBear;
 *///? } else {
-import net.minecraft.world.entity.vehicle.Boat;
+import net.minecraft.world.entity.vehicle.AbstractBoat;
 import net.minecraft.world.entity.vehicle.MinecartFurnace;
 import net.minecraft.world.entity.vehicle.MinecartTNT;
 import net.minecraft.world.entity.npc.AbstractVillager;
@@ -757,8 +757,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
         }
 
         // Vehicles
-        if (e instanceof Boat) {
-            return new BoatEntityHelper(((Boat) e));
+        if (e instanceof AbstractBoat) {
+            return new BoatEntityHelper(((AbstractBoat) e));
         } else if (e instanceof MinecartFurnace) {
             return new FurnaceMinecartEntityHelper(((MinecartFurnace) e));
         } else if (e instanceof MinecartTNT) {
