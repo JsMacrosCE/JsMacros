@@ -35,7 +35,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     @Nullable
     public ScoreboardObjectiveHelper getObjectiveForTeamColorIndex(int index) {
         Objective obj = null;
-        if (index >= 0 && index + 3 < DisplaySlot.values().length) {
+        if (index >= 0 && index < DisplaySlot.values().length - 3) {
             obj = base.getDisplayObjective(DisplaySlot.values()[index + 3]);
         }
         return obj == null ? null : new ScoreboardObjectiveHelper(obj);
