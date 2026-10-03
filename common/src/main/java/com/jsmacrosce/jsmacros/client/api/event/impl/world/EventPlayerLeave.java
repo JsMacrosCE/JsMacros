@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.world;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.world.PlayerListEntryHelper;
@@ -27,6 +28,7 @@ import java.util.UUID;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Network/Chat")
 @Event(value = "PlayerLeave", oldName = "PLAYER_LEAVE")
 public class EventPlayerLeave extends BaseEvent {
     /**
