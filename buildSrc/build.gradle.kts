@@ -40,6 +40,20 @@ val testDocBodyRenderer by tasks.registering(JavaExec::class) {
     mainClass.set("com.jsmacrosce.doclet.core.util.DocBodyRendererTest")
 }
 
+val testTsRenderer by tasks.registering(JavaExec::class) {
+    group = "verification"
+    description = "Checks JSDoc references and library parameter replacements"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.doclet.core.render.TsRendererTest")
+}
+
 tasks.named("check") {
-    dependsOn(testDocBodyRenderer)
+    dependsOn(testDocBodyRenderer, testTsRenderer)
+}
+
+tasks.named<Test>("test") {
+    // These dependency-free checks have main methods rather than JUnit test annotations.
+    // The JavaExec tasks above execute their assertions as part of check.
+    failOnNoDiscoveredTests = false
 }

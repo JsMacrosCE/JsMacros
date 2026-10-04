@@ -131,14 +131,7 @@ public class TsRenderer implements Renderer {
             if (member.kind() != MemberKind.METHOD || hasModifier(member, "static")) {
                 continue;
             }
-            appendDocComment(out, member.docComment(), member.params(), true, member, library, indent + 1);
-            indent(out, indent + 1).append("function ").append(member.name());
-            appendTypeParams(out, member.typeParams(), member.replaceTypeParams(), false);
-            out.append("(");
-            appendParams(out, member.params());
-            out.append(")");
-            out.append(": ").append(formatReturn(member, library));
-            out.append(";\n");
+            renderMethod(out, member, indent + 1, false, library, true);
         }
         indent(out, indent).append("}\n");
     }
@@ -270,8 +263,15 @@ public class TsRenderer implements Renderer {
     }
 
     private void renderMethod(StringBuilder out, MemberDoc member, int indent, boolean includeStatic, ClassDoc owner) {
+        renderMethod(out, member, indent, includeStatic, owner, false);
+    }
+
+    private void renderMethod(StringBuilder out, MemberDoc member, int indent, boolean includeStatic, ClassDoc owner, boolean namespace) {
         appendDocComment(out, member.docComment(), member.params(), true, member, owner, indent);
         indent(out, indent);
+        if (namespace) {
+            out.append("function ");
+        }
         if (includeStatic && hasModifier(member, "static")) {
             out.append("static ");
         }
@@ -280,6 +280,14 @@ public class TsRenderer implements Renderer {
         out.append("(");
         if (member.replaceParams() != null && !member.replaceParams().isBlank()) {
             String replaced = member.replaceParams();
+            if (namespace) {
+                // Replacement text can include additional overloads (e.g. Reflection.getClass).
+                // Each declaration inside a namespace needs its own function keyword.
+                replaced = replaced.replaceAll(
+                    "(?m)^[\\t ]*(?=" + java.util.regex.Pattern.quote(member.name()) + "(?:<|\\())",
+                    "    ".repeat(Math.max(0, indent)) + "function "
+                );
+            }
             // Check if replaceParams contains complete declaration(s) with overloads
             if (replaced.contains(");")) {
                 // It's a complete declaration with overloads, output as-is
@@ -760,10 +768,16 @@ public class TsRenderer implements Renderer {
     /**
      * Resolves a {@link DocBodyNode.Link} to the JSDoc {@code {@link}} format used
      * in TypeScript declaration files.  Simple Java types map to their TS aliases;
-     * all other signatures are converted via {@link DocBodyRenderer#convertSignature}.
+     * Java argument lists select overloads in Javadoc, but are not part of a JSDoc
+     * namepath. Strip them only here, leaving explicit labels and other renderers intact.
+     * All other signatures are converted via {@link DocBodyRenderer#convertSignature}.
      */
     private String resolveLinkForJsDoc(DocBodyNode.Link link) {
         String sig = link.signature();
+        int arguments = sig.indexOf('(');
+        if (arguments >= 0 && sig.endsWith(")") && !sig.contains("://")) {
+            sig = sig.substring(0, arguments);
+        }
         String mapped = DocBodyRenderer.mapSimpleLinkSignature(sig);
         if (mapped != null) {
             return mapped;
