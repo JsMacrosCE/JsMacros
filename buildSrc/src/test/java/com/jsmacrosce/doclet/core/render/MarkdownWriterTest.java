@@ -18,7 +18,7 @@ public final class MarkdownWriterTest {
             new DocBodyNode.Text("Original's $source"),
             new DocBodyNode.Html("</a>")), List.of());
         var constructor = new MemberDoc(MemberKind.CONSTRUCTOR, "Result", "Result_constructor", List.of(), List.of(),
-            null, null, null, null, List.of("public"), empty);
+            null, null, null, null, List.of("public"), false, empty);
         var classes = List.of(
             clz("FExample", ClassGroup.Library, "Example", null, empty, List.of()),
             clz("FExample.Result", ClassGroup.Library, null, null, links, List.of(constructor)),

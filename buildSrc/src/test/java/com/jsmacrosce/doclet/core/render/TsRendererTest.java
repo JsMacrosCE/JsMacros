@@ -54,7 +54,7 @@ public final class TsRendererTest {
         var stringType = new TypeRef(TypeKind.DECLARED, "String", "java.lang.String", List.of(), false, false, null, false);
         var voidType = new TypeRef(TypeKind.VOID, "void", "void", List.of(), false, false, null, false);
         return new MemberDoc(MemberKind.METHOD, name, name, List.of(new ParamDoc("keyBind", stringType, false, "")),
-            List.of(), voidType, params, null, typeParams, List.of("public"), comment);
+            List.of(), voidType, params, null, typeParams, List.of("public"), false, comment);
     }
 
     private static void contains(String output, String expected) {

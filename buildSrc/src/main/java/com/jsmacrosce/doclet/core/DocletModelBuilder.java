@@ -3,6 +3,7 @@ package com.jsmacrosce.doclet.core;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletDeclareType;
 import com.jsmacrosce.doclet.DocletIgnore;
+import com.jsmacrosce.doclet.DocletReadOnly;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.doclet.DocletReplaceTypeParams;
@@ -562,6 +563,7 @@ public class DocletModelBuilder {
             replaceReturnValue,
             null,
             modifiers,
+            element.getAnnotation(DocletReadOnly.class) != null,
             comment
         );
     }
@@ -642,6 +644,7 @@ public class DocletModelBuilder {
             replaceReturnValue,
             replaceTypeParamsValue,
             modifiers,
+            false,
             comment
         );
     }

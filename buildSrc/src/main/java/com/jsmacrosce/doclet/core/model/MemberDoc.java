@@ -16,6 +16,10 @@ public record MemberDoc(
     String replaceReturn,
     String replaceTypeParams,
     List<String> modifiers,
+    boolean scriptReadOnly,
     DocComment docComment
 ) {
+    public boolean isReadOnly() {
+        return kind == MemberKind.FIELD && (scriptReadOnly || modifiers.contains("final"));
+    }
 }
