@@ -44,3 +44,5 @@ docs/web/[0-9]*
 
 # General working dir for anything that is needed during development
 working/
+.hermes-audit/
+.opencode/

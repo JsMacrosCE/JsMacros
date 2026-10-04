@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingcontainer;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.Font;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.gui.settings.SettingsOverlay;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@DocletIgnore
 public class ProfileSetting extends AbstractMapSettingContainer<List<ScriptTrigger>, ProfileSetting.ProfileEntry> {
 
     public ProfileSetting(int x, int y, int width, int height, Font textRenderer, SettingsOverlay parent, String[] group) {

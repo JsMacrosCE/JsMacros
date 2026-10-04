@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.graal.language.impl;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Context.Builder;
 import org.graalvm.polyglot.Engine;
@@ -21,6 +22,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@DocletIgnore
 public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptContext> {
     private static volatile Engine engine = null;
     public static final boolean isJsInstalled;

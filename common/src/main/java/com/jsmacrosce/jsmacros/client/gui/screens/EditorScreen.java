@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.gui.screens;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -47,6 +48,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.FontDescription;
 *///?}
 
+@DocletIgnore
 public class EditorScreen extends BaseScreen {
     private static final FormattedCharSequence ellipses = Component.literal("...").withStyle(ChatFormatting.DARK_GRAY).getVisualOrderText();
     /** Pixels scrolled per wheel click */

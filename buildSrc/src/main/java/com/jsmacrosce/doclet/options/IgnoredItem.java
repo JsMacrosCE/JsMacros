@@ -1,9 +1,11 @@
 package com.jsmacrosce.doclet.options;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import jdk.javadoc.doclet.Doclet;
 
 import java.util.List;
 
+@DocletIgnore
 public class IgnoredItem implements Doclet.Option {
     String name;
     int params;

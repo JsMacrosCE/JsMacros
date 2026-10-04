@@ -1,5 +1,7 @@
 package com.jsmacrosce.wagyourgui.containers;
 
+import com.jsmacrosce.doclet.DocletCategory;
+
 import com.google.common.collect.ImmutableList;
 
 import net.minecraft.client.gui.Font;
@@ -16,6 +18,7 @@ import java.util.function.Consumer;
 
 import net.minecraft.client.gui.GuiGraphics;
 
+@DocletCategory("Screen and UI Elements")
 public class ListContainer extends MultiElementContainer<IContainerParent> {
     private final List<Component> list;
     private final List<Button> listItems = new LinkedList<>();

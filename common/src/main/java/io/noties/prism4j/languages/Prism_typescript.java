@@ -1,5 +1,6 @@
 package io.noties.prism4j.languages;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import io.noties.prism4j.GrammarUtils;
 import io.noties.prism4j.Prism4j;
 import io.noties.prism4j.annotations.Extend;
@@ -13,6 +14,7 @@ import static java.util.regex.Pattern.compile;
 
 @Extend("javascript")
 @SuppressWarnings("unused")
+@DocletIgnore
 public class Prism_typescript {
 
     @NotNull

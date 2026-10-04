@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.core.config;
 
 import org.slf4j.Logger;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.EventLockWatchdog;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
@@ -22,6 +23,7 @@ import java.util.Set;
  * @author Wagyourtail
  * @since 1.2.7
  */
+@DocletCategory("Configuration/Profiles")
 public abstract class BaseProfile {
     public final Core<?, ?> runner;
     public final Logger LOGGER;
@@ -38,7 +40,7 @@ public abstract class BaseProfile {
 
     /**
      * @return
-     * @since 1.1.2 [citation needed]
+     * @since 1.2.2
      */
     @Deprecated
     public BaseEventRegistry getRegistry() {
@@ -52,7 +54,7 @@ public abstract class BaseProfile {
 
     /**
      * @param profileName
-     * @since 1.1.2 [citation needed]
+     * @since 1.0.9
      */
     public void loadOrCreateProfile(String profileName) {
         runner.eventRegistry.clearMacros();
@@ -68,7 +70,7 @@ public abstract class BaseProfile {
     /**
      * @param pName
      * @return
-     * @since 1.0.3 [citation needed]
+     * @since 1.5.0
      */
     protected boolean loadProfile(String pName) {
         runner.eventRegistry.clearMacros();
@@ -87,7 +89,7 @@ public abstract class BaseProfile {
     }
 
     /**
-     * @since 1.0.8 [citation needed]
+     * @since 1.0.0
      */
     public void saveProfile() {
         runner.config.getOptions(CoreConfigV2.class).profiles.put(getCurrentProfileName(), runner.eventRegistry.getScriptTriggers());

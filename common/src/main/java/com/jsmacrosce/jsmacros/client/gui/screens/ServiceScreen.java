@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.screens;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
@@ -14,6 +15,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+@DocletIgnore
 public class ServiceScreen extends MacroScreen {
 
     public ServiceScreen(Screen parent) {

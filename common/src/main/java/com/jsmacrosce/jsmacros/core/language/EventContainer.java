@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.core.language;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 
 import java.util.ArrayList;
@@ -9,6 +10,7 @@ import java.util.List;
  * @param <T>
  * @since 1.4.0
  */
+@DocletCategory("Events and Event Handling")
 public class EventContainer<T extends BaseScriptContext<?>> {
     private final T ctx;
     private Thread lockThread;

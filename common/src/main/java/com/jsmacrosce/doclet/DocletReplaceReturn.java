@@ -6,6 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 
 @Documented
 @Retention(RetentionPolicy.SOURCE)
+@DocletIgnore
 public @interface DocletReplaceReturn {
     String value();
 

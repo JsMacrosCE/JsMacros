@@ -10,6 +10,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import org.lwjgl.glfw.GLFW;
+import com.jsmacrosce.doclet.DocletCategory;
 
 import java.util.function.Consumer;
 
@@ -29,6 +30,7 @@ import net.minecraft.client.gui.GuiGraphics;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Screen and UI Elements")
 public class Slider extends AbstractWidget {
     private static final ResourceLocation TEXTURE = ResourceLocation.parse("widget/slider");
     private static final ResourceLocation HIGHLIGHTED_TEXTURE = ResourceLocation.parse("widget/slider_highlighted");

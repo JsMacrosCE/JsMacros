@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.screens;
 
 import com.google.common.collect.ImmutableList;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.screens.Screen;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
@@ -21,6 +22,7 @@ import java.util.Set;
 import net.minecraft.client.input.MouseButtonEvent;
 *///?}
 
+@DocletIgnore
 public class KeyMacrosScreen extends MacroScreen {
 
     public KeyMacrosScreen(Screen parent) {

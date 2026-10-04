@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.core.event.impl;
 
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
@@ -16,8 +17,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Wagyourtail
  * @since 1.2.8
  */
-@Event("Custom")
 @SuppressWarnings("unused")
+@DocletCategory("Core")
+@Event("Custom")
 public class EventCustom extends BaseEvent {
     protected Map<String, Object> args = new ConcurrentHashMap<>();
     public String eventName;
