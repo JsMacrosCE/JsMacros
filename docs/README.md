@@ -125,6 +125,15 @@ their provider and class URLs before publication.
 
 ## Regression checks
 
+Reference prose and field contracts follow [the documentation style guide](STYLE.md).
+Use `@DocletReadOnly` for fields maintained by Java that scripts should not assign;
+Java `final` fields are recognized automatically. This generates TypeScript
+`readonly` class/interface members, Python `Final[T]` hints, and read-only website
+badges. These are static typing/documentation constraints, not runtime access
+control or deep immutability. Values may still change when Java updates them.
+Static library fields remain on the Java class declaration; the global library
+namespace exposes instance methods, so use its getters (e.g. `World.getServer15MAverageTPS()`).
+
 ```sh
 ./gradlew :buildSrc:testExternalTypeLinks :buildSrc:testDocletLinks \
   :buildSrc:testDocBodyRenderer :buildSrc:testTsRenderer :buildSrc:testMarkdownWriter
