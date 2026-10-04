@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.client.api.event.impl;
 import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
@@ -34,9 +35,6 @@ import net.minecraft.client.GuiMessageTag;
  *     event.cancel();
  *     return;
  *   }
- *   if (event.text === null) {
- *     return;
- *   }
  *   Chat.log(`[${event.messageType}] ${event.text.getString()}`);
  * }))
  * </pre>
@@ -53,11 +51,11 @@ public class EventRecvMessage extends BaseEvent {
      * client then marks the line as modified, which shows up as the {@code "Modified"}
      * {@link #messageType} together with an extra line quoting what was originally sent.
      * <br>
-     * Note: it is declared nullable here, so script type definitions allow it to be {@code null}
-     * and it has to be checked before it is read. The constructor always fills it in, so it is
-     * only {@code null} if a listener assigned {@code null} to it.
+     * The constructor supplies a non-null helper. Replace it with another non-null helper to
+     * rewrite the message; use {@link #cancel()} to suppress the message instead of assigning
+     * {@code null}.
      */
-    @Nullable
+    @NotNull
     public TextHelper text;
 
     /**
@@ -86,15 +84,14 @@ public class EventRecvMessage extends BaseEvent {
     @Nullable
     public String messageType;
 
-    public EventRecvMessage(Component message, MessageSignature signature, GuiMessageTag indicator) {
+    public EventRecvMessage(Component message, @Nullable MessageSignature signature, @Nullable GuiMessageTag indicator) {
         super(JsMacrosClient.clientCore);
         this.text = TextHelper.wrap(message);
 
-        if (signature == null) {
-            this.signature = null;
-        } else {
+        if (signature != null) {
             this.signature = signature.bytes();
         }
+
         if (indicator != null) {
             this.messageType = indicator.logTag();
         }

@@ -6,6 +6,7 @@ import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.world.PlayerListEntryHelper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
@@ -40,7 +41,9 @@ public class EventPlayerLeave extends BaseEvent {
      * and it is what {@link #player} would report through
      * {@link PlayerListEntryHelper#getUUID() getUUID()}.
      */
+    @NotNull
     public final String UUID;
+
     /**
      * A helper for the removed player list entry.
      * <br>
@@ -48,9 +51,10 @@ public class EventPlayerLeave extends BaseEvent {
      * need while the event is running. {@link PlayerListEntryHelper#getName() getName()} can be
      * {@code null} for a profile the server has not given a name for.
      */
+    @NotNull
     public final PlayerListEntryHelper player;
 
-    public EventPlayerLeave(UUID uuid, PlayerInfo player) {
+    public EventPlayerLeave(@NotNull UUID uuid, @NotNull PlayerInfo player) {
         super(JsMacrosClient.clientCore);
         this.UUID = uuid.toString();
         this.player = new PlayerListEntryHelper(player);
@@ -58,7 +62,7 @@ public class EventPlayerLeave extends BaseEvent {
 
     @Override
     public String toString() {
-        return String.format("%s:{\"player\": %s}", this.getEventName(), player.toString());
+        return String.format("%s:{\"player\": %s}", this.getEventName(), player);
     }
 
 }

@@ -6,6 +6,7 @@ import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.world.PlayerListEntryHelper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
@@ -40,6 +41,7 @@ public class EventPlayerJoin extends BaseEvent {
      * {@link PlayerListEntryHelper#getUUID() getUUID()} reports on {@link #player}.
      */
     public final String UUID;
+
     /**
      * A helper for the added player list entry.
      * <br>
@@ -47,17 +49,18 @@ public class EventPlayerJoin extends BaseEvent {
      * read from it come from the same packet. {@link PlayerListEntryHelper#getName() getName()}
      * can be {@code null} for a profile the server has not given a name for.
      */
+    @NotNull
     public final PlayerListEntryHelper player;
 
-    public EventPlayerJoin(UUID uuid, PlayerInfo player) {
+    public EventPlayerJoin(UUID uuid, @NotNull PlayerInfo playerInfo) {
         super(JsMacrosClient.clientCore);
         this.UUID = uuid.toString();
-        this.player = new PlayerListEntryHelper(player);
+        this.player = new PlayerListEntryHelper(playerInfo);
     }
 
     @Override
     public String toString() {
-        return String.format("%s:{\"player\": %s}", this.getEventName(), player.toString());
+        return String.format("%s:{\"player\": %s}", this.getEventName(), player);
     }
 
 }
