@@ -31,6 +31,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -127,11 +128,11 @@ public class MarkdownWriter {
         new FileHandler(new File(outDir, "index.md"))
             .write(renderOverview(grouped, version, mcVersion));
         new FileHandler(new File(outDir, "libraries.md"))
-            .write(renderGroupPage("Libraries", grouped.getOrDefault(ClassGroup.Library, List.of()), true, libraryCategories));
+            .write(renderGroupPage("Libraries", grouped.getOrDefault(ClassGroup.Library, List.of()), libraryCategories));
         new FileHandler(new File(outDir, "events.md"))
-            .write(renderGroupPage("Events", grouped.getOrDefault(ClassGroup.Event, List.of()), true, eventCategories));
+            .write(renderGroupPage("Events", grouped.getOrDefault(ClassGroup.Event, List.of()), eventCategories));
         new FileHandler(new File(outDir, "classes.md"))
-            .write(renderGroupPage("Classes", grouped.getOrDefault(ClassGroup.Class, List.of()), false, classCategories));
+            .write(renderGroupPage("Classes", grouped.getOrDefault(ClassGroup.Class, List.of()), classCategories));
     }
 
     private String renderOverview(Map<ClassGroup, List<ClassDoc>> grouped, String version, String mcVersion) {
@@ -142,46 +143,56 @@ public class MarkdownWriter {
             "Version: " + MarkdownBuilder.codeSpan(version) + "  \n"
             + "Minecraft: " + MarkdownBuilder.codeSpan(mcVersion)
         );
-        md.bulletItem(MarkdownBuilder.link("Libraries", "./libraries.md") + " (" + grouped.getOrDefault(ClassGroup.Library, List.of()).size() + ")");
+        md.bulletItem(MarkdownBuilder.link("Libraries", "./libraries.md") + " ("
+            + grouped.getOrDefault(ClassGroup.Library, List.of()).stream().filter(this::isGlobalLibrary).count() + ")");
         md.bulletItem(MarkdownBuilder.link("Events", "./events.md") + " (" + grouped.getOrDefault(ClassGroup.Event, List.of()).size() + ")");
         md.bulletItem(MarkdownBuilder.link("Classes", "./classes.md") + " (" + grouped.getOrDefault(ClassGroup.Class, List.of()).size() + ")");
         md.paragraph("Use the sidebar to browse packages and classes.");
         return md.toString();
     }
 
-    private String renderGroupPage(String title, List<ClassDoc> classes, boolean preferAlias, Map<String, List<ClassDoc>> categories) {
+    private String renderGroupPage(String title, List<ClassDoc> classes, Map<String, List<ClassDoc>> categories) {
         MarkdownBuilder md = new MarkdownBuilder();
         md.frontmatter(Map.of("outline", "false"));
         md.heading(1, title);
+        if (title.equals("Libraries")) {
+            md.paragraph("Global objects available in scripts. Nested entries are supporting types, not additional globals.");
+        }
         if ((categories == null || categories.isEmpty()) && classes.isEmpty()) {
             md.paragraph("No entries found.");
             return md.toString();
         }
         if (categories != null && !categories.isEmpty()) {
             for (Map.Entry<String, List<ClassDoc>> entry : categories.entrySet()) {
-                md.heading(3, entry.getKey());
-                renderGroupEntries(entry.getValue(), preferAlias, md);
+                if (!entry.getKey().equals(DEFAULT_CATEGORY) || categories.size() > 1) {
+                    md.heading(3, entry.getKey().equals(DEFAULT_CATEGORY) ? "Other " + title.toLowerCase(Locale.ROOT) : entry.getKey());
+                }
+                renderGroupEntries(entry.getValue(), md);
             }
             return md.toString();
         }
-        renderGroupEntries(classes, preferAlias, md);
+        renderGroupEntries(classes, md);
         return md.toString();
     }
 
-    private void renderGroupEntries(List<ClassDoc> entries, boolean preferAlias, MarkdownBuilder md) {
+    private void renderGroupEntries(List<ClassDoc> entries, MarkdownBuilder md) {
         if (entries == null || entries.isEmpty()) {
             md.paragraph("No entries found.");
             return;
         }
-        for (ClassDoc clz : entries) {
-            String linkText = preferAlias && hasAlias(clz)
-                ? clz.alias()
-                : clz.qualifiedName();
-            String item = MarkdownBuilder.link(linkText, "./" + classPath(clz) + ".md");
-            if (preferAlias && hasAlias(clz) && !linkText.equals(clz.qualifiedName())) {
-                item += " (" + MarkdownBuilder.codeSpan(clz.qualifiedName()) + ")";
-            }
-            md.bulletItem(item);
+        StringBuilder list = new StringBuilder();
+        for (SidebarEntryBuilder root : buildEntryTree(entries)) {
+            renderIndexEntry(root, null, 0, list);
+        }
+        md.paragraph(list.toString().stripTrailing());
+    }
+
+    private void renderIndexEntry(SidebarEntryBuilder entry, ClassDoc parent, int depth, StringBuilder list) {
+        ClassDoc clz = entry.classDoc();
+        list.append("  ".repeat(depth)).append("- ")
+            .append(MarkdownBuilder.link(displayLabel(clz, parent), "./" + classPath(clz) + ".md")).append('\n');
+        for (SidebarEntryBuilder child : entry.children()) {
+            renderIndexEntry(child, clz, depth + 1, list);
         }
     }
 
@@ -245,6 +256,14 @@ public class MarkdownWriter {
     }
 
     private List<SidebarEntry> buildSidebarEntries(List<ClassDoc> classes, String version) {
+        List<SidebarEntry> entries = new ArrayList<>();
+        for (SidebarEntryBuilder root : buildEntryTree(classes)) {
+            entries.add(toSidebarEntry(root, null, version));
+        }
+        return entries;
+    }
+
+    private List<SidebarEntryBuilder> buildEntryTree(List<ClassDoc> classes) {
         Map<String, SidebarEntryBuilder> builders = new LinkedHashMap<>();
         for (ClassDoc clz : classes) {
             builders.put(clz.qualifiedName(), new SidebarEntryBuilder(clz));
@@ -263,11 +282,7 @@ public class MarkdownWriter {
 
         sortSidebarBuilders(roots);
 
-        List<SidebarEntry> entries = new ArrayList<>();
-        for (SidebarEntryBuilder root : roots) {
-            entries.add(toSidebarEntry(root, version));
-        }
-        return entries;
+        return roots;
     }
 
     @Nullable
@@ -291,24 +306,25 @@ public class MarkdownWriter {
         }
     }
 
-    private SidebarEntry toSidebarEntry(SidebarEntryBuilder builder, String version) {
+    private SidebarEntry toSidebarEntry(SidebarEntryBuilder builder, ClassDoc parent, String version) {
         String link = "/" + version + "/" + classPath(builder.classDoc());
         if (builder.children().isEmpty()) {
-            return new SidebarItem(displayLabel(builder.classDoc()), link);
+            return new SidebarItem(displayLabel(builder.classDoc(), parent), link);
         }
 
         List<SidebarEntry> childEntries = new ArrayList<>();
         for (SidebarEntryBuilder child : builder.children()) {
-            childEntries.add(toSidebarEntry(child, version));
+            childEntries.add(toSidebarEntry(child, builder.classDoc(), version));
         }
-        return new SidebarNode(displayLabel(builder.classDoc()), link, childEntries);
+        return new SidebarNode(displayLabel(builder.classDoc(), parent), link, childEntries);
     }
 
-    private String displayLabel(ClassDoc clz) {
+    private String displayLabel(ClassDoc clz, ClassDoc parent) {
         if (hasAlias(clz)) {
             return clz.alias();
         }
-        return clz.name();
+        return parent != null && clz.name().startsWith(parent.name() + ".")
+            ? clz.name().substring(parent.name().length() + 1) : clz.name();
     }
 
     private void writeSidebarData(File outDir, SidebarData data) throws IOException {
@@ -336,18 +352,37 @@ public class MarkdownWriter {
         String desc = formatDescription(clz.docComment(), clz);
         String descText = desc.isEmpty() ? "TODO: No description supplied\n" : desc;
         md.paragraph(descText);
-        if (clz.group() == ClassGroup.Library) {
-            String accessName = clz.alias() == null || clz.alias().isEmpty() ? clz.name() : clz.alias();
-            md.paragraph("Accessible in scripts via the global " + MarkdownBuilder.codeSpan(accessName) + " variable.");
+        if (isGlobalLibrary(clz)) {
+            md.paragraph("Accessible in scripts via the global " + MarkdownBuilder.codeSpan(clz.alias()) + " variable.");
+        } else {
+            ClassDoc parent = classByQualifiedName.get(parentQualifiedName(clz));
+            if (parent != null) {
+                md.paragraph("Nested type declared in " + MarkdownBuilder.link(displayTitle(parent), buildLinkUrl(parent, null, clz))
+                    + (clz.group() == ClassGroup.Library ? "; not a separate global library." : "."));
+            }
         }
 
-        // Skip constructors for libraries
-        if (clz.group() != ClassGroup.Library) {
+        List<ClassDoc> nested = classByQualifiedName.values().stream()
+            .filter(child -> clz.qualifiedName().equals(parentQualifiedName(child)))
+            .sorted(Comparator.comparing(ClassDoc::name, String.CASE_INSENSITIVE_ORDER)).toList();
+        if (!nested.isEmpty()) {
+            md.heading(2, "Nested types");
+            for (ClassDoc child : nested) {
+                md.bulletItem(MarkdownBuilder.link(displayLabel(child, clz), buildLinkUrl(child, null, clz)));
+            }
+        }
+
+        // Only global library objects hide their constructors; supporting types are classes.
+        if (!isGlobalLibrary(clz)) {
             renderMemberSection(md, clz, MemberKind.CONSTRUCTOR, "Constructors");
         }
         renderMemberSection(md, clz, MemberKind.FIELD, "Fields");
         renderMemberSection(md, clz, MemberKind.METHOD, "Methods");
         return md.toString();
+    }
+
+    private boolean isGlobalLibrary(ClassDoc clz) {
+        return clz.group() == ClassGroup.Library && hasAlias(clz);
     }
 
     private String displayTitle(ClassDoc clz) {

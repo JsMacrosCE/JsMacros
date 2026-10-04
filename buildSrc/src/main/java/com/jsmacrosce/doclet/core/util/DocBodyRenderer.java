@@ -1,12 +1,15 @@
 package com.jsmacrosce.doclet.core.util;
 
 import com.jsmacrosce.doclet.DocletIgnore;
+import com.jsmacrosce.MarkdownBuilder;
 import com.jsmacrosce.doclet.core.model.DocBodyNode;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /**
  * Utility class for rendering a {@code List<DocBodyNode>} to a target-format string.
@@ -36,7 +39,9 @@ public final class DocBodyRenderer {
     );
 
     private static final Pattern HTML_LINK =
-        Pattern.compile("<a (?:[\\n.])*?href=\"([^\"]*)\"(?:[\\n.])*?>(.*?)</a>", Pattern.DOTALL);
+        Pattern.compile("<a\\b[^>]*?\\bhref\\s*=\\s*([\"'])(.*?)\\1[^>]*>(.*?)</a\\s*>",
+            Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+    private static final Pattern HTML_ANCHOR_TAG = Pattern.compile("</?a\\b[^>]*>", Pattern.CASE_INSENSITIVE);
 
     private static final Pattern HTML_PRE = Pattern.compile("<pre\\b([^>]*)>", Pattern.CASE_INSENSITIVE);
     private static final Pattern HTML_CLASS =
@@ -70,26 +75,28 @@ public final class DocBodyRenderer {
             return "";
         }
         StringBuilder sb = new StringBuilder();
+        List<int[]> codeRanges = new ArrayList<>();
         for (DocBodyNode node : nodes) {
             switch (node) {
-                case DocBodyNode.Text(var value) -> sb.append(value);
-                case DocBodyNode.Code(var value) -> sb.append("`").append(value).append("`");
+                case DocBodyNode.Text(var value) -> sb.append(escapeAngles(value));
+                case DocBodyNode.Code(var value) -> {
+                    int start = sb.length();
+                    sb.append(MarkdownBuilder.codeSpan(value));
+                    codeRanges.add(new int[] { start, sb.length() });
+                }
                 case DocBodyNode.Link link -> sb.append(linkResolver.apply(link));
                 case DocBodyNode.Html(var raw) -> sb.append(processHtmlForMarkdown(raw));
             }
         }
-        String result = sb.toString().trim();
-        if (result.isEmpty()) {
+        String result = sb.toString();
+        if (result.isBlank()) {
             return "";
         }
 
         // Post-process the accumulated string:
-        // 1. Convert <a href="…">…</a> that survived Html nodes to Markdown links.
-        result = HTML_LINK.matcher(result).replaceAll("[$2]($1)");
-        // 2. Escape remaining HTML angle brackets so they render as literal text
-        //    when embedded inside HTML blocks in the VitePress Markdown output.
-        result = result.replace("<", "&lt;").replace(">", "&gt;");
-        // 3. Normalise line endings after paragraph tags.
+        result = convertHtmlLinks(result, codeRanges);
+        // Text and unsupported HTML were escaped at their AST nodes, not across
+        // literal code spans: Markdown's code renderer escapes those exactly once.
         result = result.replaceAll("(?<=[.,:;>]) ?\n", "  \n");
 
         return result.trim();
@@ -113,23 +120,42 @@ public final class DocBodyRenderer {
             return "";
         }
         StringBuilder sb = new StringBuilder();
+        List<int[]> codeRanges = new ArrayList<>();
         for (DocBodyNode node : nodes) {
             switch (node) {
                 case DocBodyNode.Text(var value) -> sb.append(value);
-                case DocBodyNode.Code(var value) -> sb.append(value);
+                case DocBodyNode.Code(var value) -> {
+                    int start = sb.length();
+                    sb.append(value);
+                    codeRanges.add(new int[] { start, sb.length() });
+                }
                 case DocBodyNode.Link link -> sb.append(linkResolver.apply(link));
                 case DocBodyNode.Html(var raw) -> sb.append(processHtmlForPlainText(raw));
             }
         }
 
-        String result = sb.toString().trim();
-        if (result.isEmpty()) {
+        String result = sb.toString();
+        if (result.isBlank()) {
             return "";
         }
 
         // Convert surviving <a href> links to Markdown notation (JSDoc-friendly).
-        result = HTML_LINK.matcher(result).replaceAll("[$2]($1)");
+        result = convertHtmlLinks(result, codeRanges);
         return result.trim();
+    }
+
+    private static String convertHtmlLinks(String text, List<int[]> codeRanges) {
+        return HTML_LINK.matcher(text).replaceAll(match -> {
+            // Literal code can contain an entire <a> example. Only actual prose
+            // anchors should become links; positions refer to the untrimmed text.
+            boolean literal = codeRanges.stream().anyMatch(range -> match.start() >= range[0] && match.start() < range[1]);
+            String replacement = literal ? match.group() : "[" + match.group(3) + "](" + match.group(2) + ")";
+            return Matcher.quoteReplacement(replacement);
+        });
+    }
+
+    private static String escapeAngles(String text) {
+        return text.replace("<", "&lt;").replace(">", "&gt;");
     }
 
     /**
@@ -296,8 +322,9 @@ public final class DocBodyRenderer {
         // brackets in text or {@code ...} examples.
         s = s.replaceAll("(?i)</?(?:i|em)>", "*")
             .replaceAll("(?i)</?(?:b|strong)>", "**");
-        // Leave <a href> intact — the outer step converts it to a Markdown link.
-        return s;
+        // A javac anchor arrives as opening/closing HTML nodes with text between
+        // them. Keep those tags until the accumulated prose becomes a Markdown link.
+        return HTML_ANCHOR_TAG.matcher(s).matches() || HTML_LINK.matcher(s).find() ? s : escapeAngles(s);
     }
 
     /**

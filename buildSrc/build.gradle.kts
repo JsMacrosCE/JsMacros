@@ -66,7 +66,16 @@ val testDocletLinks by tasks.registering(JavaExec::class) {
 }
 
 tasks.named("check") {
-    dependsOn(testDocBodyRenderer, testTsRenderer, testExternalTypeLinks, testDocletLinks)
+    dependsOn(testDocBodyRenderer, testTsRenderer, testExternalTypeLinks, testDocletLinks, "testMarkdownWriter")
+}
+
+tasks.register<JavaExec>("testMarkdownWriter") {
+    group = "verification"
+    description = "Checks website indexes and nested supporting-type presentation"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.doclet.core.render.MarkdownWriterTest")
+    args(layout.buildDirectory.dir("markdown-writer-tests").get().asFile.absolutePath)
 }
 
 tasks.named<Test>("test") {

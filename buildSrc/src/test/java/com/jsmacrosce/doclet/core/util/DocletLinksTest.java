@@ -20,8 +20,10 @@ public final class DocletLinksTest {
             "package com.mojang.authlib; public class GameProfile {}");
         Path record = write(root.resolve("source/net/minecraft/fixture/RecordType.java"),
             "package net.minecraft.fixture; public record RecordType(int value) {}");
+        Path libraryAnnotation = write(root.resolve("source/example/Library.java"),
+            "package example; public @interface Library { String value(); }");
         int compile = ToolProvider.getSystemJavaCompiler().run(null, null, null,
-            "-d", stubs.toString(), player.toString(), hit.toString(), profile.toString(), record.toString());
+            "-d", stubs.toString(), player.toString(), hit.toString(), profile.toString(), record.toString(), libraryAnnotation.toString());
         if (compile != 0) throw new AssertionError("Fixture compilation failed: " + compile);
         Path api = write(root.resolve("source/example/Api.java"), """
             package example;
@@ -30,6 +32,8 @@ public final class DocletLinksTest {
             import com.mojang.authlib.GameProfile;
             /** A fixture preserving {@code a & b < c} and {@code \"player\"}.
              * References {@link PlayerInfo} and {@link net.minecraft.fixture.RecordType}.
+             * Under <a target="_blank" href="https://example.org/license">Example license</a>.
+             * Literal: {@code <a target="_blank" href="https://example.org">$literal</a>}.
              * example:
              * <pre>const name = \"player\";</pre>
              */
@@ -44,6 +48,15 @@ public final class DocletLinksTest {
                 public java.util.Map.Entry<String, PlayerInfo> entry;
                 /** An external library, not a class in the Minecraft JAR. */
                 public GameProfile profile;
+                /** A named global fixture. */
+                @Library("Demo")
+                public static class LibraryFixture {
+                    /** A returned supporting type, not a global library. */
+                    public static class Result {
+                        /** Creates a result. */
+                        public Result() {}
+                    }
+                }
             }
             """);
 
@@ -82,6 +95,16 @@ public final class DocletLinksTest {
             }
             String md = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/classes/example/Api.md"));
             String html = Files.readString(root.resolve(version + "/webdoclet/fixture/example/Api.html"));
+            Path markdownRoot = root.resolve(version + "/mddoclet/content/fixture/" + version);
+            String libraries = Files.readString(markdownRoot.resolve("libraries.md"));
+            contains(libraries, "- [Demo](./libraries/example/Api.LibraryFixture.md)\n  - [Result]");
+            excludes(libraries, "Uncategorized");
+            String nested = Files.readString(markdownRoot.resolve("libraries/example/Api.LibraryFixture.Result.md"));
+            contains(nested, "not a separate global library");
+            contains(nested, "## Constructors");
+            excludes(nested, "Accessible in scripts via the global");
+            contains(md, "[Example license](https://example.org/license)");
+            contains(md, "`<a target=\"_blank\" href=\"https://example.org\">$literal</a>`");
             String base = version.equals("1.21.8") ? "https://mappings.dev/1.21.8/" : "https://mcsrc.dev/2/26.1.2/";
             String suffix = version.equals("1.21.8") ? ".html" : "";
             for (String output : List.of(md, html)) {
@@ -102,8 +125,10 @@ public final class DocletLinksTest {
             contains(modern, "a & b < c");
             contains(modern, "const name = \"player\";");
             contains(modern, "player & profile");
+            contains(modern, "[Example license](https://example.org/license)");
+            contains(modern, "<a target=\"_blank\" href=\"https://example.org\">$literal</a>");
         }
-        System.out.println("DocletLinks: 8 actual doclet runs, 40 artifact checks passed");
+        System.out.println("DocletLinks: 8 actual doclet runs, external links and nested-library presentation passed");
     }
 
     private static Path write(Path file, String content) throws Exception {

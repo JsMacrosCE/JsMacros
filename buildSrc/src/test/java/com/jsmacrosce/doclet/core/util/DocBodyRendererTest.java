@@ -39,9 +39,24 @@ public final class DocBodyRendererTest {
 
         var literal = List.<DocBodyNode>of(new DocBodyNode.Code("<pre class=\"language-typescript\">"));
         expect("literal code is not treated as example markup",
-            "`&lt;pre class=\"language-typescript\"&gt;`",
+            "`<pre class=\"language-typescript\">`",
             DocBodyRenderer.toMarkdown(literal, link -> link.signature()));
-        System.out.println("DocBodyRenderer: 10 regression checks passed");
+        var attributedLink = List.<DocBodyNode>of(new DocBodyNode.Html("<a target=\"_blank\" href=\"https://example.org\" title=\"Source\">"),
+            new DocBodyNode.Text("Original's $source"), new DocBodyNode.Html("</a>"));
+        expect("anchor attributes become Markdown links", "[Original's $source](https://example.org)",
+            DocBodyRenderer.toMarkdown(attributedLink, link -> link.signature()));
+        expect("anchor attributes become readable plain-text links", "[Original's $source](https://example.org)",
+            DocBodyRenderer.toPlainText(attributedLink, link -> link.signature()));
+        var singleQuoteLink = List.<DocBodyNode>of(new DocBodyNode.Html("<A HREF='https://example.org' TARGET='_blank'>Source</A>"));
+        expect("single quotes and case-insensitive anchor attributes", "[Source](https://example.org)",
+            DocBodyRenderer.toMarkdown(singleQuoteLink, link -> link.signature()));
+        String codeLink = "<a target='_blank' href='https://example.org'>$code</a>";
+        var literalAnchor = List.<DocBodyNode>of(new DocBodyNode.Text("  Literal: "), new DocBodyNode.Code(codeLink));
+        expect("literal anchors remain code in Markdown", "Literal: `" + codeLink + "`",
+            DocBodyRenderer.toMarkdown(literalAnchor, link -> link.signature()));
+        expect("literal anchors remain code in plain text", "Literal: " + codeLink,
+            DocBodyRenderer.toPlainText(literalAnchor, link -> link.signature()));
+        System.out.println("DocBodyRenderer: 15 regression checks passed");
     }
 
     private static List<DocBodyNode> example(String opening, String code) {
