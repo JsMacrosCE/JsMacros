@@ -347,7 +347,6 @@ public class MarkdownWriter {
         md.frontmatter(Map.of("outline", "deep"));
         md.heading(1, displayTitle(clz));
         md.paragraph(wrapHtmlWithElemAndAttribs(clz.qualifiedName(), "span", "class=\"qualified-name\""));
-        md.paragraph("Minecraft target: " + MarkdownBuilder.codeSpan(minecraftVersion));
 
         String desc = formatDescription(clz.docComment(), clz);
         String descText = desc.isEmpty() ? "TODO: No description supplied\n" : desc;
