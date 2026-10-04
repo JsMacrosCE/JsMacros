@@ -29,9 +29,19 @@ build/docs/vitepress/content/2.0.0/
   26.1.2/
 ```
 
-The combined site has a **Minecraft target** selector and a separate sidebar for
+The combined site has a version selector labeled with the current reference's
+Minecraft version (just the version number), and a separate sidebar for
 each snapshot. It discovers only generated targets, not an assumed list of pages.
+Outside an API reference, the selector shows the latest generated Minecraft version.
 Class pages and snapshot overviews identify their Minecraft target.
+
+Indexes and sidebars use short names and nest supporting types under their owners;
+fully qualified Java names remain on individual pages. A nested type in a library
+is not itself a global library: only the enclosing named `@Library` object gets a
+global-access notice. Supporting types retain their own pages and constructors,
+and existing URLs are preserved. An otherwise unclassified index has no extra
+"Uncategorized" heading; mixed indexes use an "Other classes/libraries/events"
+section instead.
 
 Stonecutter decides which declarations exist and which names/signatures apply.
 The doclet does not interpret Stonecutter comments a second time. A method that
@@ -117,7 +127,7 @@ their provider and class URLs before publication.
 
 ```sh
 ./gradlew :buildSrc:testExternalTypeLinks :buildSrc:testDocletLinks \
-  :buildSrc:testDocBodyRenderer :buildSrc:testTsRenderer
+  :buildSrc:testDocBodyRenderer :buildSrc:testTsRenderer :buildSrc:testMarkdownWriter
 node --test docs/vitepress/.vitepress/api-snapshots.test.ts
 ```
 

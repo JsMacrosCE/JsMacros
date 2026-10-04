@@ -11,7 +11,7 @@ const versions = [...new Set(snapshots.map(snapshot => snapshot.version))].rever
 const targetSelector = versions.map(version => ({
   text: `JsMacrosCE ${version}`,
   items: snapshots.filter(snapshot => snapshot.version === version).reverse().map(snapshot => ({
-    text: `Minecraft ${snapshot.minecraftVersion}`,
+    text: snapshot.minecraftVersion,
     link: `${snapshot.prefix}/`
   }))
 }))
@@ -38,7 +38,10 @@ export default defineConfig({
     nav: [
       { text: 'Home', link: '/' },
       ...(latest ? [{ text: 'API reference', link: `${latest.prefix}/` }] : []),
-      ...(snapshots.length ? [{ text: 'Minecraft target', items: targetSelector }] : [])
+      ...(latest ? [{
+        component: 'MinecraftVersionSelector',
+        props: { items: targetSelector, fallbackVersion: latest.minecraftVersion }
+      }] : [])
     ],
     sidebar: sidebars,
     socialLinks: [
@@ -106,7 +109,7 @@ function buildSidebar(entries: SidebarNode[], fallbackLink: string, mainTitle: s
         if (b.name === 'Uncategorized') return -1;
         return a.name.localeCompare(b.name);
       }).map((section) => ({
-        text: section.name,
+        text: section.name === 'Uncategorized' ? `Other ${mainTitle.toLowerCase()}` : section.name,
         collapsed: true,
         items: mapSidebarEntries(section.items ?? [])
       }))
