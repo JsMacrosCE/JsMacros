@@ -8,6 +8,8 @@ import com.jsmacrosce.Pair;
 import com.jsmacrosce.XMLBuilder;
 import com.jsmacrosce.doclet.core.webdoclet.Main;
 import com.jsmacrosce.doclet.options.Links;
+import com.jsmacrosce.doclet.options.McVersion;
+import com.jsmacrosce.doclet.core.util.ExternalTypeLinks;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
@@ -562,12 +564,10 @@ public class ClassParser {
                     s.append("#").append(memberId(type));
                 }
                 return new Pair<>(s.toString(), false);
-            } else if (Links.externalPackages.containsKey(pkg)) {
-                return new Pair<>(Links.externalPackages.get(pkg) + getClassName((TypeElement) clazz) + ".html", true);
-            } else if (pkg.startsWith("com.mojang") || pkg.startsWith("net.minecraft")) {
-                return new Pair<>(Main.mappingViewerURL + pkg.replaceAll("\\.", "/") + "/" + getClassName((TypeElement) clazz), true);
             } else {
-                return new Pair<>("", false);
+                String url = ExternalTypeLinks.resolve(pkg, getClassName((TypeElement) clazz),
+                    McVersion.mcVersion, Links.externalPackages);
+                return url == null ? new Pair<>("", false) : new Pair<>(url, true);
             }
         } else {
             StringBuilder s = new StringBuilder();

@@ -48,8 +48,25 @@ val testTsRenderer by tasks.registering(JavaExec::class) {
     mainClass.set("com.jsmacrosce.doclet.core.render.TsRendererTest")
 }
 
+val testExternalTypeLinks by tasks.registering(JavaExec::class) {
+    group = "verification"
+    description = "Checks version-aware Minecraft and external Javadoc class links"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.doclet.core.util.ExternalTypeLinksTest")
+}
+
+val testDocletLinks by tasks.registering(JavaExec::class) {
+    group = "verification"
+    description = "Runs all four doclets on offline fixtures for old and unobfuscated Minecraft links"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.doclet.core.util.DocletLinksTest")
+    args(layout.buildDirectory.dir("doclet-link-tests").get().asFile.absolutePath)
+}
+
 tasks.named("check") {
-    dependsOn(testDocBodyRenderer, testTsRenderer)
+    dependsOn(testDocBodyRenderer, testTsRenderer, testExternalTypeLinks, testDocletLinks)
 }
 
 tasks.named<Test>("test") {

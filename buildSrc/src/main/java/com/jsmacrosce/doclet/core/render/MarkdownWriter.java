@@ -17,6 +17,7 @@ import com.jsmacrosce.doclet.core.model.ParamDoc;
 import com.jsmacrosce.doclet.core.model.TypeKind;
 import com.jsmacrosce.doclet.core.model.TypeRef;
 import com.jsmacrosce.doclet.core.util.DocBodyRenderer;
+import com.jsmacrosce.doclet.core.util.ExternalTypeLinks;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -43,6 +44,7 @@ public class MarkdownWriter {
     /** Package name → base Javadoc URL for external (non-project) types, e.g. "java.util" → "https://…". */
     private Map<String, String> externalPackages = Map.of();
     private String version;
+    private String minecraftVersion;
 
     public MarkdownWriter() {
     }
@@ -57,6 +59,7 @@ public class MarkdownWriter {
 
     public void write(DocletModel model, File outDir, String version, String mcVersion) throws IOException {
         this.version = version;
+        this.minecraftVersion = mcVersion;
         indexClasses(model);
         Map<String, List<ClassDoc>> classCategories = groupByCategory(model, ClassGroup.Class);
         Map<String, List<ClassDoc>> eventCategories = groupByCategory(model, ClassGroup.Event);
@@ -898,7 +901,12 @@ public class MarkdownWriter {
         }
 
         // 2. External Javadoc?
-        String externalUrl = resolveExternalTypeUrl(type.qualifiedName());
+        String qualifiedName = type.qualifiedName();
+        String className = type.name();
+        String packageName = qualifiedName.endsWith("." + className)
+            ? qualifiedName.substring(0, qualifiedName.length() - className.length() - 1)
+            : "";
+        String externalUrl = ExternalTypeLinks.resolve(packageName, className, minecraftVersion, externalPackages);
         if (externalUrl != null) {
             return new ResolvedType(type.qualifiedName(), externalUrl, true);
         }
@@ -907,38 +915,6 @@ public class MarkdownWriter {
     }
 
     private record ResolvedType(String qualifiedName, String url, boolean isExternal) {}
-
-    /**
-     * Looks up a type's package in {@link #externalPackages} and builds the
-     * Javadoc URL for that type.  Returns {@code null} when the package is not
-     * in the external index.
-     *
-     * <p>The {@code -link} option stores entries in the form
-     * {@code "baseUrl/index.html?java/util/"} for package {@code java.util}.
-     * We append the simple class name ({@code List.html}) to produce the final
-     * URL: {@code "baseUrl/index.html?java/util/List.html"}.
-     */
-    @Nullable
-    private String resolveExternalTypeUrl(String qualifiedName) {
-        if (qualifiedName == null || qualifiedName.isBlank()) {
-            return null;
-        }
-        int lastDot = qualifiedName.lastIndexOf('.');
-        if (lastDot <= 0) {
-            return null;
-        }
-        String packageName = qualifiedName.substring(0, lastDot);
-        String simpleName = qualifiedName.substring(lastDot + 1);
-        String baseUrl = externalPackages.get(packageName);
-        if (baseUrl == null) {
-            return null;
-        }
-        // baseUrl is stored as e.g. "https://…/api/index.html?java/util/"
-        // Appending "List.html" gives "https://…/api/index.html?java/util/List.html".
-        // Strip any trailing slash first so we always end up with exactly one separator.
-        String trimmed = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
-        return trimmed + "/" + simpleName + ".html";
-    }
 
     // -------------------------------------------------------------------------
     // Link resolution — called from the DocBodyRenderer linkResolver lambda.

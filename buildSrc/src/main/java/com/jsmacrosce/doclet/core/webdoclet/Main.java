@@ -33,7 +33,6 @@ import java.util.Set;
 @DocletIgnore
 public class Main implements Doclet {
     public static Reporter reporter;
-    public static String mappingViewerURL;
     public static Elements elementUtils;
     public static DocTrees treeUtils;
     public static Types types;
@@ -70,7 +69,7 @@ public class Main implements Doclet {
 
     @Override
     public boolean run(DocletEnvironment environment) {
-        mappingViewerURL = "https://wagyourtail.xyz/Projects/MinecraftMappingViewer/App?mapping=INTERMEDIARY,YARN&version=" + McVersion.mcVersion + "&search=";
+        internalClasses.clear();
         elements = environment.getIncludedElements();
         treeUtils = environment.getDocTrees();
         types = environment.getTypeUtils();
