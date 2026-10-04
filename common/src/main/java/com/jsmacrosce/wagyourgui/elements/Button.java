@@ -1,5 +1,6 @@
 package com.jsmacrosce.wagyourgui.elements;
 
+import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
@@ -16,6 +17,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import java.util.List;
 import java.util.function.Consumer;
 
+@DocletCategory("Screen and UI Elements")
 public class Button extends AbstractButton {
     protected final Font textRenderer;
     protected int color;

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingcontainer;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import com.jsmacrosce.jsmacros.client.gui.settings.SettingsOverlay;
@@ -9,6 +10,7 @@ import com.jsmacrosce.wagyourgui.elements.Scrollbar;
 import java.util.LinkedList;
 import java.util.List;
 
+@DocletIgnore
 public class PrimitiveSettingGroup extends AbstractSettingContainer {
     private final List<AbstractSettingField<?>> settings = new LinkedList<>();
     int topScroll = 0;

@@ -4,11 +4,13 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.wagyourgui.elements.Button;
 
 import java.util.List;
 import java.util.function.Consumer;
 
+@DocletCategory("Screen and UI Elements")
 public class ConfirmOverlay extends OverlayContainer {
     private final Consumer<ConfirmOverlay> accept;
     private List<FormattedCharSequence> text;

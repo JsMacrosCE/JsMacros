@@ -1,5 +1,7 @@
 package com.jsmacrosce.wagyourgui.overlays;
 
+import com.jsmacrosce.doclet.DocletCategory;
+
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
@@ -11,6 +13,7 @@ import java.util.function.Consumer;
 
 import net.minecraft.client.gui.GuiGraphics;
 
+@DocletCategory("Screen and UI Elements")
 public class TextPrompt extends OverlayContainer {
     private final Component message;
     private final Consumer<String> accept;

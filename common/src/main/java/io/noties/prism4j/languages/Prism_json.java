@@ -1,5 +1,6 @@
 package io.noties.prism4j.languages;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import io.noties.prism4j.Prism4j;
 import io.noties.prism4j.annotations.Aliases;
 import org.jetbrains.annotations.NotNull;
@@ -14,6 +15,7 @@ import static java.util.regex.Pattern.compile;
  */
 @SuppressWarnings("unused")
 @Aliases("jsonp")
+@DocletIgnore
 public class Prism_json {
 
     @NotNull

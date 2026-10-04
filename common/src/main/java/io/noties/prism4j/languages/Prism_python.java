@@ -1,5 +1,6 @@
 package io.noties.prism4j.languages;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import io.noties.prism4j.Prism4j;
 import org.jetbrains.annotations.NotNull;
 
@@ -15,6 +16,7 @@ import static java.util.regex.Pattern.*;
  * updated for format strings and other stuff from upstream
  */
 @SuppressWarnings("unused")
+@DocletIgnore
 public class Prism_python {
 
     @NotNull

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.editor.highlighting.impl;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import io.noties.prism4j.AbsVisitor;
 import io.noties.prism4j.Prism4j;
 import net.minecraft.network.chat.Component;
@@ -12,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+@DocletIgnore
 public class TextStyleCompiler extends AbsVisitor {
     private final Style defaultStyle;
     private final Map<String, short[]> themeData;

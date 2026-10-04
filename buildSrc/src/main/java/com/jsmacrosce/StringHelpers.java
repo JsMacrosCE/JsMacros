@@ -1,6 +1,9 @@
 package com.jsmacrosce;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 @SuppressWarnings("unused")
+@DocletIgnore
 public class StringHelpers {
 
     public static String toSymbolsGTLT(String s) {

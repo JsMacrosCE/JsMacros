@@ -53,6 +53,8 @@ def main():
             graal_classpath = os.pathsep.join(dependencies)
     source_root = root / "common/src/main/java/com/jsmacrosce/jsmacros"
     sources = [source_root / f"core/library/impl/classes/{name}.java" for name in ["HTTPRequest", "FileHandler"]]
+    # The documented helpers also reference the shared doclet annotations.
+    sources.extend(sorted((root / "common/src/main/java/com/jsmacrosce/doclet").glob("*.java")))
     filters = source_root / "client/api/classes/worldscanner/filter"
     sources += [filters / "BasicFilter.java", filters / "ClassWrapperFilter.java"]
     for directory in ["api", "compare", "logical"]:

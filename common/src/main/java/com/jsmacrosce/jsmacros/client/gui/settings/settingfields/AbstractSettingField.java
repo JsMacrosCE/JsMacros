@@ -1,11 +1,13 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingfields;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import com.jsmacrosce.jsmacros.client.gui.settings.SettingsOverlay;
 import com.jsmacrosce.jsmacros.client.gui.settings.settingcontainer.AbstractSettingContainer;
 import com.jsmacrosce.wagyourgui.containers.MultiElementContainer;
 
+@DocletIgnore
 public abstract class AbstractSettingField<T> extends MultiElementContainer<AbstractSettingContainer> {
     protected final SettingsOverlay.SettingField<T> setting;
     protected final Component settingName;

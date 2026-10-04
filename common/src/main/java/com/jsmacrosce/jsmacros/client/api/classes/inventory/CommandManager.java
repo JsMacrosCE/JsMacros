@@ -11,6 +11,7 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.ClientSuggestionProvider;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.SharedSuggestionProvider;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.CommandNodeHelper;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 
@@ -19,9 +20,59 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
+ * the client side command registry, reached through
+ * {@code Chat.getCommandManager()}.
+ * <p>
+ * It is the entry point for the two halves of the command system: reading the commands that
+ * exist, and building new ones. It holds no state of its own for either. {@link
+ * #getValidCommands()} reads the live command tree off the connection, and the builders handed
+ * out by {@link #createCommandBuilder(String)} keep their pending commands in a map on the
+ * loader's {@code CommandBuilder} subclass, so a script cannot read either back out of the
+ * manager.
+ * <p>
+ * The class is abstract, so the object behind it is whichever one the loader put in place
+ * during startup, and that is also why {@link #instance} is a field rather than something a
+ * script constructs: there is one of these, not one per script.
+ * <p>
+ * The list from {@link #getValidCommands()} is the client view of the command tree, so it
+ * holds the vanilla commands the connected server advertised as well as anything a script
+ * has registered. It is empty when nothing is connected, which is worth handling rather than
+ * assuming.
+ * example:
+ * <pre>
+ * // every command the client currently knows about
+ * for (const name of Chat.getCommandManager().getValidCommands()) {
+ *   Chat.log(name);
+ * }
+ * // register one of our own
+ * const command = Chat.getCommandManager().createCommandBuilder("hello");
+ * command.literalArg("world")
+ * .executes(JavaWrapper.methodToJava(function (ctx) {
+ *   Chat.log("hello world");
+ *   return true;
+ * }));
+ * command.register();
+ * </pre>
  * @since 1.7.0
  */
+@DocletCategory("Commands")
 public abstract class CommandManager {
+    /**
+     * the one command manager this client has.
+     * <p>
+     * It is set during startup by the loader and is not something a script should assign,
+     * since replacing it would leave the rest of the client still holding the old one. Reach
+     * for {@code Chat.getCommandManager()} rather than reading this directly, which gives the
+     * same object and keeps working if the field is ever made private.
+     * example:
+     * <pre>
+     * // the same object Chat.getCommandManager() returns
+     * const manager = Java.type("com.jsmacrosce.jsmacros.client.api.classes.inventory.CommandManager")
+     * .instance;
+     * Chat.log(`${manager.getValidCommands().size()} commands`);
+     * </pre>
+     * @since 1.7.0
+     */
     public static CommandManager instance;
     private static final Minecraft mc = Minecraft.getInstance();
 

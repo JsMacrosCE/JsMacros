@@ -71,7 +71,7 @@ class MixinChatHud {
     private Component modifyChatMessage(Component text) {
     //? }
         jsmacros$modifiedEventRecieve = false;
-        if (text == null) {
+        if (text == null || jsmacros$eventRecvMessage == null) {
             return null;
         }
         final TextHelper result = jsmacros$eventRecvMessage.text;

@@ -1,5 +1,7 @@
 package com.jsmacrosce.wagyourgui.containers;
 
+import com.jsmacrosce.doclet.DocletCategory;
+
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 
@@ -9,6 +11,7 @@ import java.util.function.Consumer;
 
 import net.minecraft.client.gui.GuiGraphics;
 
+@DocletCategory("Screen and UI Elements")
 public class CheckBoxContainer extends MultiElementContainer<IContainerParent> {
     private boolean state;
     private Button checkBox;

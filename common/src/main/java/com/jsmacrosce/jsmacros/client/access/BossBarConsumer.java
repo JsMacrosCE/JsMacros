@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.LerpingBossEvent;
 import net.minecraft.network.chat.Component;
@@ -9,6 +10,7 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.world.EventBossbar;
 
 import java.util.UUID;
 
+@DocletIgnore
 public class BossBarConsumer implements ClientboundBossEventPacket.Handler {
     public void add(UUID uuid, Component name, float percent, BossEvent.BossBarColor color, BossEvent.BossBarOverlay style, boolean darkenSky, boolean dragonMusic, boolean thickenFog) {
         LerpingBossEvent bar = Minecraft.getInstance().gui.getBossOverlay().events.get(uuid);

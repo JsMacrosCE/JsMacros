@@ -1,5 +1,7 @@
 package com.jsmacrosce.wagyourgui;
 
+import com.jsmacrosce.doclet.DocletCategory;
+
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
@@ -24,6 +26,7 @@ import net.minecraft.client.input.MouseButtonInfo;
 
 import net.minecraft.client.gui.GuiGraphics;
 
+@DocletCategory("Screen and UI Elements")
 public abstract class BaseScreen extends Screen implements IOverlayParent {
     protected Screen parent;
     protected OverlayContainer overlay;

@@ -42,6 +42,15 @@ import java.util.Map;
  * <p>
  * Two render-type generations are supported: {@code RenderType.create(name, RenderSetup)}
  * on 1.21.11+, and the older {@code CompositeState} form below that.
+ * <p>
+ * All three of the methods here are for JsMacros' own 2D elements to draw with. A
+ * {@code Rect} and a {@code Line} both take {@link #quads}, an {@code Image} takes
+ * {@link #images}, and nothing in the tree currently calls {@link #lines}, so the
+ * line pipelines are never built at all: each one is constructed inside the method,
+ * so with no caller neither field is ever filled. A script has no reason to
+ * reach for this class: it is a piece of the surface renderer rather than something
+ * on the scripting surface, and it is not part of the shipped type definitions for
+ * that reason.
  *
  * @since 2.0.0
  */
@@ -61,6 +70,29 @@ public final class SurfaceRenderTypes {
 
     // Colored quad geometry (rects). Depth writes are off so painter's order
     // within a surface is preserved. cull: back-face culling; depthTest: depth test.
+    /**
+     * the pipeline for flat coloured geometry, in one of four fixed combinations.
+     * <p>
+     * The two flags are independent and all four combinations are cached, so calling
+     * this repeatedly with the same pair builds the pipeline once and hands back the
+     * same object every time after that. The cache is four static fields rather than a
+     * map, because there are only four combinations.
+     * <p>
+     * The {@code cull} flag is back-face culling, which for a surface drawn as a flat
+     * panel decides whether the back of it is thrown away. The {@code depthTest} flag
+     * is depth testing, and is set to less-or-equal when on and to no depth test at all
+     * when off; both are the depth test only, neither changes what the geometry is.
+     * <p>
+     * The 2D elements in this package ask for this with culling off and with
+     * {@code depthTest} set to whether the surface they are on is depth tested at all,
+     * so of the four combinations the two culled ones are never reached and, being
+     * built lazily inside this method, never built.
+     *
+     * @param cull whether back faces are discarded
+     * @param depthTest whether the geometry is depth tested against what is already drawn
+     * @return the cached render type for that combination, built on the first call for it
+     * @since 2.0.0
+     */
     public static RenderType quads(boolean cull, boolean depthTest) {
         if (cull) {
             if (depthTest) {
@@ -87,6 +119,23 @@ public final class SurfaceRenderTypes {
     }
 
     // Line geometry. cull is meaningless for lines; only depth testing varies.
+    /**
+     * the pipeline for line geometry, in one of two fixed combinations.
+     * <p>
+     * The two are cached in static fields, so the pipeline is built on the first call
+     * for a setting and the same object is handed back after that. There is no
+     * {@code cull} argument because back-face culling has no meaning for a line, which
+     * has no inside.
+     * <p>
+     * Nothing in the tree calls this at the moment. The 2D line element draws itself
+     * as a quad through {@link #quads}, so with no caller neither of these two
+     * pipelines is ever built, and they are kept for the version of the line element
+     * that uses them.
+     *
+     * @param depthTest whether the geometry is depth tested against what is already drawn
+     * @return the cached render type for that setting, built on the first call for it
+     * @since 2.0.0
+     */
     public static RenderType lines(boolean depthTest) {
         if (depthTest) {
             if (linesDepth == null) {
@@ -101,6 +150,26 @@ public final class SurfaceRenderTypes {
     }
 
     // Textured (entity-shader) quads for images, cached per texture.
+    /**
+     * the pipeline for a textured quad, cached per texture rather than per setting.
+     * <p>
+     * This one is keyed on the texture as well as on the depth test, because the
+     * texture is bound into the pipeline rather than passed to it at draw time. The two
+     * caches are plain maps that are never cleared, so every distinct texture asked
+     * for keeps its pipeline for the rest of the session and a script that draws an
+     * unbounded number of different textures grows them without bound.
+     * <p>
+     * The pipeline takes the entity snippet and adds an alpha cutout at 0.1, per-face
+     * lighting, and a second sampler; culling is off, and the setup binds the texture
+     * to {@code Sampler0} and asks for the lightmap and overlay. Depth testing is the
+     * only thing the flag here chooses.
+     *
+     * @param texture the texture to bind into the pipeline
+     * @param depthTest whether the geometry is depth tested against what is already drawn
+     * @return the render type for that texture and setting, built on the first call for
+     *         the pair and the same object on every call after that
+     * @since 2.0.0
+     */
     public static RenderType images(ResourceLocation texture, boolean depthTest) {
         Map<ResourceLocation, RenderType> cache = depthTest ? imageDepth : imageNoDepth;
         RenderType type = cache.get(texture);
