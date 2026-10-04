@@ -1,5 +1,6 @@
 import java.io.FilterReader
 import java.nio.file.Path
+import org.gradle.api.tasks.testing.Test
 
 plugins {
     id("multiloader-common")
@@ -102,6 +103,24 @@ fletchingTable {
     accessConverter.register(sourceSets.main) {
         add("accesswideners/$minecraft_version-$mod_id.accesswidener")
     }
+}
+
+val testStringHashTrie by tasks.registering(JavaExec::class) {
+    group = "verification"
+    description = "Checks StringHashTrie contents, lookups and internal shape against a reference set"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.StringHashTrieTest")
+}
+
+tasks.named<Test>("test") {
+    // the JUnit platform is not on this module's classpath; the check above is the test task here,
+    // which is why this one would otherwise fail with "no tests to execute"
+    enabled = false
+}
+
+tasks.named("check") {
+    dependsOn(testStringHashTrie)
 }
 
 stonecutter {

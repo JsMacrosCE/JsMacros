@@ -1,6 +1,5 @@
 package com.jsmacrosce.jsmacros.client.gui.editor.highlighting.impl;
 
-import com.jsmacrosce.StringHashTrie;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.core.extensions.LanguageExtension;
@@ -11,12 +10,13 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
 @DocletIgnore
 public class AutoCompleteSuggester {
-    private final StringHashTrie suggestions = new StringHashTrie();
+    private final Set<String> suggestions = new LinkedHashSet<>();
     private final String language;
     private final String method_separator;
 
@@ -74,8 +74,23 @@ public class AutoCompleteSuggester {
         });
     }
 
+    /**
+     * Returns the signatures starting with the given text, ignoring case.
+     *
+     * <p>A scan beats a prefix trie here: the list is a few hundred short strings, so one query is
+     * a couple of microseconds, while a trie rebuilds a string for every match and does the most
+     * work for the shortest prefixes. {@code regionMatches} compares without allocating a
+     * lowercase copy of either side.
+     */
     public Set<String> getSuggestions(String start) {
-        return suggestions.getAllWithPrefixCaseInsensitive(start);
+        Set<String> matches = new LinkedHashSet<>();
+        int length = start.length();
+        for (String suggestion : suggestions) {
+            if (suggestion.regionMatches(true, 0, start, 0, length)) {
+                matches.add(suggestion);
+            }
+        }
+        return matches;
     }
 
 }
