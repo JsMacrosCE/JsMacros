@@ -45,6 +45,7 @@ public class MarkdownWriter {
     private Map<String, String> externalPackages = Map.of();
     private String version;
     private String minecraftVersion;
+    private String routePrefix;
 
     public MarkdownWriter() {
     }
@@ -60,15 +61,17 @@ public class MarkdownWriter {
     public void write(DocletModel model, File outDir, String version, String mcVersion) throws IOException {
         this.version = version;
         this.minecraftVersion = mcVersion;
+        this.routePrefix = version + "/" + mcVersion;
         indexClasses(model);
         Map<String, List<ClassDoc>> classCategories = groupByCategory(model, ClassGroup.Class);
         Map<String, List<ClassDoc>> eventCategories = groupByCategory(model, ClassGroup.Event);
         Map<String, List<ClassDoc>> libraryCategories = groupByCategory(model, ClassGroup.Library);
         SidebarData sidebarData = new SidebarData(
             version,
-            mapToSidebarCategories(classCategories, version),
-            mapToSidebarCategories(eventCategories, version),
-            mapToSidebarCategories(libraryCategories, version)
+            mcVersion,
+            mapToSidebarCategories(classCategories, routePrefix),
+            mapToSidebarCategories(eventCategories, routePrefix),
+            mapToSidebarCategories(libraryCategories, routePrefix)
         );
 
         for (PackageDoc pkg : model.packages()) {
@@ -321,13 +324,14 @@ public class MarkdownWriter {
         }
     }
     private record SidebarCategory(String name, List<SidebarEntry> items) {}
-    private record SidebarData(String version, List<SidebarCategory> classes, List<SidebarCategory> events, List<SidebarCategory> libraries) {}
+    private record SidebarData(String version, String minecraftVersion, List<SidebarCategory> classes, List<SidebarCategory> events, List<SidebarCategory> libraries) {}
 
     private String renderClass(ClassDoc clz) {
         MarkdownBuilder md = new MarkdownBuilder();
         md.frontmatter(Map.of("outline", "deep"));
         md.heading(1, displayTitle(clz));
         md.paragraph(wrapHtmlWithElemAndAttribs(clz.qualifiedName(), "span", "class=\"qualified-name\""));
+        md.paragraph("Minecraft target: " + MarkdownBuilder.codeSpan(minecraftVersion));
 
         String desc = formatDescription(clz.docComment(), clz);
         String descText = desc.isEmpty() ? "TODO: No description supplied\n" : desc;
@@ -889,7 +893,7 @@ public class MarkdownWriter {
      * Resolves the URL for a declared type.
      * <ol>
      *   <li>Checks the internal project index (classByQualifiedName).</li>
-     *   <li>Falls back to the external Javadoc package index.</li>
+     *   <li>Falls back to external Javadoc or the target's Minecraft class browser.</li>
      * </ol>
      * Returns {@code null} when no link can be determined.
      */
@@ -942,8 +946,14 @@ public class MarkdownWriter {
             }
             return label;
         }
-        ClassDoc targetClass = resolveClass(parsed.className(), context);
+        ClassDoc targetClass = link.targetType() == null ? resolveClass(parsed.className(), context)
+            : classByQualifiedName.get(link.targetType().qualifiedName());
         if (targetClass == null) {
+            ResolvedType external = link.targetType() == null ? null : resolveTypeUrl(link.targetType(), context);
+            if (external != null) {
+                String label = link.label() != null ? link.label() : linkLabel(sig);
+                return "[" + label + "](" + external.url() + ")";
+            }
             String label = link.label() != null ? link.label() : linkLabel(sig);
             return label;
         }
@@ -974,8 +984,14 @@ public class MarkdownWriter {
             }
             return escapeHtml(label);
         }
-        ClassDoc targetClass = resolveClass(parsed.className(), context);
+        ClassDoc targetClass = link.targetType() == null ? resolveClass(parsed.className(), context)
+            : classByQualifiedName.get(link.targetType().qualifiedName());
         if (targetClass == null) {
+            ResolvedType external = link.targetType() == null ? null : resolveTypeUrl(link.targetType(), context);
+            if (external != null) {
+                return "<a href=\"" + external.url() + "\" target=\"_blank\" rel=\"noopener noreferrer\">"
+                    + escapeHtml(label) + "</a>";
+            }
             return escapeHtml(label);
         }
         String anchor = resolveMemberAnchor(targetClass, parsed);
@@ -992,7 +1008,7 @@ public class MarkdownWriter {
 
         String url;
         if (context == null) {
-            url = "/" + version + "/" + classPath(targetClass);
+            url = "/" + routePrefix + "/" + classPath(targetClass);
         } else {
             Path from = Path.of(classPath(context));
             Path to = Path.of(classPath(targetClass));

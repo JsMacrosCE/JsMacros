@@ -10,6 +10,7 @@ import com.jsmacrosce.doclet.core.webdoclet.Main;
 import com.jsmacrosce.doclet.options.Links;
 import com.jsmacrosce.doclet.options.McVersion;
 import com.jsmacrosce.doclet.core.util.ExternalTypeLinks;
+import com.jsmacrosce.doclet.core.util.ElementNameUtils;
 
 import javax.lang.model.element.*;
 import javax.lang.model.type.*;
@@ -36,23 +37,14 @@ public class ClassParser {
      * @return class name with $ for inner class
      */
     private static String getClassName(TypeElement type) {
-        StringBuilder s = new StringBuilder(type.getSimpleName());
-        Element t2 = type.getEnclosingElement();
-        while (t2.getKind() == ElementKind.INTERFACE || t2.getKind() == ElementKind.CLASS) {
-            s.insert(0, t2.getSimpleName() + "$");
-            t2 = t2.getEnclosingElement();
-        }
-        return s.toString();
+        return ElementNameUtils.getDisplayClassName(type).replace('.', '$');
     }
 
     /**
      * @return package name with . separators
      */
     private static String getPackage(TypeElement type) {
-        Element t2 = type;
-        while (t2.getKind() != ElementKind.PACKAGE) t2 = t2.getEnclosingElement();
-
-        return ((PackageElement) t2).getQualifiedName().toString();
+        return ElementNameUtils.getPackageName(type);
     }
 
     public String getPathPart() {
@@ -451,13 +443,13 @@ public class ClassParser {
             switch (docTree.getKind()) {
                 case LINK, LINK_PLAIN -> {
                     Element ele = Main.treeUtils.getElement(new DocTreePath(new DocTreePath(Main.treeUtils.getPath(el), Main.treeUtils.getDocCommentTree(el)), ((LinkTree) docTree).getReference()));
-                    if (ele != null) {
+                    if (ele instanceof TypeElement || (ele != null && ele.getEnclosingElement() instanceof TypeElement)) {
                         XMLBuilder link;
                         Pair<String, Boolean> url = getURL(ele);
 
                         s.append(link = new XMLBuilder("a", true).addStringOption("href", url.getKey()));
 
-                        if (List.of(ElementKind.INTERFACE, ElementKind.CLASS, ElementKind.ANNOTATION_TYPE, ElementKind.ENUM).contains(ele.getKind())) {
+                        if (ele instanceof TypeElement) {
                             link.append(getClassName((TypeElement) ele));
                         } else {
                             link.append(getClassName((TypeElement) ele.getEnclosingElement()), "#", ele.toString());

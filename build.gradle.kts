@@ -3,19 +3,14 @@ import me.modmuss50.mpp.PublishModTask
 import me.modmuss50.mpp.ReleaseType
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.tasks.Copy
-import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.gradle.api.tasks.bundling.Zip
-import org.gradle.api.tasks.javadoc.Javadoc
-import org.gradle.external.javadoc.CoreJavadocOptions
-import org.gradle.external.javadoc.StandardJavadocDocletOptions
 import org.gradle.internal.extensions.stdlib.capitalized
 import java.io.File
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import java.util.Properties
 
 plugins {
     alias(libs.plugins.mod.publish)
@@ -87,16 +82,10 @@ val isVersionedProject = stonecutterExt != null && project.path != ":" && projec
 // Root-level directory setup
 val distDir = layout.projectDirectory.dir("dist")
 val distDirFile = distDir.asFile
-val docsBuildDir = layout.buildDirectory.dir("docs").get().asFile
-val docletJarFile = layout.projectDirectory.file("buildSrc/build/libs/buildSrc.jar").asFile
 
 repositories {
     mavenCentral()
 }
-
-val docletClasspath = configurations.detachedConfiguration(
-    dependencies.create("com.google.code.gson:gson:2.9.0")
-)
 
 // Root-level properties (available in root gradle.properties)
 val modIdProvider = providers.gradleProperty("mod_id")
@@ -156,179 +145,14 @@ if (isVersionedProject && hasMinecraftVersion) {
     val artifactBaseName = providers.provider { "$modId-$mcVersion-$channel-$version" }
 
     gradle.projectsEvaluated {
-        val docsProjects = allprojects
-            .filter { it.path.startsWith(":common") || it.path.startsWith(":extension") }
-            .mapNotNull { p ->
-                val ss = p.extensions.findByType(SourceSetContainer::class.java)
-                if (ss == null) null else p
-            }
-
-        val mainSourceSets = docsProjects.map { p ->
-            p.extensions.getByType(SourceSetContainer::class.java).named("main").get()
-        }
-
-        val documentationSources = files(mainSourceSets.map { it.allJava })
-        val documentationClasspath = configurations.maybeCreate("documentationClasspath").apply {
-            isCanBeResolved = true
-            isCanBeConsumed = false
-        }
-
-        docsProjects.forEach { project ->
-            val compileClasspath = project.configurations.findByName("compileClasspath") ?: return@forEach
-            compileClasspath.allDependencies.forEach { dependency ->
-                if (dependency.group == "net.neoforged" && dependency.name == "neoform") {
-                    return@forEach
-                }
-                if (dependency.group == "net.neoforged" && dependency.name == "minecraft-dependencies") {
-                    return@forEach
-                }
-                dependencies.add(documentationClasspath.name, dependency)
-            }
-
-            if (project.tasks.names.contains("createMinecraftArtifacts")) {
-                val mergedJars = project.files(project.provider {
-                    val artifactsDir = project.layout.buildDirectory.dir("moddev/artifacts").get().asFile
-                    if (!artifactsDir.exists()) {
-                        return@provider emptyList<File>()
-                    }
-                    artifactsDir.listFiles { file -> file.name.endsWith("-merged.jar") }
-                        ?.toList()
-                        ?: emptyList()
-                })
-                dependencies.add(documentationClasspath.name, mergedJars)
-
-                val manifest = project.layout.buildDirectory.file(
-                    "tmp/createMinecraftArtifacts/nfrt_artifact_manifest.properties"
-                )
-                val manifestFiles = project.files(project.provider {
-                    val manifestFile = manifest.get().asFile
-                    if (!manifestFile.exists()) {
-                        return@provider emptyList<File>()
-                    }
-                    val props = Properties()
-                    manifestFile.inputStream().use(props::load)
-                    props.values.mapNotNull { value ->
-                        (value as? String)?.let { File(it) }
-                    }
-                })
-                dependencies.add(documentationClasspath.name, manifestFiles)
-            }
-        }
-
-        val minecraftArtifactTasks = docsProjects.mapNotNull { project ->
-            if (project.tasks.names.contains("createMinecraftArtifacts")) {
-                project.tasks.named("createMinecraftArtifacts")
-            } else {
-                null
-            }
-        }
-
-        tasks.register("generatePyDoc", Javadoc::class.java) {
-            group = "documentation"
-            description = "Generates the python documentation for the project"
-            source(documentationSources)
-            classpath = documentationClasspath
-            dependsOn(minecraftArtifactTasks)
-            destinationDir = File(docsBuildDir, "python/JsMacrosAC")
-            options.doclet = "com.jsmacrosce.doclet.core.pydoclet.Main"
-            options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
-            (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
-        }
-
-        tasks.register("copyPyDoc", Copy::class.java) {
-            group = "documentation"
-            description = "Copies the python documentation to the build folder"
-            dependsOn("generatePyDoc")
-            from(rootProject.file("docs/python"))
-            into(File(docsBuildDir, "python"))
-        }
-
-        tasks.register("generateTSDoc", Javadoc::class.java) {
-            group = "documentation"
-            description = "Generates the typescript documentation for the project"
-            source(documentationSources)
-            classpath = documentationClasspath
-            dependsOn(minecraftArtifactTasks)
-            destinationDir = File(docsBuildDir, "typescript/headers")
-            options.doclet = "com.jsmacrosce.doclet.core.tsdoclet.Main"
-            options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
-            (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
-        }
-
-        tasks.register("copyTSDoc", Copy::class.java) {
-            group = "documentation"
-            description = "Copies the typescript files to the build folder"
-            dependsOn("generateTSDoc")
-            from(rootProject.file("docs/typescript"))
-            into(File(docsBuildDir, "typescript"))
-        }
-
-        tasks.register("generateWebDoc", Javadoc::class.java) {
-            group = "documentation"
-            description = "Generates the web documentation for the project"
-            source(documentationSources)
-            classpath = documentationClasspath
-            dependsOn(minecraftArtifactTasks)
-            destinationDir = File(docsBuildDir, "web")
-            options.doclet = "com.jsmacrosce.doclet.core.webdoclet.Main"
-            options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
-            (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
-            (options as CoreJavadocOptions).addStringOption("mcv", mcVersion)
-            (options as StandardJavadocDocletOptions).links(
-                "https://docs.oracle.com/javase/8/docs/api/",
-                "https://www.slf4j.org/apidocs-2.0.17/",
-                "https://takahikokawasaki.github.io/nv-websocket-client/"
-            )
-        }
-
-        tasks.register("copyWebDoc", Copy::class.java) {
-            group = "documentation"
-            description = "Copies the web documentation to the build folder"
-            dependsOn("generateWebDoc")
-            from(rootProject.file("docs/web"))
-            into(File(docsBuildDir, "web"))
-            inputs.property("version", project.version.toString())
-            filesMatching("index.html") {
-                expand(mapOf("version" to project.version.toString()))
-            }
-        }
-
-        tasks.register("generateVitepressDoc", Javadoc::class.java) {
-            group = "documentation"
-            description = "Generates the vitepress documentation for the project"
-            source(documentationSources)
-            classpath = documentationClasspath
-            dependsOn(minecraftArtifactTasks)
-            destinationDir = File(docsBuildDir, "vitepress")
-            options.doclet = "com.jsmacrosce.doclet.core.mddoclet.Main"
-            options.docletpath = (listOf(docletJarFile) + docletClasspath.files).toMutableList()
-            (options as CoreJavadocOptions).addStringOption("v", project.version.toString())
-            (options as CoreJavadocOptions).addStringOption("mcv", mcVersion)
-            (options as StandardJavadocDocletOptions).links(
-                "https://docs.oracle.com/javase/8/docs/api/",
-                "https://www.slf4j.org/apidocs-2.0.17/",
-                "https://takahikokawasaki.github.io/nv-websocket-client/",
-                "https://www.graalvm.org/sdk/javadoc/"
-            )
-        }
-
-        tasks.register("copyVitepressDoc", Copy::class.java) {
-            group = "documentation"
-            description = "Copies the vitepress documentation to the build folder"
-            dependsOn("generateVitepressDoc")
-            from(rootProject.file("docs/vitepress"))
-            into(File(docsBuildDir, "vitepress"))
-            inputs.property("version", project.version.toString())
-            filesMatching("index.md") {
-                expand(mapOf("version" to project.version.toString()))
-            }
-        }
+        // Documentation is registered once by the controller. Its target-specific tasks
+        // select sibling :common:<version> nodes rather than this node's empty subtree.
 
         tasks.register("createDistDocs", Copy::class.java) {
             group = "distribution"
             description = "Packages generated documentation into the dist directory"
-            dependsOn("prepareDist", "copyPyDoc", "copyTSDoc", "copyWebDoc", "copyVitepressDoc")
-            from(docsBuildDir)
+            dependsOn("prepareDist", ":copyDocs${mcVersion.replace(".", "")}")
+            from(rootProject.layout.buildDirectory.dir("docs/targets/$mcVersion"))
             into(distDirFile)
         }
 
@@ -375,10 +199,10 @@ if (isVersionedProject && hasMinecraftVersion) {
             tasks.register("packageDevkit", Zip::class.java) {
                 group = "distribution"
                 description = "Packages devkit bundle"
-                dependsOn("prepareDist", "copyPyDoc", "copyTSDoc", "copyWebDoc")
+                dependsOn("prepareDist", ":copyDocs${mcVersion.replace(".", "")}")
                 destinationDirectory.set(distDir)
                 archiveFileName.set("$modId-devkit-$mcVersion-${project.version}.zip")
-                from(docsBuildDir) {
+                from(rootProject.layout.buildDirectory.dir("docs/targets/$mcVersion")) {
                     include("web/**")
                     include("typescript/**")
                     include("python/**")

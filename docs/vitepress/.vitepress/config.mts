@@ -1,13 +1,25 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import { defineConfig } from 'vitepress'
 import { inlineHighlightPlugin } from './theme/inline-highlight'
 import { createHighlighter } from 'shiki'
+import { loadApiSnapshots, type SidebarEntry, type SidebarNode } from './api-snapshots'
 
 const contentDir = path.resolve(__dirname, '../content')
-const versionDir = resolveVersionDir(contentDir)
-const versionPrefix = `/${versionDir}`
-const sidebarData = loadSidebarData(versionDir)
+const snapshots = loadApiSnapshots(contentDir)
+const latest = snapshots.at(-1)
+const versions = [...new Set(snapshots.map(snapshot => snapshot.version))].reverse()
+const targetSelector = versions.map(version => ({
+  text: `JsMacrosCE ${version}`,
+  items: snapshots.filter(snapshot => snapshot.version === version).reverse().map(snapshot => ({
+    text: `Minecraft ${snapshot.minecraftVersion}`,
+    link: `${snapshot.prefix}/`
+  }))
+}))
+const sidebars = Object.fromEntries(snapshots.map(snapshot => [
+  `${snapshot.prefix}/`,
+  (['libraries', 'classes', 'events'] as const).flatMap(group =>
+    buildSidebar(snapshot.sidebar[group], `${snapshot.prefix}/${group}`, group[0].toUpperCase() + group.slice(1)))
+]))
 
 const highlighter = await createHighlighter({
   themes: ['github-light', 'github-dark'],
@@ -20,18 +32,15 @@ export default defineConfig({
   description: 'Minecraft mod for JavaScript/polyglot macros.',
   srcDir: './content',
   cleanUrls: true,
+  // The full target matrix contains thousands of pages; VitePress defaults to 64.
+  buildConcurrency: 4,
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Libraries', link: `${versionPrefix}/libraries` },
-      { text: 'Classes', link: `${versionPrefix}/classes` },
-      { text: 'Events', link: `${versionPrefix}/events` }
+      ...(latest ? [{ text: 'API reference', link: `${latest.prefix}/` }] : []),
+      ...(snapshots.length ? [{ text: 'Minecraft target', items: targetSelector }] : [])
     ],
-    sidebar: {
-      [`${versionPrefix}/libraries`]: buildSidebar(sidebarData.libraries, `${versionPrefix}/libraries`, 'Libraries'),
-      [`${versionPrefix}/classes`]: buildSidebar(sidebarData.classes, `${versionPrefix}/classes`, 'Classes'),
-      [`${versionPrefix}/events`]: buildSidebar(sidebarData.events, `${versionPrefix}/events`, 'Events')
-    },
+    sidebar: sidebars,
     socialLinks: [
       { icon: 'github', link: 'https://github.com/JsMacrosCE/JsMacros' }
     ],
@@ -47,43 +56,22 @@ export default defineConfig({
     }
   },
   markdown: {
+    // Do not retain a second representation of the large generated API pages.
+    cache: false,
     config: md => {
       md.use(inlineHighlightPlugin, highlighter)
     }
   }
 })
 
-function resolveVersionDir(dir: string): string {
-  if (!fs.existsSync(dir)) {
-    return 'latest'
-  }
-  const entries = fs.readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-  if (entries.length === 0) {
-    return 'latest'
-  }
-  entries.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-  return entries[entries.length - 1]
-}
-
-type SidebarItem = { text: string; link: string };
-type SidebarDataEntry = SidebarItem | SidebarDataNode;
-type SidebarDataNode = { name: string; link?: string; items: SidebarDataEntry[] };
 type SidebarConfigItem =
   | { text: string; link: string }
   | { text: string; link?: string; collapsed: true; items: SidebarConfigItem[] };
-type SidebarData = {
-  classes: SidebarDataNode[];
-  events: SidebarDataNode[];
-  libraries: SidebarDataNode[];
-}
-
-function isSidebarDataNode(entry: SidebarDataEntry): entry is SidebarDataNode {
+function isSidebarDataNode(entry: SidebarEntry): entry is SidebarNode {
   return 'name' in entry && 'items' in entry
 }
 
-function mapSidebarEntries(entries: SidebarDataEntry[]): SidebarConfigItem[] {
+function mapSidebarEntries(entries: SidebarEntry[]): SidebarConfigItem[] {
   return entries.map((entry) => {
     if (isSidebarDataNode(entry)) {
       return {
@@ -100,20 +88,7 @@ function mapSidebarEntries(entries: SidebarDataEntry[]): SidebarConfigItem[] {
   })
 }
 
-function loadSidebarData(version: string): SidebarData {
-  const dataPath = path.join(contentDir, version, 'sidebar-data.json')
-  if (!fs.existsSync(dataPath)) {
-    return { classes: [], events: [], libraries: [] }
-  }
-  try {
-    return JSON.parse(fs.readFileSync(dataPath, 'utf8'))
-  } catch (error) {
-    console.warn('Failed to load sidebar data:', error)
-    return { classes: [], events: [], libraries: [] }
-  }
-}
-
-function buildSidebar(entries: SidebarDataNode[], fallbackLink: string, mainTitle: string) {
+function buildSidebar(entries: SidebarNode[], fallbackLink: string, mainTitle: string) {
   if (Array.isArray(entries) && entries.length > 0) {
     // Flatten the sidebar on pages like "Libraries" where we don't categorize things
     if (entries.length === 1 && entries[0].name === 'Uncategorized') {

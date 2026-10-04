@@ -5,10 +5,12 @@ import jdk.javadoc.doclet.Doclet;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.lang.model.SourceVersion;
 
 @DocletIgnore
 public class Links implements Doclet.Option {
@@ -47,9 +49,11 @@ public class Links implements Doclet.Option {
         }
 
         Exception lastException = null;
-        for (String listFile : new String[] { "package-list", "element-list" }) {
+        for (String listFile : new String[] { "element-list", "package-list" }) {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(new URL(baseUrl + listFile).openStream()))) {
                 String line;
+                String modulePath = "";
+                Map<String, String> packages = new HashMap<>();
                 while ((line = reader.readLine()) != null) {
                     line = line.trim();
 
@@ -57,17 +61,22 @@ public class Links implements Doclet.Option {
                         continue;
                     }
 
-                    // element-list may contain module entries like "module:java.base"
+                    // Modern Javadoc puts classes beneath their module directory.
                     if (line.startsWith("module:")) {
+                        String module = line.substring("module:".length());
+                        if (!SourceVersion.isName(module)) throw new IOException("Invalid Javadoc module: " + line);
+                        modulePath = module + "/";
                         continue;
                     }
-
-                    externalPackages.put(
+                    // Some hosts return a soft-404 HTML page with HTTP 200. Do not
+                    // mistake it for a successful package list and lose every link.
+                    if (!SourceVersion.isName(line)) throw new IOException("Invalid Javadoc package: " + line);
+                    packages.put(
                             line,
-                            baseUrl + "index.html?" + line.replace(".", "/") + "/");
+                            baseUrl + modulePath + line.replace(".", "/") + "/");
                 }
-
-                // Return early if possible
+                if (packages.isEmpty()) throw new IOException("Empty Javadoc package index: " + baseUrl + listFile);
+                externalPackages.putAll(packages);
                 return true;
             } catch (Exception e) {
                 lastException = e;

@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "description": "Generated documentation for JsMacros using VitePress",
   "scripts": {
-    "test": "node --test .vitepress/theme/inline-highlight.test.ts",
+    "test": "node --test .vitepress/theme/inline-highlight.test.ts .vitepress/api-snapshots.test.ts",
     "dev": "vitepress dev",
-    "build": "vitepress build",
+    "build": "node --max-old-space-size=12288 node_modules/vitepress/bin/vitepress.js build",
     "preview": "vitepress preview"
   },
   "keywords": [

@@ -49,10 +49,15 @@ public sealed interface DocBodyNode
      * {@code null} when no label was provided (renderers should then derive a label
      * from the signature itself).
      *
+     * @param targetType the compiler-resolved declaring type, or {@code null} for an unresolved reference
      * @param signature the raw javadoc reference (class, class#member, or #member)
      * @param label     explicit display label, or {@code null} if none
      */
-    record Link(String signature, String label) implements DocBodyNode {}
+    record Link(String signature, String label, TypeRef targetType) implements DocBodyNode {
+        public Link(String signature, String label) {
+            this(signature, label, null);
+        }
+    }
 
     /**
      * Raw HTML content that does not fit the other node types.

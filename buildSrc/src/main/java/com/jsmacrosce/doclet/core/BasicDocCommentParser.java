@@ -13,12 +13,18 @@ import com.sun.source.doctree.SinceTree;
 import com.sun.source.doctree.TextTree;
 import com.sun.source.doctree.DeprecatedTree;
 import com.sun.source.util.DocTrees;
+import com.sun.source.util.DocTreePath;
 import com.jsmacrosce.doclet.core.model.DocBodyNode;
 import com.jsmacrosce.doclet.core.model.DocComment;
 import com.jsmacrosce.doclet.core.model.DocTag;
 import com.jsmacrosce.doclet.core.model.DocTagKind;
+import com.jsmacrosce.doclet.core.model.TypeKind;
+import com.jsmacrosce.doclet.core.model.TypeRef;
+import com.jsmacrosce.doclet.core.util.ElementNameUtils;
 
 import javax.lang.model.element.Element;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.TypeParameterElement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,8 +51,8 @@ public class BasicDocCommentParser implements DocCommentParser {
             return new DocComment(List.of(), List.of(), List.of());
         }
 
-        List<DocBodyNode> summary = parseNodes(tree.getFirstSentence());
-        List<DocBodyNode> body = parseNodes(tree.getFullBody());
+        List<DocBodyNode> summary = parseNodes(tree.getFirstSentence(), element);
+        List<DocBodyNode> body = parseNodes(tree.getFullBody(), element);
         List<DocTag> tags = new ArrayList<>();
 
         for (DocTree tag : tree.getBlockTags()) {
@@ -54,19 +60,19 @@ public class BasicDocCommentParser implements DocCommentParser {
                 case PARAM -> {
                     ParamTree param = (ParamTree) tag;
                     DocTagKind kind = param.isTypeParameter() ? DocTagKind.TEMPLATE : DocTagKind.PARAM;
-                    tags.add(new DocTag(kind, param.getName().getName().toString(), parseNodes(param.getDescription())));
+                    tags.add(new DocTag(kind, param.getName().getName().toString(), parseNodes(param.getDescription(), element)));
                 }
                 case RETURN -> {
                     ReturnTree ret = (ReturnTree) tag;
-                    tags.add(new DocTag(DocTagKind.RETURN, null, parseNodes(ret.getDescription())));
+                    tags.add(new DocTag(DocTagKind.RETURN, null, parseNodes(ret.getDescription(), element)));
                 }
                 case SINCE -> {
                     SinceTree since = (SinceTree) tag;
-                    tags.add(new DocTag(DocTagKind.SINCE, null, parseNodes(since.getBody())));
+                    tags.add(new DocTag(DocTagKind.SINCE, null, parseNodes(since.getBody(), element)));
                 }
                 case DEPRECATED -> {
                     DeprecatedTree dep = (DeprecatedTree) tag;
-                    tags.add(new DocTag(DocTagKind.DEPRECATED, null, parseNodes(dep.getBody())));
+                    tags.add(new DocTag(DocTagKind.DEPRECATED, null, parseNodes(dep.getBody(), element)));
                 }
                 case SEE -> {
                     SeeTree see = (SeeTree) tag;
@@ -100,7 +106,7 @@ public class BasicDocCommentParser implements DocCommentParser {
      * that each renderer can format links, code spans, and HTML in its own
      * target-specific way without regex re-parsing.
      */
-    private List<DocBodyNode> parseNodes(List<? extends DocTree> trees) {
+    private List<DocBodyNode> parseNodes(List<? extends DocTree> trees, Element context) {
         List<DocBodyNode> nodes = new ArrayList<>();
         for (DocTree tree : trees) {
             switch (tree.getKind()) {
@@ -116,12 +122,26 @@ public class BasicDocCommentParser implements DocCommentParser {
                     String signature = link.getReference().getSignature();
                     // Flatten label nodes to plain text (no nested links possible in a label).
                     String label = flattenToText(link.getLabel());
-                    nodes.add(new DocBodyNode.Link(signature, label.isBlank() ? null : label));
+                    nodes.add(new DocBodyNode.Link(signature, label.isBlank() ? null : label, resolveTargetType(link, context)));
                 }
                 default -> nodes.add(new DocBodyNode.Html(tree.toString()));
             }
         }
         return nodes;
+    }
+
+    private TypeRef resolveTargetType(LinkTree link, Element context) {
+        var sourcePath = docTrees.getPath(context);
+        if (sourcePath == null) return null;
+        Element target = docTrees.getElement(new DocTreePath(
+            new DocTreePath(sourcePath, docTrees.getDocCommentTree(context)), link.getReference()));
+        if (target instanceof TypeParameterElement) return null;
+        while (target != null && !(target instanceof TypeElement)) {
+            target = target.getEnclosingElement();
+        }
+        if (!(target instanceof TypeElement type)) return null;
+        return new TypeRef(TypeKind.DECLARED, ElementNameUtils.getDisplayClassName(type),
+            ElementNameUtils.getQualifiedName(type), List.of(), false, false, null, false);
     }
 
     /**

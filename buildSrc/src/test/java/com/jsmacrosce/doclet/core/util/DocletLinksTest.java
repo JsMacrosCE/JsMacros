@@ -18,8 +18,10 @@ public final class DocletLinksTest {
             "package net.minecraft.world.phys; public class HitResult { public enum Type { MISS } }");
         Path profile = write(root.resolve("source/com/mojang/authlib/GameProfile.java"),
             "package com.mojang.authlib; public class GameProfile {}");
+        Path record = write(root.resolve("source/net/minecraft/fixture/RecordType.java"),
+            "package net.minecraft.fixture; public record RecordType(int value) {}");
         int compile = ToolProvider.getSystemJavaCompiler().run(null, null, null,
-            "-d", stubs.toString(), player.toString(), hit.toString(), profile.toString());
+            "-d", stubs.toString(), player.toString(), hit.toString(), profile.toString(), record.toString());
         if (compile != 0) throw new AssertionError("Fixture compilation failed: " + compile);
         Path api = write(root.resolve("source/example/Api.java"), """
             package example;
@@ -27,6 +29,7 @@ public final class DocletLinksTest {
             import net.minecraft.world.phys.HitResult;
             import com.mojang.authlib.GameProfile;
             /** A fixture preserving {@code a & b < c} and {@code \"player\"}.
+             * References {@link PlayerInfo} and {@link net.minecraft.fixture.RecordType}.
              * example:
              * <pre>const name = \"player\";</pre>
              */
@@ -44,19 +47,29 @@ public final class DocletLinksTest {
             }
             """);
 
-        // An offline package-list tests the same -link option as a real docs build.
-        Path javadoc = root.resolve("external");
-        Files.createDirectories(javadoc);
-        Files.writeString(javadoc.resolve("package-list"), "java.util\njava.lang\n");
-        String external = javadoc.toUri().toString();
-        String classpath = System.getProperty("java.class.path") + java.io.File.pathSeparator + stubs;
+        // Do not put Gradle/Kotlin compiler jars on the doclet path. Their service
+        // providers can initialize javac before Javadoc has finished parsing options.
+        String docletClasspath = Path.of(com.jsmacrosce.doclet.core.mddoclet.Main.class
+            .getProtectionDomain().getCodeSource().getLocation().toURI()).toString()
+            + java.io.File.pathSeparator + Path.of(com.google.gson.Gson.class
+                .getProtectionDomain().getCodeSource().getLocation().toURI());
         for (String version : List.of("1.21.8", "26.1.2")) {
+            // Exercise both legacy package-list and modern module-aware element-list.
+            Path javadoc = root.resolve("external").resolve(version);
+            Files.createDirectories(javadoc);
+            String listFile = version.equals("1.21.8") ? "package-list" : "element-list";
+            Files.writeString(javadoc.resolve(listFile),
+                (version.equals("1.21.8") ? "" : "module:java.base\n") + "java.util\njava.lang\n");
+            if (version.equals("1.21.8")) {
+                Files.writeString(javadoc.resolve("element-list"), "<!DOCTYPE html><title>Not found</title>");
+            }
+            String external = javadoc.toUri().toString();
             for (String kind : List.of("mddoclet", "webdoclet", "tsdoclet", "pydoclet")) {
                 Path out = root.resolve(version).resolve(kind);
                 var command = new ArrayList<>(List.of(
                     Path.of(System.getProperty("java.home"), "bin", "javadoc").toString(),
-                    "-quiet", "-doclet", "com.jsmacrosce.doclet.core." + kind + ".Main",
-                    "-docletpath", classpath, "-classpath", classpath,
+                    "-quiet", "-source", "21", "-doclet", "com.jsmacrosce.doclet.core." + kind + ".Main",
+                    "-docletpath", docletClasspath, "-classpath", stubs.toString(),
                     "-d", out.toString(), "-v", "fixture"));
                 if (kind.equals("mddoclet") || kind.equals("webdoclet")) {
                     command.addAll(List.of("-mcv", version, "-link", external));
@@ -67,15 +80,17 @@ public final class DocletLinksTest {
                     .redirectOutput(log.toFile()).start().waitFor();
                 if (result != 0) throw new AssertionError("Javadoc failed: " + Files.readString(log));
             }
-            String md = Files.readString(root.resolve(version + "/mddoclet/content/fixture/classes/example/Api.md"));
+            String md = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/classes/example/Api.md"));
             String html = Files.readString(root.resolve(version + "/webdoclet/fixture/example/Api.html"));
             String base = version.equals("1.21.8") ? "https://mappings.dev/1.21.8/" : "https://mcsrc.dev/2/26.1.2/";
             String suffix = version.equals("1.21.8") ? ".html" : "";
             for (String output : List.of(md, html)) {
                 contains(output, "href=\"" + base + "net/minecraft/client/multiplayer/PlayerInfo" + suffix + "\"");
                 contains(output, "href=\"" + base + "net/minecraft/world/phys/HitResult$Type" + suffix + "\"");
-                contains(output, "java/util/Map.Entry.html");
+                contains(output, (version.equals("1.21.8") ? "" : "java.base/") + "java/util/Map.Entry.html");
+                contains(output, base + "net/minecraft/fixture/RecordType" + suffix);
                 excludes(output, "MinecraftMappingViewer");
+                excludes(output, "index.html?");
                 excludes(output, base + "com/mojang/authlib");
                 excludes(output, "PlayerInfo#L");
             }
@@ -88,7 +103,7 @@ public final class DocletLinksTest {
             contains(modern, "const name = \"player\";");
             contains(modern, "player & profile");
         }
-        System.out.println("DocletLinks: 8 actual doclet runs, 32 artifact checks passed");
+        System.out.println("DocletLinks: 8 actual doclet runs, 40 artifact checks passed");
     }
 
     private static Path write(Path file, String content) throws Exception {

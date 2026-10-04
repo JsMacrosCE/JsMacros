@@ -29,7 +29,7 @@ public final class ElementNameUtils {
     public static String getDisplayClassName(TypeElement type) {
         StringBuilder name = new StringBuilder(type.getSimpleName());
         Element current = type.getEnclosingElement();
-        while (current.getKind() == ElementKind.INTERFACE || current.getKind() == ElementKind.CLASS) {
+        while (current instanceof TypeElement) {
             name.insert(0, current.getSimpleName() + ".");
             current = current.getEnclosingElement();
         }

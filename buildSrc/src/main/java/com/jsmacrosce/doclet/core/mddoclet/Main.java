@@ -61,7 +61,8 @@ public class Main implements Doclet {
         DocletModelBuilder builder = new DocletModelBuilder(typeResolver, new BasicDocCommentParser(trees));
         var model = builder.build(environment);
 
-        File outDir = new File(OutputDirectory.outputDir.toPath().resolve("content").toString(), Version.version);
+        File outDir = OutputDirectory.outputDir.toPath().resolve("content")
+            .resolve(Version.version).resolve(McVersion.mcVersion).toFile();
         if (!outDir.exists() && !outDir.mkdirs()) {
             reporter.print(Diagnostic.Kind.ERROR, "Failed to create version dir\n");
             return false;

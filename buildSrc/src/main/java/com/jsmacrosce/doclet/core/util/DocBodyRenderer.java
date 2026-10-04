@@ -195,7 +195,7 @@ public final class DocBodyRenderer {
             switch (node) {
                 case DocBodyNode.Text(var value) -> sb.append(value);
                 case DocBodyNode.Code(var value) -> sb.append(value);
-                case DocBodyNode.Link(var sig, var label) -> sb.append(label != null ? label : sig);
+                case DocBodyNode.Link link -> sb.append(link.label() != null ? link.label() : link.signature());
                 case DocBodyNode.Html(var raw) -> sb.append(raw);
             }
         }
