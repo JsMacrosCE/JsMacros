@@ -67,7 +67,7 @@ public interface IFWrapper<T> {
      * use with caution, don't accidentally cause circular waiting.
      *
      * @throws InterruptedException
-     * @since 1.4.0 [citation needed]
+     * @since 1.8.0
      */
     default void deferCurrentTask() throws InterruptedException {
         throw new AssertionError("deferCurrentTask() is not implemented for this language");

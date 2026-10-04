@@ -32,7 +32,7 @@ import java.util.Objects;
  * Chat.log(`normalized to ${direction}`);
  * </pre>
  * @author Wagyourtail
- * @since 1.2.6 [citation needed]
+ * @since 1.2.6
  */
 public class Vec2D {
     /**

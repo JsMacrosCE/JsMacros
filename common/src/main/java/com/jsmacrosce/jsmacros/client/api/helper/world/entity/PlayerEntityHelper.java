@@ -232,7 +232,7 @@ public class PlayerEntityHelper<T extends Player> extends LivingEntityHelper<T> 
      * </pre>
      *
      * @return the total experience the player has collected
-     * @since 1.2.5 [citation needed]
+     * @since 1.2.5
      */
     public int getXP() {
         return base.totalExperience;
@@ -328,7 +328,7 @@ public class PlayerEntityHelper<T extends Player> extends LivingEntityHelper<T> 
      * </pre>
      *
      * @return {@code true} if the player is asleep, {@code false} otherwise.
-     * @since 1.2.5 [citation needed]
+     * @since 1.2.6
      */
     @Override
     public boolean isSleeping() {
@@ -355,7 +355,7 @@ public class PlayerEntityHelper<T extends Player> extends LivingEntityHelper<T> 
      * </pre>
      *
      * @return if the player has slept the minimum amount of time to pass the night.
-     * @since 1.2.5 [citation needed]
+     * @since 1.2.6
      */
     public boolean isSleepingLongEnough() {
         return base.isSleepingLongEnough();

@@ -609,7 +609,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
      * @param slot
      * @param hotbarSlot 0-8 or 40 for offhand
      * @return
-     * @since 1.6.5 [citation needed]
+     * @since 1.6.4
      */
     @DocletReplaceParams("slot: int, hotbarSlot: HotbarSwapSlot")
     public Inventory<T> swapHotbar(int slot, int hotbarSlot) {

@@ -36,7 +36,7 @@ import java.util.Objects;
  * Chat.log(`offset ${offset}, doubled ${doubled}, length ${length}`);
  * </pre>
  * @author Wagyourtail
- * @since 1.2.6 [citation needed]
+ * @since 1.2.6
  */
 public class Pos2D {
     /**

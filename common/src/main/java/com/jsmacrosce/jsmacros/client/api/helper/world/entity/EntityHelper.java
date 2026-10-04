@@ -478,6 +478,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     /**
      * the name of the entity as it is shown, which is a text wrapper rather than a plain
      * string, so any styling and any custom name the entity has been given come with it.
+     * Returned a {@code String} before 1.6.4.
      * <p>
      * This is the name in the world, which is not the same as the account name of a
      * player: an entity can be renamed, and a mob is named after what it is rather than
@@ -494,7 +495,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
      * </pre>
      *
      * @return the name of the entity.
-     * @since 1.0.8 [citation needed], returned string until 1.6.4
+     * @since 1.0.2
      */
     public TextHelper getName() {
         return TextHelper.wrap(base.getName());
@@ -705,7 +706,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
      * </pre>
      *
      * @return the vehicle of the entity.
-     * @since 1.1.8 [citation needed]
+     * @since 1.2.5
      */
     @Nullable
     public EntityHelper<?> getVehicle() {
@@ -821,7 +822,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
      * </pre>
      *
      * @return the entity passengers, or {@code null} if there are none
-     * @since 1.1.8 [citation needed]
+     * @since 1.2.5
      */
     @Nullable
     public List<EntityHelper<?>> getPassengers() {

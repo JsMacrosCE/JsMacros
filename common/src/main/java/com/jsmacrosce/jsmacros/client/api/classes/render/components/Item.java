@@ -254,7 +254,7 @@ public class Item implements RenderElement, Alignable<Item> {
     *
     * @param i the stack to draw, or {@code null} for nothing
     * @return self for chaining.
-    * @since 1.0.5 [citation needed]
+    * @since 1.0.5
     */
     public Item setItem(ItemStackHelper i) {
         if (i != null) {
@@ -286,7 +286,7 @@ public class Item implements RenderElement, Alignable<Item> {
     * is on and the overlay text on this icon is still null, as it is on an icon made
     * through a constructor and not on one from a builder
     * @return self for chaining.
-    * @since 1.0.5 [citation needed]
+    * @since 1.0.5
     */
     @DocletReplaceParams("id: CanOmitNamespace<ItemId>, count: int")
     public Item setItem(String id, int count) {
@@ -309,7 +309,7 @@ public class Item implements RenderElement, Alignable<Item> {
     * </pre>
     *
     * @return the stack being drawn, as a helper
-    * @since 1.0.5 [citation needed]
+    * @since 1.2.0
     */
     public ItemStackHelper getItem() {
         return new ItemStackHelper(item);

@@ -771,7 +771,7 @@ public class FJsMacros extends PerExecLibrary {
      * @return the event and its context. This form requests no explicit join, but cancellable
      * events still join. Release the returned context's lock promptly after processing a held event.
      * @throws InterruptedException
-     * @since 1.5.0 [citation needed]
+     * @since 1.5.0
      */
     @DocletReplaceTypeParams("E extends keyof Events")
     @DocletReplaceParams("event: E, filter: MethodWrapper<Events[E], undefined, boolean> | null")

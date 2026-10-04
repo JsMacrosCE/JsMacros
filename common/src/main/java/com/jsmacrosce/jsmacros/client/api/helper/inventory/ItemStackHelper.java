@@ -888,7 +888,7 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      *
      * @param ish the other stack to compare against.
      * @return {@code true} if the two stacks are the same item, count, damage and components.
-     * @since 1.1.3 [citation needed]
+     * @since 1.2.0
      */
     public boolean equals(ItemStackHelper ish) {
         // ItemStack doesn't overwrite the equals method, so we have to do it ourselves
@@ -912,7 +912,7 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      *
      * @param is the raw stack to compare against.
      * @return {@code true} if the two stacks are the same item, count, damage and components.
-     * @since 1.1.3 [citation needed]
+     * @since 1.2.0
      */
     public boolean equals(ItemStack is) {
         return ItemStack.isSameItemSameComponents(base, is);
@@ -938,7 +938,7 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      *
      * @param ish the other stack to compare against.
      * @return {@code true} if the two stacks are the same item at the same damage.
-     * @since 1.1.3 [citation needed]
+     * @since 1.2.0
      */
     public boolean isItemEqual(ItemStackHelper ish) {
         return ItemStack.isSameItem(base, ish.getRaw()) && base.getDamageValue() == ish.getRaw().getDamageValue();
@@ -956,7 +956,7 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      *
      * @param is the raw stack to compare against.
      * @return {@code true} if the two stacks are the same item at the same damage.
-     * @since 1.1.3 [citation needed]
+     * @since 1.2.0
      */
     public boolean isItemEqual(ItemStack is) {
         return ItemStack.isSameItem(is, base) && base.getDamageValue() == is.getDamageValue();
@@ -983,7 +983,7 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      *
      * @param ish the other stack to compare against.
      * @return {@code true} if the two stacks are the same item, whatever else differs.
-     * @since 1.1.3 [citation needed]
+     * @since 1.2.0
      */
     public boolean isItemEqualIgnoreDamage(ItemStackHelper ish) {
         return ItemStack.isSameItem(ish.getRaw(), base);
@@ -1001,7 +1001,7 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      *
      * @param is the raw stack to compare against.
      * @return {@code true} if the two stacks are the same item, whatever else differs.
-     * @since 1.1.3 [citation needed]
+     * @since 1.2.0
      */
     public boolean isItemEqualIgnoreDamage(ItemStack is) {
         return ItemStack.isSameItem(is, base);
@@ -1027,7 +1027,7 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      *
      * @param ish the other stack to compare against.
      * @return {@code true} if the two stacks carry the same components.
-     * @since 1.1.3 [citation needed]
+     * @since 1.2.0
      */
     public boolean isNBTEqual(ItemStackHelper ish) {
         return Objects.equals(base.getComponents(), ish.getRaw().getComponents());
@@ -1045,7 +1045,7 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      *
      * @param is the raw stack to compare against.
      * @return {@code true} if the two stacks carry the same components.
-     * @since 1.1.3 [citation needed]
+     * @since 1.2.0
      */
     public boolean isNBTEqual(ItemStack is) {
         return Objects.equals(base.getComponents(), is.getComponents());

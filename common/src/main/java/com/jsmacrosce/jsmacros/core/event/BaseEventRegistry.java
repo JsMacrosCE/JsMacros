@@ -121,7 +121,7 @@ public abstract class BaseEventRegistry {
      * prefix stripped.
      *
      * @param rawmacro the trigger to register, taken from the profile as it was saved.
-     * @since 1.1.2 [citation needed]
+     * @since 1.2.9
      */
     public abstract void addScriptTrigger(ScriptTrigger rawmacro);
 
@@ -185,7 +185,7 @@ public abstract class BaseEventRegistry {
      * @param rawmacro the trigger to remove.
      * @return {@code true} if a listener for that trigger was registered and has now been
      * removed, {@code false} if it was not there.
-     * @since 1.1.2 [citation needed]
+     * @since 1.2.9
      */
     public abstract boolean removeScriptTrigger(ScriptTrigger rawmacro);
 
@@ -223,7 +223,7 @@ public abstract class BaseEventRegistry {
      * listeners a script registered at runtime.
      *
      * @return the triggers currently registered, in the order the event names were first used.
-     * @since 1.1.2 [citation needed]
+     * @since 1.2.9
      */
     public abstract List<ScriptTrigger> getScriptTriggers();
 
@@ -238,7 +238,7 @@ public abstract class BaseEventRegistry {
      * and only for a listener registered under {@code ANYTHING}.
      *
      * @param eventName the name to register.
-     * @since 1.1.2 [citation needed]
+     * @since 1.0.2
      */
     @ApiStatus.Internal
     public synchronized void addEvent(String eventName) {

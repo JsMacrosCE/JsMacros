@@ -137,7 +137,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     @Nullable
     public MethodWrapper<Draw2D, Object, Object, ?> onInit;
     /**
-     * @since 1.1.9 [citation needed]
+     * @since 1.1.7
      * @deprecated please use {@link Draw2D#setOnFailInit(MethodWrapper)}
      */
     @Deprecated

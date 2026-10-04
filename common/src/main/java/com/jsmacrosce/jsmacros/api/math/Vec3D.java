@@ -44,7 +44,7 @@ import java.util.Objects;
  * }
  * </pre>
  * @author Wagyourtail
- * @since 1.2.6 [citation needed]
+ * @since 1.2.6
  */
 public class Vec3D extends Vec2D {
     /**
