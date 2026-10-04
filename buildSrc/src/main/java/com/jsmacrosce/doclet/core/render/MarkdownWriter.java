@@ -460,6 +460,9 @@ public class MarkdownWriter {
             if (hasDeprecatedTag(member.docComment())) {
                 html.append("<Badge type=\"danger\" text=\"deprecated\" />");
             }
+            if (member.isReadOnly()) {
+                html.append("<Badge type=\"info\" text=\"read-only\" />");
+            }
             if (itemId != null) {
                 html.append("<a class=\"overload-anchor\" href=\"#").append(itemId).append("\">#</a>");
             }

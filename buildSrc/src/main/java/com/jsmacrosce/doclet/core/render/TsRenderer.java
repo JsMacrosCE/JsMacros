@@ -256,7 +256,7 @@ public class TsRenderer implements Renderer {
         if (includeStatic && hasModifier(member, "static")) {
             out.append("static ");
         }
-        if (hasModifier(member, "final")) {
+        if (member.isReadOnly()) {
             out.append("readonly ");
         }
         out.append(member.name()).append(": ").append(formatReturn(member, owner)).append(";\n");

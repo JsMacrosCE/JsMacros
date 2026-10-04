@@ -44,6 +44,18 @@ public final class DocletLinksTest {
                 public Api(java.util.UUID uuid, PlayerInfo player) {}
                 /** A nested Minecraft type. */
                 public HitResult.Type nested;
+                /** A live estimate.
+                 * @since 1.0
+                 */
+                @com.jsmacrosce.doclet.DocletReadOnly
+                public static double estimate = 20;
+                /** A read-only reference, not an immutable list. */
+                @com.jsmacrosce.doclet.DocletReadOnly
+                public java.util.List<String> names;
+                /** A Java constant. */
+                public static final int LIMIT = 10;
+                /** A mutable field. */
+                public double writable;
                 /** A nested library type. */
                 public java.util.Map.Entry<String, PlayerInfo> entry;
                 /** An external library, not a class in the Minecraft JAR. */
@@ -82,7 +94,7 @@ public final class DocletLinksTest {
                 var command = new ArrayList<>(List.of(
                     Path.of(System.getProperty("java.home"), "bin", "javadoc").toString(),
                     "-quiet", "-source", "21", "-doclet", "com.jsmacrosce.doclet.core." + kind + ".Main",
-                    "-docletpath", docletClasspath, "-classpath", stubs.toString(),
+                    "-docletpath", docletClasspath, "-classpath", stubs + java.io.File.pathSeparator + docletClasspath,
                     "-d", out.toString(), "-v", "fixture"));
                 if (kind.equals("mddoclet") || kind.equals("webdoclet")) {
                     command.addAll(List.of("-mcv", version, "-link", external));
@@ -95,6 +107,28 @@ public final class DocletLinksTest {
             }
             String md = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/classes/example/Api.md"));
             String html = Files.readString(root.resolve(version + "/webdoclet/fixture/example/Api.html"));
+            String ts = Files.readString(root.resolve(version + "/tsdoclet/JsMacros-fixture.d.ts"));
+            String py = Files.readString(root.resolve(version + "/pydoclet/Api.py"));
+            contains(ts, "static readonly estimate: number;");
+            contains(ts, "readonly names: JavaList<string>;");
+            contains(ts, "static readonly LIMIT: number;");
+            contains(ts, "writable: number;");
+            excludes(ts, "readonly writable:");
+            contains(py, "from typing import Final");
+            contains(py, "estimate: Final[float]");
+            contains(py, "names: Final[List[str]]");
+            contains(py, "LIMIT: Final[int]");
+            contains(py, "writable: float");
+            contains(py, "\"\"\"A live estimate.\nSince: 1.0");
+            excludes(py, "writable: Final[");
+            contains(md, "text=\"read-only\"");
+            contains(html, "class=\"flag readOnlyFlag\">Read-only");
+            if (md.split("text=\"read-only\"", -1).length - 1 != 3) {
+                throw new AssertionError("Expected exactly three read-only Markdown fields");
+            }
+            if (html.split(">Read-only", -1).length - 1 != 3) {
+                throw new AssertionError("Expected exactly three read-only HTML fields");
+            }
             Path markdownRoot = root.resolve(version + "/mddoclet/content/fixture/" + version);
             String libraries = Files.readString(markdownRoot.resolve("libraries.md"));
             contains(libraries, "- [Demo](./libraries/example/Api.LibraryFixture.md)\n  - [Result]");
@@ -128,7 +162,7 @@ public final class DocletLinksTest {
             contains(modern, "[Example license](https://example.org/license)");
             contains(modern, "<a target=\"_blank\" href=\"https://example.org\">$literal</a>");
         }
-        System.out.println("DocletLinks: 8 actual doclet runs, external links and nested-library presentation passed");
+        System.out.println("DocletLinks: 8 actual doclet runs, read-only fields, external links and nested-library presentation passed");
     }
 
     private static Path write(Path file, String content) throws Exception {

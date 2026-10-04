@@ -93,11 +93,17 @@ public class PythonWriter {
 
         for (MemberDoc member : clz.members()) {
             if (member.kind() == MemberKind.FIELD) {
+                String type = ctx.formatType(member.returnType(), false);
+                if (member.isReadOnly()) {
+                    ctx.importFinal = true;
+                    type = "Final[" + type + "]";
+                }
                 body.append("    ")
                     .append(getVarName(member.name()))
                     .append(": ")
-                    .append(ctx.formatType(member.returnType(), false))
+                    .append(type)
                     .append("\n");
+                appendDocstring(body, 1, member.docComment(), List.of(), false);
             }
         }
 
@@ -425,6 +431,7 @@ public class PythonWriter {
         private boolean importMapping;
         private boolean importSet;
         private boolean importGeneric;
+        private boolean importFinal;
 
         private PythonTypeContext(Map<String, String> classNameByQualified, String currentClassName) {
             this.classNameByQualified = classNameByQualified;
@@ -575,6 +582,9 @@ public class PythonWriter {
             }
             if (importGeneric) {
                 builder.append("from typing import Generic\n");
+            }
+            if (importFinal) {
+                builder.append("from typing import Final\n");
             }
             for (String imp : internalImports) {
                 builder.append("from .").append(imp).append(" import ").append(imp).append("\n");

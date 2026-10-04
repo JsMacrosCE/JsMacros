@@ -1,6 +1,7 @@
 package com.jsmacrosce.doclet.core.webdoclet.parsers;
 
 import com.jsmacrosce.doclet.DocletIgnore;
+import com.jsmacrosce.doclet.DocletReadOnly;
 import com.jsmacrosce.doclet.core.ClassGroup;
 import com.sun.source.doctree.*;
 import com.sun.source.util.DocTreePath;
@@ -681,6 +682,11 @@ public class ClassParser {
                 default -> {
                 }
             }
+        }
+        if ((member.getKind() == ElementKind.FIELD || member.getKind() == ElementKind.ENUM_CONSTANT)
+                && (member.getAnnotation(DocletReadOnly.class) != null || member.getModifiers().contains(Modifier.FINAL))) {
+            flags.append(new XMLBuilder("div", true, true).setClass("flag readOnlyFlag")
+                    .append(shortFlags ? "R" : "Read-only"));
         }
         if (member.getKind() == ElementKind.ENUM || member.getKind() == ElementKind.ENUM_CONSTANT) {
             flags.append(
