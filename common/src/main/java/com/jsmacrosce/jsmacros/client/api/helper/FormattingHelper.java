@@ -15,19 +15,18 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * {@code STRIKETHROUGH}, {@code UNDERLINE} and {@code ITALIC}. The last is {@code RESET}, which
  * is neither, and no colour is also a modifier.
  * <p>
- * {@link #isColor()} is the one call that has to be made before the colour is read, because it
+ * {@link #isColor()} distinguishes a real colour from a sentinel, because it
  * is true for exactly the sixteen colours and false for everything else. Those sixteen carry a
  * name, a legacy index running {@code 0} to {@code 15} and an rgb value, and
  * {@link #getColorValue()} answers that rgb value for them. The five modifiers and
  * {@code RESET} carry no colour of their own, so {@link #getColorIndex()} answers {@code -1}
- * for those and {@link #getColorValue()} throws instead of answering {@code 0}.
+ * for those and {@link #getColorValue()} also answers {@code -1}.
  * <p>
  * {@link #isModifier()} is not the opposite of {@link #isColor()}, and that is worth knowing
  * before either is used as a guard. It is true for the five modifiers and false for the
  * colours, but {@code RESET} answers {@code false} to both, so a test for the other case would
- * let {@code RESET} through into {@link #getColorValue()} and throw. The debug string is no
- * safer: it prints the colour value, so asking a modifier or a {@code RESET} for its string
- * form fails the same way. Log the name and the code instead.
+ * include {@code RESET} as well. The debug string can safely print any formatting: non-colours
+ * carry the {@code -1} colour sentinel.
  * <p>
  * A formatting comes from a colour that was written as one of the old names, which is what
  * {@link StyleHelper#getFormatting()} answers. An arbitrary rgb colour has no formatting, so a
@@ -37,9 +36,9 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * The class also exposes the legacy colour code character, which is what the old
  * {@code §}-prefixed string format is built from.
  * example:
- * <pre>
+ * <pre class="language-typescript">
  * const line = Chat.createTextHelperFromString("a coloured run");
- * line.visit(JavaWrapper.methodToJava(function (style, run) {
+ * line.visit(JavaWrapper.methodToJava(function (style: StyleHelper, run: string) {
  *   if (style.hasColor()) {
  *     const formatting = style.getFormatting();
  *     if (formatting !== null) {
@@ -49,8 +48,8 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  *         Chat.log(`rgb ${formatting.getColorValue()}, index ${formatting.getColorIndex()}`);
  *       } else {
  *         // a modifier, or RESET: a name and a code but no colour of its own, so
- *         // getColorValue() would throw here while getColorIndex() answers -1
- *         Chat.log(`${run} is the modifier ${formatting.getName()}, index ${formatting.getColorIndex()}`);
+ *         // both colour readers return the -1 sentinel
+ *         Chat.log(`${run} is ${formatting.getName()}, rgb ${formatting.getColorValue()}, index ${formatting.getColorIndex()}`);
  *       }
  *     }
  *   }
@@ -70,16 +69,15 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
 
     /**
      * The rgb colour this formatting paints with, and the reason {@link #isColor()} has to be
-     * checked first. Only the sixteen colours carry one; a modifier and {@code RESET} do not, so
-     * asking for it is not answered with a placeholder value but by throwing.
+     * checked when a script needs an actual colour. Only the sixteen colours carry one;
+     * modifiers and {@code RESET} return the sentinel {@code -1} instead.
      *
-     * @return the color value of this formatting.
-     * @throws NullPointerException if this formatting is not a colour, since a modifier and
-     *         {@code RESET} have no colour value to give back.
+     * @return the color value, or {@code -1} for non-color formats.
      * @since 1.8.4
      */
     public int getColorValue() {
-        return base.getColor();
+        Integer color = base.getColor();
+        return color == null ? -1 : color;
     }
 
     /**
@@ -146,7 +144,7 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
     /**
      * @return {@code true} if this formatting is one of the sixteen colours, {@code false}
      *         otherwise. This is also {@code false} for the five modifiers and for
-     *         {@code RESET}, so it is the check that guards {@link #getColorValue()}.
+     *         {@code RESET}, so it distinguishes a colour from {@link #getColorValue()}'s sentinel.
      * @since 1.8.4
      */
     public boolean isColor() {

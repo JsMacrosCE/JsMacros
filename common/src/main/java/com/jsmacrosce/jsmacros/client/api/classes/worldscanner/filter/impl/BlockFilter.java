@@ -72,14 +72,14 @@ public class BlockFilter extends ClassWrapperFilter<BlockHelper> {
      * Chat.log(`${scanner.scanAroundPlayer(2).size()} blocks with a jump multiplier above 0.7`);
      * </pre>
      *
-     * @param methodName the name of a public parameterless method declared by
+     * @param methodName the name of a public parameterless method available on
      *                   {@link BlockHelper}
      * @param methodArgs the arguments to call that method with, or {@code null} for none
      * @param filterArgs the arguments for the comparison, whose count and types are decided
      *                   by the return type of the named method
      * @throws NullPointerException if {@code methodName} is not a public parameterless method
-     *         declared by {@link BlockHelper}, which includes a name matching only an
-     *         inherited method or a method that takes parameters
+     *         available on {@link BlockHelper}; inherited methods are included, but methods
+     *         declared by Object and methods taking parameters are excluded
      * @throws IllegalArgumentException if the named method returns a type that has no
      *         comparison, such as another helper, a list or an item stack
      * @throws ArrayIndexOutOfBoundsException if {@code filterArgs} is shorter than the

@@ -120,20 +120,14 @@ public class ItemHelper extends BaseHelper<Item> {
      * Whether the given stack can be used to repair stacks of this item at an anvil. The item's own
      * data is the list of materials the game accepts, and the question is whether this stack is one
      * of them.<br>
-     * An item with no repair materials of its own gives {@code null} from the lookup behind this
-     * call, so an item that cannot be repaired at all raises here rather than answering
-     * {@code false}.
+     * An item with no repairable component returns {@code false}.
      * example:
      * <pre>
      * // what a tool can be repaired with
      * const reg = Client.getRegistryManager();
      * const sword = reg.getItem("minecraft:diamond_sword");
      * for (const id of ["minecraft:cobblestone", "minecraft:iron_ingot", "minecraft:diamond", "minecraft:dirt"]) {
-     *   try {
-     *     Chat.log(`${id}: ${sword.canBeRepairedWith(reg.getItemStack(id))}`);
-     *   } catch (e) {
-     *     Chat.log(`${id}: the sword has no repair materials at all`);
-     *   }
+     *   Chat.log(`${id}: ${sword.canBeRepairedWith(reg.getItemStack(id))}`);
      * }
      * </pre>
      *
@@ -144,7 +138,7 @@ public class ItemHelper extends BaseHelper<Item> {
      */
     public boolean canBeRepairedWith(ItemStackHelper stack) {
         var repair = base.components().get(DataComponents.REPAIRABLE);
-        return repair.isValidRepairItem(stack.getRaw());
+        return repair != null && repair.isValidRepairItem(stack.getRaw());
     }
 
     /**

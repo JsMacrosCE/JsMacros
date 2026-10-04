@@ -289,19 +289,18 @@ public class CreativeItemStackHelper extends ItemStackHelper {
      * level on the helper is not part of the question: any level of that enchantment is what gets
      * taken off.
      * <p>
-     * As it stands the stack still carries the enchantment afterwards. The removal is worked out
-     * on a copy of the enchantments and never written back, so this gives the stack back with
-     * everything on it that it had before. {@link #clearEnchantments()} does work, and removing a
-     * single enchantment by hand means building the stack again without it.
+     * Writes the updated enchantment component back to the stack while preserving other
+     * enchantments. An enchantment that is already absent leaves the stack unchanged.
      * example:
      * <pre>
-     * // removing one enchantment does not actually take it off
+     * // remove one enchantment while keeping the others
      * const ench = Client.getRegistryManager().getEnchantment("minecraft:sharpness");
      * const stack = Client.getRegistryManager()
-     *   .getItemStack("minecraft:diamond_sword", `[{id:"minecraft:sharpness",lvl:5}]`)
-     *   .getCreative();
+     *   .getItemStack("minecraft:diamond_sword").getCreative()
+     *   .addEnchantment("minecraft:sharpness", 5)
+     *   .addEnchantment("minecraft:unbreaking", 3);
      * stack.removeEnchantment(ench);
-     * Chat.log(`sharpness is still there: ${stack.getEnchantment("minecraft:sharpness") !== null}`);
+     * Chat.log(`sharpness removed: ${stack.getEnchantment("minecraft:sharpness") === null}`);
      *
      * // clearing them all does work
      * stack.clearEnchantments();
@@ -309,7 +308,7 @@ public class CreativeItemStackHelper extends ItemStackHelper {
      * </pre>
      *
      * @param enchantment the enchantment to remove
-     * @return self for chaining, with the enchantments unchanged.
+     * @return self for chaining.
      * @since 1.8.4
      */
     public CreativeItemStackHelper removeEnchantment(EnchantmentHelper enchantment) {
@@ -319,29 +318,27 @@ public class CreativeItemStackHelper extends ItemStackHelper {
     /**
      * Ask for one enchantment to be taken off this stack, naming it by id. The id must be in full
      * with its namespace, and the level is not part of the question: any level of that enchantment
-     * is what would be taken off.
+     * is what is taken off.
      * <p>
-     * As it stands the stack still carries the enchantment afterwards. The removal is worked out on
-     * a copy of the enchantments and never written back to the stack, so this gives the stack back
-     * with everything on it that it had before. {@link #clearEnchantments()} does work, and
-     * removing a single enchantment by hand means building the stack again without it.
+     * Writes the updated enchantment component back to the stack while preserving other
+     * enchantments. An enchantment that is already absent leaves the stack unchanged.
      * example:
      * <pre>
-     * // the stack is unchanged by this
+     * // remove the named enchantment
      * const stack = Client.getRegistryManager()
-     *   .getItemStack("minecraft:diamond_sword", `[{id:"minecraft:sharpness",lvl:5}]`)
-     *   .getCreative();
+     *   .getItemStack("minecraft:diamond_sword").getCreative()
+     *   .addEnchantment("minecraft:sharpness", 5);
      * stack.removeEnchantment("minecraft:sharpness");
      * Chat.log(stack.getEnchantment("minecraft:sharpness") === null);
      *
-     * // the same id works through the other form
+     * // removing the same enchantment again is harmless
      * const ench = Client.getRegistryManager().getEnchantment("minecraft:sharpness");
      * stack.removeEnchantment(ench);
      * Chat.log(stack.getEnchantments().size());
      * </pre>
      *
      * @param id the id of the enchantment to remove
-     * @return self for chaining, with the enchantments unchanged.
+     * @return self for chaining.
      * @since 1.8.4
      */
     @DocletReplaceParams("id: EnchantmentId")
@@ -349,6 +346,7 @@ public class CreativeItemStackHelper extends ItemStackHelper {
         ItemEnchantments enchantments = base.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
         ItemEnchantments.Mutable builder = new ItemEnchantments.Mutable(enchantments);
         builder.removeIf((e) -> e.is(ResourceLocation.parse(id)));
+        base.set(DataComponents.ENCHANTMENTS, builder.toImmutable());
 
         return this;
     }

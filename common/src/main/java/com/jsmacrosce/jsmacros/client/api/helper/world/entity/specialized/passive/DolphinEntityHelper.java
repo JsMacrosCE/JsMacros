@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passi
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
+import org.jetbrains.annotations.Nullable;
 
 //? if >=1.21.11 {
 /*import net.minecraft.world.entity.animal.dolphin.Dolphin;
@@ -65,10 +66,8 @@ public class DolphinEntityHelper extends MobEntityHelper<Dolphin> {
      * in synced data, and tells the client that a treasure was found rather than where it
      * is.
      * <p>
-     * That makes the helper returned here one wrapped around nothing rather than one at
-     * {@code 0 0 0}, so reading a coordinate off it will fail rather than quietly give the
-     * world origin. Check {@code getRaw()} on it first, or use it only from a server-side
-     * script where the dolphin was given the position itself.
+     * When no position is available this method returns {@code null}, not a helper at the
+     * world origin. Check the returned helper before reading its coordinates.
      * example:
      * <pre>
      * const DolphinEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.DolphinEntityHelper");
@@ -77,7 +76,7 @@ public class DolphinEntityHelper extends MobEntityHelper<Dolphin> {
      *   for (const entity of dolphins) {
      *     const dolphin = DolphinEntityHelper.class.cast(entity);
      *     const treasure = dolphin.getTreasurePos();
-     *     if (treasure.getRaw() !== null) {
+     *     if (treasure !== null) {
      *       Chat.log(`heading for ${treasure.getX()}, `
      *         + `${treasure.getY()}, ${treasure.getZ()}`);
      *     }
@@ -85,11 +84,12 @@ public class DolphinEntityHelper extends MobEntityHelper<Dolphin> {
      * }
      * </pre>
      *
-     * @return the position of the treasure the dolphin is looking for.
+     * @return the position of the treasure the dolphin is looking for, or {@code null} if unavailable.
      * @since 1.8.4
      */
+    @Nullable
     public BlockPosHelper getTreasurePos() {
-        return new BlockPosHelper(base.treasurePos);
+        return base.treasurePos == null ? null : new BlockPosHelper(base.treasurePos);
     }
 
     /**

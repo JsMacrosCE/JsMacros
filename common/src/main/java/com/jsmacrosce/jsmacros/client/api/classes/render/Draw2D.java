@@ -35,9 +35,8 @@ import java.util.stream.Collectors;
  * The older {@code Hud.registerDraw2D} does the same thing and is deprecated, and
  * {@link #unregister()} is how it comes off again.
  * <p>
- * Registering is also what runs the init function, and an init empties the overlay
- * first. An overlay whose elements are built in {@link #setOnInit} should therefore be
- * registered rather than filled in directly.
+ * Registering also runs initialization. When an init function is installed, the overlay is
+ * emptied before that function rebuilds it; without one, hand-built elements are preserved.
  * <p>
  * Coordinates are absolute rather than relative to anything, so two overlays on top of
  * each other do not stack. {@link #getZIndex()} is the exception: it orders whole
@@ -1572,18 +1571,12 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     /**
      * draws an item icon at a position, with a z-index.
      * <p>
-     * <b>This overload is not implemented and returns {@code null}.</b> The body is an
-     * unconditional {@code null}, so nothing is added to the overlay and the return
-     * value is not an item. The other {@code addItem} forms all work, so the working
-     * route is {@link #addItem(int, int, int, String, boolean)} with the overlay
-     * argument set, or the builder.
+     * The stack overlay is enabled, as in {@link #addItem(int, int, int, String, boolean)}
+     * with its overlay argument set to {@code true}.
      * example:
      * <pre>
      * const draw = Hud.createDraw2D();
-     * // this one adds nothing and hands back null
-     * const nothing = draw.addItem(10, 10, 0, "minecraft:diamond");
-     * // the working form for the same thing
-     * draw.addItem(10, 10, 0, "minecraft:diamond", true);
+     * const item = draw.addItem(10, 10, 0, "minecraft:diamond");
      * draw.register();
      * </pre>
      *
@@ -1591,13 +1584,13 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
      * @param y      top most corner
      * @param zIndex z-index
      * @param id     item id
-     * @return {@code null} always; nothing is added
+     * @return the added item element
      * @since 1.0.5
      */
     @Override
     @DocletReplaceParams("x: int, y: int, zIndex: int, id: CanOmitNamespace<ItemId>")
     public Item addItem(int x, int y, int zIndex, String id) {
-        return null;
+        return addItem(x, y, zIndex, id, true);
     }
 
     /**
@@ -1749,20 +1742,16 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     /**
      * draws an item icon from an item stack, with a z-index.
      * <p>
-     * <b>This overload is not implemented and returns {@code null}.</b> The body is an
-     * unconditional {@code null}, so nothing is added to the overlay and the return
-     * value is not an item. {@link #addItem(int, int, int, ItemStackHelper, boolean)}
-     * with the overlay argument set is the working form of the same thing.
+     * The stack overlay is enabled, as in
+     * {@link #addItem(int, int, int, ItemStackHelper, boolean)} with its overlay argument
+     * set to {@code true}.
      * example:
      * <pre>
      * const player = Player.getPlayer();
      * if (player !== null) {
      *   const draw = Hud.createDraw2D();
      *   const stack = player.getMainHand();
-     *   // this one adds nothing and hands back null
-     *   draw.addItem(10, 10, 0, stack);
-     *   // the working form for the same thing
-     *   draw.addItem(10, 10, 0, stack, true);
+     *   const item = draw.addItem(10, 10, 0, stack);
      *   draw.register();
      * }
      * </pre>
@@ -1771,12 +1760,12 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
      * @param y      top most corner
      * @param zIndex z-index
      * @param item   from inventory as helper
-     * @return {@code null} always; nothing is added
+     * @return the added item element
      * @since 1.0.5
      */
     @Override
     public Item addItem(int x, int y, int zIndex, ItemStackHelper item) {
-        return null;
+        return addItem(x, y, zIndex, item, true);
     }
 
     /**
@@ -1929,40 +1918,36 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * empties this overlay and runs its init function.
+     * initializes this overlay and its nested overlays.
      * <p>
-     * Everything on the overlay goes first, so an init function that adds elements
-     * rebuilds them rather than adding to what was there. It then calls the init
-     * function if one is set, and after that initialises every nested overlay.
+     * When an init function is installed, existing elements are cleared before it rebuilds
+     * them. Without an init function, existing elements are preserved. In either case, the
+     * currently nested overlays are initialized afterwards.
      * <p>
      * Registering calls this, and the window being resized calls it, which is why an
      * overlay built in an init function comes back after a resize. An init that throws
      * has the failure passed to the fail function if one is set, and is logged if it is
      * not, in either case without taking the rest of the game down.
      * <p>
-     * A nested overlay is only initialised if this overlay has an init function of its
-     * own, because the call is inside that branch. An overlay with no init function
-     * leaves its nested overlays alone, so a panel put together by hand is not emptied
-     * out from under itself.
+     * Child initialization also runs after a parent callback failure has been handled.
      * example:
      * <pre>
      * const draw = Hud.createDraw2D();
      * draw.addText("added by hand", 10, 10, 0xFFFFFFFF, true);
-     * // empties the overlay, so the hand added text is gone
+     * // no init callback: the hand-added text is preserved
      * draw.init();
-     * Chat.log(`${draw.getTexts().size} texts left after init`);
+     * Chat.log(`${draw.getTexts().size()} texts left after init`);
      * </pre>
      *
      * @since 1.0.5
      */
     public void init() {
-        synchronized (elements) {
-            elements.clear();
-        }
         if (onInit != null) {
+            synchronized (elements) {
+                elements.clear();
+            }
             try {
                 onInit.accept(this);
-                getDraw2Ds().forEach(e -> e.getDraw2D().init());
             } catch (Throwable e) {
                 e.printStackTrace();
                 try {
@@ -1976,6 +1961,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
                 }
             }
         }
+        getDraw2Ds().forEach(e -> e.getDraw2D().init());
     }
 
     @Override
@@ -2029,15 +2015,14 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
      * <p>
      * The overlay is emptied before this is called, so the function is what puts
      * anything back on it and is the place to build elements. That is the reason an
-     * overlay should be registered rather than filled in by hand: a resize calls this
-     * again, and an overlay that was filled in by hand would lose its elements to it.
+     * callback is useful for layouts that depend on the window size: a resize calls it again.
+     * Without an init callback, initialization preserves hand-built elements.
      * <p>
      * The function is given this overlay, so it adds to it. If it throws, the failure
      * goes to the fail function if one is set and is logged if it is not, and neither
      * takes the game down.
      * <p>
-     * An init function is what also makes the nested overlays get initialised; an
-     * overlay with none of its own leaves theirs alone.
+     * Nested overlays are initialized afterwards whether or not this overlay has a callback.
      * example:
      * <pre>
      * const draw = Hud.createDraw2D();

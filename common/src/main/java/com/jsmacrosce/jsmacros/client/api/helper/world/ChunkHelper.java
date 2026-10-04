@@ -375,9 +375,9 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
 
     /**
      * Runs a callback over every block in the chunk and gives the chunk back so calls can be
-     * chained. The order is by {@code x}, then {@code z}, then {@code y}, and the walk stops one
-     * short of {@link #getMaxBuildHeight()}, so the very top block of the world is not passed to
-     * the callback. The {@code includeAir} flag is what keeps the walk affordable, since air is
+     * chained. The order is by {@code x}, then {@code z}, then {@code y}, from
+     * {@link #getMinBuildHeight()} through {@link #getMaxBuildHeight()} inclusively.
+     * The {@code includeAir} flag is what keeps the walk affordable, since air is
      * most of a chunk.<br>
      * The callback receives a {@link BlockDataHelper}, so the block, its position and its block
      * entity data are all reachable from what it is given. Nothing here stops the walk early: a
@@ -408,7 +408,7 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
         // Maybe adapt this to the WorldScanner way?
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
-                for (int y = base.getMinY(); y < base.getMaxY(); y++) {
+                for (int y = base.getMinY(); y <= base.getMaxY(); y++) {
                     BlockPos pos = base.getPos().getBlockAt(x, y, z);
                     BlockState state = base.getBlockState(pos);
                     if (!includeAir && state.isAir()) {

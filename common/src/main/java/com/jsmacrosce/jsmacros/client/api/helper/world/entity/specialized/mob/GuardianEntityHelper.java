@@ -30,7 +30,10 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
  *     }
  *     if (guardian.hasTarget()) {
  *       // the beam is on something
- *       Chat.log(`locked onto ${guardian.getTarget().getType()}`);
+ *       const target = guardian.getTarget();
+ *       if (target !== null) {
+ *         Chat.log(`locked onto ${target.getType()}`);
+ *       }
  *     }
  *   }
  * }
@@ -111,8 +114,8 @@ public class GuardianEntityHelper extends MobEntityHelper<Guardian> {
      * The flag {@code hasTarget} reads only says that the guardian was last told about a
      * target, and this is the step that looks that entity up in the world the client has.
      * A target that has since left the loaded chunks leaves the flag set and this unable to
-     * find anything to wrap, which raises rather than answering {@code null} — so the
-     * {@code hasTarget} check above is the one that is safe on its own.
+     * find anything to wrap, which returns {@code null}. A {@code hasTarget} check alone does
+     * not guarantee that the target can be resolved.
      * example:
      * <pre>
      * const GuardianEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.GuardianEntityHelper");
@@ -135,14 +138,13 @@ public class GuardianEntityHelper extends MobEntityHelper<Guardian> {
      */
     @Nullable
     public EntityHelper<?> getTarget() {
-        return hasTarget() ? EntityHelper.create(base.getActiveAttackTarget()) : null;
+        var target = base.getActiveAttackTarget();
+        return target == null ? null : EntityHelper.create(target);
     }
 
     /**
-     * Whether the guardian is holding still, which is the flag read backwards: the game
-     * folds a guardian's spikes in while it is travelling and holds them out once it has
-     * stopped, so {@code true} is the stationary state rather than the retracted one the
-     * name reads as.
+     * Whether the guardian has its spikes retracted. The game folds them in while the guardian
+     * is moving and holds them out when it stops.
      * <p>
      * The flag behind it is the one the guardian's own movement goal sets, so this tracks
      * whether the guardian is off on its way somewhere rather than whether anything is
@@ -154,19 +156,19 @@ public class GuardianEntityHelper extends MobEntityHelper<Guardian> {
      * if (guardians !== null) {
      *   for (const entity of guardians) {
      *     const guardian = GuardianEntityHelper.class.cast(entity);
-     *     // spikes out while it holds station, which is also when it is a sitting target
+     *     // retracted spikes indicate that the guardian is moving
      *     if (guardian.hasSpikesRetracted()) {
-     *       Chat.log(`a guardian at ${guardian.getPos()} is holding station, health ${guardian.getHealth()}`);
+     *       Chat.log(`a guardian at ${guardian.getPos()} is moving, health ${guardian.getHealth()}`);
      *     }
      *   }
      * }
      * </pre>
      *
-     * @return {@code true} if this guardian is holding still, {@code false} otherwise.
+     * @return {@code true} if this guardian has its spikes retracted, {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean hasSpikesRetracted() {
-        return !base.isMoving();
+        return base.isMoving();
     }
 
 }

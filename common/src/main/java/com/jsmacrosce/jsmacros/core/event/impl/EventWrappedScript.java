@@ -13,10 +13,8 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * filter, supplier or comparator. The arguments the caller passed come in as {@link #arg1} and
  * {@link #arg2}, and the value the script produces goes back out through one of the
  * {@code setReturn} methods, which is what the Java caller ends up with.<br>
- * JsMacros never dispatches this one through the event registry. The object is built and handed
- * straight to the script, so {@code JsMacros.on("WrappedScript", ...)} does not work, the event
- * name is not registered and a listener would never be called. The only way to see one of these
- * is to be the wrapped script.<br>
+ * This event is registered with the core event registry. The wrapper dispatches it before
+ * starting the wrapped script, so {@code JsMacros.on("WrappedScript", ...)} can observe it.<br>
  * Which arguments are filled in depends on the functional interface the wrapper was passed as.
  * A single argument interface leaves {@code arg2} {@code null}, a no argument one leaves both
  * {@code null}, and a {@code Comparator} is given both of its values by the caller but only the

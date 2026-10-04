@@ -12,9 +12,8 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
  * <p>
  * A crystal is what restores the dragon's health, so the two things worth reading are whether
  * the dragon is currently using it, which is what {@link #getBeamTarget() getBeamTarget()} is
- * for, and whether the crystal is one the fight put there. A player can place a crystal of
- * their own on the end floor, and {@link #isNatural() isNatural()} is how the two are told
- * apart.
+ * for, and whether its base is displayed. Despite its name, {@link #isNatural() isNatural()}
+ * reports that display flag rather than proving who placed the crystal.
  * example:
  * <pre>
  * const EndCrystalEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.decoration.EndCrystalEntityHelper");
@@ -43,11 +42,10 @@ public class EndCrystalEntityHelper extends EntityHelper<EndCrystal> {
     }
 
     /**
-     * Naturally generated end crystals will have a bedrock base, while player placed ones will
-     * not.
+     * Tests whether the crystal displays a base, usually indicative it was spawned naturally. A
+     * crystal can be created with this flag independently of whether a player placed it.
      *
-     * The value is stored on the crystal and defaults to {@code true}, so a crystal that was
-     * placed by hand and never touched reads as natural here. The renderer uses it to decide
+     * The value is stored on the crystal. The renderer uses it to decide
      * whether the bedrock block under the crystal is drawn at all, and it is saved and sent
      * with the entity under the name {@code ShowBottom}, so it survives a chunk reload.
      * Nothing on this class sets it, so the answer is whatever the game last decided rather
@@ -68,7 +66,7 @@ public class EndCrystalEntityHelper extends EntityHelper<EndCrystal> {
      * }
      * </pre>
      *
-     * @return {@code true} if the end crystal was not placed by a player, {@code false} otherwise.
+     * @return {@code true} if the crystal displays its base.
      * @since 1.8.4
      */
     public boolean isNatural() {

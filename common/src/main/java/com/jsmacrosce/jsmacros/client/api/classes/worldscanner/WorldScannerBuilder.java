@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IAdvancedFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
+import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.BasicFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.impl.BlockFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.impl.BlockStateFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.impl.StringifyFilter;
@@ -20,7 +21,7 @@ import com.jsmacrosce.jsmacros.core.MethodWrapper;
  * The block and block state filters have to start with a 'with' command like {@link #withStateFilter(String)} or {@link #withStringBlockFilter()}.
  * A second, complete 'with' step for the same category overwrites the first rather than combining with it; to add to a filter that is already there,
  * use a command with the prefix 'and' or 'or' instead. The 'not' command negates the whole block or block state filter and doesn't need any arguments.
- * There is no 'xor' step, so the xor branch inside the builder is never reached from a script even though the filter types behind it have one.<br>
+ * The 'xor' steps accept a block or state when exactly one of the combined filters accepts it.<br>
  * <p>
  * Every step that starts a filter has to be <i>completed</i> before the next one starts, and it is the completing call that builds anything at all.
  * A start step only records what the next call should build, so calling a second start step first is refused rather than allowed:
@@ -51,12 +52,13 @@ import com.jsmacrosce.jsmacros.core.MethodWrapper;
  * </pre>
  * <p>
  * For non String functions, the method name must be passed when creating the filter. The names can be any method in {@link BlockStateHelper} or {@link BlockHelper}.
- * More precisely, they are the public no-argument methods those two classes <i>declare</i> themselves, so a method they inherit is not among them, and a name
- * that is none of them is refused with a {@code NullPointerException} from the lookup. A name whose method returns something other than a number, a
+ * More precisely, they are public no-argument methods, including inherited methods but excluding methods declared by Object. An unknown name
+ * is refused with a {@code NullPointerException} with {@code Unknown filter method: <name>}. A name whose method returns something other than a number, a
  * String or a boolean is refused too, with an {@code IllegalArgumentException}: on the block helper that rules out {@code getName}, {@code getDefaultState},
  * {@code getStates}, {@code getTags} and {@code getDefaultItemStack}, and on the block state helper it rules out {@code getBlock}, {@code getFluidState} and
  * {@code getUniversal}. Both helpers override {@code toString}, so that is a name like any other and behaves like {@link #withStringBlockFilter()} does.
  * For more complex filters, use the MethodWrapper function {@link FWorld#getWorldScanner(MethodWrapper, MethodWrapper)}.
+ * The overloads taking an {@link IFilter} install completed callback filters and force scanners built by this builder to run sequentially.
  * Depending on the return type of the method, the following parameters must be passed to 'is' or 'test'. There are two methods, because 'is' is a keyword in some languages.<br>
  * <pre>
  * For any number:
@@ -89,6 +91,7 @@ public final class WorldScannerBuilder {
     private FilterCategory selectedCategory;
     private Operation operation;
     private String method;
+    private boolean sequential;
 
     /**
      * makes a builder with no filters on either category.
@@ -219,7 +222,7 @@ public final class WorldScannerBuilder {
      * Chat.log(`${found.size()} states that break without a tool`);
      * </pre>
      *
-     * @param method the name of a public no-argument method declared by
+     * @param method the name of a public no-argument method available on
      *               {@link BlockStateHelper}, and the arguments the following
      *               {@link #is(Object[], Object[])} needs are decided by its return type
      * @return this builder, for chaining
@@ -229,6 +232,25 @@ public final class WorldScannerBuilder {
      */
     public WorldScannerBuilder withStateFilter(String method) {
         createNewFilter(Operation.NEW, FilterCategory.STATE, method);
+        return this;
+    }
+
+    /**
+     * Installs a completed callback filter for block states and forces sequential scanning.
+     *
+     * @param filter the block-state callback filter
+     * @return this builder for chaining
+     * @throws IllegalStateException if a filter step is pending
+     */
+    public WorldScannerBuilder withStateFilter(IFilter<BlockStateHelper> filter) {
+        if (!canCreateNewFilter()) throw new IllegalStateException("Complete the pending filter before replacing it");
+        stateFilter = new BasicFilter<>() {
+            @Override
+            public Boolean apply(BlockStateHelper state) {
+                return filter.apply(state);
+            }
+        };
+        sequential = true;
         return this;
     }
 
@@ -252,7 +274,7 @@ public final class WorldScannerBuilder {
      * Chat.log(`${scanner.scanAroundPlayer(2).size()} unbreakable fully lit states`);
      * </pre>
      *
-     * @param method the name of a public no-argument method declared by
+     * @param method the name of a public no-argument method available on
      *               {@link BlockStateHelper}
      * @return this builder, for chaining
      * @throws IllegalStateException if the state filter has not been started yet, or if a start
@@ -284,7 +306,7 @@ public final class WorldScannerBuilder {
      * Chat.log(`${scanner.scanAroundPlayer(2).size()} solid states or torches`);
      * </pre>
      *
-     * @param method the name of a public no-argument method declared by
+     * @param method the name of a public no-argument method available on
      *               {@link BlockStateHelper}
      * @return this builder, for chaining
      * @throws IllegalStateException if the state filter has not been started yet, or if a start
@@ -293,6 +315,20 @@ public final class WorldScannerBuilder {
      */
     public WorldScannerBuilder orStateFilter(String method) {
         createNewFilter(Operation.OR, FilterCategory.STATE, method);
+        return this;
+    }
+
+    /**
+     * Starts a block-state comparison combined with the existing state filter using XOR.
+     * Complete it with a comparison call; exactly one constituent filter must accept a state.
+     * If no state filter exists, completing the comparison throws {@code IllegalStateException}.
+     *
+     * @param method a public no-argument method, including inherited methods
+     * @return this builder for chaining
+     * @throws IllegalStateException if a filter step is pending
+     */
+    public WorldScannerBuilder xorStateFilter(String method) {
+        createNewFilter(Operation.XOR, FilterCategory.STATE, method);
         return this;
     }
 
@@ -350,7 +386,7 @@ public final class WorldScannerBuilder {
      * Chat.log(`${found.size()} blocks with a hardness of 10 or more`);
      * </pre>
      *
-     * @param method the name of a public no-argument method declared by {@link BlockHelper}, and
+     * @param method the name of a public no-argument method available on {@link BlockHelper}, and
      *               the arguments the following {@link #is(Object[], Object[])} needs are decided
      *               by its return type
      * @return this builder, for chaining
@@ -360,6 +396,25 @@ public final class WorldScannerBuilder {
      */
     public WorldScannerBuilder withBlockFilter(String method) {
         createNewFilter(Operation.NEW, FilterCategory.BLOCK, method);
+        return this;
+    }
+
+    /**
+     * Installs a completed callback filter for blocks and forces sequential scanning.
+     *
+     * @param filter the block callback filter
+     * @return this builder for chaining
+     * @throws IllegalStateException if a filter step is pending
+     */
+    public WorldScannerBuilder withBlockFilter(IFilter<BlockHelper> filter) {
+        if (!canCreateNewFilter()) throw new IllegalStateException("Complete the pending filter before replacing it");
+        blockFilter = new BasicFilter<>() {
+            @Override
+            public Boolean apply(BlockHelper block) {
+                return filter.apply(block);
+            }
+        };
+        sequential = true;
         return this;
     }
 
@@ -383,7 +438,7 @@ public final class WorldScannerBuilder {
      * Chat.log(`${scanner.scanAroundPlayer(2).size()} hard and blast resistant blocks`);
      * </pre>
      *
-     * @param method the name of a public no-argument method declared by {@link BlockHelper}
+     * @param method the name of a public no-argument method available on {@link BlockHelper}
      * @return this builder, for chaining
      * @throws IllegalStateException if the block filter has not been started yet, or if a start
      *         step is already waiting to be completed
@@ -414,7 +469,7 @@ public final class WorldScannerBuilder {
      * Chat.log(`${scanner.scanAroundPlayer(2).size()} jumpy blocks or sponges`);
      * </pre>
      *
-     * @param method the name of a public no-argument method declared by {@link BlockHelper}
+     * @param method the name of a public no-argument method available on {@link BlockHelper}
      * @return this builder, for chaining
      * @throws IllegalStateException if the block filter has not been started yet, or if a start
      *         step is already waiting to be completed
@@ -422,6 +477,20 @@ public final class WorldScannerBuilder {
      */
     public WorldScannerBuilder orBlockFilter(String method) {
         createNewFilter(Operation.OR, FilterCategory.BLOCK, method);
+        return this;
+    }
+
+    /**
+     * Starts a block comparison combined with the existing block filter using XOR.
+     * Complete it with a comparison call; exactly one constituent filter must accept a block.
+     * If no block filter exists, completing the comparison throws {@code IllegalStateException}.
+     *
+     * @param method a public no-argument method, including inherited methods
+     * @return this builder for chaining
+     * @throws IllegalStateException if a filter step is pending
+     */
+    public WorldScannerBuilder xorBlockFilter(String method) {
+        createNewFilter(Operation.XOR, FilterCategory.BLOCK, method);
         return this;
     }
 
@@ -543,6 +612,19 @@ public final class WorldScannerBuilder {
     }
 
     /**
+     * Starts a string block filter combined with the existing block filter using XOR.
+     * Complete it with a string comparison; exactly one constituent filter must accept.
+     * If no block filter exists, completing the comparison throws {@code IllegalStateException}.
+     *
+     * @return this builder for chaining
+     * @throws IllegalStateException if a filter step is pending
+     */
+    public WorldScannerBuilder xorStringBlockFilter() {
+        createNewFilter(Operation.XOR, FilterCategory.BLOCK, "");
+        return this;
+    }
+
+    /**
      * starts a block state filter that matches on the block state helper's own text rather than on
      * a method's return value.
      * <p>
@@ -625,6 +707,19 @@ public final class WorldScannerBuilder {
      */
     public WorldScannerBuilder orStringStateFilter() {
         createNewFilter(Operation.OR, FilterCategory.STATE, "");
+        return this;
+    }
+
+    /**
+     * Starts a string state filter combined with the existing state filter using XOR.
+     * Complete it with a string comparison; exactly one constituent filter must accept.
+     * If no state filter exists, completing the comparison throws {@code IllegalStateException}.
+     *
+     * @return this builder for chaining
+     * @throws IllegalStateException if a filter step is pending
+     */
+    public WorldScannerBuilder xorStringStateFilter() {
+        createNewFilter(Operation.XOR, FilterCategory.STATE, "");
         return this;
     }
 
@@ -965,7 +1060,7 @@ public final class WorldScannerBuilder {
     @SuppressWarnings("unchecked")
     private void createStringFilter(String method, String... args) {
         if (selectedCategory == FilterCategory.STATE) {
-            composeFilters(new StringifyFilter<BlockStateFilter>(method).addOption(args));
+            composeFilters(new StringifyFilter<BlockStateHelper>(method).addOption(args));
         } else if (selectedCategory == FilterCategory.BLOCK) {
             composeFilters(new StringifyFilter<BlockHelper>(method).addOption(args));
         } else {
@@ -1004,7 +1099,7 @@ public final class WorldScannerBuilder {
      * @since 1.6.5
      */
     public WorldScanner build() {
-        return new WorldScanner(Minecraft.getInstance().level, blockFilter, stateFilter);
+        return new WorldScanner(Minecraft.getInstance().level, blockFilter, stateFilter, sequential);
     }
 
     private enum Operation {

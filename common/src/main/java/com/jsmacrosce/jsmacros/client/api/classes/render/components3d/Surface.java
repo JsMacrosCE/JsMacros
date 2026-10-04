@@ -1045,15 +1045,15 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         }
 
         /**
-         * The position is taken by reference, so the surface this builds and this
-         * builder share it and moving one moves the other. The coordinates are the
-         * panel's top left corner rather than its middle.
+         * The builder retains this position by reference, but each build copies its coordinates
+         * into a position owned by the new surface. The coordinates are the panel's top left
+         * corner rather than its middle.
          * example:
          * <pre>
          * const draw = Hud.createDraw3D();
          * const where = PositionCommon.createPos(0.5, 64, 0.5);
          * draw.surfaceBuilder().pos(where).size(1, 1).buildAndAdd();
-         * // moving the position after the fact moves the surface
+         * // changing this position affects future builds, not the surface already built
          * where.y = 70;
          * draw.register();
          * </pre>
@@ -1092,8 +1092,8 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
 
         /**
          * The panel's top left corner, in blocks. A new position object is made here,
-         * so unlike the {@link Pos3D} form nothing outside shares it with the surface
-         * this builds.
+         * so nothing outside shares the builder's position. Each built surface also receives
+         * its own coordinate copy.
          * example:
          * <pre>
          * const draw = Hud.createDraw3D();
@@ -1115,8 +1115,8 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         /**
          * The builder's own position rather than a copy, and it is {@code 0, 0, 0}
          * until something is set. When a position object was handed to
-         * {@link #pos(Pos3D)} this is that same object, so moving it moves the surface
-         * the builder will build.
+         * {@link #pos(Pos3D)} this is that same object, so changing it affects future builds
+         * rather than moving surfaces already built.
          * example:
          * <pre>
          * const builder = Hud.createDraw3D().surfaceBuilder();
@@ -1808,9 +1808,8 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
          * 3D overlay. It is a separate object from the builder, so the builder can be
          * changed and used again afterwards.
          * <p>
-         * The position is the one object the two do share: a position handed to
-         * {@link #pos(Pos3D)} is the same object the surface gets, so moving it moves
-         * the surface. The rotations and the size are made fresh here.
+         * Position coordinates, rotations and size are copied into fresh objects here.
+         * Changing the builder's position later does not move an already built surface.
          * <p>
          * The builder's default of rotating about the middle and drawing the back is
          * carried over, along with the lighting, so a built surface is not the same as
@@ -1829,7 +1828,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
          */
         public Surface build() {
             Surface surface = new Surface(
-                    pos,
+                    new Pos3D(pos.x, pos.y, pos.z),
                     new Pos3D(xRot, yRot, zRot),
                     new Pos2D(width, height),
                     minSubdivisions,

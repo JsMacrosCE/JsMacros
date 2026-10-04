@@ -26,7 +26,14 @@ import java.util.Map;
 public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptContext> {
     private static volatile Engine engine = null;
     public static final boolean isJsInstalled;
-    private static final ClassLoader REDIRECTING_CLASS_LOADER = new RedirectingClassLoader(FReflection.classLoader);
+    /**
+     * Shared host lookup for Graal contexts, preserving reflection lookup and
+     * legacy package aliases while exposing extension-owned adapter dependencies.
+     */
+    private static final ClassLoader REDIRECTING_CLASS_LOADER = new GraalHostClassLoader(
+            FReflection.classLoader,
+            GraalLanguageDefinition.class.getClassLoader(),
+            FReflection::redirectWagYourTail);
 
     static {
         // Create a temporary engine just to check available languages
@@ -208,25 +215,6 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
     @Override
     public GraalScriptContext createContext(BaseEvent event, File file) {
         return new GraalScriptContext(runner, event, file);
-    }
-
-    private static final class RedirectingClassLoader extends ClassLoader {
-        private RedirectingClassLoader(ClassLoader parent) {
-            super(parent);
-        }
-
-        @Override
-        protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-            try {
-                return super.loadClass(name, resolve);
-            } catch (ClassNotFoundException e) {
-                String redirected = FReflection.redirectWagYourTail(name);
-                if (!redirected.equals(name)) {
-                    return super.loadClass(redirected, resolve);
-                }
-                throw e;
-            }
-        }
     }
 
 }

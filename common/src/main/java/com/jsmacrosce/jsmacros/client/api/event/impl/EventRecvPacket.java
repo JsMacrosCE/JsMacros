@@ -24,21 +24,20 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * This event is cancellable, and cancelling drops the packet before the game sees it, so the game
  * also never sees whatever was put in {@link #packet} instead. Assigning {@code null} to the packet
  * has the same effect, so a listener can drop a packet either way.<br>
- * Changing the packet is not really possible here yet, unlike on the sending side. Whatever the
- * game is finally handed is whatever is in {@link #packet} once the event has been dispatched, so a
- * replacement does have to be assigned back to the field to have any effect, but there is no
- * working way to build one. {@link #getPacketBuffer()} writes the packet out so its fields can be
- * read, yet writing into that buffer does not reach the game and turning it back into a packet
- * through {@link PacketByteBufferHelper#toPacket() toPacket()} throws a
- * {@link java.lang.NullPointerException NullPointerException} in this build. A packet with no stream
- * codec of its own, a bundle being the usual case, cannot be written out at all either.<br>
+ * Whatever the game is finally handed is whatever is in {@link #packet} once the event has been
+ * dispatched. For a packet with a supported standalone codec, {@link #getPacketBuffer()} writes
+ * its fields into a buffer. After editing the buffer, assign the result of
+ * {@link PacketByteBufferHelper#toPacket() toPacket()} back to {@code packet} to apply the change.
+ * Check {@link #canGetPacketBuffer()} first; bundles and other unsupported packets cannot be
+ * serialised this way.<br>
  * See {@link com.jsmacrosce.jsmacros.client.api.event.impl.EventSendPacket} for the outgoing
  * direction, which has one extra way of building a replacement.
  * example:
- * <pre>
- * const filterer = JsMacros.createEventFilterer("RecvPacket")
+ * <pre class="language-typescript">
+ * const filterer = (JsMacros.createEventFilterer("RecvPacket") as FiltererRecvPacket)
  *   .setType("HealthUpdateS2CPacket");
- * const listener = JsMacros.on("RecvPacket", filterer, JavaWrapper.methodToJava(function (event) {
+ * const listener = JsMacros.on("RecvPacket", filterer, JavaWrapper.methodToJava(function (event: EventRecvPacket) {
+ *   if (!event.canGetPacketBuffer()) return;
  *   // the buffer holds the packet's fields in the order the game writes them
  *   const buffer = event.getPacketBuffer();
  *   const health = buffer.readFloat();
@@ -62,9 +61,8 @@ public class EventRecvPacket extends BaseEvent {
      * handed. Assigning {@code null} drops the packet, which is the same as cancelling the event,
      * and is why the declared type here is nullable and has to be checked before it is read.<br>
      * Writing into the buffer from {@link #getPacketBuffer()} on its own changes nothing, since the
-     * game is handed this field and not the buffer, and a packet with no stream codec of its own
-     * cannot be written out and read back. So the only thing a listener can usefully do with this
-     * field right now is drop the packet.
+     * game is handed this field and not the buffer. Assign the packet decoded by
+     * {@link PacketByteBufferHelper#toPacket()} back to this field to apply buffer edits.
      */
     @Nullable
     public Packet<?> packet;
@@ -89,24 +87,32 @@ public class EventRecvPacket extends BaseEvent {
     }
 
     /**
+     * Checks whether the current packet has a registered phase and a standalone codec.
+     * This does not validate the packet's contents. Bundles are not supported.
+     *
+     * @return whether a standalone packet buffer is supported
+     * @since 2.0.0
+     */
+    public boolean canGetPacketBuffer() {
+        return PacketByteBufferHelper.canSerialize(packet);
+    }
+
+    /**
      * gives you a buffer holding the packet's data written out in the game's own wire format, so
      * its fields can be read and written one at a time. Read them back in the order the packet
      * writes them, and call {@link PacketByteBufferHelper#reset() reset()} to get the untouched
      * bytes again, since every read moves the buffer along.<br>
-     * Reading is all this is good for as the code stands. Writing into the buffer does not reach
-     * the game, because the game is handed {@link #packet} and not the buffer, and turning the
-     * buffer back into a packet through
-     * {@link PacketByteBufferHelper#toPacket() toPacket()} throws a
-     * {@link java.lang.NullPointerException NullPointerException} in this build, since the lookup
-     * table that method reads was never filled in. Treat the buffer as read only for now.<br>
-     * A packet with no stream codec of its own, a bundle being the usual case, cannot be written out
-     * at all, so the buffer comes back empty and reading from it runs off the end rather than
-     * giving the packet's fields.
+     * Writing into the buffer alone does not change {@link #packet}. After editing the bytes,
+     * assign the result of {@link PacketByteBufferHelper#toPacket() toPacket()} to {@code packet}
+     * to replace the packet the game receives.<br>
+     * Use {@link #canGetPacketBuffer()} to check whether the packet has a supported standalone
+     * codec. Unsupported packets, including bundles, cannot be serialised by this helper.
      * example:
-     * <pre>
-     * const filterer = JsMacros.createEventFilterer("RecvPacket")
+     * <pre class="language-typescript">
+     * const filterer = (JsMacros.createEventFilterer("RecvPacket") as FiltererRecvPacket)
      *   .setType("HealthUpdateS2CPacket");
-     * JsMacros.on("RecvPacket", filterer, JavaWrapper.methodToJava(function (event) {
+     * JsMacros.on("RecvPacket", filterer, JavaWrapper.methodToJava(function (event: EventRecvPacket) {
+     *   if (!event.canGetPacketBuffer()) return;
      *   // HealthUpdateS2CPacket writes a float health, then the food level and saturation
      *   const buffer = event.getPacketBuffer();
      *   const health = buffer.readFloat();

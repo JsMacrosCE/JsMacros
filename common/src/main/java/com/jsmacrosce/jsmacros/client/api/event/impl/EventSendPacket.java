@@ -22,27 +22,26 @@ import com.jsmacrosce.jsmacros.core.library.impl.FReflection;
  * This event is cancellable, and cancelling drops the packet before it goes out, so the server
  * never sees it and never sees whatever was put in {@link #packet} instead. Assigning {@code null}
  * to the packet has the same effect, so a listener can drop a packet either way.<br>
- * There are two ways to change what is sent, and only one of them works. {@link #replacePacket(Object...)}
+ * There are two ways to change what is sent. {@link #replacePacket(Object...)}
  * builds a fresh packet of the same class from the arguments given, going through the packet's own
- * constructor with numbers coerced to the parameter types, and that is the way to use.
- * {@link #getPacketBuffer()} writes the packet out so its fields can be read, but writing into
- * that buffer does not reach the game and turning it back into a packet through
- * {@link PacketByteBufferHelper#toPacket() toPacket()} throws a
- * {@link java.lang.NullPointerException NullPointerException} in this build, so treat the buffer
- * as read only.<br>
+ * constructor with numbers coerced to the parameter types. Alternatively, check
+ * {@link #canGetPacketBuffer()} and use {@link #getPacketBuffer()} to read or edit its wire-format
+ * fields. Buffer edits only take effect after assigning the result of
+ * {@link PacketByteBufferHelper#toPacket() toPacket()} back to {@link #packet}.<br>
  * The packets the client sends by itself are here too, such as the ones keeping the connection
  * alive, so filtering is worth doing even for a listener that only cares about the occasional chat
  * or movement packet.
  * example:
- * <pre>
+ * <pre class="language-typescript">
  * // refuse to let any chat text out, and say so on stdout rather than in chat,
  * // since chat is exactly what is being blocked
- * const filterer = JsMacros.createEventFilterer("SendPacket")
+ * const filterer = (JsMacros.createEventFilterer("SendPacket") as FiltererSendPacket)
  *   .setType("ChatMessageC2SPacket");
- * const listener = JsMacros.on("SendPacket", filterer, JavaWrapper.methodToJava(function (event) {
+ * const listener = JsMacros.on("SendPacket", filterer, JavaWrapper.methodToJava(function (event: EventSendPacket) {
+ *   event.cancel();
+ *   if (!event.canGetPacketBuffer()) return;
  *   const buffer = event.getPacketBuffer();
  *   print(`blocked a chat message: ${buffer.readString()}`);
- *   event.cancel();
  * }));
  * // later
  * JsMacros.off(listener);
@@ -60,9 +59,10 @@ public class EventSendPacket extends BaseEvent {
      * This field is writable, and assigning to it replaces the packet that goes out. Assigning
      * {@code null} drops the packet, which is the same as cancelling the event, and is why the
      * declared type here is nullable and has to be checked before it is read.<br>
-     * For a replacement built by hand, {@link #replacePacket(Object...)} is the way that works
-     * today. Writing into the buffer from {@link #getPacketBuffer()} does not reach the game, since
-     * the game is handed this field and not the buffer.
+     * For a replacement built from constructor arguments, use {@link #replacePacket(Object...)}.
+     * Writing into the buffer from {@link #getPacketBuffer()} alone does not reach the game, since
+     * the game is handed this field and not the buffer. Assign the result of
+     * {@link PacketByteBufferHelper#toPacket()} back to this field to apply buffer edits.
      */
     @Nullable
     public Packet<?> packet;
@@ -99,8 +99,9 @@ public class EventSendPacket extends BaseEvent {
      * types once the numbers are coerced, has nothing that fits and this throws. The new packet has
      * no type of its own, so {@link #type} keeps reporting the original name, which is the same
      * class, and a filterer keeps matching.<br>
-     * Note that {@link #getPacketBuffer()} is not an alternative to this, since the buffer cannot
-     * be turned back into a packet in this build.
+     * For packets with a supported standalone codec, {@link #getPacketBuffer()} followed by
+     * {@link PacketByteBufferHelper#toPacket()} is an alternative; assign the decoded packet to
+     * {@link #packet} to apply that replacement.
      * example:
      * <pre>
      * // the full movement packet takes the position, the rotation and two flags,
@@ -124,24 +125,33 @@ public class EventSendPacket extends BaseEvent {
     }
 
     /**
+     * Checks whether the current packet has a registered phase and a standalone codec.
+     * This does not validate the packet's contents. Bundles are not supported.
+     *
+     * @return whether a standalone packet buffer is supported
+     * @since 2.0.0
+     */
+    public boolean canGetPacketBuffer() {
+        return PacketByteBufferHelper.canSerialize(packet);
+    }
+
+    /**
      * gives you a buffer holding the packet's data written out in the game's own wire format, so
      * its fields can be read and written one at a time. Read them back in the order the packet
      * writes them, and call {@link PacketByteBufferHelper#reset() reset()} to get the untouched
      * bytes again, since every read moves the buffer along.<br>
-     * Reading is all this is good for as the code stands. Writing into the buffer does not reach
-     * the game, because the game is handed {@link #packet} and not the buffer, and turning the
-     * buffer back into a packet through
-     * {@link PacketByteBufferHelper#toPacket() toPacket()} throws a
-     * {@link java.lang.NullPointerException NullPointerException} in this build, since the lookup
-     * table that method reads was never filled in. Use {@link #replacePacket(Object...)} to change
-     * what is sent instead.<br>
-     * A packet with no stream codec of its own cannot be written out at all, so the buffer comes
-     * back empty and reading from it runs off the end rather than giving the packet's fields.
+     * Writing into the buffer alone does not change {@link #packet}. After editing the bytes,
+     * assign the result of {@link PacketByteBufferHelper#toPacket() toPacket()} to {@code packet}
+     * to replace the packet that is sent. {@link #replacePacket(Object...)} is an alternative
+     * that constructs a packet from constructor arguments.<br>
+     * Use {@link #canGetPacketBuffer()} to check whether the packet has a supported standalone
+     * codec. Unsupported packets, including bundles, cannot be serialised by this helper.
      * example:
-     * <pre>
-     * const filterer = JsMacros.createEventFilterer("SendPacket")
+     * <pre class="language-typescript">
+     * const filterer = (JsMacros.createEventFilterer("SendPacket") as FiltererSendPacket)
      *   .setType("ChatMessageC2SPacket");
-     * JsMacros.on("SendPacket", filterer, JavaWrapper.methodToJava(function (event) {
+     * JsMacros.on("SendPacket", filterer, JavaWrapper.methodToJava(function (event: EventSendPacket) {
+     *   if (!event.canGetPacketBuffer()) return;
      *   // the first field of this packet is the text being sent
      *   const buffer = event.getPacketBuffer();
      *   print(`about to send ${buffer.readString()}`);

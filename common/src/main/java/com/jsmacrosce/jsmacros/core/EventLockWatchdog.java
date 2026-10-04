@@ -18,11 +18,10 @@ public class EventLockWatchdog {
                             return;
                         }
                     }
-                    lock.getCtx().closeContext();
-                    lock.releaseLock();
-                    if (listener instanceof BaseListener) {
-                        ((BaseListener) listener).getRawTrigger().enabled = false;
+                    if (listener instanceof BaseListener baseListener) {
+                        baseListener.off();
                     }
+                    lock.getCtx().closeContext();
                     lock.getCtx().runner.profile.logError(new WatchdogException(String.format("Script \n\"%s\"\n joined longer than allowed time of %d ms.", listener, maxTime)));
                 } catch (InterruptedException ignored) {
                 }
@@ -44,7 +43,7 @@ public class EventLockWatchdog {
         });
     }
 
-    private static class WatchdogException extends RuntimeException {
+    public static class WatchdogException extends RuntimeException {
         public WatchdogException(String message) {
             super(message);
         }

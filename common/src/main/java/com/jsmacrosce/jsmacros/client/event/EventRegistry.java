@@ -17,26 +17,26 @@ public class EventRegistry extends BaseEventRegistry {
     }
 
     @Override
-    public synchronized void addScriptTrigger(ScriptTrigger rawmacro) {
-        if (oldEvents.containsKey(rawmacro.event)) {
-            rawmacro.event = oldEvents.get(rawmacro.event);
+    public synchronized void addScriptTrigger(ScriptTrigger rawMacro) {
+        if (oldEvents.containsKey(rawMacro.event)) {
+            rawMacro.event = oldEvents.get(rawMacro.event);
         }
-        if (rawmacro.triggerType == ScriptTrigger.TriggerType.EVENT) {
-            if (rawmacro.event.startsWith("Joined")) {
-                rawmacro.event = rawmacro.event.substring(6);
-                rawmacro.joined = true;
+        if (rawMacro.triggerType == ScriptTrigger.TriggerType.EVENT) {
+            if (rawMacro.event.startsWith("Joined")) {
+                rawMacro.event = rawMacro.event.substring(6);
+                rawMacro.joined = true;
             }
-            addListener(rawmacro.event, new EventListener(rawmacro, runner));
+            addListener(rawMacro.event, new EventListener(rawMacro, runner));
         } else {
-            addListener(EventKey.class.getAnnotation(Event.class).value(), new KeyListener(rawmacro, runner));
+            addListener(EventKey.class.getAnnotation(Event.class).value(), new KeyListener(rawMacro, runner));
         }
     }
 
     @Override
-    public synchronized boolean removeScriptTrigger(ScriptTrigger rawmacro) {
-        final String event = rawmacro.triggerType == ScriptTrigger.TriggerType.EVENT ? rawmacro.event : EventKey.class.getAnnotation(Event.class).value();
-        for (IEventListener macro : listeners.get(event)) {
-            if (macro instanceof BaseListener && ((BaseListener) macro).getRawTrigger() == rawmacro) {
+    public synchronized boolean removeScriptTrigger(ScriptTrigger rawMacro) {
+        final String event = rawMacro.triggerType == ScriptTrigger.TriggerType.EVENT ? rawMacro.event : EventKey.class.getAnnotation(Event.class).value();
+        for (IEventListener macro : getListeners(event)) {
+            if (macro instanceof BaseListener && ((BaseListener) macro).getRawTrigger() == rawMacro) {
                 removeListener(event, macro);
                 return true;
             }

@@ -1345,22 +1345,20 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
     }
 
     /**
-     * Whether the enchantments on this stack are hidden from the game's tooltip. This reads the
-     * tooltip display component and asks it about the tooltip display component, so the answer it
-     * gives is not about the enchantments: a stack built with
-     * {@link CreativeItemStackHelper#hideEnchantments(boolean)} still answers {@code false} here.
-     * The enchantments really are hidden from the tooltip, this just does not report it.<br>
+     * Whether the enchantments component is hidden from the game's tooltip. This reads its own
+     * entry in the tooltip display component's hidden-component set. Hiding enchantments affects
+     * presentation, not the enchantment data.<br>
      * {@link ItemStackHelper#getEnchantments()} still reads them back either way.
      * example:
      * <pre>
-     * // the stack is really hiding them, and this still says no
+     * // hide the component while keeping its enchantment data
      * const stack = Client.getRegistryManager().getItemStack("minecraft:diamond_sword").getCreative()
      *   .addEnchantment("minecraft:sharpness", 5)
      *   .hideEnchantments(true);
      * Chat.log(`areEnchantmentsHidden: ${stack.areEnchantmentsHidden()}`);
      * Chat.log(`but it is enchanted: ${stack.isEnchanted()}, and ${stack.getEnchantments().size()} of them`);
      *
-     * // the three hidden flags agree with each other, which is the tell
+     * // the three hidden flags are independent: only enchantments were hidden
      * Chat.log(stack.areEnchantmentsHidden() === stack.areModifiersHidden());
      * Chat.log(stack.areModifiersHidden() === stack.isUnbreakableHidden());
      * </pre>
@@ -1369,23 +1367,21 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      * @since 1.8.4
      */
     public boolean areEnchantmentsHidden() {
-        return isHidden(DataComponents.TOOLTIP_DISPLAY);
+        return isHidden(DataComponents.ENCHANTMENTS);
     }
 
     /**
-     * Whether the attribute modifiers on this stack are hidden from the game's tooltip. This reads
-     * the tooltip display component and asks it about the tooltip display component, so the answer
-     * it gives is not about the modifiers, and it is the same answer
-     * {@link #areEnchantmentsHidden()} and {@link #isUnbreakableHidden()} give.
+     * Whether the attribute modifiers component is hidden from the game's tooltip. Its hidden
+     * flag is independent of the enchantments and unbreakable flags; the modifiers still apply.
      * example:
      * <pre>
-     * // the stack is really hiding them, and this still says no
+     * // hide the component while keeping its attribute modifiers
      * const stack = Client.getRegistryManager().getItemStack("minecraft:diamond_sword").getCreative()
      *   .hideModifiers(true);
      * Chat.log(`areModifiersHidden: ${stack.areModifiersHidden()}`);
      * Chat.log(`and the damage it gives is still ${stack.getAttackDamage()}`);
      *
-     * // the flags that do report correctly, for contrast
+     * // dye has its own independent hidden flag
      * const dyed = Client.getRegistryManager()
      *   .getItemStack("minecraft:leather_helmet", `[dyed_color={color:"minecraft:red",rgb:0}]`)
      *   .getCreative()
@@ -1397,17 +1393,16 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      * @since 1.8.4
      */
     public boolean areModifiersHidden() {
-        return isHidden(DataComponents.TOOLTIP_DISPLAY);
+        return isHidden(DataComponents.ATTRIBUTE_MODIFIERS);
     }
 
     /**
-     * Whether the unbreakable marker on this stack is hidden from the game's tooltip. This reads the
-     * tooltip display component and asks it about the tooltip display component, so the answer it
-     * gives is not about the unbreakable marker, and it is the same answer
-     * {@link #areEnchantmentsHidden()} and {@link #areModifiersHidden()} give.
+     * Whether the unbreakable component is hidden from the game's tooltip. This affects its
+     * presentation rather than whether the item is unbreakable, and is independent of the other
+     * hidden-component flags.
      * example:
      * <pre>
-     * // the stack is really hiding it, and this still says no
+     * // hide the marker while keeping the item unbreakable
      * const stack = Client.getRegistryManager().getItemStack("minecraft:diamond_pickaxe").getCreative()
      *   .setUnbreakable(true)
      *   .hideUnbreakable(true);
@@ -1419,7 +1414,7 @@ public class ItemStackHelper extends BaseHelper<ItemStack> {
      * @since 1.8.4
      */
     public boolean isUnbreakableHidden() {
-        return isHidden(DataComponents.TOOLTIP_DISPLAY);
+        return isHidden(DataComponents.UNBREAKABLE);
     }
 
     /**

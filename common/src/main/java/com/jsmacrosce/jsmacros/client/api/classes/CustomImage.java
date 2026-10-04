@@ -366,7 +366,7 @@ public class CustomImage {
         try {
             File file = JsMacrosClient.clientCore.config.configFolder.toPath().resolve(path).resolve(fileName + ".png").toFile();
             if (!file.exists()) {
-                if (!file.mkdirs() && !file.createNewFile()) {
+                if ((file.getParentFile() != null && !file.getParentFile().isDirectory() && !file.getParentFile().mkdirs()) || !file.createNewFile()) {
                     JsMacrosClient.clientCore.profile.logError(new RuntimeException("Could not create file: " + file.getAbsolutePath()));
                     return this;
                 }
@@ -572,22 +572,16 @@ public class CustomImage {
      * sizes fall into two groups: the first four are where the result goes on this image and the
      * last four are which part of the source it comes from.
      * <p>
-     * The {@code img} argument is not what the part is taken from. The part is taken from this
-     * image, and the argument is passed on to the underlying call without being used for the
-     * region, so a draw meant to copy from another image copies from this one instead. That is
-     * a defect in the method rather than something a script can work around, and
-     * {@link #drawImage(Image, int, int, int, int)} is the form that does take a source from
-     * elsewhere.
+     * Copies the selected source rectangle from {@code img} into the destination rectangle on
+     * this image, scaling it to the destination size when necessary.
      * example:
      * <pre>
-     * // this form takes the region from this image rather than from the
-     * // source passed in, so it copies within the image. The source
-     * // argument is not what the region is read from
+     * // copy a region from a distinct source image
      * const CustomImage = Java.type("com.jsmacrosce.jsmacros.client.api.classes.CustomImage");
+     * const source = CustomImage.createWidget(8, 8, "crop-source");
+     * source.setGraphicsColor(0xFF0000).fillRect(0, 0, 2, 2);
      * const img = CustomImage.createWidget(8, 8, "cropped");
-     * img.setGraphicsColor(0xFF0000);
-     * img.fillRect(0, 0, 2, 2);
-     * img.drawImage(img.getImage(), 4, 4, 2, 2, 0, 0, 2, 2);
+     * img.drawImage(source.getImage(), 4, 4, 2, 2, 0, 0, 2, 2);
      * img.update();
      * </pre>
      *
@@ -604,7 +598,7 @@ public class CustomImage {
      * @since 1.8.4
      */
     public CustomImage drawImage(Image img, int x, int y, int width, int height, int sourceX, int sourceY, int sourceWidth, int sourceHeight) {
-        graphics.drawImage(image, x, y, x + width, y + height, sourceX, sourceY, sourceX + sourceWidth, sourceY + sourceHeight, null);
+        graphics.drawImage(img, x, y, x + width, y + height, sourceX, sourceY, sourceX + sourceWidth, sourceY + sourceHeight, null);
         return this;
     }
 
@@ -1419,10 +1413,8 @@ public class CustomImage {
      * is, so unlike {@link #createWidget(int, int, String)} the size is not the script's to pick.
      * The name is what it is registered with the game under, which is not the file name.
      * <p>
-     * A file that cannot be read gives {@code null} here. A file that reads without complaint but
-     * is not an image does not, and goes on to the constructor with nothing to draw, which fails
-     * there instead; so a {@code null} here means the file could not be read rather than that it
-     * was the wrong kind of file.
+     * Returns {@code null} and logs an error when the file cannot be read or no supported image
+     * reader recognizes its contents.
      * example:
      * <pre>
      * // an image from a file in the config folder, under a name of the
@@ -1437,14 +1429,19 @@ public class CustomImage {
      *
      * @param path the path to the image, relative to the jsMacros config folder
      * @param name the name to register it under, without the {@code jsmimage/} prefix
-     * @return a new image holding what the file holds, or {@code null} if the file could not be read
+     * @return a new image, or {@code null} if the file is unreadable or has an unsupported format
      * @since 1.8.4
      */
     @Nullable
     public static CustomImage createWidget(String path, String name) {
         try {
             File file = JsMacrosClient.clientCore.config.configFolder.toPath().resolve(path).toFile();
-            return new CustomImage(ImageIO.read(file), name);
+            BufferedImage image = ImageIO.read(file);
+            if (image == null) {
+                JsMacrosClient.clientCore.profile.logError(new RuntimeException("Could not read image: " + file.getAbsolutePath()));
+            }
+
+            return image == null ? null : new CustomImage(image, name);
         } catch (IOException e) {
             JsMacrosClient.clientCore.profile.logError(e);
         }

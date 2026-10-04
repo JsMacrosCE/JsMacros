@@ -25,10 +25,9 @@ import java.util.Map;
  * They are all two argument wrappers, {@code (socket, argument)}, made with
  * {@code JavaWrapper.methodToJava}, and they run on the websocket's own thread rather than on the
  * script's, which is the usual caveat for anything a callback does to the game. A handler that
- * throws is meant to be reported to the script's log rather than to break the connection, but
- * that reporting reads the {@code onConnect} handler to find the context, so a socket that throws
- * from one of the other four and never had {@code onConnect} assigned loses the original failure
- * and reports a null one instead. The one path with no handling at all is the connect error
+ * throws is reported through that handler's own script context, or printed if the wrapper has
+ * no context. Installing {@code onConnect} is not required for the other handlers' exception
+ * reporting. The one path with no handling at all is the connect error
  * path: it calls {@code onError} with no null check and no {@code try}, so a socket with no
  * {@code onError} assigned has a failure thrown at it by the client library, and a throwing
  * {@code onError} takes the library's own thread down with it. Nothing reaches it through this
@@ -143,7 +142,7 @@ public class Websocket {
                     try {
                         onDisconnect.accept(ws, new Disconnected(serverFrame, clientFrame, isServer));
                     } catch (Throwable e) {
-                        BaseScriptContext<?> ctx = onConnect.getCtx();
+                        BaseScriptContext<?> ctx = onDisconnect.getCtx();
                         if (ctx != null) {
                             ctx.runner.profile.logError(e);
                         } else {
@@ -164,7 +163,7 @@ public class Websocket {
                     try {
                         onError.accept(websocket, ex);
                     } catch (Throwable e) {
-                        BaseScriptContext<?> ctx = onConnect.getCtx();
+                        BaseScriptContext<?> ctx = onError.getCtx();
                         if (ctx != null) {
                             ctx.runner.profile.logError(e);
                         } else {
@@ -180,7 +179,7 @@ public class Websocket {
                     try {
                         onFrame.accept(ws, frame);
                     } catch (Throwable e) {
-                        BaseScriptContext<?> ctx = onConnect.getCtx();
+                        BaseScriptContext<?> ctx = onFrame.getCtx();
                         if (ctx != null) {
                             ctx.runner.profile.logError(e);
                         } else {
@@ -196,7 +195,7 @@ public class Websocket {
                     try {
                         onTextMessage.accept(ws, text);
                     } catch (Throwable e) {
-                        BaseScriptContext<?> ctx = onConnect.getCtx();
+                        BaseScriptContext<?> ctx = onTextMessage.getCtx();
                         if (ctx != null) {
                             ctx.runner.profile.logError(e);
                         } else {

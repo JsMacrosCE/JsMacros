@@ -69,20 +69,15 @@ public interface Alignable<B extends Alignable<B>> {
     * half picks a point on the other element and the first moves this one to it, so
     * {@code RightOnLeft} puts this element just to the left of the other one.
     * <p>
-    * A percentage does not work on either half here, and this is worth knowing before
-    * reaching for one. The string handed to the percentage parser is the whole
-    * alignment rather than the half being read, so what happens depends on how the
-    * whole string ends: {@code 50%OnLeft} ends in a letter, reads as no percentage at
-    * all and throws {@link IllegalArgumentException}, while {@code leftOn50%} and
-    * {@code 0%on0%} end in {@code %} and throw {@link NumberFormatException} because
-    * what is in front of the sign is not a number. The three words are what work, on
-    * either half.
+    * Either half can use a supported word or an integer percentage from zero to one hundred.
+    * Each half is parsed independently: {@code 50%OnLeft}, {@code leftOn50%} and
+    * {@code 0%on0%} are all valid. The offset is added to the resulting aligned position.
     * example:
     * <pre>
     * const draw = Hud.createDraw2D();
     * const panel = draw.addRect(0, 0, 200, 100, 0x80000000);
     * const label = draw.addText("down from it", 0, 0, 0xFFFFFFFF, true);
-    * // the text's top edge to the panel's centre, ten pixels lower
+    * // the text's left edge to the panel's centre, ten pixels to the right
     * label.alignHorizontally(panel, "leftOnCenter", 10);
     * draw.register();
     * </pre>
@@ -91,16 +86,13 @@ public interface Alignable<B extends Alignable<B>> {
     * @param alignment the alignment to use
     * @param offset    the offset to use
     * @return self for chaining.
-    * @throws IllegalArgumentException     if a half is not one of the three words and
-    * the whole string does not end in {@code %}
-    * @throws ArrayIndexOutOfBoundsException if the alignment has no {@code on} in it
-    * @throws NumberFormatException        if the whole string ends in {@code %} and
-    * what is in front of it is not a whole number, which is what a percentage on the
-    * second half gives
+    * @throws IllegalArgumentException if the two-part format or either half is unsupported
+    * @throws NumberFormatException if a percentage half does not contain a whole number
     * @since 1.8.4
     */
     default B alignHorizontally(Alignable<?> other, String alignment, int offset) {
-        String[] alignments = alignment.toLowerCase(Locale.ROOT).split("on");
+        String[] alignments = alignment.toLowerCase(Locale.ROOT).split("on", -1);
+        if (alignments.length != 2) throw new IllegalArgumentException("Invalid alignment: " + alignment);
         String thisAlignment = alignments[0];
         String toAlignment = alignments[1];
         int alignToX;
@@ -115,7 +107,7 @@ public interface Alignable<B extends Alignable<B>> {
                 alignToX = other.getScaledRight();
                 break;
             default:
-                int percent = parsePercentage(alignment);
+                int percent = parsePercentage(toAlignment);
                 if (percent != -1) {
                     alignToX = other.getScaledLeft() + (other.getScaledWidth() * percent / 100);
                     break;
@@ -133,7 +125,7 @@ public interface Alignable<B extends Alignable<B>> {
                 moveToX(alignToX - getScaledWidth() + offset);
                 break;
             default:
-                int percent = parsePercentage(alignment);
+                int percent = parsePercentage(thisAlignment);
                 if (percent != -1) {
                     moveToX(alignToX - (getScaledWidth() * percent / 100) + offset);
                     break;
@@ -181,9 +173,8 @@ public interface Alignable<B extends Alignable<B>> {
     * A string that is none of these is left alone: nothing moves and nothing is thrown,
     * which is the one place in this interface that is not checked. A percentage-looking
     * string whose number is not a whole number is the one exception, and that throws
-    * {@link NumberFormatException}. This is also the only place in the interface a
-    * percentage works: the form that measures against another element cannot use one,
-    * for the reason given on that one.
+    * {@link NumberFormatException}. The form measuring against another element also accepts
+    * percentages, with each alignment half parsed separately.
     * example:
     * <pre>
     * const draw = Hud.createDraw2D();
@@ -259,12 +250,8 @@ public interface Alignable<B extends Alignable<B>> {
     * it. The second half picks a point down the other element and the first moves this
     * one to it.
     * <p>
-    * A percentage does not work on either half here either, for the same reason as the
-    * horizontal pair: the whole string is what the percentage parser is handed.
-    * {@code bottomOn50%} ends in {@code %} and throws
-    * {@link NumberFormatException}, while {@code 50%OnTop} ends in a letter, reads as
-    * no percentage and throws {@link IllegalArgumentException}. The three words are
-    * what work, on either half.
+    * Either half can use a supported word or an integer percentage from zero to one hundred.
+    * Each half is parsed independently, so {@code bottomOn50%} and {@code 50%OnTop} are valid.
     * example:
     * <pre>
     * const draw = Hud.createDraw2D();
@@ -278,16 +265,13 @@ public interface Alignable<B extends Alignable<B>> {
     * @param alignment the alignment to use
     * @param offset    the offset to use
     * @return self for chaining.
-    * @throws IllegalArgumentException     if a half is not one of the three words and
-    * the whole string does not end in {@code %}
-    * @throws ArrayIndexOutOfBoundsException if the alignment has no {@code on} in it
-    * @throws NumberFormatException        if the whole string ends in {@code %} and
-    * what is in front of it is not a whole number, which is what a percentage on the
-    * second half gives
+    * @throws IllegalArgumentException if the two-part format or either half is unsupported
+    * @throws NumberFormatException if a percentage half does not contain a whole number
     * @since 1.8.4
     */
     default B alignVertically(Alignable<?> other, String alignment, int offset) {
-        String[] alignments = alignment.toLowerCase(Locale.ROOT).split("on");
+        String[] alignments = alignment.toLowerCase(Locale.ROOT).split("on", -1);
+        if (alignments.length != 2) throw new IllegalArgumentException("Invalid alignment: " + alignment);
         String thisAlignment = alignments[0];
         String toAlignment = alignments[1];
         int alignToY;
@@ -302,7 +286,7 @@ public interface Alignable<B extends Alignable<B>> {
                 alignToY = other.getScaledBottom();
                 break;
             default:
-                int percent = parsePercentage(alignment);
+                int percent = parsePercentage(toAlignment);
                 if (percent != -1) {
                     alignToY = other.getScaledTop() + (other.getScaledHeight() * percent / 100);
                     break;
@@ -320,7 +304,7 @@ public interface Alignable<B extends Alignable<B>> {
                 moveToY(alignToY - getScaledHeight() + offset);
                 break;
             default:
-                int percent = parsePercentage(alignment);
+                int percent = parsePercentage(thisAlignment);
                 if (percent != -1) {
                     moveToY(alignToY - (getScaledHeight() * percent / 100) + offset);
                     break;
@@ -364,8 +348,7 @@ public interface Alignable<B extends Alignable<B>> {
     * As with the horizontal pair, a string that is none of these is left alone and
     * nothing is thrown, while a percentage-looking string whose number is not a whole
     * number throws {@link NumberFormatException}. A percentage is read the way the
-    * words are here, which is the only place in the interface one works: the form that
-    * measures against another element cannot use one.
+    * words are here; the form measuring against another element also accepts percentages.
     * example:
     * <pre>
     * const draw = Hud.createDraw2D();

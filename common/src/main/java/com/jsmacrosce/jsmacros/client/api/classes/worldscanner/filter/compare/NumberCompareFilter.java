@@ -220,7 +220,7 @@ public class NumberCompareFilter implements IFilter<Number> {
             case "!=":
                 return !DoubleMath.fuzzyEquals(num.doubleValue(), compareTo.doubleValue(), EPSILON);
             default:
-                throw new IllegalArgumentException("Unknown operation, try < > <= => == != instead of " + operation);
+                throw new IllegalArgumentException("Unknown operation, try < > <= >= == != instead of " + operation);
         }
     }
 
@@ -251,7 +251,7 @@ public class NumberCompareFilter implements IFilter<Number> {
             case "!=":
                 return !DoubleMath.fuzzyEquals(num.floatValue(), compareTo.floatValue(), EPSILON);
             default:
-                throw new IllegalArgumentException("Unknown operation, try < > <= => == != instead of " + operation);
+                throw new IllegalArgumentException("Unknown operation, try < > <= >= == != instead of " + operation);
         }
     }
 
@@ -282,7 +282,7 @@ public class NumberCompareFilter implements IFilter<Number> {
             case "!=":
                 return num.longValue() != compareTo.longValue();
             default:
-                throw new IllegalArgumentException("Unknown operation, try < > <= => == != instead of " + operation);
+                throw new IllegalArgumentException("Unknown operation, try < > <= >= == != instead of " + operation);
         }
     }
 
@@ -314,7 +314,7 @@ public class NumberCompareFilter implements IFilter<Number> {
             case "!=":
                 return num.intValue() != compareTo.intValue();
             default:
-                throw new IllegalArgumentException("Unknown operation, try < > <= => == != instead of " + operation);
+                throw new IllegalArgumentException("Unknown operation, try < > <= >= == != instead of " + operation);
         }
     }
 
@@ -346,7 +346,7 @@ public class NumberCompareFilter implements IFilter<Number> {
             case "!=":
                 return num.shortValue() != compareTo.shortValue();
             default:
-                throw new IllegalArgumentException("Unknown operation, try < > <= => == != instead of " + operation);
+                throw new IllegalArgumentException("Unknown operation, try < > <= >= == != instead of " + operation);
         }
     }
 
@@ -379,7 +379,7 @@ public class NumberCompareFilter implements IFilter<Number> {
             case "!=":
                 return num.byteValue() != compareTo.byteValue();
             default:
-                throw new IllegalArgumentException("Unknown operation, try < > <= => == != instead of " + operation);
+                throw new IllegalArgumentException("Unknown operation, try < > <= >= == != instead of " + operation);
         }
     }
 

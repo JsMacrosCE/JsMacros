@@ -47,19 +47,17 @@ import java.util.stream.Collectors;
  * {@link com.jsmacrosce.jsmacros.client.api.classes.inventory.CommandBuilder#suggest(com.jsmacrosce.jsmacros.core.MethodWrapper) suggestion callback},
  * and {@link #getArg(String)} is how it reads a named argument back.<br>
  * This class carries the {@code @Event("CommandContext")} annotation and extends
- * {@link BaseEvent}, so it has the shape of an event, but it is not one and the event system never
- * delivers it. Nothing triggers it
- * and it is not registered as an event name, so
+ * {@link BaseEvent}. Command execution dispatches it before invoking the command callback, so
  * {@link com.jsmacrosce.jsmacros.core.library.impl.FJsMacros#on(String, com.jsmacrosce.jsmacros.core.MethodWrapper) JsMacros.on("CommandContext", ...)}
- * is refused with an error saying the event was not found. The way to get one is a command
- * callback, as in the example below.<br>
+ * can observe it. Suggestion callbacks also receive a context helper, but creating that helper
+ * does not itself dispatch an event. The command callback in the example below receives it directly.<br>
  * Being a {@link BaseEvent} does still earn its keep: a command callback can hand the context
  * straight to
  * {@link com.jsmacrosce.jsmacros.core.library.impl.FJsMacros#runScript(String, BaseEvent) JsMacros.runScript()},
  * which is the recommended way to do anything that waits, since the callback is holding a lock
  * while it runs.<br>
  * This event is not cancellable, so calling {@code cancel()} on it throws, and it is never
- * cancellable through the event registry either since it is not registered there. Command success
+ * cancellable through the event registry either. Command success
  * is reported by the return value of the callback, not by cancelling anything.
  * example:
  * <pre>

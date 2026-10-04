@@ -85,7 +85,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     @Nullable
     public ScoreboardObjectiveHelper getObjectiveForTeamColorIndex(int index) {
         Objective obj = null;
-        if (index >= 0) {
+        if (index >= 0 && index < DisplaySlot.values().length - 3) {
             obj = base.getDisplayObjective(DisplaySlot.values()[index + 3]);
         }
         return obj == null ? null : new ScoreboardObjectiveHelper(obj);
@@ -97,8 +97,8 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
      * eighteen are the sixteen per-team sidebars in colour order from black to white. Nineteen is
      * the first number with no slot behind it.
      * <p>
-     * A negative number gives {@code null} rather than an error, and so does a slot with nothing
-     * published in it.
+     * An index outside zero to eighteen gives {@code null} rather than an error, and so does a
+     * slot with nothing published in it.
      * example:
      * <pre>
      * // the tab list and the plain sidebar, which are the two that are always there
@@ -121,14 +121,12 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
      *
      * @param slot the display slot, from zero to eighteen.
      * @return the objective in that slot, or {@code null} if there is none.
-     * @throws ArrayIndexOutOfBoundsException if {@code slot} is nineteen or more, since there is no
-     *                                       such slot.
      * @since 1.2.9
      */
     @Nullable
     public ScoreboardObjectiveHelper getObjectiveSlot(int slot) {
         Objective obj = null;
-        if (slot >= 0) {
+        if (slot >= 0 && slot < DisplaySlot.values().length) {
             obj = base.getDisplayObjective(DisplaySlot.values()[slot]);
         }
         return obj == null ? null : new ScoreboardObjectiveHelper(obj);
@@ -143,7 +141,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
      * // the sidebar that matches a given player's team colour
      * const board = World.getScoreboards();
      * const players = World.getLoadedPlayers();
-     * if (board !== null) {
+     * if (board !== null && players !== null) {
      *   for (let i = 0; i !== players.size(); i += 1) {
      *     const index = board.getPlayerTeamColorIndex(players.get(i));
      *     if (index >= 0) {
@@ -385,42 +383,37 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
 
     /**
      * The team a given player is on. A scoreboard is not required to have a team for a player, so
-     * this wraps whatever the scoreboard holds and that can be nothing at all; going through
-     * {@link PlayerListEntryHelper#getTeam()} instead is the form that answers {@code null} rather
-     * than wrapping a missing team.
+     * this returns {@code null} when the player has no team. The tab-list helper's
+     * {@link PlayerListEntryHelper#getTeam()} is an alternative lookup with the same null contract.
      * example:
      * <pre>
      * // a player's team, checked before it is used
      * const board = World.getScoreboards();
      * const players = World.getLoadedPlayers();
-     * if (board !== null) {
+     * if (board !== null && players !== null) {
      *   for (let i = 0; i !== players.size(); i += 1) {
      *     const team = board.getPlayerTeam(players.get(i));
-     *     // the tab list form is the one that can be asked whether it found anything
-     *     const entry = World.getPlayerEntry(players.get(i).getName().getString());
-     *     if (entry !== null) {
-     *       if (entry.getTeam() === null) {
-     *         continue;
-     *       }
-     *       Chat.log(`${players.get(i).getName()} is on ${entry.getTeam().getName()}`);
+     *     if (team !== null) {
+     *       Chat.log(`${players.get(i).getName()} is on ${team.getName()}`);
      *     }
      *   }
      * }
      * </pre>
      *
      * @param p the player to look the team up for.
-     * @return a helper over that player's team, which wraps nothing if the player is on none.
+     * @return a helper over that player's team, or {@code null} if they have none.
      * @since 1.3.0
      */
+    @Nullable
     public TeamHelper getPlayerTeam(PlayerEntityHelper<Player> p) {
-        return new TeamHelper(getPlayerTeam(p.getRaw()));
+        PlayerTeam team = getPlayerTeam(p.getRaw());
+        return team == null ? null : new TeamHelper(team);
     }
 
     /**
      * The team the local player is on, with the local player filled in. Like
-     * {@link #getPlayerTeam(PlayerEntityHelper)} this wraps whatever the scoreboard holds rather
-     * than answering {@code null}, and the tab list form
-     * {@link PlayerListEntryHelper#getTeam()} is the one that can be asked.
+     * {@link #getPlayerTeam(PlayerEntityHelper)} this returns {@code null} if the player has no
+     * team. It also returns {@code null} when no local player is available.
      * example:
      * <pre>
      * // the local player's own team, the safe way round
@@ -430,14 +423,18 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
      *   for (let i = 0; i !== teams.size(); i += 1) {
      *     Chat.log(`${teams.get(i).getName()}: ${teams.get(i).getPlayerList().size()}`);
      *   }
+     *   const team = board.getPlayerTeam();
+     *   Chat.log(team === null ? "no team" : `your team: ${team.getName()}`);
      * }
      * </pre>
      *
-     * @return a helper over the local player's team, which wraps nothing if they are on none.
+     * @return the local player's team helper, or {@code null} if there is no player or team.
      * @since 1.6.5
      */
+    @Nullable
     public TeamHelper getPlayerTeam() {
-        return new TeamHelper(getPlayerTeam(Minecraft.getInstance().player));
+        PlayerTeam team = getPlayerTeam(Minecraft.getInstance().player);
+        return team == null ? null : new TeamHelper(team);
     }
 
     /**
@@ -451,7 +448,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
      */
     @Nullable
     protected PlayerTeam getPlayerTeam(Player p) {
-        return base.getPlayerTeam(p.getScoreboardName());
+        return p == null ? null : base.getPlayerTeam(p.getScoreboardName());
     }
 
     /**
@@ -476,7 +473,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
      */
     @Nullable
     protected ChatFormatting getPlayerTeamColor(Player player) {
-        PlayerTeam t = base.getPlayerTeam(player.getScoreboardName());
+        PlayerTeam t = getPlayerTeam(player);
         if (t == null) {
             return null;
         }
@@ -523,7 +520,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
 
     @Override
     public String toString() {
-        return String.format("ScoreboardsHelper:{\"current\": %s}", getCurrentScoreboard().toString());
+        return String.format("ScoreboardsHelper:{\"current\": %s}", getCurrentScoreboard());
     }
 
 }

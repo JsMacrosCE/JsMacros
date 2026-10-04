@@ -21,7 +21,8 @@ import java.util.function.Function;
  * {@link com.jsmacrosce.jsmacros.core.MethodWrapper MethodWrapper}, so the same wrapper can be
  * passed wherever any one of those is expected. Which method the Java caller ends up calling is
  * what decides the shape of the run, and each of the nine does the same three things: build the
- * event, run the script through {@link #f}, and then either return the value the script produced
+ * event, dispatch it when it is an {@link EventWrappedScript}, run the script through {@link #f},
+ * and then either return the value the script produced
  * or throw it away.
  * <br>
  * It is not the same thing as {@code JavaWrapper.methodToJava}, which is the other way of getting
@@ -85,7 +86,8 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
      * watchdog are done against. For the wrappers {@code JsMacros.wrapScriptRun} and
      * {@code wrapScriptRunAsync} build it is {@code Core.exec} on the wrapped script's file or
      * source, with the event name taken from the event that was just built, so the run is
-     * triggered as a {@code "WrappedScript"} event.
+     * identified as a {@code "WrappedScript"} run. The wrapper dispatches that event to registry
+     * listeners before invoking this function.
      */
     public final Function<BaseEvent, EventContainer<BaseScriptContext<?>>> f;
     /**
@@ -103,14 +105,20 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
         this._async = _async;
     }
 
+    private EventContainer<BaseScriptContext<?>> execute(BaseEvent event) {
+        if (event instanceof EventWrappedScript) event.trigger();
+        return f.apply(event);
+    }
+
     /**
      * starts the script with a single argument, and does nothing with what it produces. This is
      * the {@code Consumer} form.<br>
      * It is the one method that does not always wrap its argument: if what it was given is
      * already a {@link com.jsmacrosce.jsmacros.core.event.BaseEvent BaseEvent} that goes straight
      * to the script, so a wrapper passed as a {@code Consumer} of some event type hands the
-     * script that event rather than an {@link EventWrappedScript} wrapping it. Anything else is
-     * wrapped, and the script reads it as {@code arg1}.<br>
+     * script that event rather than an {@link EventWrappedScript} wrapping it. It is not
+     * additionally dispatched unless it is itself an EventWrappedScript. Anything else is
+     * wrapped, dispatched, and read by the script as {@code arg1}.<br>
      * Whether the caller waits for the script to finish depends on {@code _async}, so a wrapper
      * from {@code wrapScriptRun} blocks the Java thread that called it and one from
      * {@code wrapScriptRunAsync} does not. What the script sets as its result is dropped, so
@@ -122,7 +130,7 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     @Override
     public void accept(T t) {
         BaseEvent event = t instanceof BaseEvent ? (BaseEvent) t : new EventWrappedScript<>(runner, t, null);
-        EventContainer<BaseScriptContext<?>> t1 = f.apply(event);
+        EventContainer<BaseScriptContext<?>> t1 = execute(event);
         if (!_async) {
             boolean joinedMain = runner.profile.checkJoinedThreadStack();
             if (joinedMain) {
@@ -149,7 +157,7 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
      */
     @Override
     public void accept(T t, U u) {
-        EventContainer<BaseScriptContext<?>> t1 = f.apply(new EventWrappedScript<>(runner, t, u));
+        EventContainer<BaseScriptContext<?>> t1 = execute(new EventWrappedScript<>(runner, t, u));
         if (!_async) {
             boolean joinedMain = runner.profile.checkJoinedThreadStack();
             if (joinedMain) {
@@ -182,7 +190,7 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     @Override
     public V apply(T t) {
         EventWrappedScript<T, U, V> e;
-        EventContainer<BaseScriptContext<?>> t1 = f.apply(e = new EventWrappedScript<>(runner, t, null));
+        EventContainer<BaseScriptContext<?>> t1 = execute(e = new EventWrappedScript<>(runner, t, null));
         boolean joinedMain = runner.profile.checkJoinedThreadStack();
         if (joinedMain) {
             runner.profile.joinedThreadStack.add(t1.getLockThread());
@@ -211,7 +219,7 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     @Override
     public V apply(T t, U u) {
         EventWrappedScript<T, U, V> e;
-        EventContainer<BaseScriptContext<?>> t1 = f.apply(e = new EventWrappedScript<>(runner, t, u));
+        EventContainer<BaseScriptContext<?>> t1 = execute(e = new EventWrappedScript<>(runner, t, u));
         boolean joinedMain = runner.profile.checkJoinedThreadStack();
         if (joinedMain) {
             runner.profile.joinedThreadStack.add(t1.getLockThread());
@@ -240,7 +248,7 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     @Override
     public boolean test(T t) {
         EventWrappedScript<T, U, V> e;
-        EventContainer<BaseScriptContext<?>> t1 = f.apply(e = new EventWrappedScript<>(runner, t, null));
+        EventContainer<BaseScriptContext<?>> t1 = execute(e = new EventWrappedScript<>(runner, t, null));
         boolean joinedMain = runner.profile.checkJoinedThreadStack();
         if (joinedMain) {
             runner.profile.joinedThreadStack.add(t1.getLockThread());
@@ -268,7 +276,7 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     @Override
     public boolean test(T t, U u) {
         EventWrappedScript<T, U, V> e;
-        EventContainer<BaseScriptContext<?>> t1 = f.apply(e = new EventWrappedScript<>(runner, t, u));
+        EventContainer<BaseScriptContext<?>> t1 = execute(e = new EventWrappedScript<>(runner, t, u));
         boolean joinedMain = runner.profile.checkJoinedThreadStack();
         if (joinedMain) {
             runner.profile.joinedThreadStack.add(t1.getLockThread());
@@ -292,7 +300,7 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
      */
     @Override
     public void run() {
-        EventContainer<BaseScriptContext<?>> t1 = f.apply(new EventWrappedScript<>(runner, null, null));
+        EventContainer<BaseScriptContext<?>> t1 = execute(new EventWrappedScript<>(runner, null, null));
         if (!_async) {
             boolean joinedMain = runner.profile.checkJoinedThreadStack();
             if (joinedMain) {
@@ -325,7 +333,7 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     @Override
     public int compare(T o1, T o2) {
         EventWrappedScript<T, U, V> e;
-        EventContainer<BaseScriptContext<?>> t1 = f.apply(e = new EventWrappedScript<>(runner, o1, null));
+        EventContainer<BaseScriptContext<?>> t1 = execute(e = new EventWrappedScript<>(runner, o1, null));
         boolean joinedMain = runner.profile.checkJoinedThreadStack();
         if (joinedMain) {
             runner.profile.joinedThreadStack.add(t1.getLockThread());
@@ -353,7 +361,7 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     @Override
     public V get() {
         EventWrappedScript<T, U, V> e;
-        EventContainer<BaseScriptContext<?>> t1 = f.apply(e = new EventWrappedScript<>(runner, null, null));
+        EventContainer<BaseScriptContext<?>> t1 = execute(e = new EventWrappedScript<>(runner, null, null));
         boolean joinedMain = runner.profile.checkJoinedThreadStack();
         if (joinedMain) {
             runner.profile.joinedThreadStack.add(t1.getLockThread());

@@ -69,6 +69,7 @@ public class MovementDummy extends LivingEntity {
         inputs.add(input); // We use this and not the clone, since the clone may be modified?
         PlayerInput currentInput = input.clone();
         this.setYRot(currentInput.yaw);
+        this.setXRot(currentInput.pitch);
 
         Vec3 velocity = this.getDeltaMovement();
         double velX = velocity.x;

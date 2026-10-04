@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
@@ -100,9 +101,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     /**
     * the rotation in degrees, read by the transform that draws this element.
     * <p>
-    * {@link #setRotation(double)} stores whatever it is given without wrapping it into
-    * a single turn, so this is the number that was set rather than the same angle
-    * folded down.
+    * Constructors and {@link #setRotation(double)} normalize finite angles to
+    * {@code [-180, 180)}. Assigning directly to this field bypasses normalization.
     */
     public float rotation;
     /**
@@ -143,9 +143,11 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         this.y = y;
         this.width = width;
         this.height = height;
+        this.draw2D.widthSupplier = () -> this.width.getAsInt();
+        this.draw2D.heightSupplier = () -> this.height.getAsInt();
         this.zIndex = zIndex;
         this.scale = scale;
-        this.rotation = rotation;
+        this.rotation = Mth.wrapDegrees(rotation);
     }
 
     /**
@@ -460,8 +462,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     /**
     * turns this element, and everything drawn into it, by an angle in degrees.
     * <p>
-    * Stored as given, with no folding down into a single turn, so this is the number
-    * that was set rather than the same angle reduced.
+    * Finite angles are normalized to {@code [-180, 180)}, so setting 450 stores 90.
     * example:
     * <pre>
     * const outer = Hud.createDraw2D();
@@ -476,14 +477,15 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     * @since 1.8.4
     */
     public Draw2DElement setRotation(double rotation) {
-        this.rotation = (float) rotation;
+        this.rotation = Mth.wrapDegrees((float) rotation);
         return this;
     }
 
     /**
     * the rotation on this element, in degrees, as it was last set.
     * <p>
-    * Not folded into a single turn, so setting 450 reads back as 450 rather than 90.
+    * Constructors and setters normalize finite angles to {@code [-180, 180)}, so setting
+    * 450 reads back as 90. Direct writes to the public field bypass that normalization.
     * example:
     * <pre>
     * const outer = Hud.createDraw2D();
@@ -853,11 +855,10 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     * scale, the rotation starts at zero, and the rotation is about the middle of the
     * element until {@code rotateCenter} says otherwise.
     * <p>
-    * One thing to know about the size: the nested overlay's own width and height are
-    * bound to the values this builder had when it was constructed, not to the builder.
-    * A {@code width} or {@code size} call afterwards changes the element that is built
-    * and leaves the nested overlay reporting the outer overlay's size, which is what
-    * its own children are measured against.
+    * Before building, the nested overlay reads this builder's current dimension suppliers.
+    * Building installs suppliers that read the built element's current width and height, so
+    * subsequent element resizing also changes the size reported by the child. Use a separate
+    * child Draw2D for each independently sized wrapper: a child owns only one pair of suppliers.
     * example:
     * <pre>
     * const outer = Hud.createDraw2D();
@@ -887,10 +888,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         * makes a builder bound to one overlay, nesting another inside it.
         * <p>
         * The size is started off reading the overlay this was made from and the nested
-        * overlay's own size is bound to those same two readers, so before any
-        * {@code width} or {@code size} call both report the same number. After one,
-        * the element this builder builds is the new size and the nested overlay is
-        * still reporting the old one.
+        * overlay follows the builder's current readers, including later {@code width} or
+        * {@code size} calls. After building, the child follows the built element's dimensions.
         *
         * @param parent the overlay this element is going on
         * @param draw2D the overlay to nest
@@ -900,8 +899,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
             this.draw2D = draw2D;
             this.width = parent::getWidth;
             this.height = parent::getHeight;
-            this.draw2D.widthSupplier = this.width;
-            this.draw2D.heightSupplier = this.height;
+            this.draw2D.widthSupplier = () -> this.width.getAsInt();
+            this.draw2D.heightSupplier = () -> this.height.getAsInt();
         }
 
         /**

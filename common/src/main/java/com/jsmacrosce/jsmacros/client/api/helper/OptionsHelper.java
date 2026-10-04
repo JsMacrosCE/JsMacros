@@ -2528,14 +2528,10 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * whether to hide lightning flashes, the setting
-         * {@link #areLightningFlashesHidden()} reads back.
+         * Enables or disables FOV effects by setting their scale to {@code 1.0} or {@code 0.0}.
          * <p>
-         * The name is a copy-and-paste slip in the runtime and it is worth knowing about before
-         * calling it: this overload takes a boolean and writes the "hide lightning flash"
-         * setting, so it has nothing to do with the field of view and it does not touch the fov
-         * effect scale at all. The fov effect scale is the other overload, the one taking a
-         * number, {@link #setFovEffect(double)}, read back with {@link #getFovEffect()}.
+         * Use {@link #setFovEffect(double)} for an intermediate scale, and read the current scale
+         * with {@link #getFovEffect()}. This overload does not change the hide-lightning option.
          * <p>
          * It is written straight into the option rather than through the game's own setter, as
          * several others in this group are, so the value does not go through the option's range
@@ -2544,21 +2540,21 @@ public class OptionsHelper extends BaseHelper<Options> {
          * <pre>
          * const options = Client.getGameOptions();
          *
-         * // this one hides lightning flashes, despite the name
+         * // enable the full FOV effect
          * options.accessibility.setFovEffect(true);
-         * Chat.log(`flashes hidden: ${options.accessibility.areLightningFlashesHidden()}`);
+         * Chat.log(`fov effect scale: ${options.accessibility.getFovEffect()}`);
          *
          * // the fov effect scale is the overload taking a number
          * options.accessibility.setFovEffect(0.5);
          * Chat.log(`fov effect scale: ${options.accessibility.getFovEffect()}`);
          * </pre>
          *
-         * @param val whether to hide lightning flashes
+         * @param val whether to enable FOV effects at full scale
          * @return self for chaining.
          * @since 1.8.4
          */
         public AccessibilityOptionsHelper setFovEffect(boolean val) {
-            getBase(base.hideLightningFlash()).forceSetValue(val);
+            getBase(base.fovEffectScale()).forceSetValue(val ? 1.0 : 0.0);
             return this;
         }
 

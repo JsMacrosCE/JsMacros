@@ -226,6 +226,7 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
      * @return the encoded public key, or {@code null} if this player has no chat session.
      * @since 1.8.2
      */
+    @Nullable
     public byte[] getPublicKey() {
         RemoteChatSession session = base.getChatSession();
         return session == null ? null : session.profilePublicKey().data().key().getEncoded();
@@ -392,10 +393,8 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
     }
 
     /**
-     * The url to the body texture, or {@code null} if the client has not downloaded one. Despite
-     * the name, this reads the body texture rather than the cape's, so it is the same call as
-     * {@link #getSkinUrl()} and answers with the same address; a script that wants the cape's own
-     * address does not get one from here.
+     * The URL of the cape texture when it is a downloaded texture, or {@code null} if there is
+     * no cape or it is not a downloaded texture. This is the cape's own URL, not the body skin URL.
      * example:
      * <pre>
      * // the url this gives, beside the skin's own
@@ -406,14 +405,13 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
      * }
      * </pre>
      *
-     * @return the url to the body texture, the same address {@link #getSkinUrl()} gives, or
-     * {@code null} if the client has not downloaded that one.
+     * @return the cape texture URL, or {@code null} when unavailable
      * @since 2.1.0
      */
     //? if >1.21.8 {
     /*@Nullable
     public String getCapeUrl() {
-        return base.getSkin().body() instanceof ClientAsset.DownloadedTexture downloadedTexture ? downloadedTexture.url() : null;
+        return base.getSkin().cape() instanceof ClientAsset.DownloadedTexture downloadedTexture ? downloadedTexture.url() : null;
     }
     *///?}
 

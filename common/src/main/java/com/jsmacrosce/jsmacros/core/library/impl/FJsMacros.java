@@ -426,7 +426,11 @@ public class FJsMacros extends PerExecLibrary {
                     Thread t = Thread.currentThread();
                     t.setName(this.toString());
                     try {
-                        callback.accept(e, p);
+                        if (e.cancellable() || joined) {
+                            callback.apply(e, p);
+                        } else {
+                            callback.accept(e, p);
+                        }
                     } catch (Throwable ex) {
                         runner.eventRegistry.removeListener(event, this);
                         runner.profile.logError(ex);
@@ -436,6 +440,24 @@ public class FJsMacros extends PerExecLibrary {
                 });
                 p.setLockThread(ot == null ? th : ot);
                 return p;
+            }
+
+            @Override
+            public void triggerInline(BaseEvent e) {
+                if (filterer != null && !filterer.test(e)) return;
+                EventContainer<?> container = new EventContainer<>(callback.getCtx());
+                try {
+                    if (e.cancellable()) {
+                        callback.apply(e, container);
+                    } else {
+                        callback.accept(e, container);
+                    }
+                } catch (Throwable ex) {
+                    runner.eventRegistry.removeListener(event, this);
+                    runner.profile.logError(ex);
+                } finally {
+                    container.releaseLock();
+                }
             }
 
             @Override
@@ -520,7 +542,11 @@ public class FJsMacros extends PerExecLibrary {
 
                     t.setName(this.toString());
                     try {
-                        callback.accept(e, p);
+                        if (e.cancellable() || joined) {
+                            callback.apply(e, p);
+                        } else {
+                            callback.accept(e, p);
+                        }
                     } catch (Throwable ex) {
                         runner.profile.logError(ex);
                     } finally {
@@ -529,6 +555,23 @@ public class FJsMacros extends PerExecLibrary {
                 });
                 p.setLockThread(ot == null ? th : ot);
                 return p;
+            }
+
+            @Override
+            public void triggerInline(BaseEvent e) {
+                runner.eventRegistry.removeListener(event, this);
+                EventContainer<?> container = new EventContainer<>(callback.getCtx());
+                try {
+                    if (e.cancellable()) {
+                        callback.apply(e, container);
+                    } else {
+                        callback.accept(e, container);
+                    }
+                } catch (Throwable ex) {
+                    runner.profile.logError(ex);
+                } finally {
+                    container.releaseLock();
+                }
             }
 
             @Override
@@ -675,9 +718,8 @@ public class FJsMacros extends PerExecLibrary {
 
     /**
      * @param event event to wait for
-     * @return the event, and a fresh context. This form never joins, so there is
-     * nothing on the returned context to release early; use the form taking a
-     * {@code join} for that.
+     * @return the event and its context. This form requests no explicit join, but cancellable
+     * events still join. Release the returned context's lock promptly after processing a held event.
      * @throws InterruptedException
      * @since 1.5.0
      */
@@ -726,9 +768,8 @@ public class FJsMacros extends PerExecLibrary {
      *
      * @param event event to wait for
      * @param filter accepts the event or not, {@code null} for the first event of any kind
-     * @return the event, and a fresh context. This form never joins, so there is
-     * nothing on the returned context to release early; use the form taking a
-     * {@code join} for that.
+     * @return the event and its context. This form requests no explicit join, but cancellable
+     * events still join. Release the returned context's lock promptly after processing a held event.
      * @throws InterruptedException
      * @since 1.5.0 [citation needed]
      */
@@ -759,9 +800,8 @@ public class FJsMacros extends PerExecLibrary {
      * @param event            event to wait for
      * @param filter           filter the event until it has the proper values or whatever.
      * @param runBeforeWaiting runs as a {@link Runnable}, run before waiting, this is a thread-safety thing to prevent "interrupts" from going in between this and things like deferCurrentTask
-     * @return the event, and a fresh context. This form never joins, so there is
-     * nothing on the returned context to release early; use the form taking a
-     * {@code join} for that.
+     * @return the event and its context. This form requests no explicit join, but cancellable
+     * events still join. Release the returned context's lock promptly after processing a held event.
      * @throws InterruptedException
      * @since 1.5.0
      */
@@ -789,12 +829,11 @@ public class FJsMacros extends PerExecLibrary {
      * returns, which is why a script that needs to do something that waits is better written as a
      * {@link #runScript(String, BaseEvent, MethodWrapper) runScript} with a callback.
      * <br>
-     * The {@code join} argument is what decides whether the event system waits on the listener
-     * this registers. It only has an effect on an event that is joinable, and the joinable ones
-     * are exactly the cancellable ones; on any other event the listener is called and what it
-     * hands back is thrown away, so {@code true} there means the same as {@code false}. Nothing
-     * is marked joinable on its own, so this is currently a way to hold a cancellable event such
-     * as a chat message or an inventory click open while a script handles it.<br>
+     * The {@code join} argument requests waiting for a non-cancellable joinable event.
+     * Cancellable events are joined regardless of that argument. Ordinary events permit joining
+     * through their annotation or registry entry; custom events use their own joinable flag.
+     * A held event, such as a chat message or inventory click, must be processed promptly and its
+     * lock released before the configured watchdog timeout.<br>
      * What comes back is an {@link EventAndContext}, which holds the event itself and the context
      * it ran on. The context is how a joined event is let go of early, by calling
      * {@link EventContainer#releaseLock()} on it, rather than waiting for the handler to finish.
@@ -817,7 +856,7 @@ public class FJsMacros extends PerExecLibrary {
      * </pre>
      *
      * @param event            event to wait for
-     * @param join             whether the event system waits on this listener, which only happens for a joinable event
+     * @param join             whether to request joining a non-cancellable joinable event; cancellable events always join
      * @param filter           filter the event until it has the proper values or whatever.
      * @param runBeforeWaiting runs as a {@link Runnable}, run before waiting, this is a thread-safety thing to prevent "interrupts" from going in between this and things like deferCurrentTask
      * @return a event and a new context if the event you're waiting for was joined, to leave it early.
@@ -1112,6 +1151,9 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     public interface ScriptEventListener extends IEventListener {
+        default void triggerInline(BaseEvent event) {
+            trigger(event);
+        }
         String getCreatorName();
 
         @Nullable

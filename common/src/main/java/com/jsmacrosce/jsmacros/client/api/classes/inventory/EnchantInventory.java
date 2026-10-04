@@ -34,6 +34,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
  *   if (!inv.getItemToEnchant().isEmpty()) {
  *     const enchants = inv.getEnchantmentHelpers();
  *     for (let i = 0; enchants.length > i; i++) {
+ *       if (enchants[i] === null) continue;
  *       Chat.log(`${i}: ${enchants[i].getId()} ${enchants[i].getLevel()} for ${inv.getRequiredLevels()[i]} levels`);
  *     }
  *   }
@@ -56,8 +57,8 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
      * This is the menu's own array rather than a copy of it, and it is indexed the same way as
      * {@link #doEnchant(int)}. Every entry is 0 while the table has no item to enchant, so an
      * array of three zeroes means there is nothing on offer rather than that the options are
-     * free. Unlike {@link #getEnchantments()} and {@link #getEnchantmentIds()} this cannot
-     * fail on an empty table, so it is the safe thing to read first.
+     * free. The enchantment text, helper and id arrays also retain three slots, with null entries
+     * for unresolved clues.
      * example:
      * <pre>
      * const inv = Player.openInventory();
@@ -84,33 +85,31 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
      * registry id or its level separately is better served by {@link #getEnchantmentIds()} and
      * {@link #getEnchantmentLevels()}.
      * <p>
-     * This reads each option out of the registry by numeric id and insists on finding it, so
-     * it raises {@link java.util.NoSuchElementException} whenever the table is offering fewer
-     * than three enchantments, which is what happens with no item in the slot.
+     * This reads each option out of the registry by numeric id. An unresolved clue leaves a
+     * {@code null} entry in the three-element array, including when the table has no item.
      * example:
      * <pre>
      * const inv = Player.openInventory();
      * if (inv.is("Enchanting Table")) {
      *   if (!inv.getItemToEnchant().isEmpty()) {
      *     for (const text of inv.getEnchantments()) {
+     *       if (text === null) continue;
      *       Chat.log(text.getString());
      *     }
      *   }
      * }
      * </pre>
      *
-     * @return the three options as text, in order
-     * @throws java.util.NoSuchElementException if the table is not offering three enchantments
+     * @return the three options as text, in order, with {@code null} for unresolved clues
      * @since 1.3.1
      */
     public TextHelper[] getEnchantments() {
         TextHelper[] enchants = new TextHelper[3];
         var enchRegistry = mc.getConnection().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
         for (int j = 0; j < 3; ++j) {
-            Holder<Enchantment> enchantment = enchRegistry.get(inventory.getMenu().enchantClue[j]).orElseThrow();
-            if ((enchantment) != null) {
-                enchants[j] = TextHelper.wrap(Enchantment.getFullname(enchantment, inventory.getMenu().levelClue[j]));
-            }
+            int index = j;
+            enchRegistry.get(inventory.getMenu().enchantClue[j]).ifPresent(enchantment ->
+                    enchants[index] = TextHelper.wrap(Enchantment.getFullname(enchantment, inventory.getMenu().levelClue[index])));
         }
         return enchants;
     }
@@ -124,22 +123,22 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
      * vanilla, so a script does not have to split the display text. The level on each wrapper
      * is the one this table is offering, not the enchantment's maximum.
      * <p>
-     * Like {@link #getEnchantments()} this insists on resolving all three enchantments and so
-     * raises {@link java.util.NoSuchElementException} when the table is offering fewer than
-     * three of them.
+     * Like {@link #getEnchantments()}, this retains three entries and uses {@code null} for an
+     * option whose enchantment clue does not resolve.
      * example:
      * <pre>
      * const inv = Player.openInventory();
      * if (inv.is("Enchanting Table")) {
      *   if (!inv.getItemToEnchant().isEmpty()) {
      *     const first = inv.getEnchantmentHelpers()[0];
-     *     Chat.log(`${first.getId()} ${first.getLevel()}, max level ${first.getMaxLevel()}`);
+     *     if (first !== null) {
+     *       Chat.log(`${first.getId()} ${first.getLevel()}, max level ${first.getMaxLevel()}`);
+     *     }
      *   }
      * }
      * </pre>
      *
-     * @return the three options as enchantment wrappers, in order
-     * @throws java.util.NoSuchElementException if the table is not offering three enchantments
+     * @return the three options as enchantment wrappers, in order, with {@code null} for unresolved clues
      * @since 1.8.4
      */
     public EnchantmentHelper[] getEnchantmentHelpers() {
@@ -147,7 +146,9 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
         EnchantmentHelper[] enchantments = new EnchantmentHelper[3];
         var enchRegistry = mc.getConnection().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
         for (int i = 0; i < 3; i++) {
-            enchantments[i] = new EnchantmentHelper(enchRegistry.get(handler.enchantClue[i]).orElseThrow(), handler.levelClue[i]);
+            int level = i;
+            enchRegistry.get(handler.enchantClue[i]).ifPresent(enchantment ->
+                    enchantments[level] = new EnchantmentHelper(enchantment, handler.levelClue[level]));
         }
         return enchantments;
     }
@@ -157,9 +158,8 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
      * <p>
      * These are registry ids such as {@code "minecraft:sharpness"} rather than display names,
      * and they line up index for index with {@link #getRequiredLevels()},
-     * {@link #getEnchantmentLevels()} and {@link #doEnchant(int)}. Because the lookup is
-     * required to succeed, this raises {@link java.util.NoSuchElementException} whenever the
-     * table is offering fewer than three enchantments.
+     * {@link #getEnchantmentLevels()} and {@link #doEnchant(int)}. An unresolved clue leaves
+     * {@code null} in that option's slot rather than shortening the array.
      * example:
      * <pre>
      * const inv = Player.openInventory();
@@ -167,22 +167,21 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
      *   if (!inv.getItemToEnchant().isEmpty()) {
      *     const ids = inv.getEnchantmentIds();
      *     for (let i = 0; ids.length > i; i++) {
+     *       if (ids[i] === null) continue;
      *       Chat.log(`${ids[i]} at level ${inv.getEnchantmentLevels()[i]}`);
      *     }
      *   }
      * }
      * </pre>
      *
-     * @return the registry id of each option's enchantment, in order
-     * @throws java.util.NoSuchElementException if the table is not offering three enchantments
+     * @return the registry id of each option's enchantment, in order, with {@code null} for unresolved clues
      * @since 1.3.1
      */
     public String[] getEnchantmentIds() {
         String[] enchants = new String[3];
         var enchRegistry = mc.getConnection().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
         for (int j = 0; j < 3; ++j) {
-            Holder<Enchantment> enchantment = enchRegistry.get(inventory.getMenu().enchantClue[j]).orElseThrow();
-            enchants[j] = enchantment.getRegisteredName();
+            enchants[j] = enchRegistry.get(inventory.getMenu().enchantClue[j]).map(Holder::getRegisteredName).orElse(null);
         }
         return enchants;
     }

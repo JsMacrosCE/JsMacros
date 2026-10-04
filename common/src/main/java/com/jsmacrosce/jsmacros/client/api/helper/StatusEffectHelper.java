@@ -43,8 +43,8 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  *     // strength is the amplifier, so level II reads as 1
  *     const level = effect.getStrength() + 1;
  *     // the duration is in ticks, and twenty of those is a second
- *     const seconds = Math.ceil(effect.getTime() / 20);
- *     Chat.log(`${effect.getId()} ${effect.getCategory()} level ${level}, ${seconds}s left`);
+ *     const remaining = effect.isPermanent() ? "infinite" : `${Math.ceil(effect.getTime() / 20)}s left`;
+ *     Chat.log(`${effect.getId()} ${effect.getCategory()} level ${level}, ${remaining}`);
  *   }
  * }
  *
@@ -146,7 +146,8 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
      * how long this effect has left, in ticks.
      * <p>
      * This is the game's own unit and not seconds: twenty ticks is one second, so 24000 is
-     * twenty minutes. Divide by 20 to get seconds.
+     * twenty minutes. Infinite duration is {@code -1}; check {@link #isPermanent()} before
+     * dividing a finite duration by 20 to get seconds.
      * <br>
      * A duration of zero is normal and means the effect has run out, so it is not by itself a
      * sign of anything wrong; the game's own default when an effect is created with no
@@ -160,13 +161,13 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
      * const player = Player.getPlayer();
      * if (player !== null) {
      *   for (const effect of player.getStatusEffects()) {
-     *     const seconds = Math.ceil(effect.getTime() / 20);
-     *     Chat.log(`${effect.getId()} has ${seconds}s left`);
+     *     const remaining = effect.isPermanent() ? "infinite duration" : `${Math.ceil(effect.getTime() / 20)}s left`;
+     *     Chat.log(`${effect.getId()} has ${remaining}`);
      *   }
      * }
      * </pre>
      *
-     * @return
+     * @return remaining ticks, or {@code -1} for infinite duration
      * @since 1.2.4
      */
     public int getTime() {
@@ -176,17 +177,14 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
     /**
      * whether this effect is applied permanently.
      * <p>
-     * <b>This always answers {@code false} in this build.</b> The call is hard-coded to
-     * {@code false} and does not read the effect, so it cannot be used to tell a lasting effect
-     * from one that wears off. A script that wants the real answer should read
-     * {@link #getTime()} instead, where a duration of zero is the closest equivalent.
+     * Reads the effect's infinite-duration flag. Infinite duration is represented by
+     * {@code -1}; a duration of zero is not permanent.
      * example:
      * <pre>
      * const player = Player.getPlayer();
      * if (player !== null) {
      *   for (const effect of player.getStatusEffects()) {
-     *     // isPermanent() is always false here, so use the duration instead
-     *     const wearsOff = effect.getTime() !== 0;
+     *     const wearsOff = !effect.isPermanent();
      *     Chat.log(`${effect.getId()} ${wearsOff ? "wears off" : "does not wear off"}`);
      *   }
      * }
@@ -196,7 +194,7 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
      * @since 1.8.4
      */
     public boolean isPermanent() {
-        return false;
+        return base.isInfiniteDuration();
     }
 
     /**

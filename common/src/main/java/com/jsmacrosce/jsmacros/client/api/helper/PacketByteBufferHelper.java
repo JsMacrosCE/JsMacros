@@ -12,16 +12,17 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
-import it.unimi.dsi.fastutil.objects.Object2IntArrayMap;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.ProtocolInfo;
+import net.minecraft.network.ConnectionProtocol;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.PacketType;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -51,6 +52,7 @@ import com.jsmacrosce.jsmacros.util.ChunkPosCompat;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
 import java.security.PublicKey;
 import java.time.Instant;
 import java.util.*;
@@ -71,30 +73,28 @@ import java.util.stream.Stream;
  * how a script reads a packet it has just seen, and {@code Client.createPacketByteBuffer()}
  * makes an empty one for a script that wants to build a payload. Everything a script does to a
  * real packet through this is a <i>local</i> change: the game is handed the packet object, not
- * the buffer, so what a script writes here never reaches the network.
+ * the buffer. To apply edits to an intercepted packet, decode the buffer and assign the result
+ * to the event's {@code packet} field.
  * <p>
  * The buffer remembers where it was when the helper was made, and {@link #reset()} puts it
  * back. That is the pattern every read of a real packet should follow — read what you want,
- * then reset, so the next listener sees the packet from the start rather than part way through.
+ * then reset, so the next read from this helper starts at the original position.
  * <p>
- * <b>Turning a buffer back into a packet does not work in this build.</b>
- * {@link #toPacket(Class)} and {@link #toPacket(String)} read
- * {@code BUFFER_TO_PACKET}, and that map is declared but never filled in, so a call that gets as
- * far as the lookup throws a {@link java.lang.NullPointerException}. {@link #toPacket()} is the
- * one that can answer without throwing: it returns {@code null} when the buffer has no packet
- * behind it, which is the case for a fresh one, and throws when there is one.
- * {@link #sendPacket()} and {@link #receivePacket(String)} reach the same lookup and fail the
- * same way; {@link #receivePacket()} does not, because it hands the packet it already has
- * straight to the connection. To change what goes out, use the send event's
- * {@code replacePacket} instead.
+ * Supported standalone packets can be decoded using their registered codecs. Packet-backed
+ * helpers remember their network phase; overloads taking a protocol select a phase explicitly.
+ * Conversion reads from the current reader position, so reset after inspecting a packet before
+ * decoding its untouched bytes. {@link #receivePacket()} handles the original packet object,
+ * whereas its named and class overloads decode the buffer first.
  * example:
- * <pre>
+ * <pre class="language-typescript">
  * // read a packet that has just arrived, in the order the packet writes it
- * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event) {
+ * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event: EventRecvPacket) {
+ *   if (event.type !== "HealthUpdateS2CPacket") return;
+ *   if (!event.canGetPacketBuffer()) return;
  *   const buffer = event.getPacketBuffer();
- *   // HealthUpdateS2CPacket writes a float health, then two bytes of food
+ *   // HealthUpdateS2CPacket writes float health, VarInt food, then float saturation
  *   Chat.log(`health ${buffer.readFloat()}`);
- *   // put the buffer back so anything after this still sees the whole packet
+ *   // put this helper back before another read or conversion
  *   buffer.reset();
  * }));
  *
@@ -117,20 +117,13 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * <p>
      * Don't touch this here!
      * <br>
-     * <b>It is empty in this build, and nothing ever fills it.</b> The table is the one thing
-     * {@link #toPacket(Class)} reads, and it has no entries, so a call that gets as far as the
-     * lookup finds {@code null} and the call after it throws a
-     * {@link java.lang.NullPointerException}. That reaches {@link #toPacket(String)},
-     * {@link #sendPacket(String)}, {@link #receivePacket(String)} and
-     * {@link #receivePacket(Class)}, and it reaches {@link #toPacket()} and
-     * {@link #sendPacket()} whenever the buffer has a packet behind it. This is a bug in the
-     * class rather than a contract, and it is recorded here so a script does not go looking for
-     * a way round it.
+     * Populated during class initialization for packet classes with supported standalone codecs.
+     * {@link #toPacket(Class)} uses it for play-phase decoding; explicit phase decoding selects
+     * the matching codec directly.
      */
     public static final Map<Class<? extends Packet<?>>, Function<FriendlyByteBuf, ? extends Packet<?>>> BUFFER_TO_PACKET = new HashMap<>();
-    private static final Object2IntMap<Class<? extends Packet<?>>> PACKET_IDS = new Object2IntArrayMap<>();
-    private static final Object2IntMap<Class<? extends Packet<?>>> PACKET_STATES = new Object2IntArrayMap<>();
     private static final Object2BooleanMap<Class<? extends Packet<?>>> PACKET_SIDES = new Object2BooleanArrayMap<>();
+    private static final Map<Class<? extends Packet<?>>, Map<ConnectionProtocol, Integer>> PACKET_IDS_BY_PROTOCOL = new HashMap<>();
     /**
      * These names are subject to change and only exist for convenience.
      */
@@ -139,131 +132,166 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
 
     @Nullable
     private final Packet<?> packet;
+    private final String protocol;
     private final ByteBuf original;
+    @Nullable
+    private final RegistryAccess originalRegistryAccess;
 
     public PacketByteBufferHelper() {
         super(getBuffer(null));
         this.packet = null;
+        this.protocol = "play";
         this.original = base.copy();
+        this.originalRegistryAccess = base instanceof RegistryFriendlyByteBuf registryBuffer ? registryBuffer.registryAccess() : null;
     }
 
     public PacketByteBufferHelper(FriendlyByteBuf base) {
         super(base);
         this.packet = null;
+        this.protocol = "play";
         this.original = base.copy();
+        this.originalRegistryAccess = base instanceof RegistryFriendlyByteBuf registryBuffer ? registryBuffer.registryAccess() : null;
     }
 
     public PacketByteBufferHelper(Packet<?> packet) {
+        this(packet, preferredProtocol(packet, mc.getConnection() == null ? null : mc.getConnection().protocol()));
+    }
+
+    /**
+     * Encodes a packet using the standalone codec for the specified network phase.
+     *
+     * @param packet the packet to encode
+     * @param protocol the network phase, such as {@code play} or {@code configuration}
+     * @throws IllegalArgumentException if no standalone codec is available
+     */
+    public PacketByteBufferHelper(Packet<?> packet, String protocol) {
         super(getBuffer(packet));
         this.packet = packet;
+        this.protocol = protocol;
         base.markReaderIndex();
         base.markWriterIndex();
 
-        // get the PacketCodec static field and use it to write
-        // Note: Some packets like ClientboundBundlePacket don't have a codec and can't be serialized
+        // Bundles do not have standalone codecs and cannot be serialized here.
         try {
             Class<?> packetClass = packet.getClass();
-            Optional<Field> codecField = Arrays.stream(packetClass.getFields())
-                    .filter(field -> StreamCodec.class.isAssignableFrom(field.getType()))
-                    .findFirst();
+            Field codecField = findCodecField(packetClass, protocol);
 
-            if (codecField.isPresent()) {
-                StreamCodec<FriendlyByteBuf, Packet<?>> codec =
-                        (StreamCodec<FriendlyByteBuf, Packet<?>>) codecField.get().get(null);
-                codec.encode(base, packet);
-            }
-            // If no codec found, leave buffer empty - some packets like BundlePacket don't support direct serialization
-            // TODO: This should be handled more properly in the future, but I'm not certain how we should go about it.
-            //  Perhaps something like getPackets() which lets players get the sub-packets automatically?
+            if (codecField == null) throw new IllegalArgumentException("Packet has no standalone codec: " + packetClass);
+            StreamCodec<FriendlyByteBuf, Packet<?>> codec =
+                    (StreamCodec<FriendlyByteBuf, Packet<?>>) codecField.get(null);
+            codec.encode(base, packet);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
 
         this.original = base.copy();
+        this.originalRegistryAccess = base instanceof RegistryFriendlyByteBuf registryBuffer ? registryBuffer.registryAccess() : null;
     }
 
-    private static RegistryFriendlyByteBuf getBuffer(Packet<?> packet) {
+    private static FriendlyByteBuf getBuffer(Packet<?> packet) {
         ByteBuf buffer = Unpooled.buffer();
-        return new RegistryFriendlyByteBuf(buffer, mc.getConnection().registryAccess());
+        return mc.getConnection() == null ? new FriendlyByteBuf(buffer) : new RegistryFriendlyByteBuf(buffer, mc.getConnection().registryAccess());
     }
 
     /**
      * the packet this buffer came from, rebuilt from the buffer.
      * <p>
-     * Which of two things happens is decided by the buffer, and the order matters. The check on
-     * {@code packet} comes first, so a buffer that has no packet behind it — a fresh one from
-     * {@code Client.createPacketByteBuffer()}, which is the documented way to get an empty
-     * buffer to build a payload in — gives {@code null} and never reaches the lookup. A buffer a
-     * packet event handed out does have a packet, and that path goes through
-     * {@link #toPacket(Class)}, which reads {@link #BUFFER_TO_PACKET}; that map is never filled
-     * in, so the lookup gives {@code null} and the call after it throws a
-     * {@link java.lang.NullPointerException}. So the {@code null} is the reachable answer and the
-     * exception is the exceptional one, not the other way round. The name is misleading in
-     * one further respect: there is no call on this class that hands back the original packet
-     * object, so the packet a script is looking at is only reachable through the event that
-     * carries it.
+     * A fresh helper without an original packet returns {@code null}. A packet-backed helper
+     * decodes the original packet class using its saved network phase and the current reader
+     * position. This returns a decoded packet, not the original object carried by the event.
      *
      * @return the packet for this buffer, or {@code null} if no packet was used to create this
      * helper
-     * @throws NullPointerException if this buffer has a packet behind it, because the lookup
-     * table the conversion reads is empty
+     * @throws IllegalArgumentException if the packet class is not registered in the saved phase
+     * or has no supported codec
      * @since 1.8.4
      */
     @Nullable
     public Packet<?> toPacket() {
-        return packet == null ? null : toPacket(packet.getClass());
+        return packet == null ? null : toPacket(packet.getClass(), protocol);
     }
 
     /**
      * the packet named, built from this buffer.
      * <p>
-     * <b>This always throws in this build.</b> It looks the name up and passes what it finds to
-     * {@link #toPacket(Class)}, which reads {@link #BUFFER_TO_PACKET}; that map is never filled
-     * in, so the call throws a {@link java.lang.NullPointerException}. A
-     * name the lookup does not know gives {@code null} on the way in and fails the same way.
+     * Looks up the convenience name and decodes at the current reader position. Packet-backed
+     * helpers use their saved phase; fresh helpers default to play.
      * <br>
      * The names are the ones {@link #getPacketNames()} lists.
      *
      * @param packetName the name of the packet's class that should be returned
      * @return the packet for this buffer.
-     * @throws NullPointerException always, because the lookup table this reads is empty
-     * @see #getPacketNames()
+     * @throws IllegalArgumentException if the name is unknown or no supported codec is available
      * @since 1.8.4
      */
     @DocletReplaceParams("packetName: PacketName")
     public Packet<?> toPacket(String packetName) {
-        return toPacket(PACKETS.get(packetName));
+        Class<? extends Packet<?>> clazz = PACKETS.get(packetName);
+        if (clazz == null) throw new IllegalArgumentException("Unknown packet: " + packetName);
+        return toPacket((Class<? extends Packet>) clazz);
+    }
+
+    /**
+     * Decodes a named packet at the current reader position using an explicit network phase.
+     *
+     * @param packetName a convenience name from {@link #getPacketNames()}
+     * @param protocol the network phase
+     * @return the decoded packet
+     * @throws IllegalArgumentException if the name or phase is unknown, the packet is not
+     * registered in that phase, or no supported codec is available
+     */
+    public Packet<?> toPacket(String packetName, String protocol) {
+        Class<? extends Packet<?>> clazz = PACKETS.get(packetName);
+        if (clazz == null) throw new IllegalArgumentException("Unknown packet: " + packetName);
+        return toPacket((Class<? extends Packet>) clazz, protocol);
     }
 
     /**
      * the packet of the given class, built from this buffer.
      * <p>
-     * <b>This always throws in this build.</b> It is the one call that reads
-     * {@link #BUFFER_TO_PACKET} directly, and that map is never filled in, so the lookup gives
-     * {@code null} and calling it throws a
-     * {@link java.lang.NullPointerException}. Everything that turns a
-     * buffer back into a packet goes through here, which is why the whole family of those calls
-     * fails together.
-     * <br>
-     * Note that the buffer's own contents are not what is at fault: the failure is the missing
-     * lookup, not the bytes.
+     * Decodes at the current reader position. Non-play helpers use their saved phase; play
+     * helpers use the registered decoder lookup. The bytes must match the requested codec.
      *
      * @param clazz the class of the packet to return
      * @return the packet for this buffer.
-     * @throws NullPointerException always, because the lookup table this reads is empty
+     * @throws IllegalArgumentException if no supported codec is available
      * @since 1.8.4
      */
     public Packet<?> toPacket(Class<? extends Packet> clazz) {
-        return BUFFER_TO_PACKET.get(clazz).apply(base);
+        if (!protocol.equals("play")) return toPacket(clazz, protocol);
+        Function<FriendlyByteBuf, ? extends Packet<?>> decoder = BUFFER_TO_PACKET.get(clazz);
+        if (decoder == null) throw new IllegalArgumentException("Packet has no supported codec: " + clazz);
+        return decoder.apply(base);
+    }
+
+    /**
+     * Decodes at the current reader position using a phase-specific codec, including configuration
+     * custom payloads. The bytes must match the requested codec.
+     *
+     * @param clazz the packet class
+     * @param protocol the network phase
+     * @return the decoded packet
+     * @throws IllegalArgumentException if the phase is unknown, the class is not registered in
+     * that phase, or no supported codec is available
+     */
+    public Packet<?> toPacket(Class<? extends Packet> clazz, String protocol) {
+        getPacketId((Class<? extends Packet<?>>) clazz, protocol);
+        Field field = findCodecField(clazz, protocol);
+        if (field == null) throw new IllegalArgumentException("Packet has no supported codec: " + clazz);
+        try {
+            StreamCodec<FriendlyByteBuf, ? extends Packet<?>> codec =
+                    (StreamCodec<FriendlyByteBuf, ? extends Packet<?>>) field.get(null);
+            return codec.decode(base);
+        } catch (IllegalAccessException e) {
+            throw new IllegalStateException("Cannot read packet codec for " + clazz, e);
+        }
     }
 
     /**
      * the id the game uses on the wire for a packet class.
      * <p>
-     * <b>This always answers {@code 0} in this build.</b> The table it reads is populated by a
-     * block of code that is commented out in this class, so a class that is not in it gives the
-     * map's default rather than a real id. A script must not read {@code 0} here as meaning the
-     * packet really does have that id.
+     * This overload requires the packet class to occur in exactly one protocol. For a class
+     * shared between phases, use {@link #getPacketId(Class, String)} to disambiguate.
      * <br>
      * The event's own {@code type} string is the reliable way to tell what a packet is.
      * example:
@@ -275,90 +303,94 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * </pre>
      *
      * @param packetClass the class of the packet to get the id for
-     * @return the id of the packet, which is always {@code 0} in this build
+     * @return the registered packet id
+     * @throws IllegalArgumentException if the class is unknown or belongs to multiple protocols
      * @since 1.8.4
      */
     public int getPacketId(Class<? extends Packet<?>> packetClass) {
-        return PACKET_IDS.getInt(packetClass);
+        Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packetClass);
+        if (ids == null || ids.isEmpty()) throw new IllegalArgumentException("Unknown packet: " + packetClass);
+        if (ids.size() != 1) throw new IllegalArgumentException("Packet occurs in multiple protocols; use getPacketId(packetClass, protocol): " + packetClass);
+        return ids.values().iterator().next();
+    }
+
+    /** Returns the packet ID in the requested protocol (for example, "play" or "configuration"). */
+    public int getPacketId(Class<? extends Packet<?>> packetClass, String protocol) {
+        Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packetClass);
+        ConnectionProtocol phase = resolveProtocol(protocol);
+        if (ids == null || !ids.containsKey(phase)) throw new IllegalArgumentException("Packet is not registered in " + protocol + ": " + packetClass);
+        return ids.get(phase);
     }
 
     /**
      * which network state a packet class belongs to, in the game's own numbering.
      * <p>
-     * <b>This always answers {@code 0} in this build.</b> The table it reads is populated by a
-     * block of code that is commented out in this class, so a class that is not in it gives the
-     * map's default rather than a real value. A script must not read {@code 0} here as the
-     * real state.
+     * This overload requires the packet class to occur in exactly one protocol. Use
+     * {@link #getNetworkStateId(Class, String)} for a class shared between phases.
      * <br>
      * The state is which part of the connection a packet belongs to — logging in, playing, or
      * configuring — and it is why a packet cannot simply be read on the wrong one.
      *
      * @param packetClass the class of the packet to get the id for
-     * @return the id of the network state the packet belongs to, which is always {@code 0} in
-     * this build
+     * @return the ordinal of the registered connection protocol
+     * @throws IllegalArgumentException if the class is unknown or belongs to multiple protocols
      * @since 1.8.4
      */
     public int getNetworkStateId(Class<? extends Packet<?>> packetClass) {
-        return PACKET_STATES.getInt(packetClass);
+        Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packetClass);
+        if (ids == null || ids.isEmpty()) throw new IllegalArgumentException("Unknown packet: " + packetClass);
+        if (ids.size() != 1) throw new IllegalArgumentException("Packet occurs in multiple protocols; use getNetworkStateId(packetClass, protocol): " + packetClass);
+        return ids.keySet().iterator().next().ordinal();
+    }
+
+    /** Returns the state ID for a packet registered in the requested protocol. */
+    public int getNetworkStateId(Class<? extends Packet<?>> packetClass, String protocol) {
+        Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packetClass);
+        ConnectionProtocol phase = resolveProtocol(protocol);
+        if (ids == null || !ids.containsKey(phase)) throw new IllegalArgumentException("Packet is not registered in " + protocol + ": " + packetClass);
+        return phase.ordinal();
     }
 
     /**
      * whether a packet class is one the server sends to the client.
      * <p>
-     * <b>This always answers the default in this build.</b> The table it reads is
-     * populated by a block of code that is commented out in this class, so a class that
-     * is not in it gives the map's default rather than a real value. A script must not
-     * read the default as a real answer.
+     * Reads the registered packet direction rather than inferring it from a convenience name.
      * <br>
      * A name is the practical test for this: {@link #getPacketNames()} ends almost every
      * clientbound one with {@code S2C} and every serverbound one with {@code C2S}, and the
      * event's {@code type} is that same name.
      *
      * @param packetClass the class to get the side for
-     * @return {@code true} if the packet is clientbound, {@code false} if it is serverbound,
-     * which is always {@code false} in this build
+     * @return {@code true} if the packet is clientbound, {@code false} if it is serverbound
+     * @throws IllegalArgumentException if the class is unknown
      * @since 1.8.4
      */
     public boolean isClientbound(Class<? extends Packet<?>> packetClass) {
+        if (!PACKET_SIDES.containsKey(packetClass)) throw new IllegalArgumentException("Unknown packet: " + packetClass);
         return PACKET_SIDES.getBoolean(packetClass);
     }
 
     /**
      * whether a packet class is one the client sends to the server.
      * <p>
-     * <b>This always answers the default in this build.</b> The table it reads is
-     * populated by a block of code that is commented out in this class, so a class that
-     * is not in it gives the map's default rather than a real value. A script must not
-     * read the default as a real answer.
-     * <br>
-     * This is the exact opposite of {@link #isClientbound(Class)}, and since that is always
-     * {@code false} this is always {@code true} — including for a class that is genuinely
-     * clientbound. A name ending {@code C2S} is the reliable test.
+     * This is the exact opposite of {@link #isClientbound(Class)} for a registered packet class.
      *
      * @param packetClass the class to get the id for
-     * @return {@code true} if the packet is serverbound, {@code false} if it is clientbound,
-     * which is always {@code true} in this build
+     * @return {@code true} if the packet is serverbound, {@code false} if it is clientbound
+     * @throws IllegalArgumentException if the class is unknown
      * @since 1.8.4
      */
     public boolean isServerbound(Class<? extends Packet<?>> packetClass) {
-        return !PACKET_SIDES.getBoolean(packetClass);
+        return !isClientbound(packetClass);
     }
 
     /**
      * Send a packet of the given type, created from this buffer, to the server.
      * <p>
-     * <b>This does not work in this build.</b> It goes through
-     * {@link #toPacket()}, which reads a lookup table that is never filled in and so
-     * throws a {@link java.lang.NullPointerException}. For a buffer
-     * with no packet behind it the call is a no-op instead, since the null check comes
-     * first.
-     * <br>
-     * To change what goes to the server, use the send event's {@code replacePacket}
-     * rather than this.
+     * Decodes through {@link #toPacket()} at the current reader position. A helper without an
+     * original packet is a no-op. Sending requires a connection and a suitable serverbound packet.
      *
      * @return self for chaining.
-     * @throws NullPointerException if the buffer has a packet behind it, which is always the
-     * case for one a packet event handed out
      * @since 1.8.4
      */
     public PacketByteBufferHelper sendPacket() {
@@ -371,14 +403,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     /**
      * builds a packet of the named type from this buffer and sends it to the server.
      * <p>
-     * <b>This does not work in this build.</b> The name lookup may also give {@code null}, but
-     * either way the call reaches {@link #toPacket(Class)}, which reads a table that is never
-     * filled in and so throws a {@link java.lang.NullPointerException}.
-     * To change what goes to the server, use the send event's {@code replacePacket} instead.
+     * Decodes through the class overload at the current reader position. Requires a connection,
+     * a supported codec and bytes matching a suitable serverbound packet.
      *
      * @param packetName the name of the packet's class that should be sent
      * @return self for chaining.
-     * @throws NullPointerException always
      * @since 1.8.4
      */
     public PacketByteBufferHelper sendPacket(String packetName) {
@@ -400,12 +429,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     /**
      * handles a packet as though the client had received it, for testing a listener.
      * <p>
-     * This one is <b>not</b> affected by the empty {@link #BUFFER_TO_PACKET} table, and it is
-     * worth knowing why, because its two siblings with a name or a class are. Nothing is
-     * converted here: the call hands the packet the buffer already holds straight to the
-     * client's connection, so neither the table nor {@link #toPacket()} is read at all. A
-     * buffer with no packet behind it, a fresh one for instance, is a no-op, which is the one
-     * case where the two are the same thing.
+     * Nothing is converted here: this handles the original packet object, not modified buffer
+     * bytes. The named and class overloads decode instead. A helper without an original packet
+     * is a no-op in all three receive overloads.
      * <br>
      * Nothing is sent anywhere either, so this is the opposite direction from
      * {@link #sendPacket()} and the send event's {@code replacePacket} has no bearing on it.
@@ -431,16 +457,12 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     /**
      * handles a packet of the named type as though the client had received it.
      * <p>
-     * <b>This does not work in this build.</b> It goes through {@link #toPacket(String)}, whose
-     * lookup table is never filled in, so it throws a
-     * {@link java.lang.NullPointerException} for any buffer that has a
-     * packet behind it and is a no-op for one that does not. The names are the ones
-     * {@link #getPacketNames()} lists.
+     * If this helper has an original packet, decodes through {@link #toPacket(String)} and
+     * handles the result with the client game connection. Otherwise this is a no-op. The bytes
+     * must be correctly positioned and describe a compatible client game packet.
      *
      * @param packetName the name of the packet's class that should be received
      * @return self for chaining.
-     * @throws NullPointerException if the buffer has a packet behind it
-     * @see #getPacketNames()
      * @since 1.8.4
      */
     @DocletReplaceParams("packetName: PacketName")
@@ -454,19 +476,12 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     /**
      * handles a packet of the given class as though the client had received it.
      * <p>
-     * <b>This does not work in this build.</b> It goes through
-     * {@link #toPacket(Class)}, which reads a lookup table that is never filled in and so
-     * throws a {@link java.lang.NullPointerException}. For a buffer
-     * with no packet behind it the call is a no-op instead, since the null check comes
-     * first.
-     * <br>
-     * Note that this is the opposite of {@link #receivePacket()}, which does no conversion and
-     * therefore works: the {@code clazz} is only ever used to build a packet that the conversion
-     * then fails to produce, so naming a class here gains nothing over the no-argument form.
+     * If this helper has an original packet, decodes through {@link #toPacket(Class)} and
+     * handles the result with the client game connection. Otherwise this is a no-op. The bytes
+     * must be correctly positioned and describe a compatible client game packet.
      *
      * @param clazz the class of the packet to receive
      * @return self for chaining.
-     * @throws NullPointerException if the buffer has a packet behind it
      * @since 1.8.4
      */
     public PacketByteBufferHelper receivePacket(Class<? extends Packet> clazz) {
@@ -484,8 +499,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * <br>
      * The naming carries the direction: a name ending {@code S2CPacket} is one the server sends
      * to the client and one ending {@code C2SPacket} is one the client sends. That suffix is
-     * the practical way to tell the two apart here, because
-     * {@link #isClientbound(Class)} and {@link #isServerbound(Class)} do not work in this build.
+     * a convenient naming convention; registered metadata from {@link #isClientbound(Class)}
+     * and {@link #isServerbound(Class)} is authoritative when the packet class is available.
      * <br>
      * It is a rule rather than a certainty, and a script that cares should not assume it holds
      * for every entry. In the 1.21.8 build the table holds 200 names, of which 132 end in
@@ -542,18 +557,20 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * Resets the buffer to the state it was in when this helper was created.
      * <p>
      * The position and the contents both go back, so this undoes a read as well as a write.
-     * That makes it the call every listener on a packet event should make once it has read what
-     * it wanted: the buffer is shared with the rest of the game and with any other script, and
-     * without this the next reader starts wherever this one stopped.
+     * Use this after inspecting a packet if another read or conversion should start from the
+     * original position. Each packet-buffer helper owns its own bytes; resetting one does not
+     * replace the event's packet. Registry-backed buffers retain their registry access.
      * <br>
      * The state it restores is the one captured when the helper was <i>made</i>, which for a
      * packet event's helper is the state as the packet wrote it, not an empty buffer.
      * example:
-     * <pre>
-     * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event) {
+     * <pre class="language-typescript">
+     * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event: EventRecvPacket) {
+     *   if (event.type !== "HealthUpdateS2CPacket") return;
+     *   if (!event.canGetPacketBuffer()) return;
      *   const buffer = event.getPacketBuffer();
-     *   // read the first field, then hand the packet back intact
-     *   Chat.log(`first field ${buffer.readVarInt()}`);
+     *   // read health, then restore this helper for another read
+     *   Chat.log(`health ${buffer.readFloat()}`);
      *   buffer.reset();
      * }));
      * </pre>
@@ -562,7 +579,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public PacketByteBufferHelper reset() {
-        base = new FriendlyByteBuf(original.copy());
+        base = originalRegistryAccess != null
+                ? new RegistryFriendlyByteBuf(original.copy(), originalRegistryAccess)
+                : new FriendlyByteBuf(original.copy());
         return this;
     }
 
@@ -2095,6 +2114,114 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         PACKETS.put("ScoreboardScoreResetS2CPacket", net.minecraft.network.protocol.game.ClientboundResetScorePacket.class);
 
         PACKETS.forEach((name, clazz) -> PACKET_NAMES.put(clazz, name));
+        registerPacketCodecsAndMetadata();
+    }
+
+    private static void registerPacketCodecsAndMetadata() {
+        String root = "net.minecraft.network.protocol.";
+        String[] phases = {"handshake", "status", "login", "configuration", "game"};
+        Map<PacketType<?>, Class<? extends Packet<?>>> classes = new HashMap<>();
+        String[] typePackages = {"handshake", "status", "login", "configuration", "game", "common", "cookie", "ping"};
+        for (String phase : typePackages) {
+            try {
+                Class<?> types = Class.forName(root + phase + "." + switch (phase) {
+                    case "game" -> "GamePacketTypes";
+                    default -> Character.toUpperCase(phase.charAt(0)) + phase.substring(1) + "PacketTypes";
+                });
+                for (Field field : types.getFields()) {
+                    if (!(field.getGenericType() instanceof ParameterizedType generic) ||
+                            !(generic.getActualTypeArguments()[0] instanceof Class<?> packetClass) ||
+                            !Packet.class.isAssignableFrom(packetClass)) continue;
+                    classes.put((PacketType<?>) field.get(null), (Class<? extends Packet<?>>) packetClass);
+                }
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Cannot read packet types for " + phase, e);
+            }
+        }
+        for (String phase : phases) {
+            try {
+                Class<?> protocols = Class.forName(root + phase + "." + switch (phase) {
+                    case "game" -> "GameProtocols";
+                    default -> Character.toUpperCase(phase.charAt(0)) + phase.substring(1) + "Protocols";
+                });
+                for (Field field : protocols.getFields()) {
+                    if (!field.getName().endsWith("_TEMPLATE")) continue;
+                    ProtocolInfo.Details details = ((ProtocolInfo.DetailsProvider) field.get(null)).details();
+                    details.listPackets((type, index) -> {
+                        Class<? extends Packet<?>> packetClass = classes.get(type);
+                        if (packetClass == null) return;
+                        PACKET_IDS_BY_PROTOCOL.computeIfAbsent(packetClass, key -> new EnumMap<>(ConnectionProtocol.class))
+                                .put(details.id(), index);
+                        PACKET_SIDES.put(packetClass, details.flow() == PacketFlow.CLIENTBOUND);
+                    });
+                }
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Cannot read packet protocols for " + phase, e);
+            }
+        }
+        for (Class<? extends Packet<?>> clazz : classes.values()) {
+            try {
+                Field codecField = findCodecField(clazz, "play");
+                if (codecField == null) continue;
+                StreamCodec<FriendlyByteBuf, ? extends Packet<?>> codec = (StreamCodec<FriendlyByteBuf, ? extends Packet<?>>) codecField.get(null);
+                BUFFER_TO_PACKET.put(clazz, codec::decode);
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException("Cannot read codec for " + clazz, e);
+            }
+        }
+    }
+
+    @Nullable
+    private static Field findCodecField(Class<?> clazz, String protocol) {
+        String preferred = null;
+        if (protocol.equalsIgnoreCase("configuration")) {
+            if (clazz == ClientboundCustomPayloadPacket.class) preferred = "CONFIG_STREAM_CODEC";
+            else if (clazz.getSimpleName().equals("ClientboundShowDialogPacket")) preferred = "CONTEXT_FREE_STREAM_CODEC";
+        } else if (clazz == ClientboundCustomPayloadPacket.class) {
+            preferred = "GAMEPLAY_STREAM_CODEC";
+        }
+        String codecName = preferred;
+        return Arrays.stream(clazz.getFields())
+                .filter(field -> StreamCodec.class.isAssignableFrom(field.getType()))
+                .filter(field -> field.getName().equals("STREAM_CODEC") || field.getName().equals(codecName))
+                .sorted(Comparator.comparingInt(field -> field.getName().equals(codecName) ? 0 : 1))
+                .findFirst().orElse(null);
+    }
+
+    private static ConnectionProtocol resolveProtocol(String protocol) {
+        for (ConnectionProtocol phase : ConnectionProtocol.values()) {
+            if (phase.id().equalsIgnoreCase(protocol) || phase.name().equalsIgnoreCase(protocol)) return phase;
+        }
+        throw new IllegalArgumentException("Unknown protocol: " + protocol);
+    }
+
+    /**
+     * Checks whether a packet has a registered phase and a standalone codec for that phase.
+     * Uses the same phase selection as {@link #PacketByteBufferHelper(Packet)}. Bundles,
+     * unregistered packets and packets whose phase cannot be selected return {@code false}.
+     * This checks codec availability, not whether encoding the packet's contents will succeed.
+     *
+     * @param packet the packet to check, or {@code null}
+     * @return whether the packet has a supported standalone codec
+     * @since 2.0.0
+     */
+    public static boolean canSerialize(@Nullable Packet<?> packet) {
+        if (packet == null) return false;
+        try {
+            String protocol = preferredProtocol(packet, mc.getConnection() == null ? null : mc.getConnection().protocol());
+            return findCodecField(packet.getClass(), protocol) != null;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /** Choose the registered phase, preferring the connection's current phase for shared packets. */
+    public static String preferredProtocol(Packet<?> packet, @Nullable ConnectionProtocol current) {
+        Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packet.getClass());
+        if (ids == null || ids.isEmpty()) throw new IllegalArgumentException("Unknown packet: " + packet.getClass());
+        if (current != null && ids.containsKey(current)) return current.id();
+        if (ids.size() == 1) return ids.keySet().iterator().next().id();
+        throw new IllegalArgumentException("Packet occurs in multiple protocols; specify its phase: " + packet.getClass());
     }
 
     public static void main(String[] args) throws IOException {

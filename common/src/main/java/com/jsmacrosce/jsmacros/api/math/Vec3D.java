@@ -11,12 +11,8 @@ import java.util.Objects;
  * {@code z1} for the start, {@code x2}/{@code y2} and {@code z2} for the end. It extends
  * {@link Vec2D}, so it is also a two dimensional segment and the flat measurements there work on
  * it, but everything that reports a length or an angle is overridden to include z.<br>
- * There is one hole in that: {@link Vec2D#to3D() to3D()} is inherited rather than overridden, and
- * it builds its result out of the four flat coordinates alone, so calling it on a {@code Vec3D}
- * quietly throws both z coordinates away and hands back a segment lying on the z {@code 0} plane
- * at the x and y of this one. A {@code Vec3D} is already three dimensional, so there is nothing
- * for that call to do; treat a {@code Vec3D} as its own type instead of round tripping it
- * through the flat one.<br>
+ * {@link #to3D()} returns a new segment containing all six endpoint coordinates, including
+ * both z coordinates.<br>
  * Most of what it can tell you is a difference between the two ends, which is what
  * {@link #getDeltaX() getDeltaX()}, {@link #getDeltaY() getDeltaY()},
  * {@link #getDeltaZ() getDeltaZ()} and {@link #getMagnitude() getMagnitude()} read off, plus
@@ -375,21 +371,10 @@ public class Vec3D extends Vec2D {
      * It is worked out from how far the segment travels horizontally compared with how far it
      * climbs, where the horizontal side is a single distance across x and z together and the
      * vertical side is the y difference.<br>
-     * The range is not quite the clean {@code -90} to {@code 90} it looks like, and the
-     * exception is worth knowing about. The angle is wrapped into {@code -180} to {@code 180}
-     * before {@code 90} is subtracted from it, and exactly vertical segments do not survive that
-     * wrap: a segment running exactly straight up, and a segment whose two ends are the same
-     * point, both come out as {@code 270} rather than as {@code -90}. Every other segment lands
-     * somewhere between {@code -90} exclusive and {@code 90} inclusive, a segment running
-     * exactly straight down being the {@code 90} end of that. The {@code 270} is not an error
-     * either: the game's own {@code Mth.wrapDegrees} turns {@code 270} back into {@code -90},
-     * so it is straight up under the game's arithmetic and only looks odd sitting next to the
-     * rest of the range. A real player never shows it, because the game normalises the player's
-     * own pitch into {@code -90} to {@code 90} on every assignment, which is the step this
-     * method does not do.
+     * For finite coordinates the range is {@code [-90, 90]}: straight up is {@code -90},
+     * straight down is {@code 90}, and a zero-length segment returns zero.
      *
-     * @return the pitch of this segment's direction, in degrees, normally between {@code -90}
-     *         and {@code 90} but {@code 270} for a straight up or a zero length segment
+     * @return the pitch of this segment's direction in degrees
      * @since 1.2.6
      */
     public float getPitch() {
@@ -397,7 +382,17 @@ public class Vec3D extends Vec2D {
         double dy = y2 - y1;
         double dz = z2 - z1;
         double xz = Math.sqrt(dx * dx + dz * dz);
-        return 90F - (float) Mth.wrapDegrees(Math.toDegrees(Math.atan2(xz, -dy)));
+        return (float) Math.toDegrees(Math.atan2(-dy, xz));
+    }
+
+    /**
+     * Copies this segment without discarding either z coordinate.
+     *
+     * @return a new Vec3D containing all six endpoint coordinates
+     */
+    @Override
+    public Vec3D to3D() {
+        return new Vec3D(this);
     }
 
     /**

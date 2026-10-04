@@ -78,14 +78,14 @@ public class BlockStateFilter extends ClassWrapperFilter<BlockStateHelper> {
      * Chat.log(`${scanner.scanAroundPlayer(2).size()} states that break on push`);
      * </pre>
      *
-     * @param methodName the name of a public parameterless method declared by
+     * @param methodName the name of a public parameterless method available on
      *                   {@link BlockStateHelper}
      * @param methodArgs the arguments to call that method with, or {@code null} for none
      * @param filterArgs the arguments for the comparison, whose count and types are decided
      *                   by the return type of the named method
      * @throws NullPointerException if {@code methodName} is not a public parameterless method
-     *         declared by {@link BlockStateHelper}, which includes a name matching only an
-     *         inherited method or a method that takes parameters
+     *         available on {@link BlockStateHelper}; inherited methods are included, but methods
+     *         declared by Object and methods taking parameters are excluded
      * @throws IllegalArgumentException if the named method returns a type that has no
      *         comparison, such as another helper or a block
      * @throws ArrayIndexOutOfBoundsException if {@code filterArgs} is shorter than the

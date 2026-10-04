@@ -445,10 +445,15 @@ public class SuggestionsBuilderHelper extends BaseHelper<SuggestionsBuilder> {
     }
 
     /**
-     * Positions are strings of the form "x y z" where x, y, and z are numbers or the default
+     * Positions are strings of the form {@code x z} or {@code x y z}, with numbers or the default
      * minecraft selectors "~" and "^" followed by a number.
      *
+     * All positions in one call must have the same dimension. Leading and trailing whitespace
+     * is ignored and coordinates may be separated by multiple whitespace characters.
+     *
      * @param positions the positions to suggest
+     * @throws IllegalArgumentException if a position has neither two nor three coordinates,
+     * or if the call mixes dimensions
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -457,35 +462,52 @@ public class SuggestionsBuilderHelper extends BaseHelper<SuggestionsBuilder> {
     }
 
     /**
-     * Positions are strings of the form "x y z" where x, y, and z are numbers or the default
+     * Positions are strings of the form {@code x z} or {@code x y z}, with numbers or the default
      * minecraft selectors "~" and "^" followed by a number.
      * <p>
      * Unlike {@link #suggestBlockPositions(BlockPosHelper...)}, the strings go through as
      * written, so the relative {@code ~} and {@code ^} forms survive and the game's own
      * coordinate matching is what narrows them against what the player has typed.
      * <br>
-     * Each string is split on single spaces and the first three parts are read straight out of
-     * the result, so a string with fewer than three space-separated parts is not quietly
-     * skipped: it throws an {@link java.lang.ArrayIndexOutOfBoundsException} while the
-     * suggestions are being built. A double space makes an empty middle part rather than
-     * closing the gap, so exactly one space between the three numbers is what is wanted.
+     * Each string is trimmed and split on one or more whitespace characters. Two coordinates
+     * use the game's 2D suggestion routine, and three use its 3D routine. Every position in one
+     * call must have the same dimension. An empty collection adds nothing.
      * example:
-     * <pre>
+     * <pre class="language-typescript">
      * const command = Chat.getCommandManager().createCommandBuilder("tp")
      *   .literalArg("pos")
-     *   .suggestPositions("0 64 0", "~ ~ ~", "-100 ~ 100");
+     *   .suggest(JavaWrapper.methodToJava(function (ctx: CommandContextHelper, suggestions: SuggestionsBuilderHelper) {
+     *     suggestions.suggestPositions("0 64 0", "~ ~ ~", "  -100   ~   100  ");
+     *   }));
      * command.register();
      * </pre>
      *
      * @param positions the relative positions to suggest
+     * @throws IllegalArgumentException if a position has neither two nor three coordinates,
+     * or if the call mixes dimensions
      * @return self for chaining.
      * @since 1.8.4
      */
     public SuggestionsBuilderHelper suggestPositions(Collection<String> positions) {
-        SharedSuggestionProvider.suggestCoordinates(getRemaining(), positions.stream().map(p -> {
-            String[] split = p.split(" ");
-            return new SharedSuggestionProvider.TextCoordinates(split[0], split[1], split[2]);
-        }).collect(Collectors.toList()), base, s -> true);
+        var coordinates = positions.stream().map(p -> p.trim().split("\\s+"))
+                .peek(parts -> {
+                    if (parts.length != 2 && parts.length != 3) {
+                        throw new IllegalArgumentException("A position must have two or three coordinates");
+                    }
+                }).toList();
+        if (!coordinates.isEmpty()) {
+            int dimensions = coordinates.getFirst().length;
+            if (coordinates.stream().anyMatch(parts -> parts.length != dimensions)) {
+                throw new IllegalArgumentException("Positions must all have the same number of coordinates");
+            }
+            var values = coordinates.stream().map(parts -> new SharedSuggestionProvider.TextCoordinates(
+                    parts[0], dimensions == 3 ? parts[1] : "", parts[dimensions - 1])).toList();
+            if (dimensions == 2) {
+                SharedSuggestionProvider.suggest2DCoordinates(getRemaining(), values, base, s -> true);
+            } else {
+                SharedSuggestionProvider.suggestCoordinates(getRemaining(), values, base, s -> true);
+            }
+        }
         return this;
     }
 

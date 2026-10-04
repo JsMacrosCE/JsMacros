@@ -141,8 +141,8 @@ public class Item implements RenderElement, Alignable<Item> {
     /**
     * the rotation in degrees, wrapped into a single turn.
     * <p>
-    * Only the setter folds it, not the constructor, so an icon made at 450 reads 450 and
-    * one set to 450 afterwards reads 90.
+    * Constructors and setters normalize finite angles to {@code [-180, 180)}, so 450
+    * reads back as 90. Direct field writes bypass normalization.
     */
     public float rotation;
     /**
@@ -176,8 +176,7 @@ public class Item implements RenderElement, Alignable<Item> {
     * does not fail: the registry has a default entry and hands that back, so a mistyped
     * id gives the default item rather than nothing.
     * <p>
-    * The rotation is stored as given here rather than folded into a single turn, which
-    * is the one place in this class where an angle is not reduced.
+    * Finite rotations are normalized to {@code [-180, 180)}.
     *
     * @param x        the x position
     * @param y        the y position
@@ -185,7 +184,7 @@ public class Item implements RenderElement, Alignable<Item> {
     * @param id       the item to draw, with the namespace optional
     * @param overlay  whether to draw the game's decorations over the icon
     * @param scale    the scale to apply
-    * @param rotation the rotation in degrees, stored as given
+    * @param rotation the rotation in degrees, normalized to {@code [-180, 180)}
     */
     @DocletReplaceParams("x: int, y: int, zIndex: int, id: CanOmitNamespace<ItemId>, overlay: boolean, scale: double, rotation: float")
     public Item(int x, int y, int zIndex, String id, boolean overlay, double scale, float rotation) {
@@ -204,7 +203,7 @@ public class Item implements RenderElement, Alignable<Item> {
     * @param i        the stack whose icon to draw
     * @param overlay  whether to draw the game's decorations over the icon
     * @param scale    the scale to apply
-    * @param rotation the rotation in degrees, stored as given
+    * @param rotation the rotation in degrees, normalized to {@code [-180, 180)}
     */
     public Item(int x, int y, int zIndex, ItemStackHelper i, boolean overlay, double scale, float rotation) {
         this(x, y, zIndex, i, overlay, scale, rotation, null);
@@ -223,7 +222,7 @@ public class Item implements RenderElement, Alignable<Item> {
     * @param itemStack the stack whose icon to draw
     * @param overlay   whether to draw the game's decorations over the icon
     * @param scale     the scale to apply
-    * @param rotation  the rotation in degrees, stored as given
+    * @param rotation  the rotation in degrees, normalized to {@code [-180, 180)}
     * @param ovText    the text to draw over the icon, or {@code null} for the count
     */
     public Item(int x, int y, int zIndex, ItemStackHelper itemStack, boolean overlay, double scale, float rotation, String ovText) {
@@ -232,7 +231,7 @@ public class Item implements RenderElement, Alignable<Item> {
         this.item = itemStack.getRaw();
         this.overlay = overlay;
         this.scale = scale;
-        this.rotation = rotation;
+        this.rotation = Mth.wrapDegrees(rotation);
         this.zIndex = zIndex;
         this.ovText = ovText;
     }
@@ -472,8 +471,8 @@ public class Item implements RenderElement, Alignable<Item> {
     /**
     * turns this icon by an angle in degrees.
     * <p>
-    * The angle is folded into a single turn, so 450 reads back as 90. The constructor
-    * does not fold it, so an icon made at 450 reads 450 until this is called.
+    * Finite angles are normalized to {@code [-180, 180)}, so 450 reads back as 90.
+    * Constructors apply the same normalization.
     * example:
     * <pre>
     * const draw = Hud.createDraw2D();
@@ -495,9 +494,8 @@ public class Item implements RenderElement, Alignable<Item> {
     /**
     * the rotation on this icon in degrees, folded into a single turn.
     * <p>
-    * Between -180 and 180 once a setter has been used, and whatever was given if the
-    * icon was only ever made through a constructor or a builder, since those do not
-    * fold it either.
+    * Constructors and setters normalize finite angles to {@code [-180, 180)}. Direct
+    * writes to the public field bypass that normalization.
     * example:
     * <pre>
     * const draw = Hud.createDraw2D();
@@ -1512,8 +1510,7 @@ public class Item implements RenderElement, Alignable<Item> {
         * turns the icon by an angle in degrees.
         * <p>
         * Stored as given rather than folded into a single turn, so this reads back as
-        * 450. The icon that comes out of it is made through a constructor, which does
-        * not fold it either, so an icon built at 450 reads 450 as well.
+        * 450 on the builder. The built icon's constructor normalizes it to 90.
         * example:
         * <pre>
         * const draw = Hud.createDraw2D();

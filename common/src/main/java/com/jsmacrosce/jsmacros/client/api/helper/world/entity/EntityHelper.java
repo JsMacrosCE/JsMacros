@@ -80,7 +80,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 //? if >=1.21.11 {
-/*import net.minecraft.world.entity.vehicle.boat.Boat;
+/*import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
 import net.minecraft.world.entity.vehicle.minecart.MinecartFurnace;
 import net.minecraft.world.entity.vehicle.minecart.MinecartTNT;
 import net.minecraft.world.entity.npc.villager.AbstractVillager;
@@ -118,7 +118,7 @@ import net.minecraft.world.entity.projectile.arrow.ThrownTrident;
 import net.minecraft.world.entity.projectile.hurtingprojectile.WitherSkull;
 import net.minecraft.world.entity.animal.polarbear.PolarBear;
 *///? } else {
-import net.minecraft.world.entity.vehicle.Boat;
+import net.minecraft.world.entity.vehicle.AbstractBoat;
 import net.minecraft.world.entity.vehicle.MinecartFurnace;
 import net.minecraft.world.entity.vehicle.MinecartTNT;
 import net.minecraft.world.entity.npc.AbstractVillager;
@@ -1615,8 +1615,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
         }
 
         // Vehicles
-        if (e instanceof Boat) {
-            return new BoatEntityHelper(((Boat) e));
+        if (e instanceof AbstractBoat) {
+            return new BoatEntityHelper(((AbstractBoat) e));
         } else if (e instanceof MinecartFurnace) {
             return new FurnaceMinecartEntityHelper(((MinecartFurnace) e));
         } else if (e instanceof MinecartTNT) {
@@ -1823,45 +1823,45 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * the entity as a server entity if an integrated server is running and {@code null} otherwise.
-     * <p>
-     * <b>This always throws.</b> The lookup it needs is not implemented on the client,
-     * so the method is there to be documented rather than to be called, and its
-     * {@code null} case is never reached either. A script that wants the server's own
-     * copy of an entity in single player has to run on the server side.
+     * Looks up the entity on the integrated server thread. The returned helper wraps a server
+     * entity; callers must only access it on that thread. Returns {@code null} in multiplayer or
+     * when the entity is no longer loaded on the integrated server.
      * example:
      * <pre>
      * const player = Player.getPlayer();
      * if (player !== null) {
-     *   try {
-     *     // this throws, because the lookup is not implemented on the client
-     *     const server = player.asServerEntity();
-     *     Chat.log(`on the server too: ${server}`);
-     *   } catch (e) {
-     *     Chat.log("asServerEntity is not supported in a client environment");
-     *   }
+     *   const server = player.asServerEntity();
+     *   // do not read server entity state from this client-side callback
+     *   Chat.log(server === null ? "server entity unavailable" : "server entity found");
      * }
      * </pre>
      *
-     * @return never returns; the method throws instead
-     * @throws UnsupportedOperationException always, because the server side lookup is
-     * not implemented in a client environment
+     * @return the server entity helper, or {@code null} when unavailable.
      * @since 1.8.4
      */
     @Nullable
     public EntityHelper<?> asServerEntity() {
-        // TODO: Implement server entity retrieval on integrated server from client
-        throw new UnsupportedOperationException("asServerEntity is not supported in client environment.");
-        /*Minecraft client = Minecraft.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (!client.hasSingleplayerServer()) {
             return null;
         }
-        Entity entity = client.getSingleplayerServer().getPlayerList().getPlayer(client.player.getUUID()).serverLevel().getEntity(base.getUUID());
-        if (entity == null) {
-            return null;
-        } else {
-            return create(entity);
-        }*/
+        var server = client.getSingleplayerServer();
+        var dimension = base.level().dimension();
+        var uuid = base.getUUID();
+        java.util.function.Supplier<EntityHelper<?>> lookup = () -> {
+            var level = server.getLevel(dimension);
+            if (level == null) return null;
+            Entity entity = level.getEntity(uuid);
+            return entity == null ? null : create(entity);
+        };
+        try {
+            return server.isSameThread() ? lookup.get() : server.submit(lookup).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted waiting for integrated server", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not look up entity on integrated server", e);
+        }
     }
 
 }

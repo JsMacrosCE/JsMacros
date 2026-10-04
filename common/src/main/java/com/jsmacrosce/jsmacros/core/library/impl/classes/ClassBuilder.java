@@ -315,9 +315,8 @@ public class ClassBuilder<T> {
      * made. A body given to a constructor with parameters has to call the superclass itself,
      * since there is nothing to pass on for it automatically, and that is what
      * {@code super($1, $2)} in the body is for.<br>
-     * {@link #addClinit() addClinit} is meant to be the static counterpart, a class initialiser
-     * taking no parameters that runs when the class is first touched rather than when it is
-     * made, but it does not currently work, so a class initialiser is not reachable from here.
+     * {@link #addClinit() addClinit} is the static counterpart: a parameterless class initialiser
+     * that runs when the JVM initializes the class rather than when an instance is constructed.
      * example:
      * <pre>
      * const init = builder.addConstructor(Reflection.getClass("java.lang.String"));
@@ -367,33 +366,12 @@ public class ClassBuilder<T> {
 
     /**
      * starts a class initialiser, the block of code that runs once when the class is first
-     * touched rather than when an instance is made.<br>
-     * It does not work, so a script must not call it, and there is no example here for that
-     * reason. The builder it returns does name its method {@code &lt;clinit&gt;} and does set
-     * the static flag a class initialiser needs, but every body call on it goes through the
-     * bytecode library's {@code CtConstructor}, and that type hard-codes the method name to
-     * {@code &lt;init&gt;} whatever it was asked for. The class is therefore given a method
-     * called {@code &lt;init&gt;} carrying the static flag, and a class file may not have that,
-     * so {@link #finishBuildAndFreeze() finishBuildAndFreeze} fails with a
-     * {@link java.lang.ClassFormatError ClassFormatError} about illegal modifiers on
-     * {@code &lt;init&gt;}. That is an {@code Error} and not one of the two checked exceptions
-     * the call declares, so it comes out of the call unwrapped rather than as a
-     * {@code CannotCompileException}, and a script that handles a
-     * {@code CannotCompileException} does not catch it. No call on the builder produces a
-     * real {@code &lt;clinit&gt;}.<br>
-     * The body is not the way round it either, and fails before that point: a body on a
-     * constructor is the inside of one, so it needs the braces a constructor body needs, and
-     * anything unbraced is a {@code CannotCompileException} from
-     * {@link ConstructorBuilder#body(java.lang.String) body}.<br>
-     * Nothing is lost by it not working. A static field's value is written into the class
-     * initialiser by the bytecode library itself, out of the
-     * {@link FieldBuilder#initializer() initializer} the field was given, so
-     * {@link FieldBuilder#end() ending} the field is all a static field with a value on it needs.
-     * A class initialiser that is more than that would have to be made through the bytecode
-     * library's own class initialiser and added through its own method call, which this class
-     * does not expose, so that is a change to the code rather than something a script has today.
+     * touched rather than when an instance is made. Unlike an instance constructor, it has no
+     * {@code this} receiver or superclass-constructor call. Finish it with a braced Java body,
+     * a guest body, a BodyBuilder, or a bytecode-building callback. A guest initializer handler
+     * receives a null receiver and an empty argument array.
      *
-     * @return a builder for a class initialiser, which does not currently produce one
+     * @return a builder for a static class initialiser
      */
     public ConstructorBuilder addClinit() {
         return new ConstructorBuilder(new CtClass[0], true);
@@ -1438,10 +1416,9 @@ public class ClassBuilder<T> {
      * {@link #addConstructor(java.lang.Class[]) addConstructor(Class...)} and
      * {@link #addClinit() addClinit} hand back. It carries a parameter list rather than a return
      * type and a name, so everything on a {@link MethodBuilder} that is about one of those does
-     * not apply: there is no return type to give, no name to change, and nothing to call
-     * {@code guestBody}, since a constructor has to call the superclass itself and there is
-     * nothing here to do that for it. What is left is the visibility, the declared exceptions, an
-     * annotation, and the three ways of giving it a body.
+     * not apply: there is no return type to give or name to change. Instance constructors may
+     * need an explicit superclass call; static initializers have no receiver or superclass call.
+     * The finishing calls support Java source, guest handlers, a BodyBuilder and bytecode callbacks.
      * example:
      * <pre>
      * const init = builder.addConstructor(Reflection.getClass("java.lang.String"));
@@ -1482,12 +1459,18 @@ public class ClassBuilder<T> {
          * init.body('super($1); this.label = $1;');
          * </pre>
          *
-         * @param code_src the source of the inside of the constructor, without the braces
+         * A static initializer uses a braced Java body and has no {@code this} or superclass call.
+         *
+         * @param code_src the braced Java body
          * @return the class builder, so more members can be added
          * @throws CannotCompileException if the constructor does not compile
          */
         @Override
         public ClassBuilder<T> body(String code_src) throws CannotCompileException {
+            if (MethodInfo.nameClinit.equals(methodName)) {
+                ctClass.makeClassInitializer().setBody(code_src);
+                return ClassBuilder.this;
+            }
             CtConstructor constructor = CtNewConstructor.make(this.params, this.exceptions, code_src, ctClass);
             constructor.setModifiers(this.methodMods);
             constructor.getMethodInfo().addAttribute(methodAnnotations);
@@ -1500,13 +1483,15 @@ public class ClassBuilder<T> {
          * adds the constructor to the class with a body that calls a handler in the running script,
          * and hands back the class builder.
          * <br>
-         * This only works for a constructor with no parameters. One with parameters is refused
+         * This works for a static initializer or an instance constructor with no parameters.
+         * An instance constructor with parameters is refused
          * with an {@link IllegalArgumentException}, because the superclass call cannot be written
          * without knowing what the parameters are, and a handler has no way to supply one; use
          * {@link #body(java.lang.String) body(String)} or {@link #buildBody() buildBody()} for
          * those.<br>
          * The handler is given the instance being built, so it can set the class's own fields up,
-         * and the superclass call is written in for it.
+         * and the superclass call is written in for it. A static initializer instead receives
+         * a null receiver and an empty argument array, with no superclass call.
          * example:
          * <pre>
          * const init = builder.addConstructor();
@@ -1524,6 +1509,14 @@ public class ClassBuilder<T> {
          */
         @Override
         public ClassBuilder<T> guestBody(MethodWrapper<Object, Object, Object, ?> methodBody) throws CannotCompileException, NotFoundException {
+            if (MethodInfo.nameClinit.equals(methodName)) {
+                String guestName = ClassBuilder.this.className + ";" + methodName + Descriptor.ofMethod(methodReturnType, params);
+                ctClass.makeClassInitializer().setBody("{ ((com.jsmacrosce.jsmacros.core.MethodWrapper) "
+                        + "com.jsmacrosce.jsmacros.core.library.impl.classes.ClassBuilder.methodWrappers.get(\""
+                        + guestName + "\")).apply(null, new Object[]{}); }");
+                methodWrappers.put(guestName, methodBody);
+                return ClassBuilder.this;
+            }
             if (params.length != 0) {
                 throw new IllegalArgumentException("must use one of the other body methods as this one can't call super...");
             }
@@ -1600,7 +1593,8 @@ public class ClassBuilder<T> {
          * This is {@link MethodBuilder#buildBody() buildBody()} pointed at a constructor, and it
          * is the way to give a constructor a body that calls the script while still writing the
          * superclass call by hand, which {@link #guestBody(MethodWrapper) guestBody} cannot do
-         * for a constructor with parameters.
+         * for a constructor with parameters. Static initializer bodies have no superclass call;
+         * any guest code in them receives a null receiver.
          * example:
          * <pre>
          * const init = builder.addConstructor(Reflection.getClass("java.lang.String"));
@@ -1616,6 +1610,10 @@ public class ClassBuilder<T> {
          */
         @Override
         public BodyBuilder buildBody() throws CannotCompileException {
+            if (MethodInfo.nameClinit.equals(methodName)) {
+                CtConstructor initializer = ctClass.makeClassInitializer();
+                return new BodyBuilder(initializer, ClassBuilder.this.className + ";" + methodName + Descriptor.ofMethod(methodReturnType, params));
+            }
             CtConstructor method = new CtConstructor(this.params, ctClass);
             method.setModifiers(this.methodMods);
             method.getMethodInfo().addAttribute(methodAnnotations);
@@ -1633,7 +1631,8 @@ public class ClassBuilder<T> {
          * the constructor, so it is free to write the superclass call itself and anything else
          * the body needs. This is the form to use when the body is more than a source string, and
          * unlike {@link #guestBody(MethodWrapper) guestBody} it works for a constructor with
-         * parameters.
+         * parameters. For a static initializer the callback receives the class and initializer
+         * bytecode handles at build time, not a runtime receiver and argument array.
          *
          * @param buildBody the handler, given the class and the constructor to finish, made with
          *                  {@code JavaWrapper.methodToJava}
@@ -1642,6 +1641,10 @@ public class ClassBuilder<T> {
          */
         @Override
         public ClassBuilder<T> body(MethodWrapper<CtClass, CtBehavior, Object, ?> buildBody) throws CannotCompileException {
+            if (MethodInfo.nameClinit.equals(methodName)) {
+                buildBody.apply(ctClass, ctClass.makeClassInitializer());
+                return ClassBuilder.this;
+            }
             CtConstructor constructor = new CtConstructor(this.params, ctClass);
             constructor.setModifiers(this.methodMods);
             constructor.getMethodInfo().addAttribute(methodAnnotations);
@@ -2246,7 +2249,8 @@ public class ClassBuilder<T> {
          * looks the handler up in {@link #methodWrappers} by a key made of the class name, the
          * method name and the method's JVM descriptor, and each one in a body is numbered so that
          * several in one method do not collide. The handler is called with the instance the method
-         * was called on and an array of the arguments, and a primitive argument has to be boxed
+         * was called on (null for a static method or class initializer) and an array of the
+         * arguments, and a primitive argument has to be boxed
          * in the source that is handed in, since the array is an object array.<br>
          * The call is a statement, not an expression, so a method with a primitive return has to
          * do its own unwrapping in a line of Java, and a value that is not wanted at all can be
@@ -2280,7 +2284,7 @@ public class ClassBuilder<T> {
                     .append("com.jsmacrosce.jsmacros.core.library.impl.classes.ClassBuilder.methodWrappers.get(\"")
                     .append(guestName).append(": ").append(guestCount)
                     .append("\")).").append("apply").append("(")
-                    .append("$0, new Object[]{")
+                    .append(ctBehavior instanceof CtConstructor && ((CtConstructor) ctBehavior).isClassInitializer() ? "null, new Object[]{" : "$0, new Object[]{")
                     .append(argsAsObjects)
                     .append("}));\n");
             methodWrappers.put(guestName + ": " + (guestCount++), code);

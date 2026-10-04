@@ -89,8 +89,8 @@ public class Image implements RenderElement, Alignable<Image> {
     /**
     * the rotation in degrees, wrapped into a single turn.
     * <p>
-    * Only the setter folds it, not the constructor, so an image made at 450 reads 450
-    * and one set to 450 afterwards reads 90.
+    * Constructors and setters normalize finite angles to {@code [-180, 180)}, so 450
+    * reads back as 90. Direct field writes bypass normalization.
     */
     public float rotation;
     /**
@@ -183,8 +183,7 @@ public class Image implements RenderElement, Alignable<Image> {
     * makes an image from a texture and a region of it, with the tint made opaque.
     * <p>
     * The id goes through the usual parser, so a bare name gets the {@code minecraft}
-    * namespace. The rotation is stored as given rather than folded into a single turn,
-    * which is the one place in this class where an angle is not reduced, and the colour
+    * namespace. Finite rotations are normalized to {@code [-180, 180)}, and the colour
     * is put through the same fix-up as {@link #setColor(int)}, so one with no alpha of
     * its own comes out opaque. The one thing left alone is {@code 0x000000}, which that
     * fix-up leaves fully transparent; {@link #setColor(int)} says why.
@@ -202,7 +201,7 @@ public class Image implements RenderElement, Alignable<Image> {
     * @param regionHeight  the height of the region to take
     * @param textureWidth  the width of the whole texture
     * @param textureHeight the height of the whole texture
-    * @param rotation      the rotation in degrees, stored as given
+    * @param rotation      the rotation in degrees, normalized to {@code [-180, 180)}
     */
     public Image(int x, int y, int width, int height, int zIndex, int color, String id, int imageX, int imageY, int regionWidth, int regionHeight, int textureWidth, int textureHeight, float rotation) {
         this(
@@ -230,7 +229,7 @@ public class Image implements RenderElement, Alignable<Image> {
     * <p>
     * The alpha replaces the top byte of the colour outright, so a colour that came with
     * an alpha of its own loses it, and a value outside 0 to 255 is not clamped. As in
-    * the shorter constructor the rotation is stored as given.
+    * the shorter constructor finite rotations are normalized to {@code [-180, 180)}.
     *
     * @param x             the x position of the image
     * @param y             the y position of the image
@@ -246,13 +245,13 @@ public class Image implements RenderElement, Alignable<Image> {
     * @param regionHeight  the height of the region to take
     * @param textureWidth  the width of the whole texture
     * @param textureHeight the height of the whole texture
-    * @param rotation      the rotation in degrees, stored as given
+    * @param rotation      the rotation in degrees, normalized to {@code [-180, 180)}
     */
     public Image(int x, int y, int width, int height, int zIndex, int alpha, int color, String id, int imageX, int imageY, int regionWidth, int regionHeight, int textureWidth, int textureHeight, float rotation) {
         setPos(x, y, width, height);
         setColor(color, alpha);
         setImage(id, imageX, imageY, regionWidth, regionHeight, textureWidth, textureHeight);
-        this.rotation = rotation;
+        this.rotation = Mth.wrapDegrees(rotation);
     }
 
     /**
@@ -663,9 +662,8 @@ public class Image implements RenderElement, Alignable<Image> {
     /**
     * turns this image by an angle in degrees.
     * <p>
-    * The angle is folded into a single turn, so 450 reads back as 90 and -270 reads
-    * back as 90 too. The constructor does not fold it, so an image made at 450 reads
-    * 450 until this is called.
+    * Finite angles are normalized to {@code [-180, 180)}, so 450 and -270 both read back
+    * as 90. Constructors apply the same normalization.
     * example:
     * <pre>
     * const draw = Hud.createDraw2D();
@@ -687,9 +685,8 @@ public class Image implements RenderElement, Alignable<Image> {
     /**
     * the rotation on this image in degrees, folded into a single turn.
     * <p>
-    * Between -180 and 180 once a setter has been used, and whatever was given if the
-    * image was only ever made through a constructor or a builder, since those do not
-    * fold it either.
+    * Constructors and setters normalize finite angles to {@code [-180, 180)}. Direct
+    * writes to the public field bypass that normalization.
     * example:
     * <pre>
     * const draw = Hud.createDraw2D();
@@ -1963,8 +1960,7 @@ public class Image implements RenderElement, Alignable<Image> {
         * turns the image by an angle in degrees.
         * <p>
         * Stored as given rather than folded into a single turn, so this reads back as
-        * 450. The image that comes out of it is made through a constructor, which does
-        * not fold it either, so an image built at 450 reads 450 as well.
+        * 450 on the builder. The built image's constructor normalizes it to 90.
         * example:
         * <pre>
         * const draw = Hud.createDraw2D();

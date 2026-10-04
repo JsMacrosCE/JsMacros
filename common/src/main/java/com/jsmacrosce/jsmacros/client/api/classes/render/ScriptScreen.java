@@ -105,7 +105,6 @@ public class ScriptScreen extends BaseScreen {
      * </pre>
      *
      * @param parent parent screen to go to when this one exits.
-     * @param parent parent screen to go to when this one exits.
      * @since 1.4.0
      */
     public void setParent(IScreen parent) {
@@ -226,16 +225,19 @@ public class ScriptScreen extends BaseScreen {
      * closing to the game directly, so a screen with no parent set goes back to the
      * game itself; see {@link #setParent(IScreen)} for changing that.
      * <p>
-     * Unlike a 2D overlay, a screen closes <em>only</em> this way and never as a side
-     * effect of anything else, so a screen that is not given a parent and not given
-     * something to close it can leave the player stuck in it.
+     * With a parent set this opens that parent; otherwise it follows the superclass's normal
+     * close behavior. A parentless screen does not require a custom close action to leave it.
      *
      * @author Wagyourtail
      * @since 1.0.5
      */
     @Override
     public void onClose() {
-        openParent();
+        if (parent != null) {
+            openParent();
+        } else {
+            super.onClose();
+        }
     }
 
     /**

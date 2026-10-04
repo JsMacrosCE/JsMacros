@@ -177,9 +177,9 @@ public class LoomInventory extends Inventory<LoomScreen> {
      * apply it.
      * <p>
      * The valid range is 0 up to one less than the number of patterns on offer, so the last
-     * usable index is {@code listAvailablePatterns().size() - 1}. Passing the size itself gets
-     * past the range check here but is refused by the loom, so it returns {@code false} rather
-     * than doing anything. It also requires the loom's pattern overlay to be open, which is
+     * usable index is {@code listAvailablePatterns().size() - 1}. An index below zero or at least
+     * the number of patterns is rejected locally and returns {@code false} without sending a
+     * selection. It also requires the loom's pattern overlay to be open, which is
      * the other reason a valid index can come back {@code false}.
      * example:
      * <pre>
@@ -201,7 +201,7 @@ public class LoomInventory extends Inventory<LoomScreen> {
     public boolean selectPattern(int index) {
         List<Holder<BannerPattern>> patterns = getPatternsFor(inventory.getMenu().getSlot(2).getItem());
 
-        if (index >= 0 && index <= patterns.size() && ((ILoomScreen) inventory).jsmacros_canApplyDyePattern() &&
+        if (index >= 0 && index < patterns.size() && ((ILoomScreen) inventory).jsmacros_canApplyDyePattern() &&
                 inventory.getMenu().clickMenuButton(player, index)) {
             assert mc.gameMode != null;
             mc.gameMode.handleInventoryButtonClick(syncId, index);

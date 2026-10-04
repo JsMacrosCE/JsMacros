@@ -8,10 +8,12 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 /*import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
 import net.minecraft.world.entity.vehicle.boat.Boat;
 import net.minecraft.world.entity.vehicle.boat.ChestBoat;
+import net.minecraft.world.entity.vehicle.boat.ChestRaft;
 *///? } else {
 import net.minecraft.world.entity.vehicle.AbstractBoat;
 import net.minecraft.world.entity.vehicle.Boat;
 import net.minecraft.world.entity.vehicle.ChestBoat;
+import net.minecraft.world.entity.vehicle.ChestRaft;
 //?}
 
 /**
@@ -20,9 +22,9 @@ import net.minecraft.world.entity.vehicle.ChestBoat;
  * <p>
  * Four of the five calls here are about where the boat is: on land, in the air, floating on
  * water, or under it. The game keeps one status for the whole thing and each of the four reads
- * it, so at most one of them is {@code true} at a time. All four can be {@code false} as well,
- * because the game has a fifth status, a boat in flowing water, and none of the four covers
- * it. The fifth call is about the kind of boat rather than the state of it.
+ * it, so at most one of them is {@code true} at a time. The game has five statuses:
+ * {@link #isUnderwater()} covers submersion in both still and flowing water. The fifth call
+ * is about the kind of boat rather than the state of it.
  * <p>
  * The status is worked out at the start of each tick from the blocks around the boat, so it
  * lags the world by a tick or so and can briefly disagree with what a script sees at that
@@ -30,11 +32,11 @@ import net.minecraft.world.entity.vehicle.ChestBoat;
  * example:
  * <pre>
  * const BoatEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.BoatEntityHelper");
- * const boats = World.getEntities(32, "boat", "chest_boat");
+ * const boats = World.getEntities(32, "oak_boat", "oak_chest_boat", "bamboo_raft", "bamboo_chest_raft");
  * if (boats !== null) {
  *   for (const entity of boats) {
  *     const boat = BoatEntityHelper.class.cast(entity);
- *     // at most one of the four is true, and all four can be false in flowing water
+ *     // isUnderwater covers both underwater statuses
  *     let where = "somewhere";
  *     if (boat.isInWater()) {
  *       where = "floating";
@@ -74,13 +76,11 @@ public class BoatEntityHelper extends EntityHelper<AbstractBoat> {
      * that it has storage. The game only ever makes one of the two, so this answers
      * {@code false} for a plain boat no matter what a script has put in it.
      * <p>
-     * It is also {@code false} for a raft, including a chest raft: rafts share this helper's
-     * base class but are their own entities, and a chest raft is not a chest boat. A script
-     * that has found a raft should read the kind from the entity type rather than from here.
+     * This also returns {@code true} for a chest raft, and {@code false} for an ordinary raft.
      * example:
      * <pre>
      * const BoatEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.BoatEntityHelper");
-     * const boats = World.getEntities(32, "boat", "chest_boat");
+     * const boats = World.getEntities(32, "oak_boat", "oak_chest_boat", "bamboo_raft", "bamboo_chest_raft");
      * if (boats !== null) {
      *   for (const entity of boats) {
      *     const boat = BoatEntityHelper.class.cast(entity);
@@ -92,11 +92,11 @@ public class BoatEntityHelper extends EntityHelper<AbstractBoat> {
      * }
      * </pre>
      *
-     * @return {@code true} if the boat is a chest boat, {@code false} otherwise.
+     * @return {@code true} for a chest boat or chest raft, {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean isChestBoat() {
-        return base instanceof ChestBoat;
+        return base instanceof ChestBoat || base instanceof ChestRaft;
     }
 
     /**
@@ -193,13 +193,12 @@ public class BoatEntityHelper extends EntityHelper<AbstractBoat> {
      * the surface. This one is the whole boat being below the water rather than just in it,
      * which is what makes the two worth telling apart.
      * <p>
-     * It is {@code false} for a boat in flowing water, because the game gives that a separate
-     * status which none of the four calls on this class reports. A boat the four all say
-     * {@code false} for is in that state rather than in none of them.
+     * Includes both still-water and flowing-water submersion. A boat floating on the surface
+     * is instead reported by {@link #isInWater()}.
      * example:
      * <pre>
      * const BoatEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.BoatEntityHelper");
-     * const boats = World.getEntities(32, "boat", "chest_boat");
+     * const boats = World.getEntities(32, "oak_boat", "oak_chest_boat", "bamboo_raft", "bamboo_chest_raft");
      * if (boats !== null) {
      *   for (const entity of boats) {
      *     const boat = BoatEntityHelper.class.cast(entity);
@@ -214,7 +213,7 @@ public class BoatEntityHelper extends EntityHelper<AbstractBoat> {
      * @since 1.8.4
      */
     public boolean isUnderwater() {
-        return getLocation() == Boat.Status.UNDER_WATER;
+        return getLocation() == Boat.Status.UNDER_WATER || getLocation() == Boat.Status.UNDER_FLOWING_WATER;
     }
 
     /**

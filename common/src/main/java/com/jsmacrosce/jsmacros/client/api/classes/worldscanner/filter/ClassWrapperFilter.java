@@ -12,6 +12,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -24,13 +25,10 @@ import java.util.stream.Collectors;
  * subclasses fix the helper being reflected on, one for a block and one for a block state,
  * and differ in nothing else.
  * <p>
- * The method is looked up among the <b>declared</b> public methods of the helper that take
- * no parameters. That has three consequences that matter when picking a name. A method with
- * parameters is not a candidate, so a helper method that takes an argument cannot be named
- * at all. A method inherited from a superclass is not a candidate either, because it is not
- * declared on the helper, so the accessor the base helper class adds is unreachable this way
- * even though it is public. And a name that matches nothing leaves the lookup empty, so the
- * construction fails outright rather than producing a filter that quietly rejects everything.
+ * The method is looked up among public no-argument methods, including inherited methods but
+ * excluding methods declared by Object. Methods requiring parameters are not candidates.
+ * An unknown name leaves the lookup empty, so construction fails rather than producing a
+ * filter that quietly rejects everything.
  * <p>
  * What the arguments have to be is decided by the return type, and the count is not the same
  * for each. A boolean method takes one argument, the value to match, because there is nothing
@@ -116,9 +114,8 @@ public abstract class ClassWrapperFilter<T> extends BasicFilter<T> {
      * @param methodArgs the arguments that will be passed, when the specified method is invoked on the object
      * @param filterArgs the arguments for the filter
      * @throws NullPointerException if {@code methods} holds no entry for {@code methodName},
-     *         which is what a name that is not a declared public parameterless method of the
-     *         helper gives, and what a name matching only an inherited method or a method
-     *         that takes parameters gives
+     *         with {@code Unknown filter method: <name>}; the lookup includes inherited
+     *         public parameterless methods, excluding Object's methods
      * @throws IllegalArgumentException if the resolved method returns a type that has no
      *         comparison, which is anything other than a boolean, a char, a string or a number
      * @throws ArrayIndexOutOfBoundsException if {@code filterArgs} holds fewer entries than
@@ -130,7 +127,7 @@ public abstract class ClassWrapperFilter<T> extends BasicFilter<T> {
      */
     protected ClassWrapperFilter(String methodName, Map<String, Method> methods, Object[] methodArgs, Object[] filterArgs) {
         this.methodName = methodName;
-        this.method = methods.get(methodName);
+        this.method = Objects.requireNonNull(methods.get(methodName), "Unknown filter method: " + methodName);
         this.methodArgs = methodArgs;
         this.filter = getFilter(method.getReturnType(), filterArgs);
     }
@@ -141,7 +138,7 @@ public abstract class ClassWrapperFilter<T> extends BasicFilter<T> {
      * <p>
      * This is the free standing entry point: it takes the class to reflect on rather than a
      * prebuilt lookup, and is what a caller uses when the helper is not one of the two the
-     * concrete subclasses fix. A name the class declares no matching method for fails here
+     * concrete subclasses fix. A name with no matching public no-argument method fails here
      * in the same way a bad name fails in the constructor.
      * <p>
      * The arguments given are the ones for the comparison, not for the method, because the
@@ -161,12 +158,12 @@ public abstract class ClassWrapperFilter<T> extends BasicFilter<T> {
      * Chat.log(`${scanner.scanAroundPlayer(2).size()} blast resistant blocks`);
      * </pre>
      *
-     * @param clazz the class whose declared public parameterless methods are searched
+     * @param clazz the class whose public parameterless methods, including inherited ones, are searched
      * @param methodName the name of the method whose return type decides the comparison
      * @param args the arguments for the comparison: one for a boolean or char return type,
      *             and two for a string or a numeric one
      * @return a comparison matching the return type of the named method
-     * @throws NullPointerException if {@code clazz} declares no public parameterless method
+     * @throws NullPointerException if {@code clazz} has no public parameterless method
      *         under {@code methodName}
      * @throws IllegalArgumentException if that method returns a type that has no comparison
      * @since 1.6.5
@@ -260,22 +257,22 @@ public abstract class ClassWrapperFilter<T> extends BasicFilter<T> {
     }
 
     /**
-     * collects the public parameterless methods a class declares, keyed by name.
+     * collects public parameterless methods, including inherited ones, keyed by name.
      * <p>
-     * Declared rather than inherited, and parameterless only, which together make a name
-     * that resolves here a safe one to pass to a builder step. Because the map is keyed by
-     * name and only parameterless methods are kept, two methods sharing a name cannot
-     * collide here: the ones taking parameters are filtered out first.
+     * Excludes methods declared by Object. Duplicate and bridge names are merged, preferring
+     * a more-derived declaring class. Return types still need to be supported by the filter.
      *
      * @param clazz the class to inspect
-     * @return the public parameterless methods declared by {@code clazz}, keyed by name
+     * @return the public parameterless methods available on {@code clazz}, keyed by name
      * @since 1.6.5
      */
     protected static Map<String, Method> getPublicNoParameterMethods(Class<?> clazz) {
-        return Arrays.stream(clazz.getDeclaredMethods())
+        return Arrays.stream(clazz.getMethods())
                 .filter(method -> Modifier.isPublic(method.getModifiers()))
+                .filter(method -> method.getDeclaringClass() != Object.class)
                 .filter(method -> method.getParameterCount() == 0)
-                .collect(Collectors.toMap(Method::getName, p -> p));
+                .collect(Collectors.toMap(Method::getName, p -> p,
+                        (first, second) -> first.getDeclaringClass().isAssignableFrom(second.getDeclaringClass()) ? second : first));
     }
 
 }

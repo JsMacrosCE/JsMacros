@@ -1,6 +1,8 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other;
 
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.particles.ColorParticleOption;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.AreaEffectCloud;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
@@ -68,18 +70,11 @@ public class AreaEffectCloudEntityHelper extends EntityHelper<AreaEffectCloud> {
     }
 
     /**
-     * the packed colour the cloud is drawn with, which is {@code 0xFFFFFF} unless the entity is
-     * on a scoreboard team that has one.
-     * <p>
-     * This is the team colour of the entity rather than the colour of the potion in it, and
-     * that is worth being clear about: the team colour is what tints the cloud, and a thrown
-     * potion is not on a team, so a cloud from an ordinary splash potion answers
-     * {@code 0xFFFFFF} here whatever the potion was. The colour that actually comes from the
-     * potion contents is carried by the particle instead, which is a different thing and is
-     * what {@link #getParticleType() getParticleType()} names the type of.
+     * The packed colour of the cloud's particles, rather than its scoreboard team colour.
+     * A custom particle without colour components returns {@code -1}.
      * <p>
      * A packed colour is {@code 0xAARRGGBB}, so the top byte is the alpha and is {@code 0xFF} for
-     * a colour the team has set with no alpha given.
+     * a fully opaque particle.
      * example:
      * <pre>
      * const AreaEffectCloudEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other.AreaEffectCloudEntityHelper");
@@ -87,17 +82,21 @@ public class AreaEffectCloudEntityHelper extends EntityHelper<AreaEffectCloud> {
      * if (clouds !== null) {
      *   for (const entity of clouds) {
      *     const cloud = AreaEffectCloudEntityHelper.class.cast(entity);
-     *     // white unless the entity is on a team with a colour
-     *     Chat.log(`tint 0x${cloud.getColor().toString(16)}`);
+     *     const color = cloud.getColor();
+     *     // -1 is also opaque white, so it does not prove that the particle lacks a color
+     *     Chat.log(`particle color 0x${(color >>> 0).toString(16).padStart(8, "0")}`);
      *   }
      * }
      * </pre>
      *
-     * @return the color of this cloud.
+     * @return the color of this cloud's particles, or {@code -1} if its custom particle has no color.
      * @since 1.8.4
      */
     public int getColor() {
-        return base.getTeamColor();
+        if (base.getParticle() instanceof ColorParticleOption particle) {
+            return ARGB.colorFromFloat(particle.getAlpha(), particle.getRed(), particle.getGreen(), particle.getBlue());
+        }
+        return -1;
     }
 
     /**

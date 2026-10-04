@@ -35,16 +35,13 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRen
  * {@code getScaledWidth} of ten, and it is worth keeping that straight.
  * <p>
  * The thickness is applied by filling a band along the line, and the band is put down
- * from half the thickness on one side to half on the other. Both of those are cut to
- * whole numbers before the fill, so a thickness of one works out to zero on each side.
- * That is the code as written; whether a one-pixel line is worth reaching for is
- * something to look at in game.
+ * from one side to the other. Positive thickness rounds up to at least one raster pixel;
+ * nonpositive thickness draws nothing. Rendered length also rounds up to cover fractional pixels.
  * <p>
  * The rotation turns the whole line, thickness included, about its middle only when
  * {@code rotateCenter} is on. Off is how a line made directly starts, and then the turn
- * is about the first point. The constructor folds the angle into a single turn while
- * {@code setRotation} does not, so the two can be given the same number and read back
- * differently.
+ * is about the first point. Constructors and {@code setRotation} both normalize finite angles
+ * to {@code [-180, 180)}.
  * example:
  * <pre>
  * const draw = Hud.createDraw2D();
@@ -106,9 +103,8 @@ public class Line implements RenderElement, Alignable<Line> {
     /**
     * the rotation in degrees.
     * <p>
-    * The constructor folds this into a single turn and {@link #setRotation(double)} does
-    * not, so a line built at 450 reads back as 90 and a line set to 450 after that reads
-    * back as 450.
+    * Constructors and {@link #setRotation(double)} normalize finite angles to
+    * {@code [-180, 180)}, so 450 reads back as 90. Direct field writes bypass normalization.
     */
     public float rotation;
     /**
@@ -136,8 +132,8 @@ public class Line implements RenderElement, Alignable<Line> {
     /**
     * makes a line between two points.
     * <p>
-    * The rotation is folded into a single turn here, which is the one place in this
-    * class where an angle is reduced rather than stored as given. The colour is put
+    * This constructor and the setter both normalize finite angles to {@code [-180, 180)}.
+    * The colour is put
     * through the same fix-up as {@link #setColor(int)}, so one with no alpha of its own
     * comes out opaque.
     *
@@ -523,8 +519,8 @@ public class Line implements RenderElement, Alignable<Line> {
     /**
     * turns the line by an angle in degrees.
     * <p>
-    * Stored as given, with no folding into a single turn, so this reads back as 450
-    * where the constructor would have stored 90. The turn is about the middle of the
+    * Finite angles are normalized to {@code [-180, 180)}, so 450 reads back as 90,
+    * just as in the constructor. The turn is about the middle of the
     * line when {@code rotateCenter} is on and about the first point when it is not.
     * example:
     * <pre>
@@ -540,15 +536,15 @@ public class Line implements RenderElement, Alignable<Line> {
     * @since 1.8.4
     */
     public Line setRotation(double rotation) {
-        this.rotation = (float) rotation;
+        this.rotation = Mth.wrapDegrees((float) rotation);
         return this;
     }
 
     /**
     * the rotation on this line in degrees, as it was last set.
     * <p>
-    * Not folded into a single turn, so a line that was made at 450 and then set again
-    * reads 450 where one that was only ever made at 450 reads 90.
+    * Constructors and setters normalize finite angles to {@code [-180, 180)}. Direct
+    * writes to the public field bypass that normalization.
     * example:
     * <pre>
     * const draw = Hud.createDraw2D();
@@ -614,9 +610,8 @@ public class Line implements RenderElement, Alignable<Line> {
     * <p>
     * This is the stroke and not the reach: how far across the screen the line goes is
     * the distance between its two points and is not changed by this. A float, so a
-    * thickness that is not a whole number is kept, though the band it produces is cut
-    * to whole numbers when the line is drawn. Nothing is checked, so zero and negative
-    * numbers are accepted.
+    * thickness that is not a whole number is kept and rounds up when drawn. Zero and negative
+    * values are accepted by this setter but draw nothing.
     * example:
     * <pre>
     * const draw = Hud.createDraw2D();
@@ -706,6 +701,7 @@ public class Line implements RenderElement, Alignable<Line> {
 
     @Override
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
+        if (width <= 0) return;
         //? if >1.21.5 {
         Matrix3x2fStack matrices = drawContext.pose();
         matrices.pushMatrix();
@@ -731,9 +727,9 @@ public class Line implements RenderElement, Alignable<Line> {
 
         drawContext.fill(
                 0,
-                (int) -halfWidth,
-                (int) length,
-                (int) halfWidth,
+                -(int) Math.floor(halfWidth),
+                (int) Math.ceil(length),
+                -(int) Math.floor(halfWidth) + Math.max(1, (int) Math.ceil(this.width)),
                 this.color
         );
 
@@ -817,10 +813,8 @@ public class Line implements RenderElement, Alignable<Line> {
     /**
     * puts this line at a position, keeping the extent it has.
     * <p>
-    * The new position becomes the first point and the second one is worked out from how
-    * far across and how far down the line already reached, so the line keeps its size
-    * and its thickness. As in the builder's {@code moveTo}, the sign of that reach is
-    * not kept, so a line that ran right to left or bottom to top comes out mirrored.
+    * Translates both endpoints by the same delta so their minimum x and y become the requested
+    * position. Endpoint order, direction, size and thickness are preserved.
     * This is what the align methods call.
     * example:
     * <pre>
@@ -837,7 +831,9 @@ public class Line implements RenderElement, Alignable<Line> {
     */
     @Override
     public Line moveTo(int x, int y) {
-        return setPos(x, y, x + getScaledWidth(), y + getScaledHeight());
+        int dx = x - getScaledLeft();
+        int dy = y - getScaledTop();
+        return setPos(x1 + dx, y1 + dy, x2 + dx, y2 + dy);
     }
 
     /**
@@ -1634,15 +1630,9 @@ public class Line implements RenderElement, Alignable<Line> {
         /**
         * puts the line at a position and keeps the extent it has.
         * <p>
-        * The new position becomes the first point and the second one is worked out from
-        * how far across and how far down the line already reached, so moving a line
-        * keeps its size and its thickness. This is what the align methods call.
-        * <p>
-        * What it does not keep is which way the line was pointing. Those two numbers
-        * are magnitudes, so a line whose points were the other way round comes back
-        * mirrored: a line drawn right to left and one drawn bottom to top both come out
-        * pointing down and to the right, at the same size. A line that already runs
-        * down and to the right is the one this leaves exactly as it was.
+        * Translates both endpoints by the same delta so their minimum x and y become the
+        * requested position. Endpoint order, direction, size and thickness are preserved.
+        * This is what the align methods call.
         * example:
         * <pre>
         * const draw = Hud.createDraw2D();
@@ -1659,7 +1649,9 @@ public class Line implements RenderElement, Alignable<Line> {
         */
         @Override
         public Builder moveTo(int x, int y) {
-            return pos(x, y, x + getScaledWidth(), y + getScaledHeight());
+            int dx = x - getScaledLeft();
+            int dy = y - getScaledTop();
+            return pos(x1 + dx, y1 + dy, x2 + dx, y2 + dy);
         }
 
         /**

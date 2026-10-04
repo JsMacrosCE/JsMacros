@@ -19,14 +19,13 @@ import java.util.function.Function;
  * so a state that appears a thousand times in a chunk is tested once. A block filter and a
  * state filter are combined with a logical and, and the block filter is re-evaluated for
  * every state of that block. A scanner also iterates its chunks on a parallel stream
- * whenever the filter it was handed allows it, and a filter built through the builder is
- * not a method wrapper, so it allows it — which means a filter of this kind can be called
- * from several threads at once and should not hold per scan state.
+ * whenever the filter it was handed allows it. Native comparison filters permit parallel
+ * scanning and must be safe for concurrent calls. The builder overloads accepting an IFilter
+ * callback force sequential scanning so guest callbacks do not run on parallel worker threads.
  * <br>
- * <b>None of this is reachable from a script by name.</b> This interface is not in the
- * shipped TypeScript definitions, and a script has no way to construct a filter either: the
- * only route is {@code World.getWorldScanner()}, which returns a builder that creates the
- * implementation classes internally and hands the finished filter straight to the scanner.
+ * A script usually uses {@code World.getWorldScanner()}, whose builder creates the filter
+ * implementations internally. It can also implement this interface through Java interop and
+ * pass it to the raw builder's callback-filter overloads, which force sequential scanning.
  * What a script writes is the chain, and the chain picks the class. Naming a block or state
  * method makes a filter that reflects on the helper and compares the return value; a string
  * comparison makes one that stringifies the helper; and an {@code and}, {@code or} or

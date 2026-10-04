@@ -11,20 +11,19 @@ import com.jsmacrosce.jsmacros.core.Core;
  * whether it can be cancelled or joined, comes from the {@link Event} annotation on the subclass
  * rather than from anything in here, so {@link #getEventName()}, {@link #cancellable()} and
  * {@link #joinable()} all read that annotation off the runtime class. That also means a subclass
- * carrying no {@code @Event} makes all three of those throw
- * {@link java.lang.NullPointerException}, since the annotation lookup has no null check.
+ * carrying no {@code @Event} uses its runtime class's simple name and defaults both predicates
+ * to {@code false}.
  * {@link com.jsmacrosce.jsmacros.core.event.impl.EventCustom} overrides the two predicates with its
  * own fields and so is not affected.
  * <p>
- * The thing to read this for is cancellation, because it does not work the way the word suggests
- * unless the listener is joined.
+ * Cancellable events take the joined dispatch path even when the listener's joined flag is false.
  * <p>
- * {@link #cancel() cancel} only reliably takes effect from a listener registered with
- * {@code joined = true}. The game raises an event by calling {@link #trigger()}, and the mixin
+ * {@link #cancel() cancel} takes effect before joined dispatch returns, provided the listener
+ * has not released its event lock early. The game raises an event by calling {@link #trigger()}, and the mixin
  * that raised it reads {@link #isCanceled()} on the very next line. The profile walks the listeners
  * registered for the event name, and for each one either calls
  * {@link IEventListener#trigger(com.jsmacrosce.jsmacros.core.event.BaseEvent) trigger} and drops
- * the container it got back, or, when that listener reports
+ * the container it got back, or, when the event is cancellable or that listener reports
  * {@link IEventListener#joined() joined} and the event is joinable, parks the calling thread on
  * that container until the script has finished with it. Nothing waits in the first case: the
  * script callback is handed to a
@@ -33,44 +32,42 @@ import com.jsmacrosce.jsmacros.core.Core;
  * already read the flag by the time the script body has even started.
  * <p>
  * The two convenient subscriptions, {@code JsMacros.on(event, callback)} and
- * {@code JsMacros.on(event, filterer, callback)}, both pass {@code joined = false}, so the default
- * subscription is the racy one. Pass the flag instead, {@code JsMacros.on(event, true, callback)},
- * and the dispatch waits for the script body to finish, so the cancel lands first. A macro trigger
- * in the profile editor is the same story and needs its Joined box ticked. The cost of joining is
+ * {@code JsMacros.on(event, filterer, callback)}, both pass {@code joined = false}, but cancellable
+ * events are still joined. For non-cancellable events, request joining explicitly with
+ * {@code JsMacros.on(event, true, callback)} or a macro trigger's Joined checkbox, and ensure
+ * the event is joinable. The cost of joining is
  * that the thread which raised the event stands still for as long as the script runs, so a joined
  * listener wants to be short. Short is not a matter of taste either: a joined listener is put on
  * a watchdog that gives up on a body which overruns it, which
  * {@link IEventListener#joined()} spells out.
  * <p>
- * The race is not specific to cancelling. Anything else the game reads on the line after the event
- * is in the same position, so assigning to a payload field from a plain listener is racy for
- * exactly the same reason.
+ * Payload changes made before the joined lock is released are also available when dispatch
+ * returns. Releasing the lock early allows the raising thread to continue before the rest of the
+ * callback finishes; changes after that point may arrive too late.
  * <p>
- * {@link #joinable()} and {@link IEventListener#joined()} are two different flags and neither does
- * anything on its own. {@link #joinable()} is the event's half: true when the event is cancellable
+ * {@link #joinable()} and {@link IEventListener#joined()} are two different flags.
+ * {@link #joinable()} is the event's half: true when the event is cancellable
  * or is annotated {@code joinable = true}. {@link IEventListener#joined()} is the listener's half,
- * and defaults to {@code false}. For an ordinary event the profile joins only when both are true
- * and the event name is also in the registry's
+ * and defaults to {@code false}. For an ordinary event, the profile joins when the listener
+ * requests it or the event is cancellable, and either the event reports joinable or its name is in
  * {@link BaseEventRegistry#joinableEvents joinableEvents}. Every cancellable event goes into that
  * set as well as into {@link BaseEventRegistry#cancellableEvents cancellableEvents} when the
  * registry registers it, so a cancellable event is always joinable. A custom event registered by
- * name with {@code registerEvent} is not, because that only adds the name to
- * {@link BaseEventRegistry#events events}.
+ * name with {@code registerEvent} is judged by its own joinable flag instead of the registry set;
+ * merely registering its name does not make it joinable.
  * <p>
  * {@link #isCanceled()} is deliberately left out of the generated TypeScript definitions, where a
  * cancellable event is typed as carrying nothing but a {@code cancel(): void}, so a script has no
  * way to read the cancellation state back. It is the game's own check that decides what the cancel
- * did. That is also why the race above is invisible from a script: there is nothing to test it
- * with.
+ * did.
  * <p>
  * Calling {@link #cancel()} on an event that is not cancellable throws
  * {@link UnsupportedOperationException} rather than quietly doing nothing, so a cancel written
  * against the wrong event shows up as a logged error instead of a silent no-op.
  * example:
- * <pre>
- * // a cancellable event, subscribed to with joined = true. the true is what makes
- * // the cancel land before the game carries on
- * const listener = JsMacros.on("SendMessage", true, JavaWrapper.methodToJava(function (event) {
+ * <pre class="language-typescript">
+ * // cancellable events wait for listeners even with the default joined = false
+ * const listener = JsMacros.on("SendMessage", JavaWrapper.methodToJava(function (event: EventSendMessage) {
  *   if (event.message === "/hello") {
  *     // nothing is sent, and nothing is added to the chat history
  *     event.cancel();
@@ -113,42 +110,39 @@ public class BaseEvent {
     /**
      * whether this event can be cancelled, read from {@link Event#cancellable()} on the subclass.
      * It is the flag {@link #cancel()} checks, so it is also what decides whether a cancel throws
-     * rather than sticking. The annotation is read without a null check, so on a subclass with no
-     * {@code @Event} on it this throws {@link java.lang.NullPointerException}.
+     * rather than sticking. A subclass with no {@code @Event} defaults to {@code false}.
      *
      * @return {@code true} if the event declares itself cancellable.
      */
     public boolean cancellable() {
-        return this.getClass().getAnnotation(Event.class).cancellable();
+        Event annotation = this.getClass().getAnnotation(Event.class);
+        return annotation != null && annotation.cancellable();
     }
 
     /**
      * whether a joined listener may be parked on this event. This is the event's half of that
-     * decision: the profile only joins when it is {@code true} and the listener also reports
-     * {@link IEventListener#joined()}, so a joined listener on an event that is not joinable is
-     * still dispatched without waiting. It is {@code true} whenever {@link #cancellable()} is,
+     * decision: the listener must request joining or the event must be cancellable, and the event
+     * or its registry entry must permit joining. It is {@code true} whenever {@link #cancellable()} is,
      * which is why every cancellable event can be joined.
      * <p>
      * That is the event's own half of the answer, read off its annotation. For a named event the
-     * profile does not actually ask the event: it tests
-     * {@link BaseEventRegistry#joinableEvents joinableEvents} for the name, which
+     * profile also tests {@link BaseEventRegistry#joinableEvents joinableEvents} for the name, which
      * {@link BaseEventRegistry#addEvent(Class) addEvent} files the same annotation values under, so
-     * for anything reachable the two agree. Only a custom event, whose name is not in that set, is
-     * judged by asking it directly.
+     * normally agrees with the annotation. A custom event is judged by asking it directly.
      *
      * @return {@code true} if the event is cancellable or declares itself joinable.
      */
     public boolean joinable() {
-        return cancellable() || this.getClass().getAnnotation(Event.class).joinable();
+        Event annotation = this.getClass().getAnnotation(Event.class);
+        return cancellable() || annotation != null && annotation.joinable();
     }
 
     /**
      * Cancel the event
      * <p>
-     * Sets the flag the game reads back through {@link #isCanceled()}. From a script this only
-     * reliably takes effect in a listener registered with {@code joined = true}, because a plain
-     * listener is handed to a thread pool and the game does not wait for it. The class note has
-     * the whole of that.
+     * Sets the flag the game reads back through {@link #isCanceled()}. Cancellable events wait
+     * for their listeners regardless of the joined flag. Cancel before releasing the event lock
+     * so the raising code sees the flag when dispatch returns.
      *
      * @throws UnsupportedOperationException if the event is not cancellable, rather than doing
      * nothing silently.
@@ -177,12 +171,12 @@ public class BaseEvent {
      * the subclass. It is the string a script passes to {@code JsMacros.on}, and it is the key this
      * event's listeners are filed under in the registry.
      *
-     * @return the name from the annotation, for example {@code SendMessage}.
-     * @throws java.lang.NullPointerException if the subclass carries no {@code @Event}, since the
-     * annotation is read without a null check.
+     * @return the name from the annotation, for example {@code SendMessage}, or the runtime
+     * class's simple name when no annotation is present.
      */
     public String getEventName() {
-        return this.getClass().getAnnotation(Event.class).value();
+        Event annotation = this.getClass().getAnnotation(Event.class);
+        return annotation == null ? getClass().getSimpleName() : annotation.value();
     }
 
     /**

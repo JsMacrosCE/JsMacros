@@ -9,6 +9,7 @@ import com.jsmacrosce.jsmacros.core.event.BaseEventRegistry;
 import com.jsmacrosce.jsmacros.core.event.IEventListener;
 import com.jsmacrosce.jsmacros.core.event.impl.EventCustom;
 import com.jsmacrosce.jsmacros.core.event.impl.EventProfileLoad;
+import com.jsmacrosce.jsmacros.core.event.impl.EventWrappedScript;
 import com.jsmacrosce.jsmacros.core.language.BaseScriptContext;
 import com.jsmacrosce.jsmacros.core.language.EventContainer;
 import com.jsmacrosce.jsmacros.core.library.impl.*;
@@ -103,12 +104,16 @@ public abstract class BaseProfile {
         boolean joinedMain = checkJoinedThreadStack();
         if (event instanceof EventCustom) {
             for (IEventListener macro : runner.eventRegistry.getListeners(((EventCustom) event).eventName)) {
-                macro.trigger(event);
+                if ((macro.joined() || event.cancellable()) && event.joinable()) {
+                    runJoinedEventListener(event, joinedMain, macro);
+                } else {
+                    macro.trigger(event);
+                }
             }
 
             if (!runner.config.getOptions(CoreConfigV2.class).anythingIgnored.contains(((EventCustom) event).eventName)) {
                 for (IEventListener macro : runner.eventRegistry.getListeners("ANYTHING")) {
-                    if (macro.joined() && event.joinable()) {
+                    if ((macro.joined() || event.cancellable()) && event.joinable()) {
                         runJoinedEventListener(event, joinedMain, macro);
                     } else {
                         macro.trigger(event);
@@ -118,7 +123,7 @@ public abstract class BaseProfile {
         } else {
             String eventName = event.getEventName();
             for (IEventListener macro : runner.eventRegistry.getListeners(eventName)) {
-                if (macro.joined() && runner.eventRegistry.joinableEvents.contains(eventName)) {
+                if ((macro.joined() || event.cancellable()) && (event.joinable() || runner.eventRegistry.joinableEvents.contains(eventName))) {
                     runJoinedEventListener(event, joinedMain, macro);
                 } else {
                     macro.trigger(event);
@@ -127,7 +132,7 @@ public abstract class BaseProfile {
 
             if (!runner.config.getOptions(CoreConfigV2.class).anythingIgnored.contains(eventName)) {
                 for (IEventListener macro : runner.eventRegistry.getListeners("ANYTHING")) {
-                    if (macro.joined() && runner.eventRegistry.joinableEvents.contains(eventName)) {
+                    if ((macro.joined() || event.cancellable()) && (event.joinable() || runner.eventRegistry.joinableEvents.contains(eventName))) {
                         runJoinedEventListener(event, joinedMain, macro);
                     } else {
                         macro.trigger(event);
@@ -141,6 +146,10 @@ public abstract class BaseProfile {
         if (macroListener instanceof FJsMacros.ScriptEventListener) {
             BaseScriptContext<?> ctx = ((FJsMacros.ScriptEventListener) macroListener).getCtx();
             if (ctx != null && ctx.getBoundThreads().contains(Thread.currentThread()) && !ctx.isMultiThreaded()) {
+                if (!macroListener.joined()) {
+                    ((FJsMacros.ScriptEventListener) macroListener).triggerInline(event);
+                    return;
+                }
                 throw new IllegalThreadStateException("Cannot join " + macroListener + " on same context as it's creation.");
             }
         }
@@ -151,8 +160,8 @@ public abstract class BaseProfile {
         try {
             if (joinedMain) {
                 joinedThreadStack.add(t.getLockThread());
-                EventLockWatchdog.startWatchdog(t, macroListener, runner.config.getOptions(CoreConfigV2.class).maxLockTime);
             }
+            EventLockWatchdog.startWatchdog(t, macroListener, runner.config.getOptions(CoreConfigV2.class).maxLockTime);
             t.awaitLock(() -> joinedThreadStack.remove(t.getLockThread()));
         } catch (InterruptedException ignored) {
             joinedThreadStack.remove(t.getLockThread());
@@ -178,6 +187,7 @@ public abstract class BaseProfile {
     protected void initRegistries() {
         runner.eventRegistry.addEvent("ANYTHING", true, true);
         runner.eventRegistry.addEvent(EventProfileLoad.class);
+        runner.eventRegistry.addEvent(EventWrappedScript.class);
 
         runner.libraryRegistry.addLibrary(FJsMacros.class);
         runner.libraryRegistry.addLibrary(FFS.class);

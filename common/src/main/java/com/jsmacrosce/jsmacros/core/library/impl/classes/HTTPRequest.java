@@ -22,8 +22,8 @@ import java.util.stream.Collectors;
  * method other than POST, or one of the {@code send} overloads for a method that has no shortcut.
  * Every call on it returns the same object, so the setup and the send chain.<br>
  * The four public fields can be written directly as well, and the two setters do nothing but
- * assign to two of them, so a header can go on either way. What none of them is is a limit: see
- * the note on {@link #setConnectTimeout(int) setConnectTimeout} before relying on either timeout.
+ * assign to two of them, so a header can go on either way. The timeouts are applied whenever a
+ * send opens a new connection; they do not impose an overall wall-clock request deadline.
  * <br>
  * The call blocks. A script waits for the server rather than for a callback, and that is true of
  * every form here, so pointing one at an unreachable host from inside a listener leaves the
@@ -76,19 +76,13 @@ public class HTTPRequest {
     /**
      * the value handed to {@link #setConnectTimeout(int) setConnectTimeout}, in milliseconds,
      * zero if it was never set.<br>
-     * As of the source this was written against, nothing reads it, and no timeout is applied to
-     * the connection, so a request built through this class has no time limit of its own and
-     * falls back to what {@link java.net.HttpURLConnection HttpURLConnection} does by default.
-     * The field and the setter are still there, so the value is worth writing down in a script
-     * that wants to be explicit about it, but nothing should be built on it taking effect.
+     * Applied to each connection opened by this request. Zero means no connection timeout.
      */
     public int connectTimeout;
     /**
      * the value handed to {@link #setReadTimeout(int) setReadTimeout}, in milliseconds, zero if
      * it was never set.<br>
-     * As of the source this was written against, nothing reads it, and no timeout is applied to
-     * the connection, so a response that never arrives keeps the calling script waiting. The
-     * field and the setter are still there, but nothing should be built on them taking effect.
+     * Applied to each connection opened by this request. Zero means no read timeout.
      */
     public int readTimeout;
 
@@ -120,20 +114,18 @@ public class HTTPRequest {
     }
 
     /**
-     * records the connection timeout in milliseconds, and does nothing else with it.<br>
-     * This assigns {@link #connectTimeout} and returns. As of the source this was written against
-     * nothing reads that field and no timeout is put on the connection, so a request built through
-     * this class waits for as long as the host takes whatever the platform default is. Do not
-     * count on this bounding a slow or unreachable host.
+     * Sets the connection-establishment timeout in milliseconds for subsequent sends.<br>
+     * Zero means no timeout. This does not change a connection that has already been opened or
+     * impose an overall deadline on the complete request.
      * example:
      * <pre>
-     * // recorded on the request, so it can be read back, but not applied to it
+     * // applied when the request opens its connection
      * const request = Request.create("https://example.com/api/status")
      *   .setConnectTimeout(5000);
      * print(request.connectTimeout);
      * </pre>
      *
-     * @param timeout the value to record, in milliseconds
+     * @param timeout the connection timeout, in milliseconds
      * @return self for chaining
      * @since 1.8.6
      */
@@ -143,19 +135,24 @@ public class HTTPRequest {
     }
 
     /**
-     * records the read timeout in milliseconds, and does nothing else with it.<br>
-     * This assigns {@link #readTimeout} and returns. As of the source this was written against
-     * nothing reads that field and no timeout is put on the connection, so a server that accepts
-     * the request and then never answers leaves the calling script waiting. Do not count on this
-     * bounding a slow response.
+     * Sets the response-read timeout in milliseconds for subsequent sends.<br>
+     * Zero means no timeout. This limits waiting for response data rather than the total duration
+     * of a request, and does not change connections that have already been opened.
      *
-     * @param timeout the value to record, in milliseconds
+     * @param timeout the read timeout, in milliseconds
      * @return self for chaining
      * @since 1.8.6
      */
     public HTTPRequest setReadTimeout(int timeout) {
         this.readTimeout = timeout;
         return this;
+    }
+
+    private HttpURLConnection openConnection() throws IOException {
+        HttpURLConnection connection = (HttpURLConnection) conn.openConnection();
+        connection.setConnectTimeout(connectTimeout);
+        connection.setReadTimeout(readTimeout);
+        return connection;
     }
 
     /**
@@ -184,7 +181,7 @@ public class HTTPRequest {
      * @since 1.1.8
      */
     public Response get() throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -217,7 +214,7 @@ public class HTTPRequest {
      */
     public Response post(String data) throws IOException {
         byte[] b = data.getBytes(StandardCharsets.UTF_8);
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -255,7 +252,7 @@ public class HTTPRequest {
      * @since 1.8.4
      */
     public Response post(byte[] data) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -286,7 +283,7 @@ public class HTTPRequest {
      */
     public Response put(String data) throws IOException {
         byte[] b = data.getBytes(StandardCharsets.UTF_8);
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -314,7 +311,7 @@ public class HTTPRequest {
      * @since 1.8.4
      */
     public Response put(byte[] data) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -353,7 +350,7 @@ public class HTTPRequest {
      * @since 1.8.6
      */
     public Response send(String method) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -380,7 +377,7 @@ public class HTTPRequest {
      */
     public Response send(String method, String data) throws IOException {
         byte[] b = data.getBytes(StandardCharsets.UTF_8);
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
@@ -412,7 +409,7 @@ public class HTTPRequest {
      * @since 1.8.4
      */
     public Response send(String method, byte[] data) throws IOException {
-        HttpURLConnection conn = (HttpURLConnection) this.conn.openConnection();
+        HttpURLConnection conn = openConnection();
         for (Entry<String, String> e : headers.entrySet()) {
             conn.addRequestProperty(e.getKey(), e.getValue());
         }
