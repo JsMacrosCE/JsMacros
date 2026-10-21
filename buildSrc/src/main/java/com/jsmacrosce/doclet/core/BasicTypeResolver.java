@@ -124,12 +124,14 @@ public class BasicTypeResolver implements TypeResolver {
     }
 
     private TypeRef resolveWildcard(WildcardType type) {
-        TypeMirror bound = type.getExtendsBound();
-        if (bound == null) {
-            bound = type.getSuperBound();
-        }
+        TypeMirror extendsBound = type.getExtendsBound();
+        TypeMirror superBound = type.getSuperBound();
+        TypeMirror bound = extendsBound != null ? extendsBound : superBound;
         TypeRef bounds = bound == null ? null : resolve(bound);
-        return new TypeRef(TypeKind.WILDCARD, "?", "?", List.of(), false, false, bounds, false);
+        TypeRef.WildcardBound direction = extendsBound != null
+            ? TypeRef.WildcardBound.EXTENDS
+            : superBound != null ? TypeRef.WildcardBound.SUPER : TypeRef.WildcardBound.NONE;
+        return new TypeRef(TypeKind.WILDCARD, "?", "?", List.of(), false, false, bounds, false, direction);
     }
 
     private TypeRef resolveIntersection(IntersectionType type) {
