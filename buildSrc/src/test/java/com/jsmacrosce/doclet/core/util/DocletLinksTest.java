@@ -125,6 +125,16 @@ public final class DocletLinksTest {
                 public boolean joinable() { return joinable; }
                 /** A field of a type the reference does not document itself. */
                 public java.util.UUID identifier;
+                /** A class whose derived class overloads one of its methods. */
+                public static class ConflictBase {
+                    /** A method the derived class overloads. */
+                    public String describe(String value) { return value; }
+                }
+                /** A class that overloads a method of the class it builds on. */
+                public static class ConflictDerived extends ConflictBase {
+                    /** An overload of the inherited method. */
+                    public String describe() { return ""; }
+                }
                 /** Creates an API fixture.
                  * @param player the {@code player & profile} entry
                  */
@@ -612,6 +622,12 @@ public final class DocletLinksTest {
             contains(ts, "identifier: Packages.java.util.UUID;");
             contains(ts, "export class UUID");
             contains(ts, "export namespace util {");
+            // A member that answers to the same name on the type it builds on with a different
+            // shape cannot be written the way the definitions write it, and the mismatch it
+            // causes is marked as such.
+            String conflict = scoped(ts, "class Api$ConflictDerived", "\n    }");
+            contains(conflict, "// @ts-ignore");
+            contains(conflict, "describe(): string;");
             // The other definitions do not give a type the reference does not document a page
             // of its own.
             if (Files.exists(root.resolve(version + "/pydoclet/UUID.py"))) {

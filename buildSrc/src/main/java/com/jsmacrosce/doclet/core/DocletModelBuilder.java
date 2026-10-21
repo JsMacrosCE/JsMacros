@@ -296,6 +296,7 @@ public class DocletModelBuilder {
                 addSuperMethods(type, superTypes, superMcTypes, instanceMethods, members);
             }
 
+            markShapeConflicts(type, members);
             members.sort(Comparator.comparing(MemberDoc::name, String.CASE_INSENSITIVE_ORDER));
 
             ClassDoc classDoc = new ClassDoc(
@@ -363,6 +364,155 @@ public class DocletModelBuilder {
         return referenced;
     }
 
+    /**
+     * Marks the members whose shape cannot be written the way the definitions write them: a
+     * member that answers to the same name on the type it builds on, with a different shape.
+     * Java allows that, the type system of the definitions does not.
+     */
+    private void markShapeConflicts(TypeElement type, List<MemberDoc> members) {
+        Map<String, List<Element>> inherited = inheritedMembers(type);
+        if (inherited.isEmpty()) {
+            return;
+        }
+        for (int index = 0; index < members.size(); index++) {
+            MemberDoc member = members.get(index);
+            List<Element> candidates = inherited.get(member.name());
+            if (candidates == null) {
+                continue;
+            }
+            for (Element candidate : candidates) {
+                if (shapesConflict(member, candidate)) {
+                    members.set(index, withShapeConflict(member));
+                    break;
+                }
+            }
+        }
+        // A member that hands the type back is only assignable to the type it builds on when
+        // the type still answers to everything that type answers to.
+        boolean conflict = members.stream().anyMatch(MemberDoc::shapeConflict);
+        if (!conflict) {
+            return;
+        }
+        String qualified = ElementNameUtils.getQualifiedName(type);
+        for (int index = 0; index < members.size(); index++) {
+            MemberDoc member = members.get(index);
+            if (member.shapeConflict()) {
+                continue;
+            }
+            TypeRef returnType = member.returnType();
+            if (returnType != null
+                && returnType.kind() == com.jsmacrosce.doclet.core.model.TypeKind.DECLARED
+                && qualified.equals(returnType.qualifiedName())) {
+                members.set(index, withShapeConflict(member));
+            }
+        }
+    }
+
+    private MemberDoc withShapeConflict(MemberDoc member) {
+        return new MemberDoc(
+            member.kind(),
+            member.name(),
+            member.anchorId(),
+            member.params(),
+            member.typeParams(),
+            member.returnType(),
+            member.replaceParams(),
+            member.replaceReturn(),
+            member.replaceTypeParams(),
+            member.modifiers(),
+            member.scriptReadOnly(),
+            member.docComment(),
+            true
+        );
+    }
+
+    private boolean shapesConflict(MemberDoc member, Element candidate) {
+        boolean candidateIsMethod = candidate.getKind() == ElementKind.METHOD;
+        if (member.kind() == MemberKind.METHOD != candidateIsMethod) {
+            // One of them is a call and the other is a value, and a name cannot be both.
+            return true;
+        }
+        if (!candidateIsMethod) {
+            return false;
+        }
+        ExecutableElement method = (ExecutableElement) candidate;
+        List<? extends VariableElement> parameters = method.getParameters();
+        if (parameters.size() != member.params().size()) {
+            return true;
+        }
+        for (int index = 0; index < parameters.size(); index++) {
+            if (!paramTypeKey(parameters.get(index).asType())
+                .equals(paramTypeKey(member.params().get(index).type()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String paramTypeKey(javax.lang.model.type.TypeMirror type) {
+        if (type == null) {
+            return "";
+        }
+        return switch (type.getKind()) {
+            case DECLARED -> ElementNameUtils.getQualifiedName(
+                ((DeclaredType) type).asElement() instanceof TypeElement element ? element : null);
+            case ARRAY -> paramTypeKey(((javax.lang.model.type.ArrayType) type).getComponentType()) + "[]";
+            case TYPEVAR -> type.toString();
+            default -> type.toString();
+        };
+    }
+
+    private String paramTypeKey(TypeRef type) {
+        if (type == null) {
+            return "";
+        }
+        return switch (type.kind()) {
+            case DECLARED -> type.qualifiedName();
+            case ARRAY -> paramTypeKey(type.typeArgs().isEmpty() ? null : type.typeArgs().getFirst()) + "[]";
+            case TYPEVAR -> type.name();
+            default -> type.qualifiedName();
+        };
+    }
+
+    /** The public members of the types the given type builds on, by name. */
+    private Map<String, List<Element>> inheritedMembers(TypeElement type) {
+        Map<String, List<Element>> inherited = new HashMap<>();
+        Set<TypeElement> visited = new HashSet<>();
+        Deque<TypeMirror> pending = new ArrayDeque<>();
+        TypeMirror superclass = type.getSuperclass();
+        if (superclass != null && superclass.getKind() == javax.lang.model.type.TypeKind.DECLARED) {
+            pending.add(superclass);
+        }
+        pending.addAll(type.getInterfaces());
+        while (!pending.isEmpty()) {
+            TypeMirror mirror = pending.poll();
+            if (mirror.getKind() != javax.lang.model.type.TypeKind.DECLARED) {
+                continue;
+            }
+            Element element = ((DeclaredType) mirror).asElement();
+            if (!(element instanceof TypeElement superType) || !visited.add(superType)) {
+                continue;
+            }
+            for (Element enclosed : superType.getEnclosedElements()) {
+                if (!enclosed.getModifiers().contains(Modifier.PUBLIC)) {
+                    continue;
+                }
+                if (enclosed.getKind() == ElementKind.METHOD
+                    || enclosed.getKind() == ElementKind.FIELD
+                    || enclosed.getKind() == ElementKind.ENUM_CONSTANT) {
+                    inherited.computeIfAbsent(enclosed.getSimpleName().toString(), key -> new ArrayList<>())
+                        .add(enclosed);
+                }
+            }
+            TypeMirror superSuper = superType.getSuperclass();
+            if (superSuper != null && superSuper.getKind() == javax.lang.model.type.TypeKind.DECLARED) {
+                pending.add(superSuper);
+            }
+            pending.addAll(superType.getInterfaces());
+        }
+        return inherited;
+    }
+
     private ClassDoc buildReferencedClass(TypeElement type) {
         ClassKind kind = switch (type.getKind()) {
             case INTERFACE -> ClassKind.INTERFACE;
@@ -414,6 +564,8 @@ public class DocletModelBuilder {
                 members.add(buildConstructor((ExecutableElement) enclosed));
             }
         }
+
+        markShapeConflicts(type, members);
 
         return new ClassDoc(
             ElementNameUtils.getDisplayClassName(type),

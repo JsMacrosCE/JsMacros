@@ -258,6 +258,9 @@ public class TsRenderer implements Renderer {
             renderReferencedClass(out, clz, indent, merged);
             return;
         }
+        if (hasStaticShapeConflict(clz)) {
+            indent(out, indent).append("// @ts-ignore\n");
+        }
         if (clz.kind() == ClassKind.INTERFACE) {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
             indent(out, indent).append("export abstract class ").append(tsSafeName(clz.name()))
@@ -305,6 +308,9 @@ public class TsRenderer implements Renderer {
      * classes are given do not fit a type that is only there to be referred to.
      */
     private void renderReferencedClass(StringBuilder out, ClassDoc clz, int indent, Set<String> merged) {
+        if (hasStaticShapeConflict(clz)) {
+            indent(out, indent).append("// @ts-ignore\n");
+        }
         if (clz.kind() == ClassKind.INTERFACE) {
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
             appendTypeParams(out, clz.typeParams(), null, false);
@@ -340,6 +346,7 @@ public class TsRenderer implements Renderer {
         if (method != null) {
             appendDocComment(out, method.docComment(), List.of(), false, method, owner, indent);
         }
+        appendShapeIgnore(out, member, indent);
         indent(out, indent);
         if (includeStatic && hasModifier(member, "static")) {
             out.append("static ");
@@ -352,6 +359,30 @@ public class TsRenderer implements Renderer {
             ? formatReturn(member, owner)
             : mergedMemberType(member, method, owner));
         out.append(";\n");
+    }
+
+    /**
+     * Whether the static side of the type cannot be written the way the definitions write it,
+     * because a static member answers to the same name on the type it builds on with a
+     * different shape.
+     */
+    private boolean hasStaticShapeConflict(ClassDoc clz) {
+        for (MemberDoc member : clz.members()) {
+            if (member.shapeConflict()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Marks a member whose shape the definitions cannot write, so that the mismatch the shape
+     * causes is not reported against the definitions. The member is still there, with its type.
+     */
+    private void appendShapeIgnore(StringBuilder out, MemberDoc member, int indent) {
+        if (member.shapeConflict()) {
+            indent(out, indent).append("// @ts-ignore\n");
+        }
     }
 
     /**
@@ -381,6 +412,7 @@ public class TsRenderer implements Renderer {
 
     private void renderMethod(StringBuilder out, MemberDoc member, int indent, boolean includeStatic, ClassDoc owner, boolean namespace) {
         appendDocComment(out, member.docComment(), member.params(), true, member, owner, indent);
+        appendShapeIgnore(out, member, indent);
         indent(out, indent);
         if (namespace) {
             out.append("function ");
