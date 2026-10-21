@@ -771,7 +771,7 @@ public class FClient extends PerExecLibrary {
      * @throws UnknownHostException if the address cannot be resolved
      * @since 1.6.5
      */
-    @DocletReplaceParams("ip: string, callback: MethodWrapper<ServerInfoHelper | null, java.io.IOException | null>")
+    @DocletReplaceParams("ip: string, callback: MethodWrapper<ServerInfoHelper | null, Packages.java.io.IOException | null>")
     public void pingAsync(String ip, MethodWrapper<ServerInfoHelper, IOException, Object, ?> callback) throws UnknownHostException {
         CompletableFuture.runAsync(() -> {
             ServerData info = new ServerData("", ip, ServerData.Type.OTHER);
