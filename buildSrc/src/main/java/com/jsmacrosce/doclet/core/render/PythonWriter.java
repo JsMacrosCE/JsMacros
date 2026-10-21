@@ -97,7 +97,7 @@ public class PythonWriter {
         // out rather than written in a way that would not parse.
         List<String> unwritable = new ArrayList<>();
         for (MemberDoc member : clz.members()) {
-            if (!isPythonIdentifier(member.name())) {
+            if (member.kind() != MemberKind.CONSTRUCTOR && !isPythonIdentifier(member.name())) {
                 unwritable.add(member.name());
             }
         }
