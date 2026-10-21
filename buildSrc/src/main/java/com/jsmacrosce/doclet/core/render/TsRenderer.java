@@ -285,6 +285,7 @@ public class TsRenderer implements Renderer {
             renderStaticMembers(out, clz, indent + 1, clz, merged);
             indent(out, indent).append("}\n");
 
+            appendHeritageIgnore(out, clz, indent);
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
             appendTypeParams(out, typeParams(clz), null, true);
             appendImplements(out, clz);
@@ -297,6 +298,7 @@ public class TsRenderer implements Renderer {
         // Don't generate interface for Library classes (they're rendered as namespaces)
         if (!clz.implementsTypes().isEmpty() && clz.group() != ClassGroup.Library) {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
+            appendHeritageIgnore(out, clz, indent);
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
             appendTypeParams(out, typeParams(clz), null, true);
             appendImplements(out, clz);
@@ -326,8 +328,9 @@ public class TsRenderer implements Renderer {
      */
     private void renderReferencedClass(StringBuilder out, ClassDoc clz, int indent, Set<String> merged) {
         appendInternalNotice(out, clz, indent);
-        appendShapeIgnore(out, clz, indent);
         if (clz.kind() == ClassKind.INTERFACE) {
+            appendHeritageIgnore(out, clz, indent);
+            appendShapeIgnore(out, clz, indent);
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
             appendTypeParams(out, typeParams(clz), null, true);
             appendImplements(out, clz);
@@ -336,6 +339,7 @@ public class TsRenderer implements Renderer {
             indent(out, indent).append("}\n");
             return;
         }
+        appendShapeIgnore(out, clz, indent);
         indent(out, indent).append("export class ").append(tsSafeName(clz.name()));
         appendTypeParams(out, typeParams(clz), null, true);
         appendExtends(out, clz);
@@ -390,6 +394,16 @@ public class TsRenderer implements Renderer {
             ? formatReturn(member, owner)
             : mergedMemberType(member, method, owner));
         out.append(";\n");
+    }
+
+    /**
+     * Marks the declaration of a type whose types it builds on cannot be written together, so
+     * that the mismatch they cause is not reported against the definitions.
+     */
+    private void appendHeritageIgnore(StringBuilder out, ClassDoc clz, int indent) {
+        if (clz.heritageConflict()) {
+            indent(out, indent).append("// @ts-ignore\n");
+        }
     }
 
     /**
@@ -835,10 +849,14 @@ public class TsRenderer implements Renderer {
     }
 
     private void appendImplements(StringBuilder out, ClassDoc clz) {
+        appendHeritage(out, clz, " extends ");
+    }
+
+    private void appendHeritage(StringBuilder out, ClassDoc clz, String keyword) {
         if (clz.implementsTypes().isEmpty()) {
             return;
         }
-        out.append(" extends ");
+        out.append(keyword);
         boolean first = true;
         for (TypeRef type : clz.implementsTypes()) {
             if (!first) {

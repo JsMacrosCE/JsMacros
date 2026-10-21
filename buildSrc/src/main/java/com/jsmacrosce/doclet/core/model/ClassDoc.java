@@ -31,7 +31,13 @@ public record ClassDoc(
      * Whether the class is not part of the API a script is given. Such a class is declared
      * only because a class of the API builds on it, and it is marked as what it is.
      */
-    boolean internal
+    boolean internal,
+    /**
+     * Whether the types the class builds on cannot be written together, because two of them
+     * answer to the same name with a different shape. Java allows that; the type system of the
+     * definitions does not.
+     */
+    boolean heritageConflict
 ) {
     public ClassDoc(
         String name,
@@ -52,6 +58,6 @@ public record ClassDoc(
     ) {
         this(name, qualifiedName, packageName, kind, group, alias, category, eventCancellable,
             eventFilterer, typeParams, extendsTypes, implementsTypes, modifiers, docComment, members,
-            List.of(), false);
+            List.of(), false, false);
     }
 }

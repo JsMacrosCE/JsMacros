@@ -178,10 +178,12 @@ public class DocletModelBuilder {
             }
 
             List<TypeRef> extendsTypes = new ArrayList<>();
+            List<TypeMirror> heritage = new ArrayList<>();
             if (type.getSuperclass() != null && type.getSuperclass().getKind() != javax.lang.model.type.TypeKind.NONE) {
                 String sup = type.getSuperclass().toString();
                 if (!"java.lang.Object".equals(sup)) {
                     extendsTypes.add(typeResolver.resolve(type.getSuperclass()));
+                    heritage.add(type.getSuperclass());
                 }
             }
             List<TypeRef> implementsTypes = new ArrayList<>();
@@ -190,6 +192,7 @@ public class DocletModelBuilder {
                 TypeRef resolved = typeResolver.resolve(iface);
                 if (implemented.add(resolved.qualifiedName())) {
                     implementsTypes.add(resolved);
+                    heritage.add(iface);
                 }
             }
             for (TypeRef supertype : extendsTypes) {
@@ -207,6 +210,7 @@ public class DocletModelBuilder {
                     TypeRef resolved = typeResolver.resolve(iface);
                     if (implemented.add(resolved.qualifiedName())) {
                         implementsTypes.add(resolved);
+                        heritage.add(iface);
                     }
                 }
             }
@@ -221,6 +225,7 @@ public class DocletModelBuilder {
                         TypeRef resolved = typeResolver.resolve(iface);
                         if (implemented.add(resolved.qualifiedName())) {
                             implementsTypes.add(resolved);
+                            heritage.add(iface);
                         }
                         if (iface.getKind() == TypeKind.DECLARED) {
                             superTypes.add((TypeElement) ((DeclaredType) iface).asElement());
@@ -308,7 +313,7 @@ public class DocletModelBuilder {
                 addSuperMethods(type, superTypes, superMcTypes, instanceMethods, members);
             }
 
-            markShapeConflicts(type, members);
+            markShapeConflicts(type, members, false);
             markSelfReturns(type, members);
             members.sort(Comparator.comparing(MemberDoc::name, String.CASE_INSENSITIVE_ORDER));
 
@@ -329,7 +334,8 @@ public class DocletModelBuilder {
                 classComment,
                 members,
                 capturedTypeParams,
-                false
+                false,
+                heritageConflicts(heritage)
             );
 
             packages.computeIfAbsent(packageName, key -> new ArrayList<>()).add(classDoc);
@@ -404,7 +410,7 @@ public class DocletModelBuilder {
      * member that answers to the same name on the type it builds on, with a different shape.
      * Java allows that, the type system of the definitions does not.
      */
-    private void markShapeConflicts(TypeElement type, List<MemberDoc> members) {
+    private void markShapeConflicts(TypeElement type, List<MemberDoc> members, boolean compareResults) {
         Map<String, List<Element>> inherited = inheritedMembers(type);
         if (inherited.isEmpty()) {
             return;
@@ -416,7 +422,7 @@ public class DocletModelBuilder {
                 continue;
             }
             for (Element candidate : candidates) {
-                if (shapesConflict(member, candidate)) {
+                if (shapesConflict(member, candidate, compareResults)) {
                     members.set(index, withShapeConflict(member));
                     break;
                 }
@@ -558,7 +564,7 @@ public class DocletModelBuilder {
         return ElementNameUtils.getQualifiedName(typeElement);
     }
 
-    private boolean shapesConflict(MemberDoc member, Element candidate) {
+    private boolean shapesConflict(MemberDoc member, Element candidate, boolean compareResults) {
         boolean candidateIsMethod = candidate.getKind() == ElementKind.METHOD;
         if (member.kind() == MemberKind.METHOD != candidateIsMethod) {
             // One of them is a call and the other is a value, and a name cannot be both.
@@ -578,7 +584,49 @@ public class DocletModelBuilder {
                 return true;
             }
         }
-        return false;
+        if (!compareResults) {
+            return false;
+        }
+        // The result has to fit the one the member it builds on gives. Java allows a narrower
+        // one, and a narrower one that is not the type the member it builds on gives has to
+        // be written as that type, which it cannot always be.
+        if (returnTypeKey(method.getReturnType()).equals(returnTypeKey(member.returnType()))) {
+            return false;
+        }
+        return isInterface(method.getReturnType());
+    }
+
+    /** Whether the type is an interface, which a narrower result has to answer to. */
+    private boolean isInterface(TypeMirror type) {
+        if (type == null || type.getKind() != TypeKind.DECLARED) {
+            return false;
+        }
+        Element element = ((DeclaredType) type).asElement();
+        return element instanceof TypeElement typeElement && typeElement.getKind() == ElementKind.INTERFACE;
+    }
+
+    private String returnTypeKey(TypeMirror type) {
+        if (type == null) {
+            return "";
+        }
+        return switch (type.getKind()) {
+            case DECLARED -> declaredTypeName(type);
+            case ARRAY -> returnTypeKey(((javax.lang.model.type.ArrayType) type).getComponentType()) + "[]";
+            case TYPEVAR -> type.toString();
+            default -> type.toString();
+        };
+    }
+
+    private String returnTypeKey(TypeRef type) {
+        if (type == null) {
+            return "";
+        }
+        return switch (type.kind()) {
+            case DECLARED -> type.qualifiedName();
+            case ARRAY -> returnTypeKey(type.typeArgs().isEmpty() ? null : type.typeArgs().getFirst()) + "[]";
+            case TYPEVAR -> type.name();
+            default -> type.qualifiedName();
+        };
     }
 
     private String paramTypeKey(javax.lang.model.type.TypeMirror type) {
@@ -604,6 +652,87 @@ public class DocletModelBuilder {
             case TYPEVAR -> type.name();
             default -> type.qualifiedName();
         };
+    }
+
+    /**
+     * Whether the types a class builds on cannot be written together, because two of them
+     * answer to the same name with a different shape. Java allows that; the type system of the
+     * definitions does not.
+     */
+    private boolean heritageConflicts(List<TypeMirror> heritage) {
+        for (int first = 0; first < heritage.size(); first++) {
+            for (int second = first + 1; second < heritage.size(); second++) {
+                Map<String, List<Element>> firstMembers = membersOf(heritage.get(first));
+                Map<String, List<Element>> secondMembers = membersOf(heritage.get(second));
+                for (Map.Entry<String, List<Element>> entry : firstMembers.entrySet()) {
+                    List<Element> others = secondMembers.get(entry.getKey());
+                    if (others == null) {
+                        continue;
+                    }
+                    for (Element one : entry.getValue()) {
+                        for (Element other : others) {
+                            if (membersConflict(one, other)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /** The members a type answers to, its own and the ones it takes from the types it builds on. */
+    private Map<String, List<Element>> membersOf(TypeMirror type) {
+        Map<String, List<Element>> members = new HashMap<>();
+        if (type == null || type.getKind() != TypeKind.DECLARED) {
+            return members;
+        }
+        Element element = ((DeclaredType) type).asElement();
+        if (!(element instanceof TypeElement typeElement)) {
+            return members;
+        }
+        for (Element enclosed : typeElement.getEnclosedElements()) {
+            if (!enclosed.getModifiers().contains(Modifier.PUBLIC)) {
+                continue;
+            }
+            if (enclosed.getKind() == ElementKind.METHOD
+                || enclosed.getKind() == ElementKind.FIELD
+                || enclosed.getKind() == ElementKind.ENUM_CONSTANT) {
+                members.computeIfAbsent(enclosed.getSimpleName().toString(), key -> new ArrayList<>())
+                    .add(enclosed);
+            }
+        }
+        for (Map.Entry<String, List<Element>> entry : inheritedMembers(typeElement).entrySet()) {
+            members.computeIfAbsent(entry.getKey(), key -> new ArrayList<>()).addAll(entry.getValue());
+        }
+        return members;
+    }
+
+    /** Whether two members cannot be written under one name. */
+    private boolean membersConflict(Element one, Element other) {
+        boolean oneIsMethod = one.getKind() == ElementKind.METHOD;
+        boolean otherIsMethod = other.getKind() == ElementKind.METHOD;
+        if (oneIsMethod != otherIsMethod) {
+            // One of them is a call and the other is a value, and a name cannot be both.
+            return true;
+        }
+        if (!oneIsMethod) {
+            return !paramTypeKey(((VariableElement) one).asType())
+                .equals(paramTypeKey(((VariableElement) other).asType()));
+        }
+        ExecutableElement first = (ExecutableElement) one;
+        ExecutableElement second = (ExecutableElement) other;
+        if (first.getParameters().size() != second.getParameters().size()) {
+            return true;
+        }
+        for (int index = 0; index < first.getParameters().size(); index++) {
+            if (!paramTypeKey(first.getParameters().get(index).asType())
+                .equals(paramTypeKey(second.getParameters().get(index).asType()))) {
+                return true;
+            }
+        }
+        return !returnTypeKey(first.getReturnType()).equals(returnTypeKey(second.getReturnType()));
     }
 
     /** The public members of the types the given type builds on, by name. */
@@ -664,10 +793,12 @@ public class DocletModelBuilder {
         }
 
         List<TypeRef> extendsTypes = new ArrayList<>();
+        List<TypeMirror> heritage = new ArrayList<>();
         if (type.getSuperclass() != null && type.getSuperclass().getKind() != javax.lang.model.type.TypeKind.NONE) {
             String sup = type.getSuperclass().toString();
             if (!"java.lang.Object".equals(sup)) {
                 extendsTypes.add(typeResolver.resolve(type.getSuperclass()));
+                heritage.add(type.getSuperclass());
             }
         }
         List<TypeRef> implementsTypes = new ArrayList<>();
@@ -676,6 +807,7 @@ public class DocletModelBuilder {
             TypeRef resolved = typeResolver.resolve(iface);
             if (implemented.add(resolved.qualifiedName())) {
                 implementsTypes.add(resolved);
+                heritage.add(iface);
             }
         }
 
@@ -702,7 +834,7 @@ public class DocletModelBuilder {
             }
         }
 
-        markShapeConflicts(type, members);
+        markShapeConflicts(type, members, true);
         markSelfReturns(type, members);
 
         return new ClassDoc(
@@ -722,7 +854,8 @@ public class DocletModelBuilder {
             docCommentParser.parse(type),
             members,
             capturedTypeParams,
-            internal
+            internal,
+            heritageConflicts(heritage)
         );
     }
 
