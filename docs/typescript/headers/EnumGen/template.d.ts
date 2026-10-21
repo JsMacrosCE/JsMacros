@@ -22,6 +22,8 @@ type FluidId = string
 type BlockId = string
 //@Eval Java.from(RegistryHelper.getBlocks()).flatMap(b => b.getTags())
 type BlockTag = string
+// the tags of an entity type, which the game keeps in the entity type registry
+type MobTag = string
 //@Custom
 type EntityId = keyof EntityIdToTypeMap;
 type EntityTypeFromId<E extends EntityId> = EntityIdToTypeMap[CompleteNamespace<E>] extends infer R ?
