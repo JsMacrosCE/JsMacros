@@ -43,7 +43,9 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeKind;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -64,6 +66,29 @@ public class DocletModelBuilder {
     private Set<String> objectMethodNames = Set.of();
     private static final Pattern NULL_INITIALIZER = Pattern.compile("=\\s*null\\s*;?\\s*$");
 
+    /**
+     * The types the shipped TypeScript headers declare. The generated definitions must not
+     * declare them again, or the two would collide and the definitions would not compile.
+     */
+    private static final Set<String> HEADER_DECLARED_TYPES = Set.of(
+        "java.io.File",
+        "java.io.Serializable",
+        "java.lang.Array",
+        "java.lang.Class",
+        "java.lang.Comparable",
+        "java.lang.Interface",
+        "java.lang.Iterable",
+        "java.lang.Object",
+        "java.lang.StackTraceElement",
+        "java.lang.Throwable",
+        "java.net.URI",
+        "java.net.URL",
+        "java.util.Collection",
+        "java.util.List",
+        "java.util.Map",
+        "java.util.Set"
+    );
+
     public DocletModelBuilder(
         TypeResolver typeResolver,
         DocCommentParser docCommentParser
@@ -78,6 +103,7 @@ public class DocletModelBuilder {
         initObjectMethods();
 
         Map<String, List<ClassDoc>> packages = new HashMap<>();
+        Set<String> documented = new HashSet<>();
         Map<String, List<TypeMirror>> mixinInterfaces = collectMixinInterfaces(environment);
 
         for (Element element : environment.getIncludedElements()) {
@@ -291,6 +317,7 @@ public class DocletModelBuilder {
             );
 
             packages.computeIfAbsent(packageName, key -> new ArrayList<>()).add(classDoc);
+            documented.add(qualifiedName);
         }
 
         List<PackageDoc> packageDocs = new ArrayList<>();
@@ -300,7 +327,111 @@ public class DocletModelBuilder {
         }
         packageDocs.sort(Comparator.comparing(PackageDoc::name, String.CASE_INSENSITIVE_ORDER));
 
-        return new DocletModel(packageDocs, declaredTypes);
+        return new DocletModel(packageDocs, declaredTypes, buildReferencedTypes(documented));
+    }
+
+    /**
+     * The types the documented API mentions that are not documented themselves. A reference to
+     * one of them has to resolve in the generated definitions, so each one gets a declaration
+     * of its own. The set grows while it is built, because a declared type mentions others.
+     */
+    private List<ClassDoc> buildReferencedTypes(Set<String> documented) {
+        List<ClassDoc> referenced = new ArrayList<>();
+        if (!(typeResolver instanceof BasicTypeResolver resolver)) {
+            return referenced;
+        }
+        Set<String> done = new HashSet<>();
+        boolean grew = true;
+        while (grew) {
+            grew = false;
+            for (TypeElement element : new ArrayList<>(resolver.referencedTypes().values())) {
+                String qualified = ElementNameUtils.getQualifiedName(element);
+                if (!done.add(qualified)) {
+                    continue;
+                }
+                grew = true;
+                if (documented.contains(qualified)
+                    || HEADER_DECLARED_TYPES.contains(qualified)
+                    || isMinecraftType(element.asType())
+                    || hasDocletIgnore(element)) {
+                    continue;
+                }
+                referenced.add(buildReferencedClass(element));
+            }
+        }
+        referenced.sort(Comparator.comparing(ClassDoc::qualifiedName, String.CASE_INSENSITIVE_ORDER));
+        return referenced;
+    }
+
+    private ClassDoc buildReferencedClass(TypeElement type) {
+        ClassKind kind = switch (type.getKind()) {
+            case INTERFACE -> ClassKind.INTERFACE;
+            case ENUM -> ClassKind.ENUM;
+            case ANNOTATION_TYPE -> ClassKind.ANNOTATION;
+            default -> ClassKind.CLASS;
+        };
+
+        List<TypeRef> typeParams = new ArrayList<>();
+        for (TypeParameterElement param : type.getTypeParameters()) {
+            typeParams.add(typeResolver.resolve(param.asType()));
+        }
+
+        List<TypeRef> extendsTypes = new ArrayList<>();
+        if (type.getSuperclass() != null && type.getSuperclass().getKind() != javax.lang.model.type.TypeKind.NONE) {
+            String sup = type.getSuperclass().toString();
+            if (!"java.lang.Object".equals(sup)) {
+                extendsTypes.add(typeResolver.resolve(type.getSuperclass()));
+            }
+        }
+        List<TypeRef> implementsTypes = new ArrayList<>();
+        Set<String> implemented = new HashSet<>();
+        for (var iface : type.getInterfaces()) {
+            TypeRef resolved = typeResolver.resolve(iface);
+            if (implemented.add(resolved.qualifiedName())) {
+                implementsTypes.add(resolved);
+            }
+        }
+
+        List<String> modifiers = new ArrayList<>();
+        for (Modifier modifier : type.getModifiers()) {
+            modifiers.add(modifier.toString());
+        }
+
+        List<MemberDoc> members = new ArrayList<>();
+        for (Element enclosed : type.getEnclosedElements()) {
+            if (!enclosed.getModifiers().contains(Modifier.PUBLIC)) {
+                continue;
+            }
+            if (enclosed.getKind() == ElementKind.FIELD || enclosed.getKind() == ElementKind.ENUM_CONSTANT) {
+                members.add(buildField(enclosed));
+            } else if (enclosed.getKind() == ElementKind.METHOD) {
+                ExecutableElement method = (ExecutableElement) enclosed;
+                if (isObjectMethod(method, type)) {
+                    continue;
+                }
+                members.add(buildMethod(method));
+            } else if (enclosed.getKind() == ElementKind.CONSTRUCTOR) {
+                members.add(buildConstructor((ExecutableElement) enclosed));
+            }
+        }
+
+        return new ClassDoc(
+            ElementNameUtils.getDisplayClassName(type),
+            ElementNameUtils.getQualifiedName(type),
+            ElementNameUtils.getPackageName(type),
+            kind,
+            ClassGroup.Class,
+            null,
+            null,
+            false,
+            null,
+            typeParams,
+            extendsTypes,
+            implementsTypes,
+            modifiers,
+            docCommentParser.parse(type),
+            members
+        );
     }
 
     private void initObjectMethods() {

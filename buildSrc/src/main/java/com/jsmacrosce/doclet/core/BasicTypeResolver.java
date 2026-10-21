@@ -20,6 +20,7 @@ import javax.lang.model.type.WildcardType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,6 +60,16 @@ public class BasicTypeResolver implements TypeResolver {
     private Map<String, String> typeScriptAliases = Map.of();
     private boolean pythonAliasEnabled = true;
     private final Set<TypeMirror> resolving = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Map<String, TypeElement> referencedTypes = new LinkedHashMap<>();
+
+    /**
+     * The declared types the documented API mentions, by qualified name. A reference to one of
+     * them has to resolve in the generated definitions, so a type that is not documented itself
+     * still needs a declaration.
+     */
+    public Map<String, TypeElement> referencedTypes() {
+        return referencedTypes;
+    }
 
     public void setTypeScriptAliases(Map<String, String> typeScriptAliases) {
         this.typeScriptAliases = typeScriptAliases == null ? Map.of() : typeScriptAliases;
@@ -109,6 +120,9 @@ public class BasicTypeResolver implements TypeResolver {
         Element el = type.asElement();
         String qualifiedName = getQualifiedName(el);
         String displayName = getDisplayName(el);
+        if (el instanceof TypeElement typeElement) {
+            referencedTypes.put(qualifiedName, typeElement);
+        }
         List<TypeRef> params = new ArrayList<>();
         for (TypeMirror arg : type.getTypeArguments()) {
             params.add(resolve(arg));

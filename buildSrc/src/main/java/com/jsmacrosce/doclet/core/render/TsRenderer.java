@@ -38,6 +38,8 @@ public class TsRenderer implements Renderer {
     );
     private final TypeResolver typeResolver;
 
+    private Set<String> referencedTypes = Set.of();
+
     public TsRenderer(TypeResolver typeResolver) {
         this.typeResolver = typeResolver;
     }
@@ -46,6 +48,10 @@ public class TsRenderer implements Renderer {
     public String render(DocletModel model) {
         Map<String, String> tsAliases = buildTypeScriptAliases(model);
         applyTypeScriptAliases(tsAliases);
+        referencedTypes = new HashSet<>();
+        for (ClassDoc clz : model.referencedTypes()) {
+            referencedTypes.add(clz.qualifiedName());
+        }
 
         List<ClassDoc> events = collectByGroup(model, ClassGroup.Event);
         List<ClassDoc> libraries = collectByGroup(model, ClassGroup.Library);
@@ -212,6 +218,11 @@ public class TsRenderer implements Renderer {
                 root.addClass(pkg.name(), clz);
             }
         }
+        // A type the documented API mentions but does not document still has to exist, or a
+        // reference to it resolves to nothing.
+        for (ClassDoc clz : model.referencedTypes()) {
+            root.addClass(clz.packageName(), clz);
+        }
         return root;
     }
 
@@ -243,6 +254,10 @@ public class TsRenderer implements Renderer {
 
     private void renderClass(StringBuilder out, ClassDoc clz, int indent) {
         Set<String> merged = mergedMemberNames(clz);
+        if (isReferencedType(clz)) {
+            renderReferencedClass(out, clz, indent, merged);
+            return;
+        }
         if (clz.kind() == ClassKind.INTERFACE) {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
             indent(out, indent).append("export abstract class ").append(tsSafeName(clz.name()))
@@ -282,6 +297,34 @@ public class TsRenderer implements Renderer {
         renderConstructors(out, clz, indent + 1);
         renderInstanceMembers(out, clz, indent + 1, clz, merged);
         indent(out, indent).append("}\n");
+    }
+
+    /**
+     * A type the documented API mentions but does not document is declared on its own: an
+     * interface stays an interface and a class stays a class. The two halves the documented
+     * classes are given do not fit a type that is only there to be referred to.
+     */
+    private void renderReferencedClass(StringBuilder out, ClassDoc clz, int indent, Set<String> merged) {
+        if (clz.kind() == ClassKind.INTERFACE) {
+            indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
+            appendTypeParams(out, clz.typeParams(), null, false);
+            appendImplements(out, clz);
+            out.append(" {\n");
+            renderInstanceMembers(out, clz, indent + 1, clz, merged);
+            indent(out, indent).append("}\n");
+            return;
+        }
+        indent(out, indent).append("export class ").append(tsSafeName(clz.name()));
+        appendTypeParams(out, clz.typeParams(), null, false);
+        appendExtends(out, clz);
+        out.append(" {\n");
+        renderStaticMembers(out, clz, indent + 1, clz, merged);
+        renderInstanceMembers(out, clz, indent + 1, clz, merged);
+        indent(out, indent).append("}\n");
+    }
+
+    private boolean isReferencedType(ClassDoc clz) {
+        return referencedTypes.contains(clz.qualifiedName());
     }
 
     private void renderField(

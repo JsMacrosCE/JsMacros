@@ -123,6 +123,8 @@ public final class DocletLinksTest {
                 public boolean joinable;
                 /** The same flag, read as a method. */
                 public boolean joinable() { return joinable; }
+                /** A field of a type the reference does not document itself. */
+                public java.util.UUID identifier;
                 /** Creates an API fixture.
                  * @param player the {@code player & profile} entry
                  */
@@ -605,6 +607,20 @@ public final class DocletLinksTest {
             excludes(py, "def joinable(");
             contains(md, "joinable");
             contains(html, "joinable");
+            // A type the reference mentions but does not document still has to be declared, or
+            // the reference to it resolves to nothing.
+            contains(ts, "identifier: Packages.java.util.UUID;");
+            contains(ts, "export class UUID");
+            contains(ts, "export namespace util {");
+            // The other definitions do not give a type the reference does not document a page
+            // of its own.
+            if (Files.exists(root.resolve(version + "/pydoclet/UUID.py"))) {
+                throw new AssertionError("A type the reference does not document got a Python stub");
+            }
+            if (Files.exists(root.resolve(version + "/mddoclet/content/fixture/" + version
+                + "/classes/java/util/UUID.md"))) {
+                throw new AssertionError("A type the reference does not document got a page");
+            }
             contains(py, "LIMIT: Final[int]");
             contains(py, "writable: float");
             contains(py, "def nullableResult(self) -> str | None:");
