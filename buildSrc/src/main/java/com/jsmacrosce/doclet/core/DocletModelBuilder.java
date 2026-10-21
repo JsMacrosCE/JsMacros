@@ -604,6 +604,12 @@ public class DocletModelBuilder {
         }
 
         List<ParamDoc> params = new ArrayList<>();
+        if (kind == MemberKind.CONSTRUCTOR) {
+            ParamDoc enclosing = enclosingInstanceParam(element);
+            if (enclosing != null) {
+                params.add(enclosing);
+            }
+        }
         List<? extends VariableElement> rawParams = element.getParameters();
         VariableElement varArgParam = element.isVarArgs() && !rawParams.isEmpty()
             ? rawParams.get(rawParams.size() - 1)
@@ -664,6 +670,32 @@ public class DocletModelBuilder {
             modifiers,
             false,
             comment
+        );
+    }
+
+    /**
+     * The constructor of a non-static inner class takes the enclosing instance as its first
+     * argument. That argument is not in the declaration, so it has to be added: without it the
+     * constructor reads as one that can be called with nothing, and the class reads as one that
+     * stands on its own.
+     */
+    private ParamDoc enclosingInstanceParam(ExecutableElement constructor) {
+        if (!(constructor.getEnclosingElement() instanceof TypeElement declaring)) {
+            return null;
+        }
+        if (declaring.getModifiers().contains(Modifier.STATIC)) {
+            return null;
+        }
+        if (!(declaring.getEnclosingElement() instanceof TypeElement outer)) {
+            return null;
+        }
+        TypeRef type = typeResolver.resolve(outer.asType());
+        String name = outer.getSimpleName().toString();
+        return new ParamDoc(
+            Character.toLowerCase(name.charAt(0)) + name.substring(1),
+            type,
+            false,
+            "the " + name + " this is built inside"
         );
     }
 

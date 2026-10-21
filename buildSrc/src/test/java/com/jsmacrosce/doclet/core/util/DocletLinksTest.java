@@ -288,6 +288,22 @@ public final class DocletLinksTest {
                 public void method_1234() {}
             }
             """);
+        Path innerFixture = write(root.resolve("source/example/Outer.java"), """
+            package example;
+            /** A class with a class inside it. */
+            public class Outer {
+                /** An inner class, which is built inside an instance of the class around it. */
+                public class Inner {
+                    /** Builds the inner instance. */
+                    public Inner(int value) {}
+                }
+                /** A nested class, which stands on its own. */
+                public static class Nested {
+                    /** Builds the nested instance. */
+                    public Nested(int value) {}
+                }
+            }
+            """);
 
         // Do not put Gradle/Kotlin compiler jars on the doclet path. Their service
         // providers can initialize javac before Javadoc has finished parsing options.
@@ -320,6 +336,7 @@ public final class DocletLinksTest {
                 command.add(angleFixture.toString());
                 command.add(eventFixture.toString());
                 command.add(overrideFixture.toString());
+                command.add(innerFixture.toString());
                 Path log = root.resolve(version + "-" + kind + ".log");
                 int result = new ProcessBuilder(command).redirectErrorStream(true)
                     .redirectOutput(log.toFile()).start().waitFor();
@@ -337,6 +354,11 @@ public final class DocletLinksTest {
              String overrideMd = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/classes/example/OverridingSource.md"));
              String overridePy = Files.readString(root.resolve(version + "/pydoclet/OverridingSource.py"));
              assertMinecraftOverrides(overrideMd, overridePy, ts);
+             String innerMd = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/classes/example/Outer.Inner.md"));
+             String nestedMd = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/classes/example/Outer.Nested.md"));
+             String innerPy = Files.readString(root.resolve(version + "/pydoclet/Outer_Inner.py"));
+             String nestedPy = Files.readString(root.resolve(version + "/pydoclet/Outer_Nested.py"));
+             assertInnerClassConstructor(innerMd, nestedMd, innerPy, nestedPy, ts);
              String wildcardMd = markdownMember(md, "example.Api_wildcardDirections-Function-List-List-List-");
             String angleMd = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/classes/example/AngleFixture.md"));
             String angleHtml = Files.readString(root.resolve(version + "/webdoclet/fixture/example/AngleFixture.html"));
@@ -875,6 +897,18 @@ public final class DocletLinksTest {
         int blockStart = py.lastIndexOf("\n\n", at);
         String decorators = py.substring(blockStart < 0 ? 0 : blockStart, at);
         contains(decorators, "@staticmethod");
+    }
+
+    private static void assertInnerClassConstructor(String innerMd, String nestedMd, String innerPy, String nestedPy, String ts) {
+        // An inner class is built inside an instance of the class around it, and that instance
+        // is an argument of its constructor even though the declaration does not show it.
+        contains(innerMd, "outer");
+        contains(innerPy, "def __init__(self, outer: Outer, value: int) -> None:");
+        contains(ts, "constructor(outer: Packages.example.Outer, value: int);");
+        // A nested class stands on its own and takes no enclosing instance.
+        excludes(nestedMd, "outer");
+        excludes(nestedPy, "outer");
+        contains(nestedPy, "def __init__(self, value: int) -> None:");
     }
 
     private static void assertMinecraftOverrides(String md, String py, String ts) {
