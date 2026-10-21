@@ -93,8 +93,25 @@ public class PythonWriter {
 
         Set<String> merged = mergedMemberNames(clz);
 
+        // A name Python cannot spell is a name Python cannot call, so such a member is left
+        // out rather than written in a way that would not parse.
+        List<String> unwritable = new ArrayList<>();
+        for (MemberDoc member : clz.members()) {
+            if (!isPythonIdentifier(member.name())) {
+                unwritable.add(member.name());
+            }
+        }
+        if (!unwritable.isEmpty()) {
+            body.append("    # ")
+                .append(String.join(", ", unwritable))
+                .append(": a name Python cannot write, so it is left out\n");
+        }
+
         for (MemberDoc member : clz.members()) {
             if (member.kind() == MemberKind.FIELD) {
+                if (!isPythonIdentifier(member.name())) {
+                    continue;
+                }
                 String type;
                 if (merged.contains(member.name())) {
                     // The member is both a field and a method. Python cannot say that in one
@@ -131,6 +148,9 @@ public class PythonWriter {
                 body.append(renderConstructor(member, ctx));
             } else if (member.kind() == MemberKind.METHOD) {
                 if (merged.contains(member.name())) {
+                    continue;
+                }
+                if (!isPythonIdentifier(member.name())) {
                     continue;
                 }
                 body.append(renderMethod(member, ctx));
@@ -492,7 +512,23 @@ public class PythonWriter {
     }
 
     private String getVarName(String name) {
-        return PYTHON_KEYWORDS.contains(name) ? name + "_" : name;
+        if (PYTHON_KEYWORDS.contains(name)) {
+            return name + "_";
+        }
+        if (isPythonIdentifier(name)) {
+            return name;
+        }
+        // A name Python cannot spell still has to be written, so it is made writable.
+        StringBuilder builder = new StringBuilder(name.replaceAll("[^A-Za-z0-9_]", "_"));
+        if (!builder.isEmpty() && Character.isDigit(builder.charAt(0))) {
+            builder.insert(0, '_');
+        }
+        return builder.toString();
+    }
+
+    /** Whether the name can be written as an identifier in Python. */
+    private static boolean isPythonIdentifier(String name) {
+        return name != null && name.matches("[A-Za-z_][A-Za-z0-9_]*");
     }
 
     private static class PythonTypeContext {
