@@ -282,6 +282,10 @@ public class BasicTypeResolver implements TypeResolver {
 
     @Override
     public String formatHeritage(TypeRef type) {
+        if (type.kind() == TypeKind.DECLARED && JAVA_NUMBER_TYPES.containsKey(type.qualifiedName())) {
+            // A class cannot be built on a number, so the type it is built on is named.
+            return "Packages." + toTsQualified(type);
+        }
         return formatTypeScript(type, false, false);
     }
 

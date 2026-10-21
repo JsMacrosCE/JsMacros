@@ -37,7 +37,12 @@ public record ClassDoc(
      * answer to the same name with a different shape. Java allows that; the type system of the
      * definitions does not.
      */
-    boolean heritageConflict
+    boolean heritageConflict,
+    /**
+     * Whether the static side of the class cannot be written, because a static member answers
+     * to the same name on the type it builds on with a different shape.
+     */
+    boolean staticConflict
 ) {
     public ClassDoc(
         String name,
@@ -58,6 +63,6 @@ public record ClassDoc(
     ) {
         this(name, qualifiedName, packageName, kind, group, alias, category, eventCancellable,
             eventFilterer, typeParams, extendsTypes, implementsTypes, modifiers, docComment, members,
-            List.of(), false, false);
+            List.of(), false, false, false);
     }
 }

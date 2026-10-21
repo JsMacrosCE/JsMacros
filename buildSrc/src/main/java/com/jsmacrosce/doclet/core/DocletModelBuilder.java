@@ -40,7 +40,9 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.util.Elements;
+import javax.lang.model.util.Types;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.ExecutableType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeKind;
 import java.io.IOException;
@@ -54,6 +56,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.regex.Pattern;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 
 @DocletIgnore
@@ -63,6 +66,7 @@ public class DocletModelBuilder {
     private final List<DeclaredTypeDoc> declaredTypes = new ArrayList<>();
     private DocTrees docTrees;
     private Elements elementUtils;
+    private Types typeUtils;
     private Set<ExecutableElement> objectMethods = Set.of();
     private Set<String> objectMethodNames = Set.of();
     private static final Pattern NULL_INITIALIZER = Pattern.compile("=\\s*null\\s*;?\\s*$");
@@ -101,6 +105,7 @@ public class DocletModelBuilder {
     public DocletModel build(DocletEnvironment environment) {
         this.docTrees = environment.getDocTrees();
         this.elementUtils = environment.getElementUtils();
+        this.typeUtils = environment.getTypeUtils();
         initObjectMethods();
 
         Map<String, List<ClassDoc>> packages = new HashMap<>();
@@ -313,7 +318,7 @@ public class DocletModelBuilder {
                 addSuperMethods(type, superTypes, superMcTypes, instanceMethods, members);
             }
 
-            markShapeConflicts(type, members, false);
+            markShapeConflicts(type, members, false, false);
             markSelfReturns(type, members);
             members.sort(Comparator.comparing(MemberDoc::name, String.CASE_INSENSITIVE_ORDER));
 
@@ -335,7 +340,8 @@ public class DocletModelBuilder {
                 members,
                 capturedTypeParams,
                 false,
-                heritageConflicts(heritage)
+                heritageConflicts(heritage) || interfaceConflict,
+                staticConflict
             );
 
             packages.computeIfAbsent(packageName, key -> new ArrayList<>()).add(classDoc);
@@ -410,48 +416,268 @@ public class DocletModelBuilder {
      * member that answers to the same name on the type it builds on, with a different shape.
      * Java allows that, the type system of the definitions does not.
      * <p>
-     * The results are only compared for the types the definitions declare for themselves. A
-     * type of the API is written with the members it inherits, so a narrower result still
-     * fits the wider one it is written against; a type the definitions declare on its own is
-     * written with the members it declares, so a narrower result cannot always be written.
+     * The members of a name are written as one set of calls, so a member of the type it builds
+     * on is answered as long as one of them fits it. Only a name that one of them does not fit
+     * is a shape the definitions cannot write.
      */
-    private void markShapeConflicts(TypeElement type, List<MemberDoc> members, boolean compareResults) {
-        Map<String, List<Element>> inherited = inheritedMembers(type);
-        if (inherited.isEmpty()) {
+    /** Whether the static side of the class being built cannot be written. */
+    private boolean staticConflict = false;
+
+    /** Whether the interface the class is written as cannot be written. */
+    private boolean interfaceConflict = false;
+
+    private void markShapeConflicts(
+        TypeElement type,
+        List<MemberDoc> members,
+        boolean compareResults,
+        boolean ownClass
+    ) {
+        Map<String, List<Element>> classSide = classSideMembers(type);
+        Map<String, List<Element>> interfaceSide = interfaceSideMembers(type);
+        if (classSide.isEmpty() && interfaceSide.isEmpty()) {
             return;
         }
+        Map<String, List<Integer>> own = new LinkedHashMap<>();
         for (int index = 0; index < members.size(); index++) {
-            MemberDoc member = members.get(index);
-            List<Element> candidates = inherited.get(member.name());
-            if (candidates == null) {
+            own.computeIfAbsent(members.get(index).name(), key -> new ArrayList<>()).add(index);
+        }
+        Set<Integer> conflicting = new LinkedHashSet<>();
+        boolean interfaceConflict = false;
+        for (Map.Entry<String, List<Element>> entry : classSide.entrySet()) {
+            conflicting.addAll(unanswered(type, entry, own, members));
+        }
+        for (Map.Entry<String, List<Element>> entry : interfaceSide.entrySet()) {
+            Set<Integer> unanswered = unanswered(type, entry, own, members);
+            if (unanswered.isEmpty()) {
                 continue;
             }
-            for (Element candidate : candidates) {
-                if (shapesConflict(member, candidate, compareResults)) {
-                    members.set(index, withShapeConflict(member));
-                    break;
+            // A class that builds on an interface is written as an interface of its own, and
+            // that interface is what answers to the interface it builds on.
+            interfaceConflict = true;
+            if (ownClass) {
+                // A class that is written on its own answers to the interface itself.
+                conflicting.addAll(unanswered);
+            }
+        }
+        // A narrower result stands in for the wider one only when the type that gives it can
+        // stand in for the type that wider one is. A type that answers a name wrongly cannot,
+        // so the narrower results of such a type cannot be written either.
+        if (compareResults && !conflicting.isEmpty()) {
+            for (int index = 0; index < members.size(); index++) {
+                if (conflicting.contains(index)) {
+                    continue;
+                }
+                MemberDoc member = members.get(index);
+                List<Element> candidates = classSide.get(member.name());
+                if (candidates == null) {
+                    continue;
+                }
+                for (Element candidate : candidates) {
+                    if (narrowerThan(member, candidate)) {
+                        conflicting.add(index);
+                        break;
+                    }
                 }
             }
         }
-        // A member that hands the type back is only assignable to the type it builds on when
-        // the type still answers to everything that type answers to.
-        boolean conflict = members.stream().anyMatch(MemberDoc::shapeConflict);
-        if (!conflict) {
-            return;
-        }
-        String qualified = ElementNameUtils.getQualifiedName(type);
-        for (int index = 0; index < members.size(); index++) {
+        boolean staticConflict = false;
+        for (int index : conflicting) {
+            members.set(index, withShapeConflict(members.get(index)));
             MemberDoc member = members.get(index);
-            if (member.shapeConflict()) {
+            if (member.modifiers().contains("static") || isValueAgainstCall(member, classSide.get(member.name()))) {
+                // The static side of the type is written apart from the rest of it, and a name
+                // that is a call on one side and a value on the other is written apart as well.
+                staticConflict = true;
+            }
+        }
+        this.staticConflict = staticConflict;
+        this.interfaceConflict = interfaceConflict;
+    }
+
+    /**
+     * The members of the class that answer to a name of the type it builds on that none of them
+     * fits. The members of a name are written as one set of calls, so a member of the type it
+     * builds on is answered as long as one of them fits it.
+     */
+    private Set<Integer> unanswered(
+        TypeElement type,
+        Map.Entry<String, List<Element>> entry,
+        Map<String, List<Integer>> own,
+        List<MemberDoc> members
+    ) {
+        List<Integer> indexes = own.get(entry.getKey());
+        if (indexes == null) {
+            return Set.of();
+        }
+        for (Element candidate : entry.getValue()) {
+            boolean covered = false;
+            for (int index : indexes) {
+                if (fits(members.get(index), candidate)) {
+                    covered = true;
+                    break;
+                }
+            }
+            if (!covered) {
+                return new LinkedHashSet<>(indexes);
+            }
+        }
+        return Set.of();
+    }
+
+    /** Whether the member is a call where the type it builds on has a value of that name. */
+    private boolean isValueAgainstCall(MemberDoc member, List<Element> candidates) {
+        if (candidates == null) {
+            return false;
+        }
+        for (Element candidate : candidates) {
+            if ((member.kind() == MemberKind.METHOD) != (candidate.getKind() == ElementKind.METHOD)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether the member answers for the member of the type it builds on: the definitions
+     * write the two under one name, so the member has to be able to stand in for it.
+     */
+    private boolean fits(MemberDoc member, Element candidate) {
+        boolean candidateIsMethod = candidate.getKind() == ElementKind.METHOD;
+        if (member.kind() == MemberKind.METHOD != candidateIsMethod) {
+            // One of them is a call and the other is a value, and a name cannot be both.
+            return false;
+        }
+        if (!candidateIsMethod) {
+            // A value of a narrower type stands in for one of a wider type.
+            if (paramTypeKey(((VariableElement) candidate).asType())
+                .equals(paramTypeKey(member.returnType()))) {
+                return true;
+            }
+            return isDeclared(member.returnType()) && isDeclaredType(((VariableElement) candidate).asType());
+        }
+        ExecutableElement method = (ExecutableElement) candidate;
+        // The static side of a type is written apart from the rest of it.
+        boolean candidateIsStatic = method.getModifiers().contains(Modifier.STATIC);
+        if (candidateIsStatic != member.modifiers().contains("static")) {
+            return false;
+        }
+        List<? extends VariableElement> parameters = method.getParameters();
+        if (member.params().size() > parameters.size()) {
+            // A call that takes fewer arguments stands in for one that takes more.
+            return false;
+        }
+        for (int index = 0; index < member.params().size(); index++) {
+            if (!paramsMatch(parameters.get(index).asType(), member.params().get(index).type())) {
+                return false;
+            }
+        }
+        // The result has to stand in for the result of the member it builds on.
+        return resultFits(member.returnType(), method.getReturnType());
+    }
+
+    /**
+     * Whether the member gives a narrower result than the member of the type it builds on.
+     */
+    private boolean narrowerThan(MemberDoc member, Element candidate) {
+        if (member.kind() != MemberKind.METHOD || candidate.getKind() != ElementKind.METHOD) {
+            return false;
+        }
+        ExecutableElement method = (ExecutableElement) candidate;
+        if (method.getModifiers().contains(Modifier.STATIC) != member.modifiers().contains("static")) {
+            return false;
+        }
+        List<? extends VariableElement> parameters = method.getParameters();
+        if (member.params().size() > parameters.size()) {
+            return false;
+        }
+        for (int index = 0; index < member.params().size(); index++) {
+            if (!paramTypeKey(parameters.get(index).asType())
+                .equals(paramTypeKey(member.params().get(index).type()))) {
+                return false;
+            }
+        }
+        if (returnTypeKey(method.getReturnType()).equals(returnTypeKey(member.returnType()))) {
+            return false;
+        }
+        return isDeclared(member.returnType()) && isDeclaredType(method.getReturnType())
+            && resultFits(member.returnType(), method.getReturnType());
+    }
+
+    /**
+     * Whether the result of a member stands in for the result of the member it builds on. A
+     * narrower one does; one that is not a type of its own does not.
+     */
+    private boolean resultFits(TypeRef memberResult, TypeMirror candidateResult) {
+        if (isAny(memberResult) || isAnyType(candidateResult)) {
+            // A type the definitions do not know answers to every type.
+            return true;
+        }
+        if (returnTypeKey(candidateResult).equals(returnTypeKey(memberResult))) {
+            // The same type with other arguments: the arguments have to fit as well.
+            return candidateResult.getKind() == TypeKind.DECLARED
+                && argumentsFit(memberResult, candidateResult);
+        }
+        // A narrower result stands in for a wider one.
+        if (memberResult == null || memberResult.kind() != com.jsmacrosce.doclet.core.model.TypeKind.DECLARED) {
+            return false;
+        }
+        if (candidateResult == null || candidateResult.getKind() != TypeKind.DECLARED) {
+            return false;
+        }
+        TypeElement derived = elementUtils.getTypeElement(memberResult.qualifiedName());
+        if (derived == null) {
+            return false;
+        }
+        return typeUtils != null && typeUtils.isAssignable(derived.asType(), candidateResult);
+    }
+
+    /** Whether the arguments of a type answer to the arguments of the type it stands in for. */
+    private boolean argumentsFit(TypeRef memberResult, TypeMirror candidateResult) {
+        List<TypeRef> memberArgs = memberResult.typeArgs();
+        List<? extends TypeMirror> candidateArgs = ((DeclaredType) candidateResult).getTypeArguments();
+        if (memberArgs.size() != candidateArgs.size()) {
+            return false;
+        }
+        for (int index = 0; index < memberArgs.size(); index++) {
+            TypeRef memberArg = memberArgs.get(index);
+            TypeRef candidateArg = typeResolver.resolve(candidateArgs.get(index));
+            String written = typeResolver.format(memberArg, TargetLanguage.TYPESCRIPT, false);
+            String inherited = typeResolver.format(candidateArg, TargetLanguage.TYPESCRIPT, false);
+            if (written.equals(inherited)) {
                 continue;
             }
-            TypeRef returnType = member.returnType();
-            if (returnType != null
-                && returnType.kind() == com.jsmacrosce.doclet.core.model.TypeKind.DECLARED
-                && qualified.equals(returnType.qualifiedName())) {
-                members.set(index, withShapeConflict(member));
+            if (isAny(memberArg) || isAny(candidateArg)) {
+                // A type the definitions do not know answers to every type.
+                continue;
+            }
+            if (memberArg.kind() == com.jsmacrosce.doclet.core.model.TypeKind.TYPEVAR
+                || candidateArg.kind() == com.jsmacrosce.doclet.core.model.TypeKind.TYPEVAR) {
+                // A type parameter answers to every type.
+                continue;
+            }
+            if (memberArg.kind() != com.jsmacrosce.doclet.core.model.TypeKind.DECLARED
+                || candidateArg.kind() != com.jsmacrosce.doclet.core.model.TypeKind.DECLARED) {
+                return false;
+            }
+            TypeElement memberElement = elementUtils.getTypeElement(memberArg.qualifiedName());
+            TypeElement candidateElement = elementUtils.getTypeElement(candidateArg.qualifiedName());
+            if (memberElement == null || candidateElement == null) {
+                return false;
+            }
+            if (typeUtils == null
+                || !typeUtils.isAssignable(memberElement.asType(), candidateElement.asType())) {
+                return false;
             }
         }
+        return true;
+    }
+
+    private boolean isDeclared(TypeRef type) {
+        return type != null && type.kind() == com.jsmacrosce.doclet.core.model.TypeKind.DECLARED;
+    }
+
+    private boolean isDeclaredType(TypeMirror type) {
+        return type != null && type.getKind() == TypeKind.DECLARED;
     }
 
     private MemberDoc withShapeConflict(MemberDoc member) {
@@ -569,36 +795,80 @@ public class DocletModelBuilder {
         return ElementNameUtils.getQualifiedName(typeElement);
     }
 
-    private boolean shapesConflict(MemberDoc member, Element candidate, boolean compareResults) {
+    /**
+     * Whether the member answers for the member of the type it builds on: the definitions
+     * write the two under one name, so the member has to be able to stand in for it.
+     */
+    private boolean fits(MemberDoc member, Element candidate, boolean compareResults) {
         boolean candidateIsMethod = candidate.getKind() == ElementKind.METHOD;
         if (member.kind() == MemberKind.METHOD != candidateIsMethod) {
             // One of them is a call and the other is a value, and a name cannot be both.
-            return true;
+            return false;
         }
         if (!candidateIsMethod) {
-            return false;
-        }
-        ExecutableElement method = (ExecutableElement) candidate;
-        List<? extends VariableElement> parameters = method.getParameters();
-        if (parameters.size() != member.params().size()) {
-            return true;
-        }
-        for (int index = 0; index < parameters.size(); index++) {
-            if (!paramTypeKey(parameters.get(index).asType())
-                .equals(paramTypeKey(member.params().get(index).type()))) {
+            // A value of a narrower type stands in for one of a wider type.
+            if (paramTypeKey(((VariableElement) candidate).asType())
+                .equals(paramTypeKey(member.returnType()))) {
                 return true;
             }
+            return isDeclared(member.returnType()) && isDeclaredType(((VariableElement) candidate).asType());
         }
-        if (!compareResults) {
+        ExecutableElement method = (ExecutableElement) candidate;
+        // The static side of a type is written apart from the rest of it.
+        boolean candidateIsStatic = method.getModifiers().contains(Modifier.STATIC);
+        if (candidateIsStatic != member.modifiers().contains("static")) {
             return false;
         }
-        // The result has to fit the one the member it builds on gives. Java allows a narrower
-        // one, and a narrower one that is not the type the member it builds on gives has to
-        // be written as that type, which it cannot always be.
-        if (returnTypeKey(method.getReturnType()).equals(returnTypeKey(member.returnType()))) {
+        List<? extends VariableElement> parameters = method.getParameters();
+        if (member.params().size() > parameters.size()) {
+            // A call that takes fewer arguments stands in for one that takes more.
             return false;
         }
-        return isInterface(method.getReturnType());
+        for (int index = 0; index < member.params().size(); index++) {
+            if (!paramTypeKey(parameters.get(index).asType())
+                .equals(paramTypeKey(member.params().get(index).type()))) {
+                return false;
+            }
+        }
+        if (compareResults && !returnTypeKey(method.getReturnType()).equals(returnTypeKey(member.returnType()))) {
+            // A narrower result stands in for a wider one only when it answers to it, and it
+            // answers to it only when the wider one is a class it builds on.
+            return !isInterface(method.getReturnType());
+        }
+        return true;
+    }
+
+    /**
+     * Whether the two types of a parameter answer to each other. A type the definitions do not
+     * know answers to every type, so a parameter of such a type answers to any other.
+     */
+    private boolean paramsMatch(TypeMirror candidate, TypeRef member) {
+        if (isAnyType(candidate) || isAny(member)) {
+            return true;
+        }
+        return paramTypeKey(candidate).equals(paramTypeKey(member));
+    }
+
+    /** Whether the type is one the definitions do not know, which is nothing but any. */
+    private boolean isAny(TypeRef type) {
+        if (type == null) {
+            return true;
+        }
+        if (type.kind() == com.jsmacrosce.doclet.core.model.TypeKind.UNKNOWN) {
+            return true;
+        }
+        return type.qualifiedName().startsWith("net.minecraft.");
+    }
+
+    private boolean isAnyType(TypeMirror type) {
+        if (type == null || type.getKind() != TypeKind.DECLARED) {
+            return false;
+        }
+        Element element = ((DeclaredType) type).asElement();
+        if (!(element instanceof TypeElement typeElement)) {
+            return false;
+        }
+        return ElementNameUtils.getQualifiedName(typeElement).startsWith("net.minecraft.");
     }
 
     /** Whether the type is an interface, which a narrower result has to answer to. */
@@ -742,6 +1012,14 @@ public class DocletModelBuilder {
 
     /** The public members of the types the given type builds on, by name. */
     private Map<String, List<Element>> inheritedMembers(TypeElement type) {
+        return classSideMembers(type);
+    }
+
+    /**
+     * The public members of the class the given type builds on, by name. The members it takes
+     * from the interfaces that class builds on are part of them.
+     */
+    private Map<String, List<Element>> classSideMembers(TypeElement type) {
         Map<String, List<Element>> inherited = new HashMap<>();
         Set<TypeElement> visited = new HashSet<>();
         Deque<TypeMirror> pending = new ArrayDeque<>();
@@ -749,7 +1027,6 @@ public class DocletModelBuilder {
         if (superclass != null && superclass.getKind() == javax.lang.model.type.TypeKind.DECLARED) {
             pending.add(superclass);
         }
-        pending.addAll(type.getInterfaces());
         while (!pending.isEmpty()) {
             TypeMirror mirror = pending.poll();
             if (mirror.getKind() != javax.lang.model.type.TypeKind.DECLARED) {
@@ -759,17 +1036,7 @@ public class DocletModelBuilder {
             if (!(element instanceof TypeElement superType) || !visited.add(superType)) {
                 continue;
             }
-            for (Element enclosed : superType.getEnclosedElements()) {
-                if (!enclosed.getModifiers().contains(Modifier.PUBLIC)) {
-                    continue;
-                }
-                if (enclosed.getKind() == ElementKind.METHOD
-                    || enclosed.getKind() == ElementKind.FIELD
-                    || enclosed.getKind() == ElementKind.ENUM_CONSTANT) {
-                    inherited.computeIfAbsent(enclosed.getSimpleName().toString(), key -> new ArrayList<>())
-                        .add(enclosed);
-                }
-            }
+            collectMembers(superType, inherited);
             TypeMirror superSuper = superType.getSuperclass();
             if (superSuper != null && superSuper.getKind() == javax.lang.model.type.TypeKind.DECLARED) {
                 pending.add(superSuper);
@@ -777,6 +1044,43 @@ public class DocletModelBuilder {
             pending.addAll(superType.getInterfaces());
         }
         return inherited;
+    }
+
+    /**
+     * The public members of the interfaces the given type builds on, by name. A class does not
+     * take the members of a class through an interface, so only the interfaces are followed.
+     */
+    private Map<String, List<Element>> interfaceSideMembers(TypeElement type) {
+        Map<String, List<Element>> inherited = new HashMap<>();
+        Set<TypeElement> visited = new HashSet<>();
+        Deque<TypeMirror> pending = new ArrayDeque<>(type.getInterfaces());
+        while (!pending.isEmpty()) {
+            TypeMirror mirror = pending.poll();
+            if (mirror.getKind() != javax.lang.model.type.TypeKind.DECLARED) {
+                continue;
+            }
+            Element element = ((DeclaredType) mirror).asElement();
+            if (!(element instanceof TypeElement superType) || !visited.add(superType)) {
+                continue;
+            }
+            collectMembers(superType, inherited);
+            pending.addAll(superType.getInterfaces());
+        }
+        return inherited;
+    }
+
+    private void collectMembers(TypeElement type, Map<String, List<Element>> inherited) {
+        for (Element enclosed : type.getEnclosedElements()) {
+            if (!enclosed.getModifiers().contains(Modifier.PUBLIC)) {
+                continue;
+            }
+            if (enclosed.getKind() == ElementKind.METHOD
+                || enclosed.getKind() == ElementKind.FIELD
+                || enclosed.getKind() == ElementKind.ENUM_CONSTANT) {
+                inherited.computeIfAbsent(enclosed.getSimpleName().toString(), key -> new ArrayList<>())
+                    .add(enclosed);
+            }
+        }
     }
 
     private ClassDoc buildReferencedClass(TypeElement type, boolean internal) {
@@ -839,7 +1143,7 @@ public class DocletModelBuilder {
             }
         }
 
-        markShapeConflicts(type, members, true);
+        markShapeConflicts(type, members, true, true);
         markSelfReturns(type, members);
 
         return new ClassDoc(
@@ -860,7 +1164,8 @@ public class DocletModelBuilder {
             members,
             capturedTypeParams,
             internal,
-            heritageConflicts(heritage)
+            heritageConflicts(heritage) || interfaceConflict,
+            staticConflict
         );
     }
 
@@ -1045,8 +1350,37 @@ public class DocletModelBuilder {
         }
 
         for (ExecutableElement method : superMethods) {
-            members.add(buildMethod(method));
+            members.add(buildMethod(method, asSeenIn(owner, method)));
         }
+    }
+
+    /**
+     * The type of a member of the type the given type builds on, as the type that builds on it
+     * sees it: the type parameters of the type it builds on are the ones it was given.
+     */
+    private ExecutableType asSeenIn(TypeElement owner, ExecutableElement method) {
+        if (typeUtils == null) {
+            return null;
+        }
+        Element ownerOfMethod = method.getEnclosingElement();
+        DeclaredType seen = null;
+        TypeMirror superclass = owner.getSuperclass();
+        if (superclass instanceof DeclaredType declared
+            && declared.asElement().equals(ownerOfMethod)) {
+            seen = declared;
+        }
+        if (seen == null) {
+            for (TypeMirror iface : owner.getInterfaces()) {
+                if (iface instanceof DeclaredType declared && declared.asElement().equals(ownerOfMethod)) {
+                    seen = declared;
+                    break;
+                }
+            }
+        }
+        if (seen == null) {
+            return null;
+        }
+        return (ExecutableType) typeUtils.asMemberOf(seen, method);
     }
 
     private Map<String, List<TypeMirror>> collectMixinInterfaces(DocletEnvironment environment) {
@@ -1157,7 +1491,15 @@ public class DocletModelBuilder {
         return buildExecutable(element, MemberKind.METHOD);
     }
 
+    private MemberDoc buildMethod(ExecutableElement element, ExecutableType asSeen) {
+        return buildExecutable(element, MemberKind.METHOD, asSeen);
+    }
+
     private MemberDoc buildExecutable(ExecutableElement element, MemberKind kind) {
+        return buildExecutable(element, kind, null);
+    }
+
+    private MemberDoc buildExecutable(ExecutableElement element, MemberKind kind, ExecutableType asSeen) {
         DocComment comment = docCommentParser.parse(element);
         Map<String, String> paramDocs = new HashMap<>();
         for (DocTag tag : comment.tags()) {
@@ -1177,9 +1519,12 @@ public class DocletModelBuilder {
         VariableElement varArgParam = element.isVarArgs() && !rawParams.isEmpty()
             ? rawParams.get(rawParams.size() - 1)
             : null;
-        for (VariableElement param : rawParams) {
+        List<? extends TypeMirror> paramTypes = asSeen == null ? null : asSeen.getParameterTypes();
+        for (int paramIndex = 0; paramIndex < rawParams.size(); paramIndex++) {
+            VariableElement param = rawParams.get(paramIndex);
             boolean isVarArgs = param.equals(varArgParam);
-            TypeRef paramType = typeResolver.resolve(param.asType());
+            TypeMirror declaredType = paramTypes == null ? param.asType() : paramTypes.get(paramIndex);
+            TypeRef paramType = typeResolver.resolve(declaredType);
             if (isNullable(param)) {
                 paramType = paramType.withNullable(true);
             }
@@ -1213,9 +1558,10 @@ public class DocletModelBuilder {
             ? ElementNameUtils.getDisplayClassName((TypeElement) element.getEnclosingElement())
             : element.getSimpleName().toString();
 
-        TypeRef returnType = typeResolver.resolve(
-            kind == MemberKind.CONSTRUCTOR ? element.getEnclosingElement().asType() : element.getReturnType()
-        );
+        TypeMirror declaredReturn = kind == MemberKind.CONSTRUCTOR
+            ? element.getEnclosingElement().asType()
+            : asSeen == null ? element.getReturnType() : asSeen.getReturnType();
+        TypeRef returnType = typeResolver.resolve(declaredReturn);
         if (kind == MemberKind.METHOD && isNullable(element)) {
             returnType = returnType.withNullable(true);
         }

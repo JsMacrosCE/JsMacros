@@ -125,14 +125,24 @@ public final class DocletLinksTest {
                 public boolean joinable() { return joinable; }
                 /** A field of a type the reference does not document itself. */
                 public java.util.UUID identifier;
-                /** A class whose derived class overloads one of its methods. */
+                /** A class whose derived class redeclares one of its methods with another shape. */
                 public static class ConflictBase {
+                    /** A method the derived class redeclares. */
+                    public String describe(String value) { return value; }
+                }
+                /** A class that redeclares a method of the class it builds on with another shape. */
+                public static class ConflictDerived extends ConflictBase {
+                    /** The same call, with another result. */
+                    public int describe(String value) { return 0; }
+                }
+                /** A class whose derived class overloads one of its methods. */
+                public static class OverloadBase {
                     /** A method the derived class overloads. */
                     public String describe(String value) { return value; }
                 }
                 /** A class that overloads a method of the class it builds on. */
-                public static class ConflictDerived extends ConflictBase {
-                    /** An overload of the inherited method. */
+                public static class OverloadDerived extends OverloadBase {
+                    /** An overload of the inherited method, which the definitions can write. */
                     public String describe() { return ""; }
                 }
                 /** Creates an API fixture.
@@ -652,9 +662,14 @@ public final class DocletLinksTest {
             // A member that answers to the same name on the type it builds on with a different
             // shape cannot be written the way the definitions write it, and the mismatch it
             // causes is marked as such.
-            String conflict = scoped(ts, "class Api$ConflictDerived", "\n    }");
+            String conflict = scoped(ts, "class Api$ConflictDerived", "\n        }");
             contains(conflict, "// @ts-ignore");
-            contains(conflict, "describe(): string;");
+            contains(conflict, "describe(value: string): number;");
+            // An overload of a method of the class it builds on is a call of its own, which the
+            // definitions can write, so it is not marked.
+            String overload = scoped(ts, "class Api$OverloadDerived", "\n        }");
+            excludes(overload, "// @ts-ignore");
+            contains(overload, "describe(): string;");
             // The other definitions do not give a type the reference does not document a page
             // of its own.
             if (Files.exists(root.resolve(version + "/pydoclet/UUID.py"))) {

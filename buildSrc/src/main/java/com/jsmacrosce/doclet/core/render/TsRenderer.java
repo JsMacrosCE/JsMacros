@@ -422,12 +422,7 @@ public class TsRenderer implements Renderer {
      * different shape.
      */
     private boolean hasStaticShapeConflict(ClassDoc clz) {
-        for (MemberDoc member : clz.members()) {
-            if (member.shapeConflict()) {
-                return true;
-            }
-        }
-        return false;
+        return clz.staticConflict();
     }
 
     /**
