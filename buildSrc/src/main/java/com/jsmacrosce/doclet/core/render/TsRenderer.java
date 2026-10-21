@@ -58,6 +58,9 @@ public class TsRenderer implements Renderer {
         List<ClassDoc> events = collectByGroup(model, ClassGroup.Event);
         List<ClassDoc> libraries = collectByGroup(model, ClassGroup.Library);
 
+        if (typeResolver instanceof BasicTypeResolver basicTypeResolver) {
+            basicTypeResolver.setUndeclaredTypes(model.undeclaredTypes());
+        }
         interfaceTypes = new HashSet<>();
         for (ClassDoc clz : events) {
             interfaceTypes.add(clz.qualifiedName());
@@ -272,11 +275,9 @@ public class TsRenderer implements Renderer {
             renderReferencedClass(out, clz, indent, merged);
             return;
         }
-        if (hasStaticShapeConflict(clz)) {
-            indent(out, indent).append("// @ts-ignore\n");
-        }
         if (clz.kind() == ClassKind.INTERFACE) {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
+            appendShapeIgnore(out, clz, indent);
             indent(out, indent).append("export abstract class ").append(tsSafeName(clz.name()));
             appendTypeParams(out, clz.typeParams(), null, true);
             indent(out, indent).append(" extends java.lang.Interface {\n");
@@ -305,6 +306,7 @@ public class TsRenderer implements Renderer {
         }
 
         boolean hasConstructor = clz.members().stream().anyMatch(member -> member.kind() == MemberKind.CONSTRUCTOR);
+        appendShapeIgnore(out, clz, indent);
         indent(out, indent).append("export ").append(hasConstructor ? "class " : "abstract class ")
             .append(tsSafeName(clz.name()));
         appendTypeParams(out, clz.typeParams(), null, true);
@@ -323,9 +325,7 @@ public class TsRenderer implements Renderer {
      * classes are given do not fit a type that is only there to be referred to.
      */
     private void renderReferencedClass(StringBuilder out, ClassDoc clz, int indent, Set<String> merged) {
-        if (hasStaticShapeConflict(clz)) {
-            indent(out, indent).append("// @ts-ignore\n");
-        }
+        appendShapeIgnore(out, clz, indent);
         if (clz.kind() == ClassKind.INTERFACE) {
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
             appendTypeParams(out, clz.typeParams(), null, true);
@@ -374,6 +374,16 @@ public class TsRenderer implements Renderer {
             ? formatReturn(member, owner)
             : mergedMemberType(member, method, owner));
         out.append(";\n");
+    }
+
+    /**
+     * Marks the declaration of a type whose shape the definitions cannot write, so that the
+     * mismatch the shape causes is not reported against the definitions.
+     */
+    private void appendShapeIgnore(StringBuilder out, ClassDoc clz, int indent) {
+        if (hasStaticShapeConflict(clz)) {
+            indent(out, indent).append("// @ts-ignore\n");
+        }
     }
 
     /**

@@ -80,6 +80,13 @@ public class BasicTypeResolver implements TypeResolver {
         this.typeScriptAliases = typeScriptAliases == null ? Map.of() : typeScriptAliases;
     }
 
+    private Set<String> undeclaredTypes = Set.of();
+
+    /** The types the API refers to that are not declared, which are nothing but any. */
+    public void setUndeclaredTypes(Set<String> undeclaredTypes) {
+        this.undeclaredTypes = undeclaredTypes == null ? Set.of() : undeclaredTypes;
+    }
+
     public void setPythonAliasEnabled(boolean pythonAliasEnabled) {
         this.pythonAliasEnabled = pythonAliasEnabled;
     }
@@ -266,6 +273,9 @@ public class BasicTypeResolver implements TypeResolver {
 
     private String mapDeclaredTypeScript(TypeRef type, boolean paramType) {
         String qualifiedName = type.qualifiedName();
+        if (undeclaredTypes.contains(qualifiedName)) {
+            return "any";
+        }
         if ("com.jsmacrosce.jsmacros.core.event.BaseEvent".equals(qualifiedName)) {
             return "Events.BaseEvent";
         }

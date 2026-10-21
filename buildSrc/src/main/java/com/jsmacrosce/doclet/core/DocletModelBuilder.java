@@ -328,7 +328,8 @@ public class DocletModelBuilder {
         }
         packageDocs.sort(Comparator.comparing(PackageDoc::name, String.CASE_INSENSITIVE_ORDER));
 
-        return new DocletModel(packageDocs, declaredTypes, buildReferencedTypes(documented));
+        List<ClassDoc> referenced = buildReferencedTypes(documented);
+        return new DocletModel(packageDocs, declaredTypes, referenced, undeclaredTypes);
     }
 
     /**
@@ -336,6 +337,8 @@ public class DocletModelBuilder {
      * one of them has to resolve in the generated definitions, so each one gets a declaration
      * of its own. The set grows while it is built, because a declared type mentions others.
      */
+    private final Set<String> undeclaredTypes = new HashSet<>();
+
     private List<ClassDoc> buildReferencedTypes(Set<String> documented) {
         List<ClassDoc> referenced = new ArrayList<>();
         if (!(typeResolver instanceof BasicTypeResolver resolver)) {
@@ -353,8 +356,13 @@ public class DocletModelBuilder {
                 grew = true;
                 if (documented.contains(qualified)
                     || HEADER_DECLARED_TYPES.contains(qualified)
-                    || isMinecraftType(element.asType())
-                    || hasDocletIgnore(element)) {
+                    || isMinecraftType(element.asType())) {
+                    continue;
+                }
+                if (hasDocletIgnore(element)) {
+                    // The type is not part of the documented API, so it is not declared, and a
+                    // reference to it has to say that rather than point at nothing.
+                    undeclaredTypes.add(qualified);
                     continue;
                 }
                 referenced.add(buildReferencedClass(element));
