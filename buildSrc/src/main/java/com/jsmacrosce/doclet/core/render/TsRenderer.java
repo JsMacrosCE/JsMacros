@@ -145,14 +145,45 @@ public class TsRenderer implements Renderer {
             out.append(", Cancellable");
         }
         out.append(" {\n");
+        Set<String> merged = mergedMemberNames(event);
         for (MemberDoc member : event.members()) {
             if (member.kind() == MemberKind.FIELD && !hasModifier(member, "static")) {
-                renderField(out, member, indent + 1, false, event);
+                renderField(out, member, indent + 1, false, event, merged);
             } else if (member.kind() == MemberKind.METHOD && !hasModifier(member, "static")) {
+                if (merged.contains(member.name())) {
+                    continue;
+                }
                 renderMethod(out, member, indent + 1, false, event);
             }
         }
         indent(out, indent).append("}\n");
+    }
+
+    /**
+     * The names of members that are both a field and a method of the same class. TypeScript
+     * cannot declare both under one name, so such a pair is presented as a single member whose
+     * type carries both readings.
+     */
+    private Set<String> mergedMemberNames(ClassDoc clz) {
+        Set<String> fields = new HashSet<>();
+        Set<String> merged = new HashSet<>();
+        for (MemberDoc member : clz.members()) {
+            if (member.kind() == MemberKind.FIELD) {
+                fields.add(member.name());
+            } else if (member.kind() == MemberKind.METHOD && fields.contains(member.name())) {
+                merged.add(member.name());
+            }
+        }
+        return merged;
+    }
+
+    private MemberDoc mergedMethod(ClassDoc clz, String name) {
+        for (MemberDoc member : clz.members()) {
+            if (member.kind() == MemberKind.METHOD && member.name().equals(name)) {
+                return member;
+            }
+        }
+        return null;
     }
 
     private String renderPackages(DocletModel model) {
@@ -211,19 +242,20 @@ public class TsRenderer implements Renderer {
     }
 
     private void renderClass(StringBuilder out, ClassDoc clz, int indent) {
+        Set<String> merged = mergedMemberNames(clz);
         if (clz.kind() == ClassKind.INTERFACE) {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
             indent(out, indent).append("export abstract class ").append(tsSafeName(clz.name()))
                 .append(" extends java.lang.Interface {\n");
             appendClassHeader(out, clz, indent + 1);
-            renderStaticMembers(out, clz, indent + 1, clz);
+            renderStaticMembers(out, clz, indent + 1, clz, merged);
             indent(out, indent).append("}\n");
 
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
             appendTypeParams(out, clz.typeParams(), null, false);
             appendImplements(out, clz);
             out.append(" {\n");
-            renderInstanceMembers(out, clz, indent + 1, clz);
+            renderInstanceMembers(out, clz, indent + 1, clz, merged);
             indent(out, indent).append("}\n");
             return;
         }
@@ -246,14 +278,25 @@ public class TsRenderer implements Renderer {
         appendExtends(out, clz);
         out.append(" {\n");
         appendClassHeader(out, clz, indent + 1);
-        renderStaticMembers(out, clz, indent + 1, clz);
+        renderStaticMembers(out, clz, indent + 1, clz, merged);
         renderConstructors(out, clz, indent + 1);
-        renderInstanceMembers(out, clz, indent + 1, clz);
+        renderInstanceMembers(out, clz, indent + 1, clz, merged);
         indent(out, indent).append("}\n");
     }
 
-    private void renderField(StringBuilder out, MemberDoc member, int indent, boolean includeStatic, ClassDoc owner) {
+    private void renderField(
+        StringBuilder out,
+        MemberDoc member,
+        int indent,
+        boolean includeStatic,
+        ClassDoc owner,
+        Set<String> merged
+    ) {
+        MemberDoc method = merged.contains(member.name()) ? mergedMethod(owner, member.name()) : null;
         appendDocComment(out, member.docComment(), List.of(), false, member, owner, indent);
+        if (method != null) {
+            appendDocComment(out, method.docComment(), List.of(), false, method, owner, indent);
+        }
         indent(out, indent);
         if (includeStatic && hasModifier(member, "static")) {
             out.append("static ");
@@ -261,7 +304,32 @@ public class TsRenderer implements Renderer {
         if (member.isReadOnly()) {
             out.append("readonly ");
         }
-        out.append(member.name()).append(": ").append(formatReturn(member, owner)).append(";\n");
+        out.append(member.name()).append(": ");
+        out.append(method == null
+            ? formatReturn(member, owner)
+            : mergedMemberType(member, method, owner));
+        out.append(";\n");
+    }
+
+    /**
+     * The type of a member that is both a field and a method. Reading it gives the field's
+     * value and calling it gives the method's result, which is what the runtime does with such
+     * a pair, so the type carries both readings.
+     */
+    private String mergedMemberType(MemberDoc field, MemberDoc method, ClassDoc owner) {
+        StringBuilder builder = new StringBuilder(formatType(field.returnType(), false, true));
+        builder.append(" & ((");
+        List<ParamDoc> params = method.params();
+        for (int i = 0; i < params.size(); i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            ParamDoc param = params.get(i);
+            builder.append(escapeParamName(param.name())).append(": ")
+                .append(formatType(param.type(), true, true));
+        }
+        builder.append(") => ").append(formatReturn(method, owner)).append(")");
+        return builder.toString();
     }
 
     private void renderMethod(StringBuilder out, MemberDoc member, int indent, boolean includeStatic, ClassDoc owner) {
@@ -322,14 +390,17 @@ public class TsRenderer implements Renderer {
         out.append(");\n");
     }
 
-    private void renderStaticMembers(StringBuilder out, ClassDoc clz, int indent, ClassDoc owner) {
+    private void renderStaticMembers(StringBuilder out, ClassDoc clz, int indent, ClassDoc owner, Set<String> merged) {
         for (MemberDoc member : clz.members()) {
             if (!hasModifier(member, "static")) {
                 continue;
             }
             if (member.kind() == MemberKind.FIELD) {
-                renderField(out, member, indent, true, owner);
+                renderField(out, member, indent, true, owner, merged);
             } else if (member.kind() == MemberKind.METHOD) {
+                if (merged.contains(member.name())) {
+                    continue;
+                }
                 renderMethod(out, member, indent, true, owner);
             }
         }
@@ -343,14 +414,17 @@ public class TsRenderer implements Renderer {
         }
     }
 
-    private void renderInstanceMembers(StringBuilder out, ClassDoc clz, int indent, ClassDoc owner) {
+    private void renderInstanceMembers(StringBuilder out, ClassDoc clz, int indent, ClassDoc owner, Set<String> merged) {
         for (MemberDoc member : clz.members()) {
             if (hasModifier(member, "static")) {
                 continue;
             }
             if (member.kind() == MemberKind.FIELD) {
-                renderField(out, member, indent, false, owner);
+                renderField(out, member, indent, false, owner, merged);
             } else if (member.kind() == MemberKind.METHOD) {
+                if (merged.contains(member.name())) {
+                    continue;
+                }
                 renderMethod(out, member, indent, false, owner);
             }
         }

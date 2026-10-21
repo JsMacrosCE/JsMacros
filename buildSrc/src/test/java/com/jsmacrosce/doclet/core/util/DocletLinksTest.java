@@ -119,6 +119,10 @@ public final class DocletLinksTest {
                 public static int staticHelper(int value) { return value; }
                 /** A static helper that takes nothing. */
                 public static String staticNoArgs() { return ""; }
+                /** A flag that is also a method. */
+                public boolean joinable;
+                /** The same flag, read as a method. */
+                public boolean joinable() { return joinable; }
                 /** Creates an API fixture.
                  * @param player the {@code player & profile} entry
                  */
@@ -593,6 +597,14 @@ public final class DocletLinksTest {
             contains(md, "<span class=\"syntax-token-keyword\">static</span> <span class=\"syntax-token-method\">staticHelper</span>");
             contains(md, "<span class=\"syntax-token-keyword\">static</span> <span class=\"syntax-token-method\">staticNoArgs</span>");
             contains(html, "class=\"flag staticFlag\">Static");
+            // A member that is both a field and a method is one member in the typings, and the
+            // Markdown reference keeps both because their anchors do not collide.
+            contains(ts, "joinable: boolean & (() => boolean);");
+            excludes(ts, "joinable(): boolean;");
+            contains(py, "joinable: Any");
+            excludes(py, "def joinable(");
+            contains(md, "joinable");
+            contains(html, "joinable");
             contains(py, "LIMIT: Final[int]");
             contains(py, "writable: float");
             contains(py, "def nullableResult(self) -> str | None:");

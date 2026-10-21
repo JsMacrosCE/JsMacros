@@ -91,16 +91,27 @@ public class PythonWriter {
         body.append(renderClassLine(clz, ctx));
         appendDocstring(body, 1, clz.docComment(), List.of(), false, clz.typeParams());
 
+        Set<String> merged = mergedMemberNames(clz);
+
         for (MemberDoc member : clz.members()) {
             if (member.kind() == MemberKind.FIELD) {
-                String type = ctx.formatType(member.returnType(), false);
-                if (member.returnType() != null && member.returnType().nullable()
-                    && !type.matches("(?s).*(?:\\bNone\\b|\\bOptional\\s*\\[).*")) {
-                    type += " | None";
-                }
-                if (member.isReadOnly()) {
-                    ctx.importFinal = true;
-                    type = "Final[" + type + "]";
+                String type;
+                if (merged.contains(member.name())) {
+                    // The member is both a field and a method. Python cannot say that in one
+                    // type, and the method cannot be declared under the same name either, so
+                    // the field stands for both and carries the method's documentation.
+                    ctx.importAny = true;
+                    type = "Any";
+                } else {
+                    type = ctx.formatType(member.returnType(), false);
+                    if (member.returnType() != null && member.returnType().nullable()
+                        && !type.matches("(?s).*(?:\\bNone\\b|\\bOptional\\s*\\[).*")) {
+                        type += " | None";
+                    }
+                    if (member.isReadOnly()) {
+                        ctx.importFinal = true;
+                        type = "Final[" + type + "]";
+                    }
                 }
                 body.append("    ")
                     .append(getVarName(member.name()))
@@ -108,6 +119,10 @@ public class PythonWriter {
                     .append(type)
                     .append("\n");
                 appendDocstring(body, 1, member.docComment(), List.of(), false, List.of());
+                MemberDoc method = mergedMethod(clz, member.name());
+                if (method != null) {
+                    appendDocstring(body, 1, method.docComment(), List.of(), false, List.of());
+                }
             }
         }
 
@@ -115,6 +130,9 @@ public class PythonWriter {
             if (member.kind() == MemberKind.CONSTRUCTOR) {
                 body.append(renderConstructor(member, ctx));
             } else if (member.kind() == MemberKind.METHOD) {
+                if (merged.contains(member.name())) {
+                    continue;
+                }
                 body.append(renderMethod(member, ctx));
             }
         }
@@ -125,6 +143,32 @@ public class PythonWriter {
         builder.append(ctx.renderImports());
         builder.append(body);
         return builder.toString();
+    }
+
+    /**
+     * The names of members that are both a field and a method of the same class. Python cannot
+     * declare both under one name, so such a pair is presented as a single member.
+     */
+    private Set<String> mergedMemberNames(ClassDoc clz) {
+        Set<String> fields = new LinkedHashSet<>();
+        Set<String> merged = new LinkedHashSet<>();
+        for (MemberDoc member : clz.members()) {
+            if (member.kind() == MemberKind.FIELD) {
+                fields.add(member.name());
+            } else if (member.kind() == MemberKind.METHOD && fields.contains(member.name())) {
+                merged.add(member.name());
+            }
+        }
+        return merged;
+    }
+
+    private MemberDoc mergedMethod(ClassDoc clz, String name) {
+        for (MemberDoc member : clz.members()) {
+            if (member.kind() == MemberKind.METHOD && member.name().equals(name)) {
+                return member;
+            }
+        }
+        return null;
     }
 
     private String renderConstructor(MemberDoc member, PythonTypeContext ctx) {
