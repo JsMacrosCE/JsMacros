@@ -17,21 +17,12 @@ import net.minecraft.client.GuiMessageTag;
 //? }
 
 /**
- * Fired before a chat message is added to the HUD.
- * <br>
- * This event is cancellable. Cancelling it prevents the message from being shown in the HUD and
- * from being logged to the console.
- * <br>
- * This event is fired for player chat in addition to other chat-like messages received by the
- * client.
- * <br>
- * Cancelling stops the whole chat HUD {@code addMessage} call rather than just its visible part,
- * so anything else that call would have done is skipped too.
- * example:
+ * Fired before a message is added to the chat HUD. Cancelling skips the HUD's entire
+ * {@code addMessage} call, including its chat-log output and queue updates.
  * <pre>
  * JsMacros.on("RecvMessage", JavaWrapper.methodToJava(function (event) {
  *   if (event.messageType === "Chat Error") {
- *     // the red "Chat validation error" line the client shows when it rejects a chat message
+ *     // Hide the chat-validation error message.
  *     event.cancel();
  *     return;
  *   }
@@ -45,45 +36,38 @@ import net.minecraft.client.GuiMessageTag;
 @Event(value = "RecvMessage", oldName = "RECV_MESSAGE", cancellable = true)
 public class EventRecvMessage extends BaseEvent {
     /**
-     * The message content that is about to be added to the HUD.
-     * <br>
-     * This field is writable. A listener that replaces it changes what the client shows, and the
-     * client then marks the line as modified, which shows up as the {@code "Modified"}
-     * {@link #messageType} together with an extra line quoting what was originally sent.
-     * <br>
-     * The constructor supplies a non-null helper. Replace it with another non-null helper to
-     * rewrite the message; use {@link #cancel()} to suppress the message instead of assigning
-     * {@code null}.
+     * Message content to be added to the HUD. Replacing it changes the displayed and logged
+     * content and marks the line with a {@code "Modified"} {@link #messageType}; assigning
+     * {@code null} instead causes the HUD message to be skipped.
      */
     @NotNull
     public TextHelper text;
 
     /**
-     * The cryptographic signature of the message, if present.
-     * <br>
-     * This is {@code null} for unsigned messages and system messages. For signed messages, this
-     * contains a 256 byte array containing the raw signature bytes.
+     * Raw message-signature bytes, or {@code null} when no signature was supplied. Present
+     * signatures contain 256 bytes.
      * @since 1.8.2
      */
     @Nullable
     public byte[] signature;
 
     /**
-     * A textual tag describing the message type shown or logged by Minecraft (known as the
-     * logTag).
-     * <br>
-     * This may be {@code null} when no message tag is present.
-     * <br>
-     * As of 1.21.11, the known values for this include {@code "Modified"}, {@code "System"},
-     * {@code "Not Secure"} and {@code "Chat Error"}
-     * <br>
-     * {@code "Modified"} is the one JsMacros puts there itself: it is the tag a line gets when a
-     * listener replaced {@link #text}.
+     * Minecraft chat-log tag for the message, or {@code null} when no tag was supplied. JsMacros
+     * sets this to {@code "Modified"} when a listener changes {@link #text}.
      * @since 1.8.2
      */
     @Nullable
     public String messageType;
 
+    /**
+     * Initializes the event with the supplied message, signature bytes, and chat-log tag; this
+     * constructor does not add or dispatch a HUD message. The message is wrapped with
+     * {@link TextHelper#wrap(Component)}, which returns {@code null} for a null component despite
+     * the non-null annotation on {@link #text}. The signature byte array is retained, not copied.
+     * @param message raw message content, or {@code null}
+     * @param signature raw signature, or {@code null}; its byte array is retained
+     * @param indicator HUD tag, or {@code null}; its log tag is stored as {@link #messageType}
+     */
     public EventRecvMessage(Component message, @Nullable MessageSignature signature, @Nullable GuiMessageTag indicator) {
         super(JsMacrosClient.clientCore);
         this.text = TextHelper.wrap(message);
@@ -97,6 +81,15 @@ public class EventRecvMessage extends BaseEvent {
         }
     }
 
+    /**
+     * Formats a diagnostic string from the event name and the current values of {@link #text},
+     * {@link #signature}, and {@link #messageType}. Its shape is
+     * {@code eventName:{"text": "textValue", "signature": boolean, "messageType": "tagValue"}};
+     * the text and tag are inserted using ordinary string formatting, not JSON escaping. The
+     * signature value is {@code true} only when the current signature array is non-null and
+     * non-empty; it does not verify the signature.
+     * @return diagnostic string containing the current field values
+     */
     public String toString() {
         return String.format("%s:{\"text\": \"%s\", \"signature\": %s, \"messageType\": \"%s\"}", this.getEventName(), text, signature != null && signature.length > 0, messageType);
     }

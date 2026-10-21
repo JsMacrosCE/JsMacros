@@ -23,19 +23,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * A kind of item rather than a stack of one: diamond is one of these, and so is every stack of
- * diamonds that has ever existed. It is what the registry hands out and what
- * {@link ItemStackHelper#getItem()} gives back, and it knows the item's own data without needing a
- * stack or a world.<br>
- * The distinction that runs through this class is between the item and a stack of it. Anything that
- * is really about a particular stack, such as the damage on it or the enchantments on it, is on
- * {@link ItemStackHelper} and not here. What is here is what every stack of this item shares: the
- * stack size, whether it is food, which block it places, what it repairs with, how hard it is.
- * <p>
- * A script builds one from
- * {@link com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper#getItem(String)}, which is the
- * usual way in.
- * example:
+ * Describes an item type, independently of any particular stack; use {@link ItemStackHelper} for
+ * stack-specific state. Obtain an item from
+ * {@link com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper#getItem(String)}.
+ * <pre>
+ * const item = Client.getRegistryManager().getItem("minecraft:diamond_sword");
+ * const stack = item.getDefaultStack();
+ * Chat.log(`${item.getId()}: max stack ${item.getMaxCount()}, current count ${stack.getCount()}`);
+ * </pre>
  * <pre>
  * const item = Client.getRegistryManager().getItem("minecraft:diamond_sword");
  * Chat.log(`${item.getId()} is called ${item.getName()}`);
@@ -59,6 +54,9 @@ import java.util.stream.Stream;
 public class ItemHelper extends BaseHelper<Item> {
     private static final Minecraft mc = Minecraft.getInstance();
 
+    /** Wraps the supplied raw item type.
+     * @param base raw item type to wrap
+     */
     public ItemHelper(Item base) {
         super(base);
     }
@@ -68,21 +66,7 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * The names of the creative tabs this item appears in, as a list. An item can be in more than
-     * one, and an item that is in none gives an empty list rather than {@code null}, so the size of
-     * what comes back is the test.
-     * example:
-     * <pre>
-     * // which creative tabs an item is in
-     * const item = Client.getRegistryManager().getItem("minecraft:oak_planks");
-     * const tabs = item.getCreativeTab();
-     * for (let i = 0; i !== tabs.size(); i += 1) {
-     *   Chat.log(`${item.getId()} is in ${tabs.get(i).getString()}`);
-     * }
-     *
-     * // an item that is in none
-     * Chat.log(Client.getRegistryManager().getItem("minecraft:air").getCreativeTab().size());
-     * </pre>
+     * Returns the display names of creative tabs containing this item, or an empty list if none.
      *
      * @return the display names of the creative tabs this item is in, empty if it is in none.
      * @since 1.8.4
@@ -92,23 +76,10 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * The icon stacks for the creative tabs this item is in, one per tab. The tab names are in
-     * {@link #getCreativeTab()} and the two are in the same order.<br>
-     * An item in no tab gives an empty list rather than {@code null}, despite what the nullable
-     * annotation on the signature suggests.
-     * example:
-     * <pre>
-     * // the icon of each tab an item is in
-     * const item = Client.getRegistryManager().getItem("minecraft:diamond");
-     * const icons = item.getGroupIcon();
-     * const names = item.getCreativeTab();
-     * for (let i = 0; i !== icons.size(); i += 1) {
-     *   const icon = icons.get(i);
-     *   Chat.log(`${names.get(i).getString()}: ${icon.getItemId()} x${icon.getCount()}`);
-     * }
-     * </pre>
+     * Returns the icon stacks for creative tabs containing this item, in the same order as
+     * {@link #getCreativeTab()}.
      *
-     * @return the icon stacks for the tabs this item is in, empty if it is in none.
+     * @return the icon stacks for the tabs this item is in, or {@code null}.
      * @since 1.8.4
      */
     @Nullable
@@ -121,7 +92,6 @@ public class ItemHelper extends BaseHelper<Item> {
      * data is the list of materials the game accepts, and the question is whether this stack is one
      * of them.<br>
      * An item with no repairable component returns {@code false}.
-     * example:
      * <pre>
      * // what a tool can be repaired with
      * const reg = Client.getRegistryManager();
@@ -142,21 +112,10 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * Whether the given block drops its items when broken with this item. This is asked of the
-     * block's default state, so for a block that comes in variants it is the answer for whichever
-     * one the game treats as the plain form.
-     * example:
-     * <pre>
-     * // which blocks a tool is the right one for
-     * const pick = Client.getRegistryManager().getItem("minecraft:diamond_pickaxe");
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:stone", "minecraft:diamond_ore", "minecraft:oak_log", "minecraft:dirt"]) {
-     *   Chat.log(`${id}: ${pick.isSuitableFor(reg.getBlock(id))}`);
-     * }
-     * </pre>
+     * Checks whether this item is a correct tool for drops against the block's default state.
      *
      * @param block the block to check
-     * @return {@code true} if the given block can be mined and drops when broken with this item,
+     * @return {@code true} if this item is a correct tool for drops for the default state;
      * {@code false} otherwise.
      * @since 1.8.4
      */
@@ -165,19 +124,11 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * Whether the given block state drops its items when broken with this item, which is the form
-     * that asks about a particular variant rather than about the block in general.
-     * example:
-     * <pre>
-     * // a particular state rather than the block
-     * const pick = Client.getRegistryManager().getItem("minecraft:diamond_pickaxe");
-     * const log = Client.getRegistryManager().getBlockState("minecraft:oak_log", "[axis=x]");
-     * Chat.log(`a sideways log: ${pick.isSuitableFor(log)}`);
-     * </pre>
+     * Checks whether this item is a correct tool for drops against this specific block state.
      *
      * @param block the block to check
-     * @return {@code true} if the given block can be mined and drops when broken with this item,
-     * {@code false} otherwise.
+     * @return {@code true} if this item is a correct tool for drops for this state; {@code false}
+     * otherwise.
      * @since 1.8.4
      */
     public boolean isSuitableFor(BlockStateHelper block) {
@@ -185,21 +136,7 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * Whether this item places a block when it is used, which is what decides whether
-     * {@link #getBlock()} has anything to answer. An item with no block form gives {@code null}
-     * from that call.
-     * example:
-     * <pre>
-     * // items that place a block, and the block they place
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:stone", "minecraft:diamond", "minecraft:torch"]) {
-     *   const item = reg.getItem(id);
-     *   if (item.isBlockItem()) {
-     *     const block = item.getBlock();
-     *     Chat.log(`${id} places ${block === null ? "nothing" : block.getId()}`);
-     *   }
-     * }
-     * </pre>
+     * Whether this item is a block item; see {@link #getBlock()} for its associated block.
      *
      * @return {@code true} if the item has a block representation, {@code false} otherwise.
      * @since 1.8.4
@@ -209,21 +146,8 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * The block this item places, or {@code null} if the item has no block form.
-     * {@link #isBlockItem()} is the test for whether there is one, and this is the block.
-     * example:
-     * <pre>
-     * // the block behind a block item
-     * const item = Client.getRegistryManager().getItem("minecraft:oak_slab");
-     * if (item.isBlockItem()) {
-     *   const block = item.getBlock();
-     *   if (block !== null) {
-     *     Chat.log(`${item.getId()} places ${block.getId()}`);
-     *     // and the block's own properties
-     *     Chat.log(`hardness ${block.getHardness()}, tags ${block.getTags().size()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the block associated with this block item, or {@code null} if this item is not a
+     * block item.
      *
      * @return the block representation of this item or {@code null} if this item has no
      * corresponding block.
@@ -238,25 +162,11 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * How fast this item mines the given block state, as the multiplier the game uses. The value
-     * comes off the item's own tool data, and an item with no tool data of its own gives
-     * {@code 1}, which is the ordinary speed of a bare hand.
-     * example:
-     * <pre>
-     * // mining speed against a block
-     * const reg = Client.getRegistryManager();
-     * const stone = reg.getBlockState("minecraft:stone");
-     * for (const id of ["minecraft:wooden_pickaxe", "minecraft:iron_pickaxe", "minecraft:diamond_pickaxe"]) {
-     *   Chat.log(`${id}: ${reg.getItem(id).getMiningSpeedMultiplier(stone)}`);
-     * }
-     *
-     * // and an item with no tool data of its own, which is the default speed
-     * Chat.log(`a stick: ${reg.getItem("minecraft:stick").getMiningSpeedMultiplier(stone)}`);
-     * </pre>
+     * Returns this item's mining-speed multiplier for the given block state. Without tool data, the
+     * multiplier is {@code 1}.
      *
      * @param state the block state to check
-     * @return the mining speed of this item against the given block state, returns {@code 1} by
-     * default.
+     * @return the mining-speed multiplier; {@code 1} when this item has no tool data.
      * @since 1.8.4
      */
     public float getMiningSpeedMultiplier(BlockStateHelper state) {
@@ -265,17 +175,7 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * Whether this item loses durability as it is used. A tool answers true, and so does armour, and
-     * an item with no durability at all answers false.
-     * example:
-     * <pre>
-     * // what wears out
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:diamond_sword", "minecraft:iron_helmet", "minecraft:stick", "minecraft:golden_apple"]) {
-     *   const item = reg.getItem(id);
-     *   Chat.log(`${id}: damageable ${item.isDamageable()}, max durability ${item.getMaxDurability()}`);
-     * }
-     * </pre>
+     * Whether this item's default stack is damageable.
      *
      * @return {@code true} if the item has durability, {@code false} otherwise.
      * @since 1.8.4
@@ -285,26 +185,9 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * Whether crafting with this item leaves something behind. A bucket does, and a milk bucket
-     * does, and most items do not. The question is about the item itself, so it does not depend on
-     * what else is in the grid.
-     * example:
-     * <pre>
-     * // what is left over after crafting
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:bucket", "minecraft:milk_bucket", "minecraft:stick", "minecraft:water_bucket"]) {
-     *   const item = reg.getItem(id);
-     *   if (item.hasRecipeRemainder()) {
-     *     const rest = item.getRecipeRemainder();
-     *     Chat.log(`${id} leaves ${rest === null ? "nothing" : rest.getItemId()}`);
-     *   } else {
-     *     Chat.log(`${id} leaves nothing`);
-     *   }
-     * }
-     * </pre>
+     * Whether this item has a crafting remainder.
      *
-     * @return {@code true} if when crafter the item stack has a remainder, {@code false}
-     * otherwise.
+     * @return {@code true} if this item has a crafting remainder; {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean hasRecipeRemainder() {
@@ -316,23 +199,9 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * What is left behind after crafting with this item, or {@code null} if there is nothing.
-     * This is the item's own remainder rather than a stack of it, so it comes back with a count of
-     * one and no damage on it.<br>
-     * {@link #hasRecipeRemainder()} is the test for whether there is one at all.
-     * example:
-     * <pre>
-     * // the remainder, where there is one
-     * const item = Client.getRegistryManager().getItem("minecraft:bucket");
-     * const rest = item.getRecipeRemainder();
-     * if (rest === null) {
-     *   Chat.log("no remainder");
-     * } else {
-     *   Chat.log(`${item.getId()} leaves ${rest.getItemId()} x${rest.getCount()}`);
-     * }
-     * </pre>
+     * Returns this item's crafting remainder, or {@code null} if it has none.
      *
-     * @return the recipe remainder if it exists and {@code null} otherwise.
+     * @return the remainder as a one-count item stack, or {@code null} if none exists.
      * @since 1.8.4
      */
     @Nullable
@@ -353,31 +222,9 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * The enchantability of this item, which is the number the game weighs an enchantment's own
-     * weight against when it is deciding what to put on something. An item with no enchantability
-     * data of its own gives {@code 0}, and that is the value an enchanting table treats as
-     * enchantable at all.
-     * example:
-     * <pre>
-     * // what is worth enchanting
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:wooden_sword", "minecraft:iron_sword", "minecraft:diamond_sword", "minecraft:stick"]) {
-     *   Chat.log(`${id}: ${reg.getItem(id).getEnchantability()}`);
-     * }
+     * Returns this item's enchantability component value, or {@code 0} if it has no such component.
      *
-     * // and which of a set are worth enchanting at all
-     * const wanted = ["minecraft:golden_apple", "minecraft:iron_pickaxe", "minecraft:book"];
-     * for (const id of wanted) {
-     *   const value = reg.getItem(id).getEnchantability();
-     *   if (value > 0) {
-     *     Chat.log(`${id} can be enchanted`);
-     *   }
-     * }
-     * </pre>
-     *
-     * With increased enchantability the change to get more and better enchantments increases.
-     *
-     * @return the enchantability of this item, returns {@code 0} by default.
+     * @return this item's enchantability value, or {@code 0} if absent.
      * @since 1.8.4
      */
     public int getEnchantability() {
@@ -389,17 +236,8 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * The item's translated name, which is the word the game shows for the kind of item. It is a
-     * string rather than a text because the item's own name is never a custom one; a renamed stack
-     * is a different thing and is on {@link ItemStackHelper#getName()}.
-     * example:
-     * <pre>
-     * // the names of a few items
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:diamond_sword", "minecraft:oak_planks", "minecraft:water_bucket"]) {
-     *   Chat.log(`${id}: ${reg.getItem(id).getName()}`);
-     * }
-     * </pre>
+     * Returns this item's name as a string in the current language. For a stack's custom name, see
+     * {@link ItemStackHelper#getName()}.
      *
      * @return the name of this item, translated to the current language.
      * @since 1.8.4
@@ -409,17 +247,7 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * The item's registry id, in full. This is the same string
-     * {@link com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper#getItem(String)} takes, so it
-     * can be handed straight back to look the item up again.
-     * example:
-     * <pre>
-     * const reg = Client.getRegistryManager();
-     * const item = reg.getItem("diamond_sword");
-     * Chat.log(item.getId());
-     * // the id comes back in full even though it was asked for short
-     * Chat.log(reg.getItem(item.getId()).getId());
-     * </pre>
+     * Returns this item's full registry identifier.
      *
      * @return the identifier of this item.
      * @since 1.8.4
@@ -430,21 +258,8 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * The largest stack this item can be in, as the game has it set. An item with no stack size of
-     * its own gives {@code 1} here, since that is what the game falls back to.
-     * example:
-     * <pre>
-     * // the stack sizes
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:dirt", "minecraft:ender_pearl", "minecraft:shovel", "minecraft:bucket"]) {
-     *   Chat.log(`${id}: ${reg.getItem(id).getMaxCount()}`);
-     * }
-     *
-     * // and a stack of the largest size
-     * const item = reg.getItem("minecraft:dirt");
-     * const stack = item.getDefaultStack().getCreative().setCount(item.getMaxCount());
-     * Chat.log(`${stack.getCount()} of ${stack.getItemId()}`);
-     * </pre>
+     * Returns this item's default maximum stack size; items without a configured size default to
+     * {@code 1}.
      *
      * @return the maximum amount of items in a stack of this item.
      * @since 1.8.4
@@ -454,26 +269,9 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * The most damage this item can take before it breaks, as the number the game keeps on it. An
-     * item with no durability of its own gives {@code 0} here, which is the same answer
-     * {@link #isDamageable()} gives as a false.
-     * example:
-     * <pre>
-     * // how tough the armour and tools are
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:wooden_sword", "minecraft:stone_sword", "minecraft:iron_sword", "minecraft:netherite_sword"]) {
-     *   const item = reg.getItem(id);
-     *   Chat.log(`${id}: ${item.getMaxDurability()} of ${item.getMaxDurability()}`);
-     * }
+     * Returns this item's maximum damage value, or {@code 0} if no maximum is configured.
      *
-     * // and what a fresh stack of one has left
-     * const sword = reg.getItem("minecraft:diamond_sword").getDefaultStack();
-     * Chat.log(`${sword.getDurability()} durability on a new one`);
-     * </pre>
-     *
-     * The damage an item has taken is the opposite of the durability still left.
-     *
-     * @return the maximum amount of damage this item can take.
+     * @return the maximum damage value.
      * @since 1.8.4
      */
     public int getMaxDurability() {
@@ -481,18 +279,11 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * Whether this item is immune to fire damage, which is the flag the game checks before it burns
-     * a held or worn item. An item with no resistance data of its own gives {@code false}.
-     * example:
-     * <pre>
-     * // what survives lava
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:netherite_helmet", "minecraft:leather_helmet", "minecraft:diamond", "minecraft:wooden_sword"]) {
-     *   Chat.log(`${id} is fireproof: ${reg.getItem(id).isFireproof()}`);
-     * }
-     * </pre>
+     * Whether this item's damage-resistance component targets the fire damage-type tag. Items with
+     * no damage-resistance component return {@code false}.
      *
-     * @return {@code true} if this item is fireproof, {@code false} otherwise.
+     * @return {@code true} if fire damage is resisted according to the component; {@code false}
+     * otherwise.
      * @since 1.8.4
      */
     public boolean isFireproof() {
@@ -508,17 +299,7 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * Whether this item is a tool, which is the flag the game sets on mining and fighting tools.
-     * It is a property of the item rather than a guess from what the item is made of, and
-     * {@link #getMiningSpeedMultiplier(BlockStateHelper)} reads the same data.
-     * example:
-     * <pre>
-     * // which items are tools
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:diamond_pickaxe", "minecraft:shears", "minecraft:stick", "minecraft:bow"]) {
-     *   Chat.log(`${id} is a tool: ${reg.getItem(id).isTool()}`);
-     * }
-     * </pre>
+     * Whether this item has a tool component.
      *
      * @return {@code true} if this item is a tool, {@code false} otherwise.
      * @since 1.8.4
@@ -528,18 +309,9 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * Whether this item can be worn in an armour slot, which is the flag the game checks when it is
-     * deciding whether an equippable slot accepts a stack.
-     * example:
-     * <pre>
-     * // what can be worn
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:diamond_helmet", "minecraft:leather_boots", "minecraft:elytra", "minecraft:diamond"]) {
-     *   Chat.log(`${id} is wearable: ${reg.getItem(id).isWearable()}`);
-     * }
-     * </pre>
+     * Whether this item has an equippable component.
      *
-     * @return {@code true} if this item can be worn in the armor slot, {@code false} otherwise.
+     * @return {@code true} if this item has an equippable component; {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean isWearable() {
@@ -547,16 +319,7 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * Whether this item can be eaten, which is the flag the game sets on anything with a food
-     * component. {@link #getFood()} is what reads that component.
-     * example:
-     * <pre>
-     * // what is food
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:bread", "minecraft:cooked_beef", "minecraft:poisonous_potato", "minecraft:stone"]) {
-     *   Chat.log(`${id} is food: ${reg.getItem(id).isFood()}`);
-     * }
-     * </pre>
+     * Whether this item has a food component.
      *
      * @return {@code true} if this item is food, {@code false} otherwise.
      * @since 1.8.4
@@ -566,20 +329,7 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * The food component of this item, or {@code null} if the item is not food. This is the whole
-     * component rather than one number, so the three things eating it does are all on it.
-     * example:
-     * <pre>
-     * // what eating an item does
-     * const item = Client.getRegistryManager().getItem("minecraft:golden_apple");
-     * const food = item.getFood();
-     * if (food === null) {
-     *   Chat.log("not food");
-     * } else {
-     *   Chat.log(`${food.getHunger()} hunger, ${food.getSaturation()} saturation`);
-     *   Chat.log(`edible on a full bar: ${food.isAlwaysEdible()}`);
-     * }
-     * </pre>
+     * Returns this item's food component, or {@code null} if it has none.
      *
      * @return the food component of this item or {@code null} if this item is not food.
      * @since 1.8.4
@@ -593,18 +343,7 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * Whether this item can go inside a container item, which is the flag the game checks when it is
-     * deciding whether a stack fits in a bundle or a shulker box. It is set per item and the game
-     * answers yes for anything that has not said otherwise, so this is true for most items rather
-     * than being a shortlist.
-     * example:
-     * <pre>
-     * // what can be put in a bundle
-     * const reg = Client.getRegistryManager();
-     * for (const id of ["minecraft:dirt", "minecraft:stone", "minecraft:enchanted_book", "minecraft:bundle"]) {
-     *   Chat.log(`${id} nests: ${reg.getItem(id).canBeNested()}`);
-     * }
-     * </pre>
+     * Whether this item is allowed inside container items such as bundles.
      *
      * @return {@code true} if this item can be nested, i.e. put into a bundle or shulker box,
      * {@code false} otherwise.
@@ -615,20 +354,7 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * A fresh stack of one of this item with nothing on it, which is what a creative inventory entry
-     * is. A stack with anything on it, such as a custom name or damage, is built with
-     * {@link #getStackWithNbt(String)} or by editing the result.
-     * example:
-     * <pre>
-     * // a fresh stack of one
-     * const item = Client.getRegistryManager().getItem("minecraft:stone");
-     * const stack = item.getDefaultStack();
-     * Chat.log(`${stack.getCount()} of ${stack.getItemId()}, damage ${stack.getDamage()}`);
-     *
-     * // and a full stack of the same thing
-     * const many = item.getDefaultStack().getCreative().setCount(64);
-     * Chat.log(`${many.getCount()} of ${many.getItemId()}`);
-     * </pre>
+     * Returns a fresh default stack of this item, with a count of one.
      *
      * @return the default item stack of this item with a stack size of {@code 1}.
      * @since 1.8.4
@@ -638,13 +364,8 @@ public class ItemHelper extends BaseHelper<Item> {
     }
 
     /**
-     * A stack of this item carrying whatever components the argument names, read by the same parser
-     * a command uses. The argument is appended straight onto this item's id, so it is the
-     * component list and nothing else: square brackets, a comma separated set of component names
-     * with their values, and the braces for a nested list where a component takes one.
-     * <p>
-     * The stack always comes back with a count of one, whatever the components say.
-     * example:
+     * Parses {@code nbt} as the component syntax appended to this item's ID and returns a stack with
+     * those components. The stack count is always one.
      * <pre>
      * // a named and damaged tool
      * const sword = Client.getRegistryManager().getItem("minecraft:diamond_sword");
@@ -664,8 +385,8 @@ public class ItemHelper extends BaseHelper<Item> {
      * }
      * </pre>
      *
-     * @param nbt the nbt data of the item stack, which is the component list and nothing else.
-     * @return the item stack of this item with a stack size of {@code 1} and the given nbt.
+     * @param nbt the component syntax to append to this item's ID.
+     * @return a stack with the parsed components and a count of one.
      * @throws CommandSyntaxException if the nbt data is invalid.
      * @since 1.8.4
      */
@@ -679,6 +400,9 @@ public class ItemHelper extends BaseHelper<Item> {
         //? }
     }
 
+    /** Returns a diagnostic representation containing the wrapped item's identifier.
+     * @return diagnostic representation of the wrapped item type
+     */
     @Override
     public String toString() {
         return String.format("ItemHelper:{\"id\": \"%s\"}", getId());

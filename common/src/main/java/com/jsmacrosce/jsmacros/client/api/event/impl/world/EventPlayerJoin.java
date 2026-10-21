@@ -11,15 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.UUID;
 
 /**
- * Fired when the {@code ClientboundPlayerInfoUpdatePacket} packet is received and a new player is
- * added to the {@code PlayerSocialManager}.
- * <br>
- * Note: This event may not be fired on all servers.
- * <br>
- * The event is raised once per entry the packet adds, as each one is handed to the player list,
- * so one packet carrying several new players raises it several times. It is not cancellable, and
- * there is nothing to stop: the entry goes into the player list either way.
- * example:
+ * Fired when a player-list entry is first added to the client player list. This event is not cancellable.
  * <pre>
  * JsMacros.on("PlayerJoin", JavaWrapper.methodToJava(function (event) {
  *   const name = event.player.getName();
@@ -33,31 +25,37 @@ import java.util.UUID;
 @Event(value = "PlayerJoin", oldName = "PLAYER_JOIN")
 public class EventPlayerJoin extends BaseEvent {
     /**
-     * The UUID of the player that was added.
-     * <br>
-     * For example, {@code "069a79f4-44e9-4726-a5be-fca90e38aaf5"} is the value for Notch.
-     * <br>
-     * This is the profile id of the entry, the same value
-     * {@link PlayerListEntryHelper#getUUID() getUUID()} reports on {@link #player}.
+     * UUID of the added player's profile; the same value returned by
+     * {@link PlayerListEntryHelper#getUUID()} on {@link #player}.
      */
     public final String UUID;
 
     /**
-     * A helper for the added player list entry.
-     * <br>
-     * It is the entry as it was just received, so the name, ping, gamemode and display name all
-     * read from it come from the same packet. {@link PlayerListEntryHelper#getName() getName()}
-     * can be {@code null} for a profile the server has not given a name for.
+     * The added player-list entry. Its name may be {@code null} when the profile has no name.
      */
     @NotNull
     public final PlayerListEntryHelper player;
 
+    /**
+     * Wraps a player-list entry in a join event; it does not add the entry or dispatch the event.
+     * The supplied UUID is converted to a string independently of the profile in {@code playerInfo}.
+     * A null UUID causes a {@link NullPointerException} before the player entry is wrapped.
+     * {@code playerInfo} is required to be non-null but is not eagerly checked; passing {@code null}
+     * despite that precondition creates a wrapper around null and causes a downstream {@link NullPointerException}.
+     * @param uuid non-null identifier whose string form is stored in {@link #UUID}
+     * @param playerInfo non-null player-list entry to wrap
+     */
     public EventPlayerJoin(UUID uuid, @NotNull PlayerInfo playerInfo) {
         super(JsMacrosClient.clientCore);
         this.UUID = uuid.toString();
         this.player = new PlayerListEntryHelper(playerInfo);
     }
 
+    /**
+     * Returns an event-name-prefixed diagnostic containing the current player-helper representation, not a full entry snapshot.
+     * If {@code playerInfo} was {@code null} despite the constructor's non-null precondition, the non-null helper contains a null raw entry; formatting then causes a {@link NullPointerException} through {@code helper.getUUID()} and {@code base.getProfile()}.
+     * @return diagnostic string in the form {@code eventName:{"player": playerRepresentation}}
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"player\": %s}", this.getEventName(), player);

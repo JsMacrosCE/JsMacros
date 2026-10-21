@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.config;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
@@ -17,55 +18,101 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/** Client-side GUI, input, and editor options registered with the client core configuration.
+ * Scripts can retrieve this options object from the global config manager:
+ * <pre>
+ * const ClientConfig = Java.type("com.jsmacrosce.jsmacros.client.config.ClientConfigV2");
+ * const options = JsMacros.getConfig().getOptions(ClientConfig);
+ * if (options !== null) {
+ *   Chat.log(options.editorHistorySize);
+ * }
+ * </pre>
+ * The options object is not the global configuration itself; assigning fields does not by itself save the config or rebuild an open editor.
+ */
 public class ClientConfigV2 {
+    /** Controls the ordering of macros in the GUI macro list; defaults to {@code Enabled}.
+     * {@code getSortComparator()} resets a null value to {@code Enabled} when called. */
     @Option(translationKey = "jsmacrosce.sort", group = "jsmacrosce.settings.gui")
     public Sorting.MacroSortMethod sortMethod = Sorting.MacroSortMethod.Enabled;
 
+    /** Controls the ordering of services in the GUI service list; defaults to {@code Enabled}.
+     * {@code getServiceSortComparator()} resets a null value to {@code Enabled} when called. */
     @Option(translationKey = "jsmacrosce.sortservices", group = "jsmacrosce.settings.gui")
     public Sorting.ServiceSortMethod sortServicesMethod = Sorting.ServiceSortMethod.Enabled;
 
+    /** Enables zero-based menu slot-list indexes in the active slots rendered by the handled-screen hook; defaults to {@code false}. */
     @Option(translationKey = "jsmacrosce.showslotindexes", group = "jsmacrosce.settings.gui")
     public boolean showSlotIndexes = false;
 
+    /** Suppresses most JsMacros key-event dispatch while a screen is open; defaults to {@code true}.
+     * Releases matching presses begun without a screen remain eligible. Disabling this option does not bypass
+     * the other screen filters, and this check does not prevent the preceding key-state ledger update. */
     @Option(translationKey = "jsmacrosce.disablewithscreen", group = "jsmacrosce.settings.general")
     public boolean disableKeyWhenScreenOpen = true;
 
+    /** Editor syntax-token colors, mapped from token names to red, green, and blue components using their low 8 bits.
+     * Color arrays need at least three entries. Initially {@code null}; {@code getThemeData()} creates defaults
+     * and saves the config when the field is null. A supplied non-null map is reused without merging defaults. */
     @Option(translationKey = "jsmacrosce.theme", group = {"jsmacrosce.settings.editor", "jsmacrosce.settings.editor.color"}, getter = "getThemeData", type = @OptionType("color"))
     public Map<String, short[]> editorTheme = null;
 
+    /** Maps editor language identifiers to linter script paths resolved relative to the macro folder; an empty map uses built-in compilers. The language {@code none} bypasses overrides. */
     @Option(translationKey = "jsmacrosce.linteroverrides", group = {"jsmacrosce.settings.editor", "jsmacrosce.settings.editor.linter"}, options = "languages", type = @OptionType("file"))
     public Map<String, String> editorLinterOverrides = new HashMap<>();
 
+    /** Maximum undo-history entries for each newly created editor history; defaults to 20.
+     * Use a positive count: zero or negative values can fail during construction or edits.
+     * Existing histories keep the limit read at their construction; grouped edits may share one entry. */
     @Option(translationKey = "jsmacrosce.history", group = "jsmacrosce.settings.editor")
     public int editorHistorySize = 20;
 
+    /** Enables suggestion production by the built-in compiler and display of suggestions in the editor; defaults to {@code true}. */
     @Option(translationKey = "jsmacrosce.autocomplete", group = "jsmacrosce.settings.editor")
     public boolean editorSuggestions = true;
 
+    /** Resource identifier string used to select the editor font; defaults to {@code jsmacrosce:monocraft}. */
     @Option(translationKey = "jsmacrosce.font", group = "jsmacrosce.settings.editor", options = "getFonts")
     public String editorFont = "jsmacrosce:monocraft";
 
+    /** When enabled, tries the configured external command for an existing regular file; defaults to {@code false}.
+     * A successful process start skips the internal editor; caught process-start I/O failures allow fallback.
+     * This does not wait for the external process or check its exit status. */
     @Option(translationKey = "jsmacrosce.useexternaleditor", group = "jsmacrosce.settings.editor")
     public boolean externalEditor = false;
 
+    /** Command template split on whitespace before substitution, without shell-style quote parsing.
+     * Supports {@code %File} (absolute file path), {@code %MacroFolder} (absolute macro folder),
+     * and {@code %Folder} (absolute file parent). Substituted paths remain in their existing argument tokens.
+     * Defaults to {@code code %MacroFolder %File}. */
     @Option(translationKey = "jsmacrosce.externaleditorcommand", group = "jsmacrosce.settings.editor")
     public String externalEditorCommand = "code %MacroFolder %File";
 
+    /** Controls whether service-triggered contexts are included in the running-scripts screen; defaults to {@code false}.
+     * A new screen initializes its service checkbox from this value; changing it does not update an open screen. */
     @Option(translationKey = "jsmacrosce.showrunningservices", group = "jsmacrosce.settings.services")
     public boolean showRunningServices = false;
 
+    /** Stores whether service file-change reload processing is enabled; defaults to {@code false}.
+     * Client startup uses this value to start the reload listener. Use {@code setServiceAutoReload(boolean)} to also update the current manager. */
     @Option(translationKey = "jsmacrosce.serviceautoreload", group = "jsmacrosce.settings.services", setter = "setServiceAutoReload")
     public boolean serviceAutoReload = false;
 
+    /** Returns the editor's shared language-identifier list.
+     * @return the mutable list used by the editor */
     public List<String> languages() {
         return EditorScreen.langs;
     }
 
+    /** Collects font resource identifiers from the client font manager.
+     * @return a newly collected list of font resource identifier strings; order is unspecified */
     @SuppressWarnings("resource")
     public List<String> getFonts() {
         return ((IFontManager) Minecraft.getInstance().fontManager).jsmacros_getFontList().stream().map(ResourceLocation::toString).collect(Collectors.toList());
     }
 
+    /** Returns the editor token-color map, initializing defaults and saving the config if it is {@code null}.
+     * The returned map is reused directly; non-null maps are not cloned, validated, or merged with defaults.
+     * @return the live mutable token-name-to-RGB map; each color array must provide at least three components, whose low 8 bits are used */
     public Map<String, short[]> getThemeData() {
         if (editorTheme == null) {
             editorTheme = new HashMap<>();
@@ -99,6 +146,8 @@ public class ClientConfigV2 {
         return editorTheme;
     }
 
+    /** Stores the service auto-reload preference and starts or stops reload processing in the current client manager.
+     * @param value whether to enable file-change reload processing */
     public void setServiceAutoReload(boolean value) {
         serviceAutoReload = value;
         if (value) {
@@ -108,6 +157,9 @@ public class ClientConfigV2 {
         }
     }
 
+    /** Returns a new comparator selected by {@code sortMethod}; a {@code null} setting is reset to {@code Enabled}.
+     * The comparator compares triggers but does not sort a collection.
+     * @return a new macro-trigger comparator for the selected ordering */
     public Comparator<ScriptTrigger> getSortComparator() {
         if (this.sortMethod == null) {
             this.sortMethod = Sorting.MacroSortMethod.Enabled;
@@ -123,6 +175,9 @@ public class ClientConfigV2 {
         }
     }
 
+    /** Returns a new service-name comparator selected by {@code sortServicesMethod}; a {@code null} setting is reset to {@code Enabled}.
+     * Enabled and running comparisons query the current client service manager when comparing; selection does not reorder services.
+     * @return a new service-name comparator for the selected ordering */
     public Comparator<String> getServiceSortComparator() {
         if (this.sortServicesMethod == null) {
             this.sortServicesMethod = Sorting.ServiceSortMethod.Enabled;
@@ -141,6 +196,7 @@ public class ClientConfigV2 {
         }
     }
 
+    @DocletIgnore
     @Deprecated
     public void fromV1(JsonObject v1) {
         sortMethod = Sorting.MacroSortMethod.valueOf(v1.get("sortMethod").getAsString());

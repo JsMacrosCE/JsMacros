@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import com.jsmacrosce.jsmacros.client.gui.screens.KeyMacrosScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.User;
@@ -30,6 +32,7 @@ import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 //?}
 
 @Mixin(Minecraft.class)
+@DocletIgnore
 public abstract class MixinMinecraftClient {
 
     @Shadow

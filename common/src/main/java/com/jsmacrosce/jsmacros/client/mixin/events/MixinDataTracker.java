@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.SyncedDataHolder;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -18,6 +20,7 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinEntity2;
 import java.util.Optional;
 
 @Mixin(SynchedEntityData.class)
+@DocletIgnore
 public class MixinDataTracker {
 
     @Shadow

@@ -10,17 +10,11 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the client's current screen changes, which includes both opening a screen and
- * closing one.<br>
- * The event only fires on an actual change, so setting the same screen again does not raise it
- * again. Closing a screen counts as a change: a screen going away is reported with a
- * {@code null} {@link #screen} and a {@code null} {@link #screenName}, so always null check both
- * before reading them.<br>
- * This event is not cancellable, the screen has already been swapped by the time listeners see
- * it. If you need to stop a container screen from opening, listen for
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventOpenContainer} instead,
- * that one is cancellable.
- * example:
+ * Fires when the client's current screen changes, including when a screen is closed. The event
+ * is dispatched after the screen field is assigned, and is not cancellable. Reassigning the
+ * current screen does not fire it. On close, both {@link #screen} and {@link #screenName} are
+ * {@code null}. Container screens have a separate cancellable event:
+ * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventOpenContainer}.
  * <pre>
  * JsMacros.on("OpenScreen", JavaWrapper.methodToJava(function (event) {
  *   if (event.screenName === null) {
@@ -37,32 +31,39 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "OpenScreen", oldName = "OPEN_SCREEN")
 public class EventOpenScreen extends BaseEvent {
     /**
-     * the screen that is now showing, wrapped in the
-     * {@link com.jsmacrosce.jsmacros.client.api.classes.render.IScreen} interface that every
-     * game screen implements, including the ones the game ships with. Its class name is
-     * available from
-     * {@link com.jsmacrosce.jsmacros.client.api.classes.render.IScreen#getScreenClassName() getScreenClassName()}.
-     * <br>
-     * This is {@code null} when the event is reporting a screen being closed.
+     * The newly assigned screen, wrapped as an {@link IScreen}; {@code null} when a screen is
+     * closed. Its class name is available from
+     * {@link IScreen#getScreenClassName()}.
      */
     @Nullable
     public final IScreen screen;
     /**
-     * a short human readable name for the screen, for example {@code "Chest"} or
-     * {@code "Survival Inventory"}. Container screens get a fixed name, other screens fall back
-     * to their title and then to {@code "unknown"}, so this is not a stable identifier and it
-     * should not be matched on.<br>
-     * This is {@code null} when the event is reporting a screen being closed.
+     * A display name for the screen: container screens use names assigned by JsMacros, while
+     * other screens use their title or {@code "unknown"} when the title is empty. This is not a
+     * stable identifier. {@code null} when a screen is closed.
      */
     @DocletReplaceReturn("ScreenName")
     public final String screenName;
 
+    /**
+     * Captures the supplied screen and its display name when constructing the event; this does
+     * not open or close a screen. A {@code null} screen sets both event fields to {@code null}.
+     * A non-null screen must implement {@link IScreen}, or the cast fails with
+     * {@link ClassCastException}.
+     * @param screen the Minecraft screen to capture, or {@code null} when closing a screen
+     */
     public EventOpenScreen(Screen screen) {
         super(JsMacrosClient.clientCore);
         this.screen = (IScreen) screen;
         this.screenName = JsMacrosClient.getScreenName(screen);
     }
 
+    /**
+     * Returns a diagnostic string containing the event name and captured screen name, in the
+     * form {@code eventName:{"screenName": "name"}}. A null screen name is formatted as the
+     * literal {@code null}; this is not JSON serialization and the screen itself is omitted.
+     * @return the event name and captured screen name in diagnostic form
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"screenName\": \"%s\"}", this.getEventName(), screenName);

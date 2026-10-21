@@ -19,6 +19,7 @@ import java.io.File;
 import java.util.*;
 
 /**
+ * Manages registered script services, their running contexts, and reloads triggered by file changes.
  * @author Wagyourtail
  * @since 1.6.3
  */
@@ -31,33 +32,36 @@ public class ServiceManager {
     protected final Core<?, ?> runner;
     protected final Map<String, Pair<ServiceTrigger, EventContainer<?>>> registeredServices = new LinkedHashMap<>();
 
+    /** Stores the core used for subsequent service operations; this constructor does not register or start services.
+     * @param runner core that owns this manager
+     */
     public ServiceManager(Core<?, ?> runner) {
         this.runner = runner;
     }
 
-    /**
-     * @param name
-     * @param pathToFile relative to macro folder
-     * @return false if service with that name is already registered
+    /** Registers a service from a file under the macro folder and starts it immediately.
+     * @param name service name
+     * @param pathToFile path relative to the macro folder
+     * @return {@code false} if a service with this name is already registered
      */
     public synchronized boolean registerService(String name, String pathToFile) {
         return registerService(name, new ServiceTrigger(runner.config.macroFolder.getAbsoluteFile().toPath().resolve(pathToFile), true));
     }
 
-    /**
-     * @param name
-     * @param pathToFile relative to macro folder
-     * @param enabled
-     * @return false if service with that name is already registered
+    /** Registers a service from a file under the macro folder, optionally starting it immediately.
+     * @param name service name
+     * @param pathToFile path relative to the macro folder
+     * @param enabled whether to start the service immediately
+     * @return {@code false} if a service with this name is already registered
      */
     public synchronized boolean registerService(String name, String pathToFile, boolean enabled) {
         return registerService(name, new ServiceTrigger(runner.config.macroFolder.getAbsoluteFile().toPath().resolve(pathToFile), enabled));
     }
 
-    /**
-     * @param name
-     * @param trigger
-     * @return false if service with that name already registered
+    /** Registers a service with the given trigger and starts it if the trigger is enabled.
+     * @param name service name
+     * @param trigger service trigger configuration
+     * @return {@code false} if a service with this name is already registered
      */
     public synchronized boolean registerService(String name, ServiceTrigger trigger) {
         if (registeredServices.containsKey(name)) {
@@ -70,9 +74,9 @@ public class ServiceManager {
         return true;
     }
 
-    /**
-     * @param name
-     * @return
+    /** Stops and unregisters a service if present.
+     * @param name service name
+     * @return {@code true} if a service was registered and removed
      */
     public synchronized boolean unregisterService(String name) {
         stopService(name);
@@ -81,6 +85,7 @@ public class ServiceManager {
     }
 
     /**
+     * Removes cached crash and file-timestamp state for the registered service; this does not stop it.
      * @param serviceName the name of the service to disable the reload feature for
      * @since 1.8.4
      */
@@ -94,9 +99,10 @@ public class ServiceManager {
     }
 
     /**
-     * @param oldName
-     * @param newName
-     * @return false if service with new name already registered or old name doesn't exist
+     * Renames a registered service, preserving its trigger and running context.
+     * @param oldName current service name
+     * @param newName replacement service name
+     * @return {@code false} if the new name is already registered or the old name is unknown
      */
     public synchronized boolean renameService(String oldName, String newName) {
         if (registeredServices.containsKey(newName)) {
@@ -118,17 +124,17 @@ public class ServiceManager {
     }
 
     /**
-     * @return registered service names
+     * @return an immutable snapshot of the registered service names
      */
     public synchronized Set<String> getServices() {
         return ImmutableSet.copyOf(registeredServices.keySet());
     }
 
     /**
-     * starts service once
+     * Starts a service if it is not already running.
      *
      * @param name service name
-     * @return previous state (or {@link ServiceStatus#UNKNOWN} if unknown service)
+     * @return {@link ServiceStatus#UNKNOWN} if unknown; otherwise {@link ServiceStatus#STOPPED} if this call starts it, or {@link ServiceStatus#RUNNING} if it was already running
      */
     public synchronized ServiceStatus startService(String name) {
         Pair<ServiceTrigger, EventContainer<?>> service = registeredServices.get(name);
@@ -146,8 +152,9 @@ public class ServiceManager {
     }
 
     /**
+     * Stops a running service, invoking its stop callbacks and unregistering its event listeners and registrables.
      * @param name service name
-     * @return previous state (or {@link ServiceStatus#UNKNOWN} if unknown service)
+     * @return {@link ServiceStatus#UNKNOWN} if unknown; otherwise {@link ServiceStatus#RUNNING} if this call stopped it, or {@link ServiceStatus#STOPPED} if it was already stopped
      */
     public synchronized ServiceStatus stopService(String name) {
         Pair<ServiceTrigger, EventContainer<?>> service = registeredServices.get(name);
@@ -216,6 +223,10 @@ public class ServiceManager {
         return ServiceStatus.RUNNING;
     }
 
+    /** Adds or removes the context's sync object from the shared auto-unregister keep-alive set.
+     * @param ctx context whose sync object is tracked
+     * @param keepAlive {@code true} to add the sync object; {@code false} to remove it
+     */
     public static void setAutoUnregisterKeepAlive(@NotNull BaseScriptContext<?> ctx, boolean keepAlive) {
         synchronized (autoUnregisterKeepAlive) {
             if (keepAlive) {
@@ -226,6 +237,10 @@ public class ServiceManager {
         }
     }
 
+    /** Checks whether a service-triggered context's non-null sync object is in the shared keep-alive set.
+     * @param ctx context to check
+     * @return {@code true} only when the triggering event is an {@link EventService} and its non-null sync object is in the set
+     */
     public static boolean hasKeepAlive(@NotNull BaseScriptContext<?> ctx) {
         if (!(ctx.getTriggeringEvent() instanceof EventService)) return false;
         Object syncObject = ctx.getSyncObject();
@@ -233,8 +248,9 @@ public class ServiceManager {
     }
 
     /**
+     * Stops the service, then starts it again if registered, even if disabled.
      * @param name service name
-     * @return state before "restarting" (or {@link ServiceStatus#UNKNOWN} if unknown service)
+     * @return the result of stopping the service, or {@link ServiceStatus#UNKNOWN} if unregistered; a stopped service returns {@link ServiceStatus#STOPPED} even though it is then started
      */
     public synchronized ServiceStatus restartService(String name) {
         ServiceStatus state = stopService(name);
@@ -243,8 +259,9 @@ public class ServiceManager {
     }
 
     /**
+     * Enables a registered service without starting it.
      * @param name service name
-     * @return previous state (or {@link ServiceStatus#UNKNOWN} if unknown service)
+     * @return {@link ServiceStatus#UNKNOWN} if unregistered; otherwise {@link ServiceStatus#DISABLED} if this call enabled it, or {@link ServiceStatus#ENABLED} if already enabled
      */
     public synchronized ServiceStatus enableService(String name) {
         Pair<ServiceTrigger, EventContainer<?>> service = registeredServices.get(name);
@@ -259,8 +276,9 @@ public class ServiceManager {
     }
 
     /**
+     * Disables a registered service without stopping it.
      * @param name service name
-     * @return previous state (or {@link ServiceStatus#UNKNOWN} if unknown service)
+     * @return {@link ServiceStatus#UNKNOWN} if unregistered; otherwise {@link ServiceStatus#ENABLED} if this call disabled it, or {@link ServiceStatus#DISABLED} if already disabled
      */
     public synchronized ServiceStatus disableService(String name) {
         Pair<ServiceTrigger, EventContainer<?>> service = registeredServices.get(name);
@@ -276,8 +294,9 @@ public class ServiceManager {
     }
 
     /**
-     * @param name the name of the service to check
-     * @return {@code true} if the service is running, {@code false} otherwise.
+     * Returns whether the registered service's context is open, regardless of its enabled state.
+     * @param name service name
+     * @return {@code true} if registered with an open context; {@code false} otherwise
      * @since 1.8.4
      */
     public synchronized boolean isRunning(String name) {
@@ -290,8 +309,9 @@ public class ServiceManager {
     }
 
     /**
-     * @param name the name of the service to check
-     * @return {@code true} if the service is enabled, {@code false} otherwise.
+     * Returns whether a registered service is enabled.
+     * @param name service name
+     * @return {@code false} if unregistered or disabled; {@code true} if enabled
      * @since 1.8.4
      */
     public synchronized boolean isEnabled(String name) {
@@ -301,7 +321,7 @@ public class ServiceManager {
 
     /**
      * @param name service name
-     * @return {@link ServiceStatus#UNKNOWN} if unknown service, {@link ServiceStatus#RUNNING} if disabled and running, {@link ServiceStatus#DISABLED} if disabled and stopped, {@link ServiceStatus#STOPPED} if enabled and stopped, {@link ServiceStatus#ENABLED} if enabled and running.
+     * @return {@link ServiceStatus#UNKNOWN} if unregistered; otherwise {@link ServiceStatus#ENABLED} or {@link ServiceStatus#STOPPED} when enabled and respectively running or stopped, or {@link ServiceStatus#RUNNING} or {@link ServiceStatus#DISABLED} when disabled and respectively running or stopped
      */
     public synchronized ServiceStatus status(String name) {
         Pair<ServiceTrigger, EventContainer<?>> service = registeredServices.get(name);
@@ -321,10 +341,10 @@ public class ServiceManager {
     }
 
     /**
-     * this might throw if the service is not running...
+     * Returns the triggering event for a registered service's current context; the service must be running.
      *
-     * @param name
-     * @return the event that is current for the service
+     * @param name registered service name
+     * @return the service event
      * @since 1.6.5
      */
     public EventService getServiceData(String name) {
@@ -332,8 +352,9 @@ public class ServiceManager {
     }
 
     /**
-     * @param name
-     * @return
+     * Returns the trigger configuration for a registered service.
+     * @param name registered service name
+     * @return the service trigger
      * @since 1.6.5 [named getServiceData previously]
      */
     public ServiceTrigger getTrigger(String name) {
@@ -341,7 +362,7 @@ public class ServiceManager {
     }
 
     /**
-     * load services from config
+     * Loads configured services, registering missing services and updating existing triggers.
      */
     public synchronized void load() {
         Map<String, ServiceTrigger> configTriggers = runner.config.getOptions(CoreConfigV2.class).services;
@@ -368,7 +389,7 @@ public class ServiceManager {
     }
 
     /**
-     * save current registered services &amp; enabled/disabled status to config
+     * Saves registered service triggers to configuration and writes the configuration.
      */
     public synchronized void save() {
         Map<String, ServiceTrigger> services = new HashMap<>();
@@ -381,7 +402,7 @@ public class ServiceManager {
     }
 
     /**
-     * Stops the service manager from reloading scrips on file changes.
+     * Disables service reloads in response to file changes.
      *
      * @since 1.8.4
      */
@@ -390,7 +411,7 @@ public class ServiceManager {
     }
 
     /**
-     * Will make the service manager reload scripts on file changes.
+     * Enables service reloads in response to file changes.
      *
      * @since 1.8.4
      */
@@ -399,9 +420,7 @@ public class ServiceManager {
     }
 
     /**
-     * Mark a service as crashed so that it can be reloaded when its file changes. Crashed services
-     * must be marked so that file change listener knows to restart them even if they are not
-     * running because they crashed.
+     * Marks a service as crashed so the file-change listener can restart it after its file changes.
      *
      * @param serviceName the name of the service to mark as crashed
      * @since 1.8.4
@@ -412,7 +431,7 @@ public class ServiceManager {
 
     /**
      * @param serviceName the name of the service to check
-     * @return {@code true} if the service previously crashed, {@code false} otherwise.
+     * @return {@code true} if the service is marked crashed
      * @since 1.8.4
      */
     public boolean isCrashed(String serviceName) {
@@ -420,8 +439,7 @@ public class ServiceManager {
     }
 
     /**
-     * Ticks the service manager. This will check if any services need to be reloaded and reloads
-     * them if necessary.
+     * Checks eligible services for file modification and restarts them when their file timestamp changes.
      *
      * @since 1.8.4
      */
@@ -448,14 +466,18 @@ public class ServiceManager {
         }
     }
 
-    // Enabled = running & enabled
-    // Disabled = !running & !enabled
-    // Running = running & !enabled
-    // Stopped = !running & enabled
+    /** Combined enabled/running state of a service; {@link #UNKNOWN} means it is not registered. */
     public enum ServiceStatus {
-        ENABLED, DISABLED, // returned by start/stop
-        RUNNING, STOPPED, // returned by enable/disable
-        UNKNOWN // service doesn't exist
+        /** Enabled and running. */
+        ENABLED,
+        /** Disabled and stopped. */
+        DISABLED,
+        /** Disabled but still running. */
+        RUNNING,
+        /** Enabled but stopped. */
+        STOPPED,
+        /** No service with the requested name is registered. */
+        UNKNOWN
     }
 
 }

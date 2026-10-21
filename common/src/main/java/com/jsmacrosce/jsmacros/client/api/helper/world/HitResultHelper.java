@@ -12,16 +12,9 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
 /**
- * What the crosshair is currently on. A script gets one from
- * {@link com.jsmacrosce.jsmacros.client.api.helper.InteractionManagerHelper#getTarget()}, which is
- * the live crosshair target, or builds one with {@link #resolve(HitResult)}.<br>
- * The class is abstract and the two things it can be are subclasses: {@link Block} for a block the
- * crosshair is on, and {@link Entity} for an entity it is on. This base class alone knows only
- * where the hit landed, which is what both of them share.<br>
- * Because the concrete kind is not in the static type, the two {@code as} methods are how a script
- * asks what it actually got rather than testing with {@code instanceof}: {@link #asBlock()} answers
- * {@code null} unless the target really is a block, and {@link #asEntity()} likewise.
- * example:
+ * Wraps a crosshair hit result, with shared access to its hit position and subtype-specific access
+ * for block and entity hits. Use {@link com.jsmacrosce.jsmacros.client.api.helper.InteractionManagerHelper#getTarget()}
+ * for the current target or {@link #resolve(HitResult)} to wrap a raw result. Misses use {@link Block}.
  * <pre>
  * const interactions = Player.interactions();
  * const target = interactions === null ? null : interactions.getTarget();
@@ -38,6 +31,7 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * // the point where the ray landed is on all three kinds
  * if (target !== null) { Chat.log(target.getPos()); }
  * </pre>
+ * @param <T> the Minecraft hit-result type wrapped by this helper
  *
  * @author aMelonRind
  * @since 1.9.1
@@ -47,21 +41,8 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
 
     /**
-     * Wraps a raw hit result, picking the subclass that matches what was actually hit: a block for
-     * both a block hit and a miss, and an entity for an entity hit. A raw hit result of any other
-     * kind comes back as the plain base class, which knows the position and nothing else.<br>
-     * {@code null} in gives {@code null} out, so a script with no target does not have to check
-     * before calling.
-     * example:
-     * <pre>
-     * const HitResultHelper =
-     *   Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.HitResultHelper");
-     * // the raw object the game keeps for the crosshair, which is what resolve takes
-     * const target = HitResultHelper.resolve(Client.getMinecraft().hitResult);
-     * if (target !== null) {
-     *   Chat.log(target);
-     * }
-     * </pre>
+     * Wraps a raw hit result as a {@link Block} for block hits and misses, or an {@link Entity} for
+     * entity hits. Returns {@code null} for a null input.
      *
      * @param hr the raw hit result to wrap, or {@code null}.
      * @return the matching subclass of this helper, or {@code null} if {@code hr} was {@code null}.
@@ -83,22 +64,7 @@ public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
     }
 
     /**
-     * The exact point the ray landed on, kept at full precision rather than rounded to a block. This
-     * is on all three kinds of target, which makes it the one thing that can be read without first
-     * working out what was hit.
-     * example:
-     * <pre>
-     * // the landing point, and which block it falls inside
-     * const interactions = Player.interactions();
-     * const target = interactions === null ? null : interactions.getTarget();
-     * if (target !== null) {
-     *   const at = target.getPos();
-     *   const block = World.getBlock(at);
-     *   if (block !== null) {
-     *     Chat.log(`landed in ${block.getId()} at ${block.getBlockPos()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the hit location as a world-space point, without rounding its coordinates.
      *
      * @return where the hit landed, as a point in the world.
      * @since 1.9.1
@@ -109,19 +75,7 @@ public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
     }
 
     /**
-     * This target as a block target, or {@code null} if it is not one. A plain base-class target and
-     * an entity target both answer {@code null} here, so this is the test for "was it a block".
-     * example:
-     * <pre>
-     * const interactions = Player.interactions();
-     * const target = interactions === null ? null : interactions.getTarget();
-     * const block = target === null ? null : target.asBlock();
-     * if (block !== null) {
-     *   Chat.log(`block ${block.getBlockPos()}, side ${block.getSide().getName()}`);
-     * } else if (target !== null) {
-     *   Chat.log("not a block");
-     * }
-     * </pre>
+     * Returns this target as a block hit or miss, or {@code null} for other hit-result types.
      *
      * @return this target as a {@link Block}, or {@code null} if it is not a block target.
      * @since 1.9.1
@@ -132,20 +86,7 @@ public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
     }
 
     /**
-     * This target as an entity target, or {@code null} if it is not one.
-     * example:
-     * <pre>
-     * const interactions = Player.interactions();
-     * const target = interactions === null ? null : interactions.getTarget();
-     * const hit = target === null ? null : target.asEntity();
-     * if (hit !== null) {
-     *   const entity = hit.getEntity();
-     *   Chat.log(`${entity.getType()} is in the crosshair`);
-     *   if (entity.isAlive()) {
-     *     Chat.log("and still alive");
-     *   }
-     * }
-     * </pre>
+     * Returns this target as an entity hit, or {@code null} for other hit-result types.
      *
      * @return this target as an {@link Entity}, or {@code null} if it is not an entity target.
      * @since 1.9.1
@@ -155,60 +96,34 @@ public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
         return null;
     }
 
+    /** Returns a diagnostic string containing the hit position.
+     *
+     * @return a diagnostic containing the position rendered from {@code getPos()}.
+     */
     @Override
     public String toString() {
         return String.format("HitResultHelper:{\"pos\": %s}", getPos());
     }
 
     /**
-     * A target that is a block, which is also what a miss comes back as: a miss has a position and a
-     * side but no block that was really reached, and {@link HitResultHelper.Block#isMissed()} is what tells the two
-     * apart.
-     * example:
-     * <pre>
-     * // the block under the crosshair, and whether the ray actually reached it
-     * const interactions = Player.interactions();
-     * const target = interactions === null ? null : interactions.getTarget();
-     * const block = target === null ? null : target.asBlock();
-     * if (block !== null) {
-     *   if (block.isMissed()) {
-     *     Chat.log("the ray went past everything");
-     *   } else {
-     *     const hit = World.getBlock(block.getBlockPos());
-     *     if (hit !== null) {
-     *       Chat.log(`${hit.getId()} on its ${block.getSide().getName()} face`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Represents a block hit or miss; use {@link #isMissed()} to distinguish them.
      *
      * @author aMelonRind
      * @since 1.9.1
      */
     public static class Block extends HitResultHelper<BlockHitResult> {
 
+        /** Wraps the supplied block hit result, including a result representing a miss.
+         *
+         * @param base block hit result to wrap
+         */
         public Block(BlockHitResult base) {
             super(base);
         }
 
         /**
-         * The face of the block the ray came in on, which is the side of the block opposite the
-         * direction the ray was travelling in. For a miss this is still a direction, so it is not a
-         * sign that anything was actually reached.
-         * example:
-         * <pre>
-         * // place a block on the face that was clicked, which is what a build macro wants
-         * const interactions = Player.interactions();
-     * const block = interactions === null ? null : interactions.getTarget().asBlock();
-         * if (block !== null) {
-         *   const side = block.getSide();
-         *   Chat.log(`clicked the ${side.getName()} face`);
-         *   if (side.isHorizontal()) {
-         *     const neighbour = block.getBlockPos().offset(side.getOpposite().getName());
-         *     Chat.log(`a block there would be ${neighbour}`);
-         *   }
-         * }
-         * </pre>
+         * Returns the hit direction, or {@code null} if the result has no direction. Miss results
+         * also carry a direction; this does not imply a block was hit.
          *
          * @return the face the ray came in on, or {@code null} if the hit carries no direction.
          * @since 1.9.1
@@ -220,22 +135,8 @@ public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
         }
 
         /**
-         * The block the ray landed on, which for a miss is the block the ray started inside rather
-         * than one that was reached.
-         * example:
-         * <pre>
-         * // the block under the crosshair and the one above it
-         * const interactions = Player.interactions();
-     * const block = interactions === null ? null : interactions.getTarget().asBlock();
-         * if (block !== null) {
-         *   const here = block.getBlockPos();
-         *   Chat.log(`clicked ${here}, and just above it is ${here.up()}`);
-         *   const above = World.getBlock(here.up());
-         *   if (above !== null) {
-         *     Chat.log(`which is ${above.getId()}`);
-         *   }
-         * }
-         * </pre>
+         * Returns the position carried by the block hit result. For a miss, this is the position
+         * supplied with that miss, not necessarily a block reached by the ray.
          *
          * @return the block that was hit, or {@code null} if the hit carries no position.
          * @since 1.9.1
@@ -247,22 +148,7 @@ public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
         }
 
         /**
-         * Whether the ray reached nothing at all. The game hands back a block-shaped hit for a miss
-         * so that the crosshair has something to draw against, and this is what separates that from
-         * a real hit.
-         * example:
-         * <pre>
-         * // only build against something that was really reached
-         * const interactions = Player.interactions();
-     * const block = interactions === null ? null : interactions.getTarget().asBlock();
-         * if (block !== null) {
-         *   if (block.isMissed()) {
-         *     Chat.log("pointing at nothing, not building");
-         *   } else {
-         *     Chat.log(`about to build at ${block.getBlockPos()}`);
-         *   }
-         * }
-         * </pre>
+         * Returns whether this block hit result is marked as a miss.
          *
          * @return {@code true} if this hit is a miss rather than a block that was reached.
          * @since 1.9.1
@@ -272,35 +158,29 @@ public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
         }
 
         /**
-         * Whether the ray started inside the block it is reporting. That is what happens when the
-         * crosshair is inside the player, so this is the test for a hit the player is already
-         * standing in rather than one that was reached from outside.
-         * example:
-         * <pre>
-         * // a hit the player is inside is not a block that was reached
-         * const interactions = Player.interactions();
-     * const block = interactions === null ? null : interactions.getTarget().asBlock();
-         * if (block !== null) {
-         *   if (block.isInsideBlock()) {
-         *     Chat.log("the crosshair is inside a block");
-         *   } else {
-         *     Chat.log(`looking at ${block.getBlockPos()}`);
-         *   }
-         * }
-         * </pre>
+         * Whether the underlying block hit is marked as inside; this is independent of whether the
+         * hit is a miss.
          *
-         * @return {@code true} if the ray started inside the block it landed on.
+         * @return {@code true} if the hit is marked as inside.
          * @since 1.9.1
          */
         public boolean isInsideBlock() {
             return base.isInside();
         }
 
+        /** Returns this block-hit-or-miss helper.
+         *
+         * @return this block-hit-or-miss helper
+         */
         @Override
         public Block asBlock() {
             return this;
         }
 
+        /** Returns a diagnostic containing the hit position, direction, block position, miss flag, and inside flag.
+         *
+         * @return a diagnostic with those values rendered from the underlying result and helper accessors
+         */
         @Override
         public String toString() {
             return String.format("HitResultHelper$Block:{\"pos\": %s, \"side\": %s, \"blockPos\": %s, \"missed\": %s, \"insideBlock\": %s}", getPos(), base.getDirection(), getBlockPos(), isMissed(), isInsideBlock());
@@ -309,59 +189,44 @@ public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
     }
 
     /**
-     * A target that is an entity, which carries the entity itself and the point on it that was hit.
-     * {@link #getPos()} here is the point on the entity rather than a point in a block, so it moves
-     * with the entity between the hit and the read.
-     * example:
-     * <pre>
-     * const interactions = Player.interactions();
-     * const hit = interactions === null ? null : interactions.getTarget().asEntity();
-     * if (hit !== null) {
-     *   const entity = hit.getEntity();
-     *   Chat.log(`${entity.getType()} hit at ${hit.getPos()}`);
-     *   Chat.log(`it is standing at ${entity.getPos()}, so that is on its near side`);
-     * }
-     * </pre>
+     * A target that carries the entity and the hit location recorded by the hit result.
      *
      * @author aMelonRind
      * @since 1.9.1
      */
     public static class Entity extends HitResultHelper<EntityHitResult> {
 
+        /** Wraps the supplied entity hit result.
+         *
+         * @param base entity hit result to wrap
+         */
         public Entity(EntityHitResult base) {
             super(base);
         }
 
         /**
-         * The entity that was hit, wrapped in the entity helper for whatever it is, so a mob gives
-         * back the mob-specific helper and anything else gives back the general one.
-         * example:
-         * <pre>
-         * // read the entity under the crosshair and act on what it is
-         * const interactions = Player.interactions();
-     * const hit = interactions === null ? null : interactions.getTarget().asEntity();
-         * if (hit !== null) {
-         *   const entity = hit.getEntity();
-         *   Chat.log(`${entity.getType()} named ${entity.getName()}`);
-         *   Chat.log(`at ${entity.getBlockPos()}, uuid ${entity.getUUID()}`);
-         *   if (entity.isAlive()) {
-         *     Chat.log("still alive");
-         *   }
-         * }
-         * </pre>
+         * The hit entity wrapped in its matching {@link EntityHelper} subtype.
          *
-         * @return the entity that was hit.
+         * @return the hit entity wrapped in its matching helper subtype.
          * @since 1.9.1
          */
         public EntityHelper<?> getEntity() {
             return EntityHelper.create(base.getEntity());
         }
 
+        /** Returns this entity-hit helper.
+         *
+         * @return this entity-hit helper
+         */
         @Override
         public Entity asEntity() {
             return this;
         }
 
+        /** Returns a diagnostic containing the hit position and entity type identifier.
+         *
+          * @return a diagnostic with the position and the value from {@code EntityHelper.getType()}
+         */
         @Override
         public String toString() {
             return String.format("HitResultHelper:{\"pos\": %s, \"entity\": %s}", getPos(), getEntity().getType());

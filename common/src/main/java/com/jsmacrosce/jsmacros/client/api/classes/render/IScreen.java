@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.client.api.classes.render;
 import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.math.Pos2D;
 import com.jsmacrosce.jsmacros.api.math.Vec2D;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
@@ -14,32 +15,14 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * A script-made screen: a 2D overlay that is the game's own menu class.
+ * A script-created screen combines {@link IDraw2D} drawing with interactive widgets and
+ * screen input callbacks. Create one with {@code Hud.createScreen} and open it with
+ * {@code Hud.openScreen}; call {@link #reloadScreen()} to clear and rebuild its elements
+ * by rerunning its init callback.
  * <p>
- * Everything a 2D overlay can hold works here too, since this extends it, so text,
- * rectangles, lines, images and item icons are all available in the same way. What is
- * different is that a screen is <em>opened</em> rather than registered. It is the
- * game's own screen class, so opening one pauses the game in singleplayer, takes the
- * mouse, and gives it a place to put buttons and text fields. A 2D overlay just draws
- * on top of whatever is already there and has none of that.
- * <p>
- * One is made with {@code Hud.createScreen(String, boolean)}, which returns a
- * {@code ScriptScreen}, and opened with {@code Hud.openScreen}. Nothing on it draws
- * until it is opened, and closing it hands control back to whatever was open before.
- * <p>
- * A screen can be emptied and rebuilt at any time with
- * {@link #reloadScreen()}, which is what a script calls after it has changed something
- * that the widgets were laid out from. The init function is run again on the way, and
- * as on any 2D overlay the screen is emptied first, so an init function is what puts
- * the widgets back.
- * <p>
- * The input callbacks are the other half of a screen. They are set as pairs of
- * {@code setOn...} calls, and each one replaces the last: a screen has one mouse-down
- * handler rather than a list. They all report in the same screen space as
- * {@link #getWidth()}, so a position from one can be used as a drawing position
- * directly.
- * example:
-     * <pre>
+ * Each input callback setter replaces the previous callback of that kind. Mouse
+ * positions use the same screen coordinates as drawing elements.
+ * <pre>
  * const screen = Hud.createScreen("my screen", true);
  * screen.addText("something to read", 10, 40, 0xFFFFFFFF, true);
  * screen.addButton(10, 20, 100, 20, "a button", JavaWrapper.methodToJava(function (button) {
@@ -55,23 +38,9 @@ import java.util.function.Consumer;
 public interface IScreen extends IDraw2D<IScreen> {
 
     /**
-     * The simple name of this screen's class, without the package. A script made screen
-     * reports {@code ScriptScreen}; a game's own screen reached through this reports
-     * whatever the game calls it, such as {@code InventoryScreen}.
-     * <p>
-     * It is a class name rather than a screen title, so two screens with the same title
-     * report the same thing as each other and it says nothing about what the screen is
-     * for. {@link #getTitleText()} is the title.
-     * example:
-     * <pre>
-     * const screen = Hud.getOpenScreen();
-     * if (screen !== null) {
-     *   Chat.log(`${screen.getScreenClassName()}: ${screen.getTitleText()}`);
-     * }
-     * </pre>
+     * Returns this screen's simple Java class name, not its title.
      *
-     * @return
-     * @return the simple class name of this screen
+      * @return the simple class name of this screen
      * @since 1.2.7
      */
     default String getScreenClassName() {
@@ -79,90 +48,36 @@ public interface IScreen extends IDraw2D<IScreen> {
     }
 
     /**
-     * The screen's title, which for a script made screen is whatever was passed to
-     * {@code Hud.createScreen}. It is shown at the top of the screen by the game unless
-     * drawing it is turned off, and it is not the same as the screen's class name.
-     * <p>
-     * This is a rich text object, so it keeps whatever styling the title was given
-     * rather than being a plain string.
-     * example:
-     * <pre>
-     * const screen = Hud.getOpenScreen();
-     * if (screen !== null) {
-     *   Chat.log(`open: ${screen.getTitleText()}`);
-     * }
-     * </pre>
+     * Returns this screen's title as rich text.
      *
-     * @return
-     * @return the title of this screen
+      * @return the title of this screen
      * @since 1.0.5 (TextHelper since 1.9.3)
      */
     TextHelper getTitleText();
 
     /**
-     * in {@code 1.3.1} updated to work with all button widgets not just ones added by scripts.
-     * <p>
-     * Every button on this screen, whether a script put it there or the game did. The
-     * game's own buttons are wrapped as they are found rather than skipped, so a script
-     * that walks this list sees the whole screen rather than only its own additions.
-     * Each entry is a helper, and it is the helper that carries the button's text and
-     * whether it is currently enabled.
-     * <p>
-     * A button a script added is already a helper, so it appears as itself. One the game
-     * made is wrapped fresh, so two calls give different helper objects for the same
-     * button.
-     * example:
-     * <pre>
-     * const screen = Hud.getOpenScreen();
-     * if (screen !== null) {
-     *   for (const button of screen.getButtonWidgets()) {
-     *     Chat.log(`button: ${button.getLabel()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns helpers for script-added clickable widgets and {@code Button} widgets among
+     * the screen's children. Script-added helpers are reused; other buttons receive new
+     * wrappers on each call.
      *
-     * @return every button on this screen
+     * @return an immutable list snapshot of the matching widget helpers
      * @since 1.0.5
      */
     List<ClickableWidgetHelper<?, ?>> getButtonWidgets();
 
     /**
-     * in {@code 1.3.1} updated to work with all text fields not just ones added by scripts.
-     * <p>
-     * Every text field on this screen, whether a script put it there or the game did,
-     * on the same terms as {@link #getButtonWidgets()}. A field the game made, such as
-     * the search box in a recipe screen, is wrapped as it is found rather than skipped.
-     * example:
-     * <pre>
-     * const screen = Hud.getOpenScreen();
-     * if (screen !== null) {
-     *   for (const field of screen.getTextFields()) {
-     *     Chat.log(`field says: ${field.getText()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns helpers for script-added text fields and {@code EditBox} widgets among the
+     * screen's children. Script-added helpers are reused; other fields receive new
+     * wrappers on each call.
      *
-     * @return every text field on this screen
+     * @return an immutable list snapshot of the matching text-field helpers
      * @since 1.0.5
      */
     List<TextFieldWidgetHelper> getTextFields();
 
     /**
-     * A clickable button, laid out at the given position and size and labelled with the
-     * text. The callback is given the button and this screen, so it can read or change
-     * the button as well as acting on the click.
-     * <p>
-     * The position is in the same screen space as every element coordinate, and a screen
-     * lays its widgets out from the top left rather than from anything a script is
-     * holding. The button is not drawn until the screen is opened.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * screen.addButton(10, 20, 100, 20, "press me", JavaWrapper.methodToJava(function (button) {
-     *   Chat.log("clicked");
-     * }));
-     * Hud.openScreen(screen);
-     * </pre>
+     * Adds a clickable button at the given screen position and size. Its callback receives
+     * the button helper.
      *
      * @param x screen x, the button's left edge
      * @param y screen y, the button's top edge
@@ -176,16 +91,7 @@ public interface IScreen extends IDraw2D<IScreen> {
     ClickableWidgetHelper<?, ?> addButton(int x, int y, int width, int height, String text, MethodWrapper<ClickableWidgetHelper<?, ?>, IScreen, Object, ?> callback);
 
     /**
-     * The same as the shorter form with a z-index, so this button can be ordered against
-     * the other elements on the screen. The two buttons in the example below are at the
-     * same place for exactly that reason.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * screen.addButton(10, 20, 100, 20, 0, "behind", JavaWrapper.methodToJava(function (button) {}));
-     * screen.addButton(10, 20, 100, 20, 1, "in front", JavaWrapper.methodToJava(function (button) {}));
-     * Hud.openScreen(screen);
-     * </pre>
+     * Adds a clickable button ordered against other screen elements by {@code zIndex}.
      *
      * @param x screen x, the button's left edge
      * @param y screen y, the button's top edge
@@ -200,29 +106,23 @@ public interface IScreen extends IDraw2D<IScreen> {
     ClickableWidgetHelper<?, ?> addButton(int x, int y, int width, int height, int zIndex, String text, MethodWrapper<ClickableWidgetHelper<?, ?>, IScreen, Object, ?> callback);
 
     /**
-     *                    {@link Consumer}&lt;{@link CheckBoxWidgetHelper}&gt;
+     * Adds a checkbox whose callback runs when its checked state changes.
+     * The {@code showMessage} parameter is currently ignored.
      * @param x           the x position of the checkbox
      * @param y           the y position of the checkbox
      * @param width       the width of the checkbox
      * @param height      the height of the checkbox
      * @param text        the text to display next to the checkbox
      * @param checked     whether the checkbox is checked or not
-     * @param showMessage whether to show the message or not
-     * @param callback    calls your method as a
+     * @param showMessage ignored; does not change label visibility
+     * @param callback    called when the checkbox state changes
      * @return a {@link CheckBoxWidgetHelper} for the given input.
      * @since 1.8.4
      */
     CheckBoxWidgetHelper addCheckbox(int x, int y, int width, int height, String text, boolean checked, boolean showMessage, MethodWrapper<CheckBoxWidgetHelper, IScreen, Object, ?> callback);
 
     /**
-     * A box with a label beside it that can be ticked. The callback is given the checkbox
-     * and this screen and runs when it is toggled, and the checkbox reports whether it
-     * is currently ticked.
-     * <p>
-     * There are four forms of this. The ones that take a z-index order the checkbox
-     * against the screen's other elements, and the ones that take a show message
-     * argument control the box the game draws a message in.
-     * example:
+     * Adds a checkbox whose callback runs when its checked state changes.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.addCheckbox(10, 20, 20, 20, "enabled", false, JavaWrapper.methodToJava(function (box) {
@@ -236,7 +136,7 @@ public interface IScreen extends IDraw2D<IScreen> {
      * @param width    the width of the checkbox
      * @param height   the height of the checkbox
      * @param text     the text to display next to the checkbox
-     * @param checked  whether the checkbox is checked or not
+     * @param checked  the initial checked state
      * @param callback calls your method as a {@link Consumer}&lt;{@link CheckBoxWidgetHelper}&gt;
      * @return a {@link CheckBoxWidgetHelper} for the given input.
      * @since 1.8.4
@@ -244,6 +144,8 @@ public interface IScreen extends IDraw2D<IScreen> {
     CheckBoxWidgetHelper addCheckbox(int x, int y, int width, int height, String text, boolean checked, MethodWrapper<CheckBoxWidgetHelper, IScreen, Object, ?> callback);
 
     /**
+     * Adds a checkbox ordered against other screen elements by {@code zIndex}.
+     *
      * @param x        the x position of the checkbox
      * @param y        the y position of the checkbox
      * @param width    the width of the checkbox
@@ -258,7 +160,9 @@ public interface IScreen extends IDraw2D<IScreen> {
     CheckBoxWidgetHelper addCheckbox(int x, int y, int width, int height, int zIndex, String text, boolean checked, MethodWrapper<CheckBoxWidgetHelper, IScreen, Object, ?> callback);
 
     /**
-     *                    {@link Consumer}&lt;{@link CheckBoxWidgetHelper}&gt;
+     * Adds a checkbox ordered by {@code zIndex} whose callback runs when its checked state changes.
+     * The {@code showMessage} parameter is currently ignored.
+     *
      * @param x           the x position of the checkbox
      * @param y           the y position of the checkbox
      * @param width       the width of the checkbox
@@ -266,25 +170,16 @@ public interface IScreen extends IDraw2D<IScreen> {
      * @param zIndex      the z-index of the checkbox
      * @param text        the text to display next to the checkbox
      * @param checked     whether the checkbox is checked or not
-     * @param showMessage whether to show the message or not
-     * @param callback    calls your method as a
+     * @param showMessage ignored; does not change label visibility
+     * @param callback    called when the checked state changes
      * @return a {@link CheckBoxWidgetHelper} for the given input.
      * @since 1.8.4
      */
     CheckBoxWidgetHelper addCheckbox(int x, int y, int width, int height, int zIndex, String text, boolean checked, boolean showMessage, MethodWrapper<CheckBoxWidgetHelper, IScreen, Object, ?> callback);
 
     /**
-     * A bar with a handle that can be dragged along it. The steps say how many
-     * positions the handle snaps to, counting both ends, so a slider with 10 steps has
-     * ten positions and moves in ninths rather than tenths. The value is on that same
-     * 0 to 1 scale rather than being a position number.
-     * <p>
-     * A step count of 1 or less is raised to 2, so a slider always has at least the two
-     * ends.
-     * <p>
-     * There are two forms without a step count. Those two build a different widget that
-     * moves continuously instead, and otherwise take the same arguments.
-     * example:
+     * Adds a slider whose value ranges from 0 to 1. The step count includes both ends;
+     * counts below 2 are raised to 2. Overloads without a step count use a continuous slider.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.addSlider(10, 20, 100, 20, "volume", 0.5, 10, JavaWrapper.methodToJava(function (slider) {
@@ -298,7 +193,7 @@ public interface IScreen extends IDraw2D<IScreen> {
      * @param width    the width of the slider
      * @param height   the height of the slider
      * @param text     the text to be displayed inside the slider
-     * @param value    the initial value of the slider
+     * @param value    the initial value on the 0-to-1 scale
      * @param callback calls your method as a {@link Consumer}&lt;{@link SliderWidgetHelper}&gt;
      * @param steps    the number of steps the slider should have
      * @return a {@link SliderWidgetHelper} for the given input.
@@ -307,6 +202,8 @@ public interface IScreen extends IDraw2D<IScreen> {
     SliderWidgetHelper addSlider(int x, int y, int width, int height, String text, double value, int steps, MethodWrapper<SliderWidgetHelper, IScreen, Object, ?> callback);
 
     /**
+     * Adds a stepped slider ordered against other screen elements by {@code zIndex}.
+     *
      * @param x        the x position of the slider
      * @param y        the y position of the slider
      * @param width    the width of the slider
@@ -322,6 +219,8 @@ public interface IScreen extends IDraw2D<IScreen> {
     SliderWidgetHelper addSlider(int x, int y, int width, int height, int zIndex, String text, double value, int steps, MethodWrapper<SliderWidgetHelper, IScreen, Object, ?> callback);
 
     /**
+     * Adds a continuous slider whose value ranges from 0 to 1.
+     *
      * @param x        the x position of the slider
      * @param y        the y position of the slider
      * @param width    the width of the slider
@@ -335,6 +234,9 @@ public interface IScreen extends IDraw2D<IScreen> {
     SliderWidgetHelper addSlider(int x, int y, int width, int height, String text, double value, MethodWrapper<SliderWidgetHelper, IScreen, Object, ?> callback);
 
     /**
+     * Adds a continuous slider ordered against other screen elements by {@code zIndex};
+     * its value ranges from 0 to 1.
+     *
      * @param x        the x position of the slider
      * @param y        the y position of the slider
      * @param width    the width of the slider
@@ -349,12 +251,7 @@ public interface IScreen extends IDraw2D<IScreen> {
     SliderWidgetHelper addSlider(int x, int y, int width, int height, int zIndex, String text, double value, MethodWrapper<SliderWidgetHelper, IScreen, Object, ?> callback);
 
     /**
-     * A padlock the player can click to lock and unlock. The callback is given the button
-     * and this screen and runs on each click, and the button reports which state it is in.
-     * <p>
-     * This is the only button that takes no size: it draws at its own fixed size at the
-     * position given.
-     * example:
+     * Adds a lock button at its fixed size. Its callback runs when clicked.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.addLockButton(10, 20, JavaWrapper.methodToJava(function (button) {
@@ -365,7 +262,7 @@ public interface IScreen extends IDraw2D<IScreen> {
      *
      * @param x        the x position of the lock button
      * @param y        the y position of the lock button
-     * @param callback calls your method as a
+     * @param callback called when the button is clicked
      *                 {@link Consumer}&lt;{@link LockButtonWidgetHelper}&gt;
      * @return {@link LockButtonWidgetHelper} for the given input.
      * @since 1.8.4
@@ -373,6 +270,8 @@ public interface IScreen extends IDraw2D<IScreen> {
     LockButtonWidgetHelper addLockButton(int x, int y, MethodWrapper<LockButtonWidgetHelper, IScreen, Object, ?> callback);
 
     /**
+     * Adds a fixed-size lock button ordered against other screen elements by {@code zIndex}.
+     *
      * @param x        the x position of the lock button
      * @param y        the y position of the lock button
      * @param zIndex   the z-index of the lock button
@@ -384,14 +283,7 @@ public interface IScreen extends IDraw2D<IScreen> {
     LockButtonWidgetHelper addLockButton(int x, int y, int zIndex, MethodWrapper<LockButtonWidgetHelper, IScreen, Object, ?> callback);
 
     /**
-     * A button that steps through a fixed list of values each time it is clicked, rather
-     * than being a simple press. The label shows whichever value is current, and the
-     * callback is given the button and this screen once the value has moved on.
-     * <p>
-     * There are four forms of this. The later ones add alternative values that the button
-     * can be switched between, a prefix put in front of the value, and a function that
-     * decides which set is in use.
-     * example:
+     * Adds a button that cycles through the supplied values when clicked.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.addCyclingButton(10, 20, 100, 20, ["low", "medium", "high"], "low",
@@ -405,7 +297,7 @@ public interface IScreen extends IDraw2D<IScreen> {
      * @param y        the y position of the cycling button
      * @param width    the width of the cycling button
      * @param height   the height of the cycling button
-     * @param callback calls your method as a
+     * @param callback called when the value changes
      *                 {@link Consumer}&lt;{@link CyclingButtonWidgetHelper}&gt;
      * @param values   the values to cycle through
      * @param initial  the initial value of the cycling button
@@ -415,72 +307,77 @@ public interface IScreen extends IDraw2D<IScreen> {
     CyclingButtonWidgetHelper<?> addCyclingButton(int x, int y, int width, int height, String[] values, String initial, MethodWrapper<CyclingButtonWidgetHelper<?>, IScreen, Object, ?> callback);
 
     /**
+     * Adds a cycling button ordered against the screen's other elements by {@code zIndex}.
+     *
      * @param x        the x position of the cycling button
      * @param y        the y position of the cycling button
      * @param width    the width of the cycling button
      * @param height   the height of the cycling button
      * @param zIndex   the z-index of the cycling button
-     * @param callback calls your method as a
-     *                 {@link Consumer}&lt;{@link CyclingButtonWidgetHelper}&gt;
      * @param values   the values to cycle through
-     * @param initial  the initial value of the cycling button
-     * @return {@link CyclingButtonWidgetHelper} for the given input.
+     * @param initial  the initial value
+     * @param callback called when the value changes
+     * @return the added cycling button
      * @since 1.8.4
      */
     CyclingButtonWidgetHelper<?> addCyclingButton(int x, int y, int width, int height, int zIndex, String[] values, String initial, MethodWrapper<CyclingButtonWidgetHelper<?>, IScreen, Object, ?> callback);
 
     /**
-     *                     {@link Consumer}&lt;{@link CyclingButtonWidgetHelper}&gt;
+     * Adds a cycling button with alternate display values, ordered by {@code zIndex}.
      * @param x            the x position of the cycling button
      * @param y            the y position of the cycling button
      * @param width        the width of the cycling button
      * @param height       the height of the cycling button
      * @param zIndex       the z-index of the cycling button
-     * @param callback     calls your method as a
      * @param values       the values to cycle through
      * @param alternatives the alternative values to cycle through
      * @param prefix       the prefix of the values
      * @param initial      the initial value of the cycling button
-     * @return {@link CyclingButtonWidgetHelper} for the given input.
+     * @param callback     called when the value changes
+     * @return the added cycling button
      * @since 1.8.4
      */
     CyclingButtonWidgetHelper<?> addCyclingButton(int x, int y, int width, int height, int zIndex, String[] values, String[] alternatives, String initial, String prefix, MethodWrapper<CyclingButtonWidgetHelper<?>, IScreen, Object, ?> callback);
 
     /**
-     *                        {@link Consumer}&lt;{@link CyclingButtonWidgetHelper}&gt;
-     *                        alternative values
+     * Adds a cycling button with alternate display values and a callback-selected alternate list.
      * @param x               the x position of the cycling button
      * @param y               the y position of the cycling button
      * @param width           the width of the cycling button
      * @param height          the height of the cycling button
      * @param zIndex          the z-index of the cycling button
-     * @param callback        calls your method as a
      * @param values          the values to cycle through
      * @param alternatives    the alternative values to cycle through
      * @param prefix          the prefix of the values
      * @param initial         the initial value of the cycling button
-     * @param alternateToggle the method to determine if the cycling button should use the
-     * @return {@link CyclingButtonWidgetHelper} for the given input.
+     * @param alternateToggle selects which value list is active
+     * @param callback        called when the value changes
+     * @return the added cycling button
      * @since 1.8.4
      */
     CyclingButtonWidgetHelper<?> addCyclingButton(int x, int y, int width, int height, int zIndex, String[] values, String[] alternatives, String initial, String prefix, MethodWrapper<?, ?, Boolean, ?> alternateToggle, MethodWrapper<CyclingButtonWidgetHelper<?>, IScreen, Object, ?> callback);
 
     /**
-     * @param btn
-     * @return
+     * Removes the button from this screen.
+     *
+     * @param btn the button to remove
+     * @return this screen
      * @since 1.0.5
      */
     @Deprecated
+    @DocletIgnore
     IScreen removeButton(ClickableWidgetHelper<?, ?> btn);
 
     /**
-     * @param x
-     * @param y
-     * @param width
-     * @param height
-     * @param message
-     * @param onChange calls your method as a {@link Consumer}&lt;{@link String}&gt;
-     * @return
+     * Adds a text field; its message is shown as a placeholder while empty.
+     *
+     * @param x the field's left edge
+     * @param y the field's top edge
+     * @param width the field width
+     * @param height the field height
+     * @param message the placeholder text
+     * @param onChange called with the changed text
+     * @return the added text field
      * @since 1.0.5
      */
     TextFieldWidgetHelper addTextInput(int x, int y, int width, int height, String message, MethodWrapper<String, IScreen, Object, ?> onChange);
@@ -493,7 +390,6 @@ public interface IScreen extends IDraw2D<IScreen> {
      * The field is not usable until the screen is opened, and it is emptied along with
      * the rest of the screen by an init, so anything typed into it is lost if the screen
      * is reloaded.
-     * example:
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.addTextInput(10, 20, 100, 20, 0, "type a name", JavaWrapper.methodToJava(function (text) {
@@ -515,22 +411,23 @@ public interface IScreen extends IDraw2D<IScreen> {
     TextFieldWidgetHelper addTextInput(int x, int y, int width, int height, int zIndex, String message, MethodWrapper<String, IScreen, Object, ?> onChange);
 
     /**
-     * @param inp
-     * @return
+     * Removes the text field from this screen.
+     *
+     * @param inp the field to remove
+     * @return this screen
      * @since 1.0.5
      */
     @Deprecated
+    @DocletIgnore
     IScreen removeTextInput(TextFieldWidgetHelper inp);
 
     /**
-     * Runs when the player presses a mouse button over this screen, and is given where
-     * the mouse is and which button went down: 0 is left, 1 is right, 2 is middle. The
-     * position is in the same screen space as every element coordinate.
+     * Sets the callback for mouse-button presses over this screen. It receives the mouse
+     * position and button number (0 left, 1 right, 2 middle), in screen coordinates.
      * <p>
      * A screen has one of these rather than a list, so setting it again replaces the last
      * one. Returning from it does not stop the click reaching the widgets underneath, so
      * this is for reacting rather than for swallowing.
-     * example:
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.setOnMouseDown(JavaWrapper.methodToJava(function (pos, button) {
@@ -546,13 +443,12 @@ public interface IScreen extends IDraw2D<IScreen> {
     IScreen setOnMouseDown(MethodWrapper<Pos2D, Integer, Object, ?> onMouseDown);
 
     /**
-     * Runs while the mouse is being dragged, and is given a segment from where the drag
+     * Sets the callback for mouse dragging, which receives a segment from where the drag
      * started to where the mouse is now, plus the button that is down. The segment's two
      * ends are the start of the drag and the current position rather than the last two
      * positions, so it covers the whole drag rather than one step of it.
      * <p>
      * As with every other callback here, setting it again replaces the last one.
-     * example:
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.setOnMouseDrag(JavaWrapper.methodToJava(function (from, button) {
@@ -568,10 +464,9 @@ public interface IScreen extends IDraw2D<IScreen> {
     IScreen setOnMouseDrag(MethodWrapper<Vec2D, Integer, Object, ?> onMouseDrag);
 
     /**
-     * Runs when a mouse button is released over this screen, and is given where the mouse
-     * is and which button came up. It runs whether or not the press started on this
+     * Sets the callback for mouse-button releases over this screen, receiving the mouse
+     * position and which button came up. It runs whether or not the press started on this
      * screen, so it can be the other half of a drag set up elsewhere.
-     * example:
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.setOnMouseUp(JavaWrapper.methodToJava(function (pos, button) {
@@ -587,12 +482,9 @@ public interface IScreen extends IDraw2D<IScreen> {
     IScreen setOnMouseUp(MethodWrapper<Pos2D, Integer, Object, ?> onMouseUp);
 
     /**
-     * Runs when the player scrolls over this screen, and is given the mouse position and
-     * how far it scrolled. The second argument is a second position, not a single
-     * number, and both of its coordinates are amounts rather than positions: the first
-     * is the horizontal scroll and the second the vertical one, so a vertical wheel
-     * notch comes through as a change in the second and nothing in the first.
-     * example:
+     * Runs when the player scrolls over this screen. The callback receives the mouse
+     * position and a second {@link Pos2D} containing horizontal and vertical scroll
+     * amounts in its x and y coordinates.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.setOnScroll(JavaWrapper.methodToJava(function (pos, amount) {
@@ -608,14 +500,11 @@ public interface IScreen extends IDraw2D<IScreen> {
     IScreen setOnScroll(MethodWrapper<Pos2D, Pos2D, Object, ?> onScroll);
 
     /**
-     * Runs when a key goes down over this screen, and is given the key code and the
-     * modifier keys that were held. The key code is the game's own rather than a
-     * character's, so it is a number for a named key and {@link KeyBind} is the way to
-     * name one.
+     * Runs when a key is pressed over this screen, receiving the game's key code and the
+     * modifier-key bitmask. The key code identifies a key, not a typed character; use
+     * {@link KeyBind} to refer to named keys.
      * <p>
-     * It runs for every key including the ones the game handles itself, so a screen that
-     * wants to close on escape has to check for it rather than assume it.
-     * example:
+     * This callback does not consume the key; game handling may still occur.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.setOnKeyPressed(JavaWrapper.methodToJava(function (key, modifiers) {
@@ -631,12 +520,9 @@ public interface IScreen extends IDraw2D<IScreen> {
     IScreen setOnKeyPressed(MethodWrapper<Integer, Integer, Object, ?> onKeyPressed);
 
     /**
-     * Runs when a key produces a character, and is given that character and the modifier
-     * keys that were held. This is the pair to use for typing rather than
-     * {@link #setOnKeyPressed(MethodWrapper)}, because it is what arrives once per
-     * character typed rather than once per key, so shift and the layout have already been
-     * applied by the time it runs.
-     * example:
+     * Runs when a key produces a character, receiving that character and the modifier-key
+     * bitmask. Use this rather than {@link #setOnKeyPressed(MethodWrapper)} for text input;
+     * the character reflects the active keyboard layout and modifiers.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.setOnCharTyped(JavaWrapper.methodToJava(function (chr, modifiers) {
@@ -652,11 +538,8 @@ public interface IScreen extends IDraw2D<IScreen> {
     IScreen setOnCharTyped(MethodWrapper<Character, Integer, Object, ?> onCharTyped);
 
     /**
-     * Runs when this screen closes, and is given the screen that is closing. It is a
-     * notification rather than a replacement: the screen still closes and still goes back
-     * to whatever was open before it, so this is where to save state rather than where to
-     * decide whether to close.
-     * example:
+     * Runs when this screen closes, receiving the screen being closed. It is a notification;
+     * it does not prevent the close or change which screen is restored.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.setOnClose(JavaWrapper.methodToJava(function (closing) {
@@ -672,14 +555,7 @@ public interface IScreen extends IDraw2D<IScreen> {
     IScreen setOnClose(MethodWrapper<IScreen, Object, Object, ?> onClose);
 
     /**
-     * closes this screen and hands control back to whatever was open before it.
-     * <p>
-     * This is the same as the player closing it, so the close callback runs and the
-     * screen's own parent handling applies. It is the same as opening nothing, and a
-     * screen with no parent set goes back to the game itself.
-     * <p>
-     * Closing a screen that is not open does nothing.
-     * example:
+     * Closes this screen, invoking its close handling and returning to its parent if set.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.addButton(10, 20, 100, 20, "close", JavaWrapper.methodToJava(function (button) {
@@ -693,17 +569,9 @@ public interface IScreen extends IDraw2D<IScreen> {
     void close();
 
     /**
-     * calls the screen's init function re-loading it.
-     * <p>
-     * The screen is emptied and its init function runs again, which is what a script calls
-     * after it has changed something the widgets were laid out from. The callback for
-     * that init function is the one set with
-     * {@link #setOnInit(MethodWrapper)}, so a screen whose widgets are built in an init
-     * function is rebuilt by this; a screen that was filled in by hand loses its widgets
-     * to it and has to be filled in again.
-     * <p>
-     * The screen stays open throughout. It is the layout that is rebuilt, not the screen.
-     * example:
+     * Reinitializes this screen, clearing its elements and running the callback set with
+     * {@link #setOnInit(MethodWrapper)}. Elements added outside that callback are cleared
+     * too. Reinitialization is scheduled on the client thread.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
@@ -720,12 +588,8 @@ public interface IScreen extends IDraw2D<IScreen> {
     IScreen reloadScreen();
 
     /**
-     * The builder is bound to this screen, so {@code build()} on it puts the button
-     * where the matching {@link #addButton} call would have: it creates the widget and
-     * hands it to {@code reAddElement} on the screen it was made from. The button's
-     * position and size are normally given to the builder rather than the {@code add}
-     * call, and the height is fixed at 20 however it is set.
-     * example:
+     * Returns a button builder bound to this screen. Its {@code build()} adds the button
+     * to this screen; button height is fixed at 20.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.buttonBuilder()
@@ -745,10 +609,8 @@ public interface IScreen extends IDraw2D<IScreen> {
     ButtonWidgetHelper.ButtonBuilder buttonBuilder();
 
     /**
-     * The builder is bound to this screen, so {@code build()} on it puts the
-     * checkbox where the matching {@code addCheckbox} call would have. This form starts
-     * unchecked; the one taking a boolean starts in that state.
-     * example:
+     * Returns a checkbox builder bound to this screen. Its {@code build()} adds the
+     * checkbox here; this overload starts unchecked.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.checkBoxBuilder()
@@ -765,9 +627,7 @@ public interface IScreen extends IDraw2D<IScreen> {
     CheckBoxWidgetHelper.CheckBoxBuilder checkBoxBuilder();
 
     /**
-     * The same as {@link #checkBoxBuilder()} with the starting state chosen here rather
-     * than left unchecked.
-     * example:
+     * Returns a checkbox builder bound to this screen, initialized to {@code checked}.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.checkBoxBuilder(true)
@@ -785,13 +645,8 @@ public interface IScreen extends IDraw2D<IScreen> {
     CheckBoxWidgetHelper.CheckBoxBuilder checkBoxBuilder(boolean checked);
 
     /**
-     * A cycling button holds values rather than a list of strings, and this is how each
-     * one becomes the label on the button. Without it a button's values are assumed to
-     * be strings; with it they can be anything and this decides how each is displayed.
-     * <p>
-     * The builder is bound to this screen, so {@code build()} on it puts the button
-     * where the matching {@link #addCyclingButton} call would have.
-     * example:
+     * Returns a cycling-button builder bound to this screen. The converter supplies the
+     * text displayed for each value; it allows values other than strings.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.cyclicButtonBuilder(JavaWrapper.methodToJava(function (value) {
@@ -812,17 +667,8 @@ public interface IScreen extends IDraw2D<IScreen> {
     CyclingButtonWidgetHelper.CyclicButtonBuilder<?> cyclicButtonBuilder(MethodWrapper<Object, ?, TextHelper, ?> valueToText);
 
     /**
-     * The builder is bound to this screen, so {@code build()} on it puts the button
-     * where the matching {@link #addLockButton} call would have. This form starts
-     * unlocked. A padlock draws at its own fixed size, so only its position is set.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * screen.lockButtonBuilder()
-     *    .pos(10, 20)
-     *    .build();
-     * Hud.openScreen(screen);
-     * </pre>
+     * Returns a lock-button builder bound to this screen. Its button starts unlocked
+     * and has a fixed size.
      *
      * @return a new builder for lock buttons.
      * @since 1.8.4
@@ -830,16 +676,8 @@ public interface IScreen extends IDraw2D<IScreen> {
     LockButtonWidgetHelper.LockButtonBuilder lockButtonBuilder();
 
     /**
-     * The same as {@link #lockButtonBuilder()} with the starting state chosen here rather
-     * than left unlocked.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * screen.lockButtonBuilder(true)
-     *    .pos(10, 20)
-     *    .build();
-     * Hud.openScreen(screen);
-     * </pre>
+     * Returns a lock-button builder bound to this screen, with the initial locked state
+     * set by {@code locked}. The button has a fixed size.
      *
      * @param locked whether the lock button should be locked by default
      * @return a new builder for lock buttons.
@@ -848,31 +686,10 @@ public interface IScreen extends IDraw2D<IScreen> {
     LockButtonWidgetHelper.LockButtonBuilder lockButtonBuilder(boolean locked);
 
     /**
-     * The builder is bound to this screen, so {@code build()} on it puts the slider
-     * where the matching {@code addSlider} call would have. The step count and the
-     * callback are set on the builder rather than being arguments here.
-     * <p>
-     * The initial value is a whole position rather than a fraction. {@code initially}
-     * takes an {@code int} clamped to {@code 0} through {@code steps - 1}, which is
-     * divided by {@code steps - 1} to make the 0 to 1 value the widget holds, so
-     * {@code 5} with ten steps starts it at five ninths of the way along rather than
-     * at half. The clamp reads the step count as it stands, so the step count has to
-     * be set first.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * screen.sliderBuilder()
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .message("volume")
-     *    .steps(10)
-     *    .initially(5)
-     *    .action(JavaWrapper.methodToJava(function (slider) {
-     *      Chat.log(`now ${slider.getValue()}`);
-     *    }))
-     *    .build();
-     * Hud.openScreen(screen);
-     * </pre>
+     * Returns a slider builder bound to this screen. Set its step count and callback
+     * on the builder. Its initial position is a step index, clamped using the step
+     * count at the time {@code initially} is called, then converted to the widget's
+     * 0-to-1 value; set {@code steps} before {@code initially} when configuring both.
      *
      * @return a new builder for sliders.
      * @since 1.8.4
@@ -880,23 +697,8 @@ public interface IScreen extends IDraw2D<IScreen> {
     SliderWidgetHelper.SliderBuilder sliderBuilder();
 
     /**
-     * The builder is bound to this screen and has the screen's font, so
-     * {@code build()} on it puts the field where the matching
-     * {@link #addTextInput} call would have. The callback here is given the current
-     * text and this screen, the same as on that call.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * screen.textFieldBuilder()
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .message("type a name")
-     *    .action(JavaWrapper.methodToJava(function (text) {
-     *      Chat.log(`so far: ${text}`);
-     *    }))
-     *    .build();
-     * Hud.openScreen(screen);
-     * </pre>
+     * Returns a text-field builder bound to this screen and using its font. Its action
+     * receives the changed text and this screen, as with {@link #addTextInput}.
      *
      * @return a new builder for text fields.
      * @since 1.8.4
@@ -904,26 +706,9 @@ public interface IScreen extends IDraw2D<IScreen> {
     TextFieldWidgetHelper.TextFieldBuilder textFieldBuilder();
 
     /**
-     * A button drawn from a texture rather than with the game's own look. The builder is
-     * bound to this screen, so {@code build()} on it puts the button where the
-     * matching {@link #addButton} call would have. The four setters are the four states
-     * the button is drawn in: enabled, disabled, enabled and focused, disabled and
-     * focused. They go into the sprite set exactly as given, with no defaulting to the
-     * enabled one, so a texture has to be given for every state the button can be seen
-     * in.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * screen.texturedButtonBuilder()
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .enabledTexture("minecraft:item/diamond")
-     *    .disabledTexture("minecraft:item/emerald")
-     *    .enabledFocusedTexture("minecraft:item/diamond")
-     *    .disabledFocusedTexture("minecraft:item/emerald")
-     *    .build();
-     * Hud.openScreen(screen);
-     * </pre>
+     * Returns a texture-drawn button builder bound to this screen. Supply textures for
+     * the enabled, disabled, enabled-focused, and disabled-focused states; no state
+     * falls back to another texture.
      *
      * @return a new builder for textured buttons.
      * @since 1.8.4
@@ -932,7 +717,7 @@ public interface IScreen extends IDraw2D<IScreen> {
 
     //? if <=1.21.8 {
     /**
-     * @return {@code true} if the shift key is pressed, {@code false} otherwise.
+     * @return whether the shift key is pressed.
      * @since 1.8.4
      */
     default boolean isShiftDown() {
@@ -940,7 +725,7 @@ public interface IScreen extends IDraw2D<IScreen> {
     }
 
     /**
-     * @return {@code true} if the ctrl key is pressed, {@code false} otherwise.
+     * @return whether the control key is pressed.
      * @since 1.8.4
      */
     default boolean isCtrlDown() {
@@ -948,7 +733,7 @@ public interface IScreen extends IDraw2D<IScreen> {
     }
 
     /**
-     * @return {@code true} if the alt key is pressed, {@code false} otherwise.
+     * @return whether the alt key is pressed.
      * @since 1.8.4
      */
     default boolean isAltDown() {
@@ -957,19 +742,8 @@ public interface IScreen extends IDraw2D<IScreen> {
     //?}
 
     /**
-     * the close callback, or {@code null} if none was set.
-     * <p>
-     * This is the callback itself rather than a result, so it is what to call to run the
-     * close handling by hand, and what to check to find out whether the screen has one at
-     * all. It is {@code null} on a screen that never had
-     * {@link #setOnClose(MethodWrapper)} called on it, which is the normal case.
-     * example:
-     * <pre>
-     * const screen = Hud.getOpenScreen();
-     * if (screen !== null) {
-     *   Chat.log(`has a close callback: ${screen.getOnClose() !== null}`);
-     * }
-     * </pre>
+     * Returns the close callback, or {@code null} if none was set. This is the callback
+     * itself; invoking it manually runs the callback but does not itself close the screen.
      *
      * @return the close callback, or {@code null} if there is none
      * @since 1.2.7

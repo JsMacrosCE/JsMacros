@@ -11,19 +11,15 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 import java.util.Locale;
 
 /**
- * one boss bar as the client is drawing it right now, and a wrapper is a snapshot of
- * the bar rather than a handle on the live event it came from. Nothing on this class
- * writes to the bar, so it is for reading one.
+ * A wrapper exposing the state of one boss bar known to the client.
  * <p>
- * A script gets one from {@code World.getBossBars()}, which is keyed by the same
- * string {@link #getUUID()} hands back, or from the {@code bossBar} field on the boss
- * bar event, which is {@code null} on the remove case.
+ * {@code World.getBossBars()} returns a map keyed by the string from {@link #getUUID()}.
+ * The boss-bar event's {@code bossBar} field is {@code null} when a bar is removed.
  * <p>
  * The percentage is the smoothed one the overlay animates towards rather than the
  * value the server last sent: the bar eases from the previous percentage to the new
- * one over about a tenth of a second, so two reads a moment apart can differ even
- * though the server has sent nothing in between.
- * example:
+ * one over 100 milliseconds, so reads can differ even when the server has sent nothing
+ * in between.
  * <pre>
  * const bars = World.getBossBars();
  * Chat.log(`${bars.size()} boss bar(s) on screen`);
@@ -42,24 +38,17 @@ import java.util.Locale;
 @DocletCategory("Misc Helpers")
 public class BossBarHelper extends BaseHelper<BossEvent> {
 
+    /** Wraps the supplied boss-bar event.
+     * @param b raw boss event to wrap
+     */
     public BossBarHelper(BossEvent b) {
         super(b);
     }
 
     /**
-     * the id the bar was created with, as a string. This is the same string the key in
-     * the map from {@code World.getBossBars()} is, so a bar can be looked back up with
-     * it.
-     * example:
-     * <pre>
-     * for (const entry of World.getBossBars().entrySet()) {
-     *   const bar = entry.getValue();
-     *   // the key and the id are the same string
-     *   Chat.log(`${entry.getKey()} == ${bar.getUUID()}`);
-     * }
-     * </pre>
+     * Returns the bar's UUID as a string, matching its key in {@code World.getBossBars()}.
      *
-     * @return boss bar uuid.
+     * @return this bar's UUID.
      * @since 1.2.1
      */
     public String getUUID() {
@@ -67,23 +56,10 @@ public class BossBarHelper extends BaseHelper<BossEvent> {
     }
 
     /**
-     * a fraction from 0 to 1 rather than a number from 0 to 100, so it has to be
-     * multiplied to be shown as a percentage. A full bar is 1, because the bar starts
-     * out full and fills up as the fight goes on. It is read at the moment of the call
-     * and the bar keeps moving afterwards, so a bar read later can be a different
-     * number.
-     * example:
-     * <pre>
-     * const bars = World.getBossBars();
-     * for (const bar of bars.values()) {
-     *   const done = bar.getPercent() * 100;
-     *   if (done > 50) {
-     *     Chat.log(`${bar.getName().getString()} is past halfway, ${Math.round(done)}%`);
-     *   }
-     * }
-     * </pre>
+     * Returns the current smoothed progress as a fraction from {@code 0} to {@code 1}.
+     * The client animates this value toward the latest progress received from the server.
      *
-     * @return percent of boss bar remaining.
+     * @return current progress fraction; values are not converted to percentages.
      * @since 1.2.1
      */
     public float getPercent() {
@@ -91,24 +67,15 @@ public class BossBarHelper extends BaseHelper<BossEvent> {
     }
 
     /**
-     * the name the bar is given by the {@link BossEvent.BossBarColor} enum, uppercased,
+     * Returns the {@link BossEvent.BossBarColor} enum name in uppercase,
      * so one of {@code PINK}, {@code BLUE}, {@code RED}, {@code GREEN}, {@code YELLOW},
      * {@code PURPLE} or {@code WHITE}. These are the seven the game defines, and the
      * string is what the TypeScript typings narrow this to.
-     * <p>
-     * This is the enum's own name, not the formatting code behind it: the red bar
-     * reports {@code RED} and the dark red one {@code RED} as well, so
-     * {@link #getColorFormat()} is what tells those two apart. The rgb value is
-     * available as {@link #getColorValue()}.
-     * example:
-     * <pre>
-     * for (const bar of World.getBossBars().values()) {
-     *   // the same name, the rgb behind it
-     *   Chat.log(`${bar.getColor()} is 0x${bar.getColorValue().toString(16)}`);
-     * }
-     * </pre>
+     * This name does not uniquely identify the formatting: {@code PINK} and {@code RED}
+     * both use red formatting. Use {@link #getColorFormat()} or {@link #getColorValue()}
+     * for the formatting or its RGB value.
      *
-     * @return boss bar color.
+     * @return the uppercase enum name.
      * @since 1.2.1
      */
     @DocletReplaceReturn("BossBarColor")
@@ -117,25 +84,12 @@ public class BossBarHelper extends BaseHelper<BossEvent> {
     }
 
     /**
-     * the name the bar is given by the {@link BossEvent.BossBarOverlay} enum, uppercased,
+     * Returns the {@link BossEvent.BossBarOverlay} enum name in uppercase,
      * so one of {@code PROGRESS}, {@code NOTCHED_6}, {@code NOTCHED_10},
      * {@code NOTCHED_12} or {@code NOTCHED_20}. The notched ones are the same bar with
      * the notches added, and the number is how many segments it is cut into.
-     * <p>
-     * The underscore in the notched names comes from the game and is kept, so a name
-     * with a dash rather than an underscore is not one this can return.
-     * example:
-     * <pre>
-     * for (const bar of World.getBossBars().values()) {
-     *   const style = bar.getStyle();
-     *   if (style.startsWith("NOTCHED_")) {
-     *     const notches = Number(style.substring(8));
-     *     Chat.log(`${bar.getName().getString()} is drawn in ${notches} segments`);
-     *   }
-     * }
-     * </pre>
      *
-     * @return boss bar notch style.
+     * @return the uppercase overlay enum name.
      * @since 1.2.1
      */
     @DocletReplaceReturn("BossBarStyle")
@@ -144,23 +98,9 @@ public class BossBarHelper extends BaseHelper<BossEvent> {
     }
 
     /**
-     * the packed rgb number of the chat formatting the bar's colour is drawn with,
-     * which is the form a colour has to be in to go into a drawing call. The one colour
-     * a boss bar cannot have is a format with no rgb behind it, and that gives
-     * {@code -1}.
-     * <p>
-     * The bar's own {@link #getColor()} name is not enough to rebuild the colour from,
-     * because two of the enum's entries share a name. The formatting behind the name
-     * is available as {@link #getColorFormat()}, and this is that formatting's rgb.
-     * example:
-     * <pre>
-     * for (const bar of World.getBossBars().values()) {
-     *   // the packed rgb, printed the way a colour constant is usually written
-     *   Chat.log(`this bar is 0x${bar.getColorValue().toString(16)}`);
-     * }
-     * </pre>
+     * Returns the packed RGB value of the bar's formatting, or {@code -1} if it has no RGB value.
      *
-     * @return the color of this boss bar.
+     * @return the formatting's RGB value, or {@code -1} if absent.
      * @since 1.8.4
      */
     public int getColorValue() {
@@ -169,24 +109,9 @@ public class BossBarHelper extends BaseHelper<BossEvent> {
     }
 
     /**
-     * the chat formatting behind the bar's colour, which is the thing that carries both
-     * the rgb in {@link #getColorValue()} and the formatting code, a paragraph sign
-     * followed by a character. It is a formatting rather than a colour on its own, so it
-     * can be turned into text as well as being read for a number.
-     * <p>
-     * The formatting is the game's own, so there is no setter here: this is for reading
-     * a bar that has already been given its colour.
-     * example:
-     * <pre>
-     * for (const bar of World.getBossBars().values()) {
-     *   const format = bar.getColorFormat();
-     *   // the name is the formatting's own, the index is the legacy colour code
-     *   // and the value is the packed rgb
-     *   Chat.log(`${bar.getColor()}: ${format.getName()} ${format.getColorIndex()} ${format.getColorValue()}`);
-     * }
-     * </pre>
+     * Returns the formatting associated with the bar's color.
      *
-     * @return the format of the boss bar's color.
+     * @return the bar color's formatting.
      * @since 1.8.4
      */
     public FormattingHelper getColorFormat() {
@@ -194,26 +119,18 @@ public class BossBarHelper extends BaseHelper<BossEvent> {
     }
 
     /**
-     * the title the bar is drawn with, as text rather than a plain string, so the
-     * colouring and any styling the server sent come with it. This is a wrapper rather
-     * than the raw component, and it is a read: there is no setter, so a bar's name
-     * only changes when the server sends a new one.
-     * example:
-     * <pre>
-     * for (const bar of World.getBossBars().values()) {
-     *   // getString() strips the styling, getName() keeps it
-     *   Chat.log(`plain: ${bar.getName().getString()}`);
-     *   Chat.log(`styled: ${bar.getName()}`);
-     * }
-     * </pre>
+     * Returns the bar's title as a {@link TextHelper}, preserving its text styling.
      *
-     * @return name of boss bar
+     * @return the bar's styled title.
      * @since 1.2.1
      */
     public TextHelper getName() {
         return TextHelper.wrap(base.getName());
     }
 
+    /** Returns a diagnostic string containing the bar's plain name and raw progress value.
+     * @return a diagnostic representation of the bar
+     */
     @Override
     public String toString() {
         return String.format("BossBarHelper:{\"name:\": \"%s\", \"percent\": %f}", base.getName().getString(), base.getProgress());

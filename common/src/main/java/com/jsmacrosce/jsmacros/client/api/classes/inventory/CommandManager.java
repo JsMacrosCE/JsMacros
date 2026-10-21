@@ -12,6 +12,7 @@ import net.minecraft.client.multiplayer.ClientSuggestionProvider;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.SharedSuggestionProvider;
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.helper.CommandNodeHelper;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 
@@ -20,27 +21,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
- * the client side command registry, reached through
- * {@code Chat.getCommandManager()}.
- * <p>
- * It is the entry point for the two halves of the command system: reading the commands that
- * exist, and building new ones. It holds no state of its own for either. {@link
- * #getValidCommands()} reads the live command tree off the connection, and the builders handed
- * out by {@link #createCommandBuilder(String)} keep their pending commands in a map on the
- * loader's {@code CommandBuilder} subclass, so a script cannot read either back out of the
- * manager.
- * <p>
- * The class is abstract, so the object behind it is whichever one the loader put in place
- * during startup, and that is also why {@link #instance} is a field rather than something a
- * script constructs: there is one of these, not one per script.
- * <p>
- * The list from {@link #getValidCommands()} is the client view of the command tree, so it
- * holds the vanilla commands the connected server advertised as well as anything a script
- * has registered. It is empty when nothing is connected, which is worth handling rather than
- * assuming.
- * example:
+ * Provides access to the client's command tree, command builders, and command autocomplete.
+ * Obtain the shared instance with {@code Chat.getCommandManager()}.
  * <pre>
- * // every command the client currently knows about
+ * // list the commands in the current client command tree
  * for (const name of Chat.getCommandManager().getValidCommands()) {
  *   Chat.log(name);
  * }
@@ -58,26 +42,16 @@ import java.util.stream.Collectors;
 @DocletCategory("Commands")
 public abstract class CommandManager {
     /**
-     * the one command manager this client has.
-     * <p>
-     * It is set during startup by the loader and is not something a script should assign,
-     * since replacing it would leave the rest of the client still holding the old one. Reach
-     * for {@code Chat.getCommandManager()} rather than reading this directly, which gives the
-     * same object and keeps working if the field is ever made private.
-     * example:
-     * <pre>
-     * // the same object Chat.getCommandManager() returns
-     * const manager = Java.type("com.jsmacrosce.jsmacros.client.api.classes.inventory.CommandManager")
-     * .instance;
-     * Chat.log(`${manager.getValidCommands().size()} commands`);
-     * </pre>
+     * Shared command manager installed by the loader. Scripts should obtain it through
+     * {@code Chat.getCommandManager()}.
      * @since 1.7.0
      */
+    @DocletIgnore
     public static CommandManager instance;
     private static final Minecraft mc = Minecraft.getInstance();
 
     /**
-     * @return list of commands
+     * @return names of the root command tree's direct children; empty when no connection is available
      * @since 1.7.0
      */
     public List<String> getValidCommands() {
@@ -89,30 +63,34 @@ public abstract class CommandManager {
     }
 
     /**
-     * @param name
-     * @return
+     * Creates a builder for a client command; it is not registered until {@link CommandBuilder#register()} is called.
+     * @param name command name, without a leading slash
+     * @return a builder initialized for that command
      * @since 1.7.0
      */
     public abstract CommandBuilder createCommandBuilder(String name);
 
     /**
-     * @param command
-     * @return
-     * @throws IllegalAccessException
+     * Removes a named command from the client command dispatchers.
+     * @param command name of the command to remove
+     * @return a helper for the removed command node, for use with {@link #reRegisterCommand(CommandNodeHelper)}
+     * @throws IllegalAccessException if the command cannot be reached for removal
      * @since 1.7.0
      */
     public abstract CommandNodeHelper unregisterCommand(String command) throws IllegalAccessException;
 
     /**
-     * warning: this method is hacky
-     *
-     * @param node
+     * Re-registers a command node previously removed with {@link #unregisterCommand(String)}.
+     * @param node helper returned by {@link #unregisterCommand(String)}
      * @since 1.7.0
      */
     public abstract void reRegisterCommand(CommandNodeHelper node);
 
     /**
-     * @param commandPart
+     * Requests autocomplete suggestions and passes their text values to the callback when the
+     * asynchronous request completes. Requires a player to be present.
+     * @param commandPart partial command text to complete
+     * @param callback receives the list of suggested completion text when the request completes
      * @since 1.8.2
      */
     public void getArgumentAutocompleteOptions(String commandPart, MethodWrapper<List<String>, Object, Object, ?> callback) {

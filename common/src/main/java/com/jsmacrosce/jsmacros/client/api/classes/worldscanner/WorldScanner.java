@@ -38,26 +38,18 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * A class to scan the world for certain blocks. The results of the filters are cached,
- * so it's a good idea to reuse an instance of this if possible.
- * The scanner can either return a list of all block positions or
- * a list of blocks and their respective count for every block / state matching the filters criteria.
- * <p>
- * The cache is per block <i>state</i> rather than per block, so every variant of a block that appears
- * in the area is tested once and then kept, and reusing a scanner is what makes a second scan of the
- * same area cheap. Only chunks the client has been sent are walked, so a wide range is a lot of work
- * for a small answer, and everything here works from the client side alone rather than asking the
- * server.
+ * Scans chunks and block-coordinate regions for blocks matching optional block and state filters.
+ * Filter results are cached per block state and reused by later scans on the same scanner. Scans
+ * skip chunks unavailable to the client and do not request them from the server.
  * <p>
  * There are three kinds of search and they differ in the units they take. The chunk searches take a
  * centre in chunk coordinates, the area searches take block coordinates, and the reach searches take
  * a point and a distance. A chunk coordinate is the block coordinate divided by sixteen, and the
  * parameter names say which of the two a method is expecting.
- * example:
- * <pre class="language-typescript">
- * // a scanner of one kind of block, reused so the second scan is cheap
+ * <pre>
+ * // reuse a scanner so matching states already evaluated are not tested again
  * const scanner = World.getWorldScanner(
- *   JavaWrapper.methodToJava(function (block: BlockHelper) {
+ *   JavaWrapper.methodToJava(function (block) {
  *     return block.getId() === "minecraft:diamond_ore";
  *   }),
  *   null
@@ -90,18 +82,10 @@ public class WorldScanner {
     private final boolean useParallelStream;
 
     /**
-     * Creates a new World scanner with for the given world. It accepts two boolean functions,
-     * one for {@link BlockHelper} and the other for {@link BlockStateHelper}.
-     * <p>
-     * Either function may be {@code null}, which skips that stage: with both null the scanner
-     * matches every state, which is every block in the region. When both are given the block filter
-     * runs first and the state filter narrows what it kept, so the two are stages rather than
-     * alternatives.
-     * <p>
-     * A filter that is a script function decides whether the scan runs in parallel. A filter handed
-     * over as a java wrapper only gets one when the script context it came from is itself
-     * multi-threaded, and this is worked out once here rather than per scan.
-     * example:
+     * Constructs a scanner for {@code world}. Non-null block and state filters are both applied;
+     * the block filter runs first, and either may be null to omit that test. With both null, every
+     * encountered state matches. Scans may use parallel streams unless a wrapped script filter's
+     * context is not multithreaded; this choice is made when the scanner is constructed.
      * <pre class="language-typescript">
      * // naming the parameter type is what tells the wrapper what it is being
      * // handed. The two are stages: a block is kept when the block filter and
@@ -135,13 +119,9 @@ public class WorldScanner {
     }
 
     /**
-     * Gets a list of all chunks in the given range around the center chunk.
-     * <p>
-     * This is only the square of chunk positions, so it reads nothing from the world and returns the
-     * same list whatever is loaded. The square is {@code 2 * chunkrange + 1} on a side, so a range of
-     * 0 is the one centre chunk and a range of 1 is nine chunks, and the list runs x outer and z
-     * inner, both ascending. Nothing here checks whether a chunk exists.
-     * example:
+     * Returns the square of chunk positions centered on the given chunk coordinates, without
+     * checking whether those chunks are available. The side length is {@code 2 * chunkrange + 1};
+     * positions are ordered by ascending X, then ascending Z.
      * <pre class="language-typescript">
      * // the nine chunks around a chunk, as chunk positions rather than
      * // block ones, which is what the scan methods take
@@ -172,23 +152,9 @@ public class WorldScanner {
     }
 
     /**
-     * Scans all chunks in the given range around the player and returns a list of all block positions, for blocks matching the filter.
-     * This will scan in a square with length 2*range + 1. So range = 0 for example will only scan the chunk the player
-     * is standing in, while range = 1 will scan in a 3x3 area.
-     * <p>
-     * With no player this is an empty list rather than a failure, so a script that has not already
-     * checked does not have to. Only chunks the client has been sent are walked, and the whole
-     * height of each one is.
-     * example:
-     * <pre>
-     * // the nine chunks around the player's own chunk
-     * const found = World.findBlocksMatching("diamond_ore", 2);
-     * if (found !== null) {
-     *   for (const pos of found) {
-     *     Chat.log(`diamond ore at ${pos.getX()}, ${pos.getY()}, ${pos.getZ()}`);
-     *   }
-     * }
-     * </pre>
+     * Scans the square of chunks centered on the player's current chunk, returning matching block
+     * positions across each chunk's full height. The side length is {@code 2 * chunkRange + 1};
+     * returns an empty list when there is no player. Unavailable chunks are skipped.
      *
      * @param chunkRange the range to scan around the center chunk
      * @return a list of all matching block positions.
@@ -200,22 +166,9 @@ public class WorldScanner {
     }
 
     /**
-     * Scans all chunks in the given range around the center chunk and returns a list of all block positions, for blocks matching the filter.
-     * This will scan in a square with length 2*range + 1. So range = 0 for example will only scan the specified chunk,
-     * while range = 1 will scan in a 3x3 area.
-     * <p>
-     * The centre is in chunk coordinates, the same divided by sixteen, and only chunks the client
-     * has been sent are walked, so a wide range is a lot of work for what is usually a short answer.
-     * The y range is the full height of the world and is clamped to it.
-     * example:
-     * <pre>
-     * // the chunks around a chunk of the script's own choosing rather than
-     * // the player's, so the search is the same wherever the player is
-     * const found = World.findBlocksMatching(0, 0, "gold_ore", 1);
-     * if (found !== null) {
-     *   Chat.log(`${found.size()} gold ore in range`);
-     * }
-     * </pre>
+     * Scans the square of chunks centered on the supplied chunk coordinates and returns matching
+     * positions across their full height. The side length is {@code 2 * chunkrange + 1}; unavailable
+     * chunks are skipped.
      *
      * @param centerX    the x coordinate of the center chunk to scan around
      * @param centerZ    the z coordinate of the center chunk to scan around
@@ -232,12 +185,9 @@ public class WorldScanner {
     }
 
     /**
-     * scan area in blocks
-     * <p>
-     * This is a cube of {@code 2 * range + 1} blocks on a side centred on the position, and both
-     * ends are counted, so a range of 0 is that one block. The y range is clamped to the world's,
-     * and a cube entirely above or below it is empty.
-     * example:
+     * Scans a block-coordinate cube centered on {@code pos}, including both ends on each axis.
+     * Its side length is {@code 2 * range + 1}; the Y bounds are clamped to world height, and a
+     * cube entirely outside that height is empty.
      * <pre class="language-typescript">
      * // the 3x3x3 cube around a block position, both ends counted
      * const scanner = World.getWorldScanner(
@@ -264,25 +214,8 @@ public class WorldScanner {
     }
 
     /**
-     * scan area in blocks
-     * <p>
-     * This is a cube of {@code 2 * range + 1} blocks on a side centred on the three coordinates,
-     * and both ends are counted, so a range of 0 is that one block. The y range is clamped to the
-     * world's, and a cube entirely above or below it is empty.
-     * example:
-     * <pre class="language-typescript">
-     * // the same cube written as three numbers rather than a position
-     * const scanner = World.getWorldScanner(
-     *   JavaWrapper.methodToJava(function (block: BlockHelper) {
-     *     return block.getId() === "minecraft:chest";
-     *   }),
-     *   null
-     * );
-     * if (scanner !== null) {
-     *   const found = scanner.scanCubeArea(100, 64, 100, 1);
-     *   Chat.log(`${found.size()} chests in the cube`);
-     * }
-     * </pre>
+     * Scans a cube centred on the supplied block coordinates, including both ends on each axis.
+     * Its side length is {@code 2 * range + 1}; the y range is clamped to the world height.
      *
      * @param x     the x coordinate of the centre of the cube
      * @param y     the y coordinate of the centre of the cube
@@ -301,29 +234,8 @@ public class WorldScanner {
     }
 
     /**
-     * scan area in blocks
-     * <p>
-     * The first position is counted and the second is not, so a box from 0 to 10 on an axis is ten
-     * blocks wide, ending at 9. An axis whose two ends are the same is empty whatever the others
-     * are, and the y range is clamped to the world's, so a box entirely above or below it is empty
-     * too. This differs from the overload taking a range, which is a cube counted on both ends.
-     * example:
-     * <pre class="language-typescript">
-     * // a box that includes the first corner and stops short of the second,
-     * // so it is 10 blocks on a side here, ending at 9 on each axis
-     * const scanner = World.getWorldScanner(
-     *   JavaWrapper.methodToJava(function (block: BlockHelper) {
-     *     return block.getId() === "minecraft:chest";
-     *   }),
-     *   null
-     * );
-     * if (scanner !== null) {
-     *   const from = PositionCommon.createBlockPos(0, 0, 0);
-     *   const to = PositionCommon.createBlockPos(10, 10, 10);
-     *   const found = scanner.scanCubeArea(from, to);
-     *   Chat.log(`${found.size()} chests in the box`);
-     * }
-     * </pre>
+     * Scans the box from the first position, inclusive, to the second, exclusive. An equal pair of
+     * coordinates on any axis makes the result empty; the y range is clamped to world height.
      *
      * @param pos1 first pos, inclusive
      * @param pos2 second pos, exclusive
@@ -336,26 +248,8 @@ public class WorldScanner {
     }
 
     /**
-     * scan area in blocks
-     * <p>
-     * The first set of coordinates is counted and the second is not, so a box from 0 to 10 on an
-     * axis is ten blocks wide, ending at 9. An axis whose two ends are the same is empty whatever
-     * the others are, and the y range is clamped to the world's, so a box entirely above or below it is empty
-     * too. This differs from the overload taking a range, which is a cube counted on both ends.
-     * example:
-     * <pre class="language-typescript">
-     * // the same ten block box written as six numbers rather than two positions
-     * const scanner = World.getWorldScanner(
-     *   JavaWrapper.methodToJava(function (block: BlockHelper) {
-     *     return block.getId() === "minecraft:chest";
-     *   }),
-     *   null
-     * );
-     * if (scanner !== null) {
-     *   const found = scanner.scanCubeArea(0, 0, 0, 10, 10, 10);
-     *   Chat.log(`${found.size()} chests in the box`);
-     * }
-     * </pre>
+     * Scans the box from the first coordinate triple, inclusive, to the second, exclusive. Equal
+     * coordinates on any axis make the result empty; the y range is clamped to world height.
      *
      * @param x1 first x coordinate, inclusive
      * @param y1 first y coordinate, inclusive
@@ -378,30 +272,9 @@ public class WorldScanner {
     }
 
     /**
-     * scan area in blocks
-     * <p>
-     * Both positions are counted here, which is the one thing that separates this from the
-     * {@link #scanCubeArea(BlockPosHelper, BlockPosHelper)} of the same shape, so the same two
-     * corners give one more block on each axis: 0 to 10 is eleven blocks here and ten there. The
-     * y range is clamped to the world's, so a box entirely above or below it is empty. A single
-     * block is the two positions being the same.
-     * example:
-     * <pre class="language-typescript">
-     * // the same two corners as the non inclusive form, which makes
-     * // this eleven blocks on a side rather than ten
-     * const scanner = World.getWorldScanner(
-     *   JavaWrapper.methodToJava(function (block: BlockHelper) {
-     *     return block.getId() === "minecraft:chest";
-     *   }),
-     *   null
-     * );
-     * if (scanner !== null) {
-     *   const from = PositionCommon.createBlockPos(0, 0, 0);
-     *   const to = PositionCommon.createBlockPos(10, 10, 10);
-     *   const found = scanner.scanCubeAreaInclusive(from, to);
-     *   Chat.log(`${found.size} chests in the closed box`);
-     * }
-     * </pre>
+     * Scans the box including both positions on every axis. Equal coordinates describe one block;
+     * the y range is clamped to world height. Unlike {@link #scanCubeArea(BlockPosHelper, BlockPosHelper)},
+     * the second position is included.
      *
      * @param pos1 first pos, inclusive
      * @param pos2 second pos, inclusive
@@ -413,26 +286,9 @@ public class WorldScanner {
     }
 
     /**
-     * scan area in blocks
-     * <p>
-     * All six coordinates are counted here, so this is
-     * {@link #scanCubeAreaInclusive(BlockPosHelper, BlockPosHelper)} written as numbers, and 0 to 10
-     * is eleven blocks on an axis rather than the ten the other form gives. The y range is
-     * clamped to the world's, so a box entirely above or below it is empty.
-     * example:
-     * <pre class="language-typescript">
-     * // the same closed box as the two position form, written as six numbers
-     * const scanner = World.getWorldScanner(
-     *   JavaWrapper.methodToJava(function (block: BlockHelper) {
-     *     return block.getId() === "minecraft:chest";
-     *   }),
-     *   null
-     * );
-     * if (scanner !== null) {
-     *   const found = scanner.scanCubeAreaInclusive(0, 0, 0, 10, 10, 10);
-     *   Chat.log(`${found.size} chests in the closed box`);
-     * }
-     * </pre>
+     * Scans the box including both coordinate triples on every axis; the y range is clamped to
+     * world height. Unlike {@link #scanCubeArea(int, int, int, int, int, int)}, the second triple
+     * is included.
      *
      * @param x1 first x coordinate, inclusive
      * @param y1 first y coordinate, inclusive
@@ -448,36 +304,13 @@ public class WorldScanner {
     }
 
     /**
-     * scan area in blocks
-     * <p>
-     * This is a sphere rather than a cube, and it is worked out in two steps. Below a radius of 48 a
-     * cube around the position is walked and each block is then tested against the radius; at 48 and
-     * above the chunk sections are walked instead, which is what makes a wide radius affordable. The
-     * distance is measured from the centre of the block at the given position, which is half a
-     * block back on each axis from the numbers handed in, to the block position of each candidate
-     * rather than to its centre. That makes the measure half a block short on each axis from a true
-     * centre to centre one, so a block is in when its corner is within the radius rather than when
-     * its centre is. The y range is clamped to the world's.
-     * example:
-     * <pre class="language-typescript">
-     * // a radius of 20 is under the threshold, so this walks a 41 block cube
-     * // and then discards what falls outside the sphere
-     * const scanner = World.getWorldScanner(
-     *   JavaWrapper.methodToJava(function (block: BlockHelper) {
-     *     return block.getId() === "minecraft:coal_ore";
-     *   }),
-     *   null
-     * );
-     * if (scanner !== null) {
-     *   const here = PositionCommon.createPos(0.5, 64, 0.5);
-     *   const found = scanner.scanSphereArea(here, 20);
-     *   Chat.log(`${found.size()} coal ore within 20 blocks`);
-     * }
-     * </pre>
+     * Scans for matching block positions within {@code radius} of {@code (pos.x - 0.5, pos.y - 0.5,
+     * pos.z - 0.5)}. Distance is measured to each candidate's integer block position, not its
+     * center; the y range is clamped to world height.
      *
-     * @param pos    the centre of the sphere
+     * @param pos    supplies {@code x}, {@code y}, and {@code z}; distance uses each coordinate minus {@code 0.5}
      * @param radius how far out to go
-     * @return the positions of every matching block whose centre is within the radius
+     * @return the positions of matching blocks whose block positions are within the radius
      * @throws IllegalArgumentException if {@code radius} is negative
      * @since 1.9.1
      */
@@ -486,13 +319,11 @@ public class WorldScanner {
     }
 
     /**
-     * scan area in blocks
+     * Scans for matching block positions within {@code radius} of {@code (x - 0.5, y - 0.5, z - 0.5)}.
      * <p>
-     * This is the {@link #scanSphereArea(Pos3D, double)} of the same search written as four numbers
-     * rather than a position and a radius, and is measured the same way: from the centre of the
-     * block at the given numbers to the block position of each candidate rather than to its
-     * centre, so the same half a block applies on each axis.
-     * example:
+     * Distance is measured to each candidate's integer block position, not its center; the y range
+     * is clamped to world height. This uses the same distance convention as
+     * {@link #scanSphereArea(Pos3D, double)}.
      * <pre class="language-typescript">
      * // the same sphere written as three numbers and a radius
      * const scanner = World.getWorldScanner(
@@ -507,11 +338,11 @@ public class WorldScanner {
      * }
      * </pre>
      *
-     * @param x      the x coordinate of the centre of the sphere
-     * @param y      the y coordinate of the centre of the sphere
-     * @param z      the z coordinate of the centre of the sphere
+     * @param x      x coordinate; the distance origin uses {@code x - 0.5}
+     * @param y      y coordinate; the distance origin uses {@code y - 0.5}
+     * @param z      z coordinate; the distance origin uses {@code z - 0.5}
      * @param radius how far out to go
-     * @return the positions of every matching block whose centre is within the radius
+     * @return the positions of matching blocks whose block positions are within the radius
      * @throws IllegalArgumentException if {@code radius} is negative
      * @since 1.9.1
      */
@@ -550,29 +381,10 @@ public class WorldScanner {
     }
 
     /**
-     * scan around with player pos and player reach.<br>
-     * this doesn't filter out positions that has obstacle.
-     * <p>
-     * This is from the player's eye position to the reach their client reports, which is not always
-     * the ordinary 4.5, and it takes the strict form: a block is only in range if the player could
-     * actually reach some part of its shape, so a block that is not a full cube and whose shape
-     * stops short of the reach is left out. With no player this is an empty list.
-     * example:
-     * <pre class="language-typescript">
-     * // blocks of one kind the player could reach right now, which is the
-     * // shape checked form and so leaves out a torch on a far wall
-     * const scanner = World.getWorldScanner(
-     *   JavaWrapper.methodToJava(function (block: BlockHelper) {
-     *     return block.getId() === "minecraft:stone_button";
-     *   }),
-     *   null
-     * );
-     * if (scanner !== null) {
-     *   const found = scanner.scanReachable();
-     *   Chat.log(`${found.size()} buttons in reach`);
-     * }
-     * </pre>
+     * Scans from the player's eye position using the client's block-interaction reach and the
+     * strict shape check. Obstructions are not considered; with no player, returns an empty list.
      *
+     * @return matching block positions, or an empty list when there is no player
      * @since 1.9.1
      */
     public List<Pos3D> scanReachable() {
@@ -582,31 +394,12 @@ public class WorldScanner {
     }
 
     /**
-     * scan around with player pos and player reach.<br>
-     * this doesn't filter out positions that has obstacle.
-     * <p>
-     * This is the same search as the no argument form with the strict flag spelled out. A strict
-     * scan checks the block's own shape, so a block with no shape at all is left out and one that
-     * is not a full cube is only in range where its shape is; a non strict one only asks whether
-     * the block's bounding box is within reach, which is a larger answer for anything that is not a
-     * full cube. With no player this is an empty list.
-     * example:
-     * <pre class="language-typescript">
-     * // false drops the shape check, so this also finds a torch standing on
-     * // the far side of a block the player's reach does not quite reach
-     * const scanner = World.getWorldScanner(
-     *   JavaWrapper.methodToJava(function (block: BlockHelper) {
-     *     return block.getId() === "minecraft:torch";
-     *   }),
-     *   null
-     * );
-     * if (scanner !== null) {
-     *   const found = scanner.scanReachable(false);
-     *   Chat.log(`${found.size()} torches within reach of the bounding box`);
-     * }
-     * </pre>
+     * Scans from the player's eye position using the client's block-interaction reach. Obstructions
+     * are not considered; with no player, returns an empty list. With {@code strict} true, the
+     * block's shape must be within reach; otherwise its unit block box is tested instead.
      *
-     * @param strict if it should check for block outline instead of full cube, default is true
+     * @param strict whether to require the block's shape to be within reach; false tests its unit block box
+     * @return matching block positions, or an empty list when there is no player
      * @since 1.9.1
      */
     public List<Pos3D> scanReachable(boolean strict) {
@@ -616,33 +409,11 @@ public class WorldScanner {
     }
 
     /**
-     * scan around with the given pos and player reach.<br>
-     * this doesn't filter out positions that has obstacle.
-     * <p>
-     * This is the same search from a position of the script's choosing rather than the player's
-     * eyes. The reach is still the player's, which falls back to 4.5 when there is no player at all,
-     * since unlike the overloads that read the eye position this one does not need one. The strict
-     * form is used, and the reach is measured to the nearest point of a block's bounding box before
-     * the shape is consulted.
-     * example:
-     * <pre class="language-typescript">
-     * // a search from a fixed point rather than from the player, so the
-     * // answer does not move as the player does
-     * const scanner = World.getWorldScanner(
-     *   JavaWrapper.methodToJava(function (block: BlockHelper) {
-     *     return block.getId() === "minecraft:chest";
-     *   }),
-     *   null
-     * );
-     * if (scanner !== null) {
-     *   const from = PositionCommon.createPos(0.5, 64, 0.5);
-     *   const found = scanner.scanReachable(from);
-     *   Chat.log(`${found.size()} chests within reach of the origin`);
-     * }
-     * </pre>
+     * Scans from {@code pos} using the player's block-interaction reach (4.5 when there is no
+     * player) and the strict shape check. Obstructions are not considered.
      *
      * @param pos the point to search from
-     * @return the positions of every matching block within reach of {@code pos}
+     * @return matching positions whose unit block boxes, and in strict mode shapes, are within reach of {@code pos}
      * @since 1.9.1
      */
     public List<Pos3D> scanReachable(Pos3D pos) {
@@ -650,32 +421,12 @@ public class WorldScanner {
     }
 
     /**
-     * scan around with the given pos and the given reach.<br>
-     * this doesn't filter out positions that has obstacle.
-     * <p>
-     * This is the {@link #scanReachable(Pos3D)} of the same search with the reach spelled out rather
-     * than taken from the player, so it is the form to use for a reach the player's client does not
-     * report, such as a reach a tool grants. The strict form is used.
-     * example:
-     * <pre class="language-typescript">
-     * // a reach of the script's own choosing, which is how a longer one from
-     * // a tool is searched for without depending on the player's client
-     * const scanner = World.getWorldScanner(
-     *   JavaWrapper.methodToJava(function (block: BlockHelper) {
-     *     return block.getId() === "minecraft:chest";
-     *   }),
-     *   null
-     * );
-     * if (scanner !== null) {
-     *   const from = PositionCommon.createPos(0.5, 64, 0.5);
-     *   const found = scanner.scanReachable(from, 6.0);
-     *   Chat.log(`${found.size()} chests within 6 blocks`);
-     * }
-     * </pre>
+     * Scans from {@code pos} using the supplied reach and strict shape check. Obstructions are not
+     * considered; unlike {@link #scanReachable(Pos3D)}, this overload does not obtain reach from the player.
      *
      * @param pos   the point to search from
      * @param reach how far out from {@code pos} to go
-     * @return the positions of every matching block within {@code reach} of {@code pos}
+     * @return matching positions whose unit block boxes and shapes are within {@code reach} of {@code pos}
      * @since 1.9.1
      */
     public List<Pos3D> scanReachable(Pos3D pos, double reach) {
@@ -683,37 +434,14 @@ public class WorldScanner {
     }
 
     /**
-     * scan around with the given pos and the given reach.<br>
-     * this doesn't filter out positions that has obstacle.
-     * <p>
-     * This is the full form, with every choice left to the script: the point, the reach and whether
-     * the block's shape is consulted. A strict scan keeps a block only where its own shape is within
-     * reach, which drops a block with an empty shape and narrows one that is not a full cube; a non
-     * strict one only asks whether the block's bounding box is within reach. The reach is measured
-     * to the nearest point of that box, so a block the player is looking past the edge of still
-     * counts when any part of its box is close enough.
-     * example:
-     * <pre class="language-typescript">
-     * // the full form, with the strict shape check turned off and a reach
-     * // of the script's own choosing
-     * const scanner = World.getWorldScanner(
-     *   JavaWrapper.methodToJava(function (block: BlockHelper) {
-     *     return block.getId() === "minecraft:chest";
-     *   }),
-     *   null
-     * );
-     * if (scanner !== null) {
-     *   const from = PositionCommon.createPos(0.5, 64, 0.5);
-     *   const found = scanner.scanReachable(from, 6.0, false);
-     *   Chat.log(`${found.size()} chests within 6 blocks by bounding box`);
-     * }
-     * </pre>
+     * Scans from {@code pos} using {@code reach}; obstructions are not considered. Distance is
+     * measured to each unit block box, and when {@code strict} is true the block's shape must also
+     * be within reach. A negative reach throws {@link IllegalArgumentException}.
      *
-     * @param pos {@code Player.getPlayer().getEyePos()}
-     * @param reach {@code Player.getInteractionManager().getReach()}
-     * @param strict if it should check for block outline instead of full cube, default is true
-     * @return the positions of every matching block within {@code reach} of {@code pos}
-     * @throws IllegalArgumentException if {@code reach} is negative
+     * @param pos the point to search from
+     * @param reach the maximum distance in blocks
+     * @param strict whether to require the block's shape to be within reach; false tests its unit block box
+     * @return matching positions whose unit block boxes, and in strict mode shapes, are within reach
      * @since 1.9.1
      */
     public List<Pos3D> scanReachable(Pos3D pos, double reach, boolean strict) {
@@ -721,16 +449,9 @@ public class WorldScanner {
     }
 
     /**
-     * scan around with player pos and player reach, and return the closest one.<br>
-     * this doesn't filter out positions that has obstacle.
-     * <p>
-     * This is the {@link #scanReachable()} of the same search with only the nearest match kept, so
-     * the answer is a single position or nothing. Nothing within reach gives {@code null} rather
-     * than an empty list, and so does having no player. The strict form is used, and the ranking is
-     * by distance from the centre of the block at the player's eye position to the block position
-     * of each candidate, which is half a block short on each axis from a centre to centre measure.
-     * Two blocks equally near are decided by the order the scan found them in.
-     * example:
+     * Returns the nearest matching block within the player's block interaction range, measured
+     * from the player's eyes; obstructions are not considered. Uses the strict shape check and
+     * ranks candidates by distance to their block positions, not their centres.
      * <pre class="language-typescript">
      * // the nearest block of one kind the player could reach, or null when
      * // there is none, which is why the result is checked rather than read
@@ -762,13 +483,9 @@ public class WorldScanner {
     }
 
     /**
-     * scan around with player pos and player reach, and return the closest one.<br>
-     * this doesn't filter out positions that has obstacle.
-     * <p>
-     * This is the {@link #scanClosestReachable()} of the same search with the strict flag spelled
-     * out. A non strict nearest is the nearest by bounding box, which for a block that is not a full
-     * cube can be a different block from the nearest one the player could actually touch.
-     * example:
+     * Returns the nearest matching block within the player's block interaction range, measured
+     * from the player's eyes; obstructions are not considered. With {@code strict} false, reach
+     * and ranking use unit block boxes rather than block shapes.
      * <pre class="language-typescript">
      * // the nearest by bounding box rather than by shape, which is the
      * // looser of the two and so can name a block out of touch
@@ -786,7 +503,7 @@ public class WorldScanner {
      * }
      * </pre>
      *
-     * @param strict if it should check for block outline instead of full cube, default is true
+     * @param strict whether reach should also be checked against the block's shape
      * @return the nearest matching block within reach of the player's eyes, or {@code null} if
      *         there is none or there is no player
      * @since 1.9.1
@@ -799,17 +516,10 @@ public class WorldScanner {
     }
 
     /**
-     * scan around with the given pos and the given reach, and return the closest one.<br>
-     * this doesn't filter out positions that has obstacle.
-     * <p>
-     * This is the full form of the closest search, with the point, the reach and the strict flag
-     * all left to the script. The reach test is the one
-     * {@link #scanReachable(Pos3D, double, boolean)} does for the same arguments, and only the
-     * ranking differs: it is by distance from the centre of the block at {@code pos} to the block
-     * position of each candidate rather than to its centre, which is the same half a block short on
-     * each axis that the sphere searches measure by. The reach test itself is a true point to box
-     * distance, so only the ranking is affected by this.
-     * example:
+     * Returns the nearest matching block within {@code reach} of {@code pos}; obstructions are not
+     * considered. Reach is measured to unit block boxes, and with {@code strict} true the block's
+     * shape must also be within reach. Candidates are ranked by distance from {@code pos} shifted
+     * by {@code (-0.5, -0.5, -0.5)} to their block positions.
      * <pre class="language-typescript">
      * // the full form, from a fixed point with a reach of the script's own
      * // choosing and the shape check turned off
@@ -829,8 +539,8 @@ public class WorldScanner {
      * </pre>
      *
      * @param pos the point to search from
-     * @param reach how far out from {@code pos} to go
-     * @param strict if it should check for block outline instead of full cube, default is true
+     * @param reach maximum distance in blocks from {@code pos}
+     * @param strict whether to require the block's shape to be within reach
      * @return the nearest matching block within {@code reach} of {@code pos}, or {@code null} if
      *         there is none
      * @throws IllegalArgumentException if {@code reach} is negative
@@ -850,7 +560,7 @@ public class WorldScanner {
     }
 
     /**
-     * all inclusive
+     * Scans the inclusive block-coordinate bounds, clamping the Y bounds to the world's build height.
      * @since 1.9.1
      */
     private Stream<Pos3D> scanCubeAreaInternal(int x1, int y1, int z1, int x2, int y2, int z2) {
@@ -900,6 +610,9 @@ public class WorldScanner {
     }
 
     /**
+     * Filters blocks whose unit boxes are within {@code reach} of {@code pos}; when {@code strict}
+     * is true, also requires a non-empty block shape within reach.
+     *
      * @since 1.9.1
      */
     private Stream<Pos3D> scanReachableInternal(Vec3 pos, double reach, boolean strict) {
@@ -974,16 +687,10 @@ public class WorldScanner {
     /**
      * Gets the amount of all blocks matching the criteria inside the chunk.
      * <p>
-     * The key is the game's own text for the block, which is the id wrapped in {@code Block{...}},
-     * so stone is keyed {@code Block{minecraft:stone}} rather than {@code minecraft:stone}. That
-     * is the key whether {@code ignoreState} is true or not; the flag only decides whether the
-     * state's property list is appended after it in square brackets, so with it false a stair is
-     * keyed something like {@code Block{minecraft:oak_stairs}[facing=north,half=top]} and a block
-     * with no properties of its own is keyed exactly as it is with the flag true.
+     * Keys are Minecraft block/state strings: {@code ignoreState} uses the block string, while
+     * false uses the state string including its properties.
      * <p>
-     * A chunk the client has not been sent is skipped rather than failing, so this can be an empty
-     * map for a chunk that is not loaded, and the counts are of the whole height of that one chunk.
-     * example:
+     * Counts cover the chunk's full height. Chunks not available to the client are skipped.
      * <pre class="language-typescript">
      * // a count of the ores in one chunk. The centre here is a chunk
      * // coordinate, not a block one, so 0 is the chunk at the origin rather
@@ -1015,13 +722,9 @@ public class WorldScanner {
      * Gets the amount of all blocks matching the criteria inside a square of chunks around the
      * given centre chunk.
      * <p>
-     * This is the {@link #getBlocksInChunk(int, int, boolean)} over a square of chunks rather than
-     * one, and the key is the same: the game's own text for the block, the id wrapped in
-     * {@code Block{...}}, with the state's property list appended in square brackets only when
-     * {@code ignoreState} is false. Counts from every chunk are added together, so a block present
-     * in three chunks of the square is counted three times. Chunks the client has not been sent are
-     * skipped.
-     * example:
+     * Scans the square from {@code centerX - chunkRange} through {@code centerX + chunkRange} and
+     * likewise for Z. Keys follow {@link #getBlocksInChunk(int, int, boolean)}; counts from all
+     * available chunks are added together, and unavailable chunks are skipped.
      * <pre class="language-typescript">
      * // a count of the ores in the nine chunks around a chunk. The key
      * // comes from the block itself and has nothing to do with how the
@@ -1040,7 +743,7 @@ public class WorldScanner {
      *
      * @param centerX     the x coordinate of the center chunk to scan around
      * @param centerZ     the z coordinate of the center chunk to scan around
-     * @param chunkRange  the range to scan around the center chunk
+     * @param chunkRange  non-negative radius in chunks; zero scans only the center chunk
      * @param ignoreState whether multiple states should be combined to a single block
      * @return a map of all blocks inside the specified chunks and their respective count.
      * @throws IllegalArgumentException if {@code chunkRange} is negative
@@ -1111,32 +814,10 @@ public class WorldScanner {
     }
 
     /**
-     * Get the amount of cached block states. This will normally be around 200 - 400.
-     * <p>
-     * A state is cached the first time it is tested against the filter and never tested again, so
-     * this is the number of distinct states this scanner has seen rather than a count of the
-     * blocks it has walked. It stops going up once every state in the area has been seen, so a
-     * second scan of the same area leaves it where it was, and a scanner with no filter at all
-     * still reaches a number because the states are cached either way.
-     * example:
-     * <pre class="language-typescript">
-     * // scanning the same area twice finds the same blocks the second time,
-     * // because the second scan reads the cache rather than the filter
-     * const scanner = World.getWorldScanner(
-     *   JavaWrapper.methodToJava(function (block: BlockHelper) {
-     *     return block.getId() === "minecraft:chest";
-     *   }),
-     *   null
-     * );
-     * if (scanner !== null) {
-     *   const first = scanner.scanAroundPlayer(1);
-     *   const seen = scanner.getCachedAmount();
-     *   const second = scanner.scanAroundPlayer(1);
-     *   Chat.log(`${first.size()} chests, ${seen} states cached, ${second.size} on the second pass`);
-     * }
-     * </pre>
+     * Returns the number of distinct block states cached after filter evaluation. A state is
+     * evaluated at most once per scanner; this is not a count of scanned blocks.
      *
-     * @return the amount of cached block states.
+     * @return the number of cached block states
      */
     public int getCachedAmount() {
         return cachedFilterStates.size();

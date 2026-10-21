@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,6 +16,7 @@ import com.jsmacrosce.jsmacros.client.api.library.impl.FHud;
 import java.util.Comparator;
 
 @Mixin(Gui.class)
+@DocletIgnore
 public class MixinInGameHud {
     //? if >=26.1 {
     /*@Inject(method = "extractRenderState(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/DeltaTracker;)V", at = @At("TAIL"))

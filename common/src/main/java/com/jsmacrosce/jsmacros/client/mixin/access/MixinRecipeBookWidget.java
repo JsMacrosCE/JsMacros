@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.gui.screens.recipebook.RecipeBookComponent;
 import net.minecraft.client.gui.screens.recipebook.RecipeBookPage;
@@ -9,6 +11,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import com.jsmacrosce.jsmacros.client.access.IRecipeBookWidget;
 
 @Mixin(RecipeBookComponent.class)
+@DocletIgnore
 public abstract class MixinRecipeBookWidget implements IRecipeBookWidget {
     @Shadow
     @Final

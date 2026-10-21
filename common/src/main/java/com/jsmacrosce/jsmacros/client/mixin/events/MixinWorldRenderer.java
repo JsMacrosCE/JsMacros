@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import com.google.common.collect.ImmutableSet;
 
 import com.mojang.blaze3d.framegraph.FrameGraphBuilder;
@@ -66,6 +68,7 @@ import net.minecraft.world.phys.Vec3;
 //?}
 
 @Mixin(LevelRenderer.class)
+@DocletIgnore
 public class MixinWorldRenderer {
 
     @Final

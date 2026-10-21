@@ -14,22 +14,23 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * Event payload for a running service, including shared arguments and stop callbacks.
  * @since 1.6.4
  */
 @SuppressWarnings("unused")
 @DocletCategory("Core")
 @Event("Service")
 public class EventService extends BaseEvent {
+    /** Immutable service name supplied at construction. */
     public final String serviceName;
 
     /**
-     * when this service is stopped, this is run...
-     * @see EventService#unregisterOnStop(boolean, Registrable[])
+     * Callback run before event listeners and registered resources are removed when the service stops.
      */
     @Nullable
     public MethodWrapper<Object, Object, Object, ?> stopListener;
     /**
-     * @see EventService#unregisterOnStop(boolean, Registrable[])
+     * Callback run after event listeners and registered resources are removed when the service stops.
      * @since 1.9.1
      */
     @Nullable
@@ -41,22 +42,20 @@ public class EventService extends BaseEvent {
     @Nullable
     BaseScriptContext<?> ctx = null;
 
+    /**
+     * Initializes this event with its service runner and name; this does not start or register the service.
+     * @param runner core associated with this event
+     * @param name service name
+     */
     public EventService(Core<?, ?> runner, String name) {
         super(runner);
         this.serviceName = name;
     }
 
     /**
-     * Setup unregister on stop. For example, {@code event.unregisterOnStop(false, d2d);} is
-     * the equivalent of {@code event.stopListener = JavaWrapper.methodToJava(() => d2d.unregister());}.<br>
-     * <br>
-     * If this is called multiple times, the previous ones would be discarded.<br>
-     * <br>
-     * The order of execution is run stopListener -> off events -> unregister stuff -> run postStopListener.<br>
-     * <br>
-     * If anything was set to unregister, the service won't stop by itself even if it reaches the end.
-     * @param offEvents whether the service manager should clear event listeners that the callback doesn't belong to this context.
-     * @param list the list of registrable, such as Draw2D, Draw3D and CommandBuilder.
+     * Configures cleanup performed when the service stops; each call replaces the previous configuration. Cleanup runs between {@link #stopListener} and {@link #postStopListener}.
+     * @param offEvents whether to remove every listener registered by the service, rather than only listeners owned by its script context
+     * @param list resources to unregister; an empty list disables resource cleanup
      * @since 1.9.1
      */
     public void unregisterOnStop(boolean offEvents, Registrable<?> ...list) {
@@ -68,6 +67,10 @@ public class EventService extends BaseEvent {
         }
     }
 
+    /**
+     * Returns a diagnostic representation containing the service name.
+     * @return diagnostic service-name text
+     */
     @Override
     public String toString() {
         return "EventService{" +
@@ -78,11 +81,11 @@ public class EventService extends BaseEvent {
     protected Map<String, Object> args = new ConcurrentHashMap<>();
 
     /**
-     * Put an Integer into the global variable space.
+     * Stores an integer in this service event's shared argument map.
      *
-     * @param name
-     * @param i
-     * @return
+     * @param name map key
+     * @param i value to store
+     * @return the same value stored in the map
      * @since 1.6.5
      */
     public int putInt(String name, int i) {
@@ -91,11 +94,11 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * put a String into the global variable space.
+     * Stores a string in this service event's shared argument map.
      *
-     * @param name
-     * @param str
-     * @return
+     * @param name map key
+     * @param str value to store
+     * @return the same value stored in the map
      * @since 1.6.5
      */
     public String putString(String name, String str) {
@@ -104,11 +107,11 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * put a Double into the global variable space.
+     * Stores a double in this service event's shared argument map.
      *
-     * @param name
-     * @param d
-     * @return
+     * @param name map key
+     * @param d value to store
+     * @return the same value stored in the map
      * @since 1.6.5
      */
     public double putDouble(String name, double d) {
@@ -117,11 +120,11 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * put a Boolean into the global variable space.
+     * Stores a boolean in this service event's shared argument map.
      *
-     * @param name
-     * @param b
-     * @return
+     * @param name map key
+     * @param b value to store
+     * @return the same value stored in the map
      * @since 1.6.5
      */
     public boolean putBoolean(String name, boolean b) {
@@ -130,11 +133,11 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * put anything else into the global variable space.
+     * Stores an object in this service event's shared argument map. Guest-language objects are rejected.
      *
-     * @param name
-     * @param o
-     * @return
+     * @param name map key
+     * @param o value to store
+     * @return the same value stored in the map
      * @since 1.6.5
      */
     public Object putObject(String name, Object o) {
@@ -146,10 +149,10 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * Returns the type of the defined item in the global variable space as a string.
+     * Returns the stored value's type label, or {@code null} if the key is absent.
      *
-     * @param name
-     * @return
+     * @param name key to inspect
+     * @return {@code Int}, {@code String}, {@code Double}, {@code Boolean}, or {@code Object}; {@code null} if absent
      * @since 1.6.5
      */
     @DocletReplaceReturn("'Int' | 'String' | 'Double' | 'Boolean' | 'Object' | null")
@@ -172,10 +175,10 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * Gets an Integer from the global variable space.
+     * Returns the value if it is an integer; otherwise returns {@code null}.
      *
-     * @param name
-     * @return
+     * @param name key to read
+     * @return the integer value, or {@code null}
      * @since 1.6.5
      */
     @Nullable
@@ -189,10 +192,10 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * Gets an Integer from the global variable space. and then increment it there.
+     * Increments the integer value and returns its previous value; returns {@code null} without changing the map if it is absent or not an integer.
      *
-     * @param name
-     * @return
+     * @param name key to read and increment
+     * @return the value before increment, or {@code null}
      * @since 1.6.5
      */
     @Nullable
@@ -207,10 +210,10 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * Gets an integer from the global variable pace. and then decrement it there.
+     * Decrements the integer value and returns its previous value; returns {@code null} without changing the map if it is absent or not an integer.
      *
-     * @param name
-     * @return
+     * @param name key to read and decrement
+     * @return the value before decrement, or {@code null}
      * @since 1.6.5
      */
     @Nullable
@@ -225,10 +228,10 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * increment an Integer in the global variable space. then return it.
+     * Increments the integer value and returns the result; returns {@code null} without changing the map if it is absent or not an integer.
      *
-     * @param name
-     * @return
+     * @param name key to increment
+     * @return the value after increment, or {@code null}
      * @since 1.6.5
      */
     @Nullable
@@ -243,10 +246,10 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * decrement an Integer in the global variable space. then return it.
+     * Decrements the integer value and returns the result; returns {@code null} without changing the map if it is absent or not an integer.
      *
-     * @param name
-     * @return
+     * @param name key to decrement
+     * @return the value after decrement, or {@code null}
      * @since 1.6.5
      */
     @Nullable
@@ -261,10 +264,10 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * Gets a String from the global variable space
+     * Returns the value if it is a string; otherwise returns {@code null}.
      *
-     * @param name
-     * @return
+     * @param name key to read
+     * @return the string value, or {@code null}
      * @since 1.6.5
      */
     @Nullable
@@ -278,10 +281,10 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * Gets a Double from the global variable space.
+     * Returns the value if it is a double; otherwise returns {@code null}.
      *
-     * @param name
-     * @return
+     * @param name key to read
+     * @return the double value, or {@code null}
      * @since 1.6.5
      */
     @Nullable
@@ -295,10 +298,10 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * Gets a Boolean from the global variable space.
+     * Returns the value if it is a boolean; otherwise returns {@code null}.
      *
-     * @param name
-     * @return
+     * @param name key to read
+     * @return the boolean value, or {@code null}
      * @since 1.6.5
      */
     @Nullable
@@ -312,10 +315,10 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * toggles a global boolean and returns its new value
+     * Toggles the boolean value and returns the result; returns {@code null} without changing the map if it is absent or not a boolean.
      *
-     * @param name
-     * @return
+     * @param name key to toggle
+     * @return the value after toggling, or {@code null}
      * @since 1.6.5
      */
     @Nullable
@@ -330,10 +333,10 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * Gets an Object from the global variable space.
+     * Returns the value stored for this key, or {@code null} if absent.
      *
-     * @param name
-     * @return
+     * @param name key to read
+     * @return the stored value, or {@code null}
      * @since 1.6.5
      */
     @Nullable
@@ -342,15 +345,19 @@ public class EventService extends BaseEvent {
     }
 
     /**
-     * removes a key from the global variable space.
+     * Removes a key from this service event's shared argument map.
      *
-     * @param key
+     * @param key key to remove
      * @since 1.6.5
      */
     public void remove(String key) {
         args.remove(key);
     }
 
+    /**
+     * Returns the live argument map; direct mutations bypass {@link #putObject(String, Object)}'s guest-object check.
+     * @return live shared argument map
+     */
     public Map<String, Object> getRaw() {
         return args;
     }

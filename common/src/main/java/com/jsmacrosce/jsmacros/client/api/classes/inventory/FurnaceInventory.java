@@ -13,6 +13,8 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinAbstractFurnaceScreenHan
 import java.util.Map;
 
 /**
+ * Inventory wrapper for a furnace screen, exposing its input, fuel, result, and smelting state.
+ *
  * @author Etheradon
  * @since 1.8.4
  */
@@ -20,30 +22,17 @@ import java.util.Map;
 @SuppressWarnings("unused")
 public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> {
 
+    /**
+     * Wraps a furnace screen without opening or creating it; use {@link com.jsmacrosce.jsmacros.client.api.library.impl.FPlayer#openInventory()} to obtain the current inventory wrapper.
+     *
+     * @param inventory the furnace screen to wrap
+     */
     public FurnaceInventory(AbstractFurnaceScreen<?> inventory) {
         super(inventory);
     }
 
     /**
-     * the result slot, which is what the furnace is working towards.
-     * <p>
-     * This reads the slot rather than working out the recipe, so it is whatever the client
-     * currently has there. The input it is working from is {@link #getSmeltedItem()}, and
-     * whether the furnace is lit at all is {@link #isBurning()}, so those three together say
-     * more about the state of the furnace than this does on its own.
-     * <p>
-     * It is slot 2 of the menu, the same as {@code getSlot(2)}; the furnace's three slots are
-     * the input, the fuel and then this one.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Furnace")) {
-     *   const out = inv.getOutput();
-     *   if (!out.isEmpty()) {
-     *     Chat.log(`smelting into ${out.getName()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the item currently in the furnace menu's result slot.
      *
      * @return the item in the result slot
      * @since 1.8.4
@@ -54,9 +43,11 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
     }
 
     /**
-     * @param x the x position of the input, will always be 0
-     * @param y the y position of the input, will always be 0
-     * @return the currently smelting item.
+     * Returns the furnace's sole input item; the coordinates are ignored.
+     *
+     * @param x ignored
+     * @param y ignored
+     * @return the item in the input slot
      * @since 1.8.4
      */
     public ItemStackHelper getInput(int x, int y) {
@@ -64,11 +55,7 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
     }
 
     /**
-     * always 1, because a furnace has a single input slot rather than a grid.
-     * <p>
-     * The furnace is a recipe inventory only in the sense that it has an input and an output, so
-     * the grid measurements are fixed rather than read from anything. Both of them being 1 is
-     * what makes {@link #getInputSize()} come back as 1 here.
+     * Returns the fixed width of the furnace input grid.
      * @return 1
      * @since 1.8.4
      */
@@ -78,10 +65,7 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
     }
 
     /**
-     * always 1, because a furnace has a single input slot rather than a grid.
-     * <p>
-     * The furnace is a recipe inventory only in the sense that it has an input and an output, so
-     * the grid measurements are fixed rather than read from anything.
+     * Returns the fixed height of the furnace input grid.
      * @return 1
      * @since 1.8.4
      */
@@ -91,11 +75,7 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
     }
 
     /**
-     * always 1, the number of input slots a furnace has.
-     * <p>
-     * This is the count of input slots, so the fuel slot is not part of it. It agrees with
-     * {@link #getCraftingWidth()} times {@link #getCraftingHeight()} here, which is what
-     * {@link #getInputSize()} computes.
+     * Returns the number of input slots, excluding the fuel and result slots.
      * @return 1
      * @since 1.8.4
      */
@@ -139,7 +119,8 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
     }
 
     /**
-     * @return a map of all valid fuels and their burn times in ticks.
+     * Returns item registry IDs mapped to their burn times in ticks, using the current world's fuel values.
+     * @return the fuel-value map
      * @since 1.8.4
      */
     public Map<String, Integer> getFuelValues() {
@@ -151,9 +132,8 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
     }
 
     /**
-     * If the returned value equals {@link #getTotalSmeltingTime()} then the item is done smelting.
-     *
-     * @return the current Smelting progress in ticks.
+     * Returns the furnace menu's current smelting progress in ticks.
+     * @return the current progress
      * @since 1.8.4
      */
     public int getSmeltingProgress() {
@@ -161,7 +141,8 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
     }
 
     /**
-     * @return the total smelting time of a single input item in ticks.
+     * Returns the total smelting time reported by the furnace menu, in ticks.
+     * @return the total smelting time
      * @since 1.8.4
      */
     public int getTotalSmeltingTime() {
@@ -169,7 +150,8 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
     }
 
     /**
-     * @return the remaining time of the smelting progress in ticks.
+     * Returns the total smelting time minus the current progress, in ticks.
+     * @return the calculated remaining time
      * @since 1.8.4
      */
     public int getRemainingSmeltingTime() {
@@ -177,7 +159,8 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
     }
 
     /**
-     * @return the remaining fuel time in ticks.
+     * Returns the furnace menu's remaining fuel time in ticks.
+     * @return the remaining fuel time
      * @since 1.8.4
      */
     public int getRemainingFuelTime() {
@@ -185,7 +168,8 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
     }
 
     /**
-     * @return the total fuel time of the current fuel item in ticks.
+     * Returns the furnace menu's total fuel time in ticks.
+     * @return the total fuel time
      * @since 1.8.4
      */
     public int getTotalFuelTime() {
@@ -197,13 +181,18 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
     }
 
     /**
-     * @return {@code true} if the furnace is currently smelting an item, {@code false} otherwise.
+     * @return {@code true} if the furnace menu is lit, {@code false} otherwise
      * @since 1.8.4
      */
     public boolean isBurning() {
         return inventory.getMenu().isLit();
     }
 
+    /**
+     * Returns the fixed diagnostic label for this inventory wrapper.
+     *
+     * @return {@code "FurnaceInventory:{}"}
+     */
     @Override
     public String toString() {
         return String.format("FurnaceInventory:{}");

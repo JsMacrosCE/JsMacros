@@ -21,36 +21,18 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * a list of things to draw in the world, and the thing that draws them.
+ * A collection of 3D elements rendered as a world overlay.
  * <p>
- * This is the 3D counterpart of a 2D overlay. Where a 2D overlay holds text, rectangles
- * and images in screen space, this holds cubes, lines and flat panels in the world, in
- * block coordinates in the dimension the player is in. The overlay is drawn relative to
- * the camera rather than absolutely, so everything in it moves with the player and
- * never has to be updated for that.
+ * Elements use world-space block coordinates and are rendered relative to the camera.
  * <p>
- * Nothing renders until {@link #register()} is called, and building the elements is
- * not registering it, so a script that fills one in and returns draws nothing. The
- * older {@code Hud.registerDraw3D} does the same thing and is deprecated. Taking it
- * off again is {@link #unregister()}, or {@link #clear()} to empty this one.
+ * Elements render only while this overlay is registered with {@link #register()};
+ * {@link #unregister()} stops rendering without removing them, while {@link #clear()}
+ * removes its elements.
  * <p>
- * The contents are held in a list, not a set, so adding the same element twice gives
- * two copies. What the order is does not matter when adding, because before each frame
- * the list is sorted with the element's own comparison, which groups different kinds
- * of element together and orders each group by position. That sort happens in place, so
- * what {@link #getBoxes()} and its siblings return is in draw order rather than the
- * order things were added.
+ * Duplicate entries are allowed. Elements are sorted in place before rendering, so typed
+ * getters return matching entries in the current sorted order, not insertion order.
  * <p>
- * What the helpers leave out is worth knowing. A cube made with {@code addBox} and no
- * {@code cull} argument is drawn over the world rather than being hidden by terrain,
- * the same for {@code addLine} and the trace lines, and {@link #addPoint(Pos3D, double,
- * int)} makes a filled cube rather than an outline. Passing the argument, or setting
- * the field on the element afterwards, is how a depth tested one is made.
  * <p>
- * A flat 2D panel living in the world is a {@code Surface}, and the getters and
- * builders here are named after it. {@link #getDraw2Ds()} is the one name that does
- * not say what it returns: it gives the surfaces, not 2D overlays.
- * example:
  * <pre>
  * // a world overlay with a box and a line in it, registered so it shows
  * const draw = Hud.createDraw3D();
@@ -61,7 +43,7 @@ import java.util.List;
  * // what went in, in the order it will be drawn
  * Chat.log(`${draw.getBoxes().size()} boxes, ${draw.getLines().size()} lines`);
  *
- * // and taken off again, which empties this overlay only
+ * // stop rendering this overlay without removing its elements
  * draw.unregister();
  * </pre>
  *
@@ -72,31 +54,14 @@ import java.util.List;
 @SuppressWarnings("unused")
 public class Draw3D implements Registrable<Draw3D> {
     /**
-     * everything this overlay holds, in whatever order the last frame's sort left it.
-     * <p>
-     * The list is sorted in place before each frame, so the order here is the draw
-     * order rather than the order things were added in. A script adding to it goes
-     * through the helpers, and reading it through the typed getters.
+     * Elements held by this overlay. Rendering sorts this list in place before drawing.
      *
      * @since 1.0.6
      */
     private final List<RenderElement3D<?>> elements = new ArrayList<>();
 
     /**
-     * every cube in this overlay, in the order they are drawn.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. The order is the draw order rather than the order they were added
-     * in, since the contents are sorted before each frame.
-     * <p>
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFF0000, 0x00000000, false);
-     * draw.register();
-     * // the one box, in draw order
-     * Chat.log(`${draw.getBoxes().size()} boxes`);
-     * </pre>
+     * Returns a new list of this overlay's boxes in their current element order.
      *
      * @return the cubes in this overlay
      * @since 1.0.6
@@ -114,23 +79,7 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * every straight 3D line in this overlay, in the order they are drawn.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. This is the fixed lines only: a line that starts at the camera is
-     * a {@code TraceLine} and is not in here, even though it is a kind of line.
-     * <p>
-     * The order is the draw order rather than the order they were added in, since the
-     * contents are sorted before each frame.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * draw.addLine(0, 64, 0, 8, 72, 0, 0xFF00FF00);
-     * draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * draw.register();
-     * // one fixed line; the trace line is counted separately
-     * Chat.log(`${draw.getLines().size()} lines, ${draw.getTraceLines().size()} trace lines`);
-     * </pre>
+     * Returns a new list of fixed-endpoint lines, excluding camera trace lines.
      *
      * @return the straight lines in this overlay
      * @since 1.0.6
@@ -148,22 +97,7 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * every camera trace line in this overlay, in the order they are drawn.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. A trace line is the one that starts in front of the camera and
-     * runs to a point, and it is a different kind of thing from the fixed lines in
-     * {@link #getLines()}, so the two never overlap.
-     * <p>
-     * The order is the draw order rather than the order they were added in, since the
-     * contents are sorted before each frame.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * draw.register();
-     * Chat.log(`${draw.getTraceLines().size()} trace lines`);
-     * </pre>
+     * Returns a new list of fixed-target camera trace lines.
      *
      * @return the trace lines in this overlay
      * @since 1.9.0
@@ -181,25 +115,7 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * every trace line that follows an entity, in the order they are drawn.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. These are the ones whose target is an entity rather than a fixed
-     * point, and they are counted separately from the plain trace lines even though
-     * both are lines from the camera.
-     * <p>
-     * A line whose entity has gone is not in here from the frame after it notices, and
-     * is not in the overlay at all after that.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   draw.addEntityTraceLine(player, 0xFFFF0000);
-     * }
-     * draw.register();
-     * Chat.log(`${draw.getEntityTraceLines().size()} entity trace lines`);
-     * </pre>
+     * Returns a new list of trace lines targeting entities.
      *
      * @return the entity trace lines in this overlay
      * @since 1.9.0
@@ -217,24 +133,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * every flat panel in this overlay, in the order they are drawn.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. The name is the leftover from when these were 2D overlays; what it
-     * returns is surfaces, the flat 2D panels that live in the world rather than on the
-     * screen.
-     * <p>
-     * The order is the draw order rather than the order they were added in. The sort
-     * that produces it is a raw comparison on position rather than a distance, so two
-     * panels that overlap still order against each other.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const surface = draw.surfaceBuilder().pos(0, 64, 0).size(1, 1).buildAndAdd();
-     * surface.addText("hello", 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * Chat.log(`${draw.getDraw2Ds().size()} surfaces`);
-     * </pre>
+     * Returns a new list of this overlay's world-space surfaces. The legacy method name
+     * refers to surfaces, not screen overlays.
      *
      * @return the surfaces in this overlay
      * @since 1.6.5
@@ -252,24 +152,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * takes every element out of this overlay.
-     * <p>
-     * This empties the list rather than unregistering the overlay, so the overlay is
-     * still rendering and can be filled in again and will draw straight away. It also
-     * leaves any element a script is holding a reference to alone; that reference just
-     * points at something no longer being drawn.
-     * <p>
-     * It empties this overlay and no others, so it does not disturb what other scripts
-     * have registered. {@code Hud.clearDraw3Ds()} is the one that empties all of them.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFF0000, 0x00000000, false);
-     * draw.register();
-     * // gone from the overlay, but the overlay is still registered
-     * draw.clear();
-     * Chat.log(`${draw.getBoxes().size()} boxes left`);
-     * </pre>
+     * Removes all elements from this overlay without unregistering it; other overlays
+     * and references to the removed elements are unaffected.
      *
      * @since 1.8.4
      */
@@ -280,25 +164,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * puts an existing element back into this overlay.
-     * <p>
-     * For an element that was taken off with {@link #removeBox(Box)},
-     * {@link #removeLine(Line3D)}, {@link #removeTraceLine(TraceLine)} or
-     * {@link #removeDraw2D(Surface)}, and for anything built with {@code build()}
-     * rather than {@code buildAndAdd()}. Nothing is checked, so the same element can be
-     * put back more than once and would then be drawn more than once.
-     * <p>
-     * There is no check against adding a surface that already contains this overlay,
-     * unlike the 2D overlay's equivalent.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.boxBuilder().forBlock(0, 64, 0).color(0xFFFF0000).build();
-     * draw.register();
-     * // built but not added, so nothing is drawn yet
-     * draw.reAddElement(box);
-     * Chat.log(`${draw.getBoxes().size()} boxes`);
-     * </pre>
+     * Adds an existing render element to this overlay. Elements built with {@code build()}
+     * are not added automatically; adding the same instance more than once creates
+     * duplicate list entries and draws it more than once.
      *
      * @param element the element to put back
      * @since 1.8.4
@@ -310,18 +178,7 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * puts an existing cube into this overlay.
-     * <p>
-     * For a box built with {@code build()} rather than {@code buildAndAdd()}, or one
-     * taken off again with {@link #removeBox(Box)}. Nothing is checked, so adding the
-     * same box twice puts two copies in and it is drawn twice.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.boxBuilder().forBlock(0, 64, 0).color(0xFFFF0000).build();
-     * draw.addBox(box);
-     * draw.register();
-     * </pre>
+     * Adds an existing box to this overlay. The same box can be added more than once.
      *
      * @param box the cube to add
      * @since 1.8.4
@@ -333,18 +190,7 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * puts an existing straight 3D line into this overlay.
-     * <p>
-     * For a line built with {@code build()} rather than {@code buildAndAdd()}, or one
-     * taken off again with {@link #removeLine(Line3D)}. Nothing is checked, so adding
-     * the same line twice draws it twice.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.lineBuilder().pos(0, 64, 0, 8, 72, 0).color(0xFF00FF00).build();
-     * draw.addLine(line);
-     * draw.register();
-     * </pre>
+     * Adds an existing straight 3D line to this overlay. The same line can be added more than once.
      *
      * @param line the line to add
      * @since 1.8.4
@@ -356,18 +202,7 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * puts an existing trace line into this overlay.
-     * <p>
-     * For a line built with {@code build()} rather than {@code buildAndAdd()}, or one
-     * taken off again with {@link #removeTraceLine(TraceLine)}. Nothing is checked, so
-     * adding the same line twice draws it twice.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.traceLineBuilder().pos(0, 64, 0).color(0xFFFF0000).build();
-     * draw.addTraceLine(line);
-     * draw.register();
-     * </pre>
+     * Adds an existing trace line to this overlay. The same line can be added more than once.
      *
      * @param line the trace line to add
      * @since 1.9.0
@@ -379,19 +214,7 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * puts an existing flat panel into this overlay.
-     * <p>
-     * For a surface built with {@code build()} rather than {@code buildAndAdd()}, or
-     * one taken off again with {@link #removeDraw2D(Surface)}. Nothing is checked, so
-     * adding the same surface twice puts two copies in and it is drawn twice.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const surface = draw.surfaceBuilder().pos(0, 64, 0).size(1, 1).build();
-     * draw.addSurface(surface);
-     * surface.addText("hello", 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * </pre>
+     * Adds an existing surface to this overlay. The same surface can be added more than once.
      *
      * @param surface the surface to add
      * @since 1.8.4
@@ -412,7 +235,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param color the colour of the outline, with or without an alpha of its own
      * @param fillColor the colour of the inside
      * @param fill whether to draw the inside as well as the outline
-     * @return The {@link Box} you added.
+     * @return the added box
      * @since 1.0.6
      */
     public Box addBox(double x1, double y1, double z1, double x2, double y2, double z2, int color, int fillColor, boolean fill) {
@@ -420,9 +243,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     *             is depth testing: {@code true} is the ordinary
-     *             box terrain hides and {@code false} is the one drawn over everything,
-     *             which is what the shorter form leaves
+     * Adds a box between two corners, optionally depth-tested against world geometry.
+     *
      * @param x1 the x coordinate of the first corner
      * @param y1 the y coordinate of the first corner
      * @param z1 the z coordinate of the first corner
@@ -432,8 +254,8 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param color the colour of the outline, with or without an alpha of its own
      * @param fillColor the colour of the inside
      * @param fill whether to draw the inside as well as the outline
-     * @param cull whether the box is depth tested, so terrain draws over it. The name
-     * @return The {@link Box} you added.
+     * @param cull whether to depth-test the box against world geometry; {@code false} draws over it
+     * @return the added box
      * @since 1.3.1
      */
     public Box addBox(double x1, double y1, double z1, double x2, double y2, double z2, int color, int fillColor, boolean fill, boolean cull) {
@@ -456,7 +278,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param fillColor the colour of the inside
      * @param fillAlpha the alpha of the inside, from 0 to 255
      * @param fill whether to draw the inside as well as the outline
-     * @return the {@link Box} you added.
+     * @return the added box
      * @since 1.1.8
      */
     public Box addBox(double x1, double y1, double z1, double x2, double y2, double z2, int color, int alpha, int fillColor, int fillAlpha, boolean fill) {
@@ -464,23 +286,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * adds a cube with separate alphas for the outline and the inside, and a choice of
-     * whether terrain hides it.
-     * <p>
-     * This is the full form. The two corners are opposite rather than a minimum and a
-     * maximum, so they can be given in any order and the cube is the same either way.
-     * A colour given without an alpha of its own here is made opaque rather than
-     * transparent, since the alpha argument is what decides that.
-     * <p>
-     * The {@code cull} argument is depth testing: {@code true} is the ordinary cube that
-     * terrain draws over and {@code false} is the one drawn over the world.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * // a half transparent cube that terrain can hide
-     * draw.addBox(0, 64, 0, 1, 65, 1, 0xFF0000, 128, 0x0000FF, 64, true, true);
-     * draw.register();
-     * </pre>
+     * Adds a box between opposite corners with separate outline and fill alpha values.
+     * The alpha arguments determine opacity; {@code cull} enables depth testing so
+     * terrain can occlude the box. Without this argument, depth testing is disabled.
      *
      * @param x1 the x coordinate of the first corner
      * @param y1 the y coordinate of the first corner
@@ -494,7 +302,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param fillAlpha the alpha of the inside, from 0 to 255
      * @param fill whether to draw the inside as well as the outline
      * @param cull whether the box is depth tested, so terrain draws over it
-     * @return the {@link Box} you added.
+     * @return the added box
      * @since 1.3.1
      */
     public Box addBox(double x1, double y1, double z1, double x2, double y2, double z2, int color, int alpha, int fillColor, int fillAlpha, boolean fill, boolean cull) {
@@ -507,7 +315,7 @@ public class Draw3D implements Registrable<Draw3D> {
 
     /**
      * @param b the cube to take off this overlay
-     * @return self for chaining
+     * @return this overlay
      * @since 1.0.6
      */
     public Draw3D removeBox(Box b) {
@@ -518,14 +326,16 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     *              colour with a zero alpha byte comes out fully opaque
+     * Adds a line between two world-space endpoints. A zero alpha byte is treated as opaque
+     * when the RGB value is nonzero; {@code 0x00000000} remains transparent.
+     *
      * @param x1 the x coordinate of the start
      * @param y1 the y coordinate of the start
      * @param z1 the z coordinate of the start
      * @param x2 the x coordinate of the end
      * @param y2 the y coordinate of the end
      * @param z2 the z coordinate of the end
-     * @param color the colour of the line, with or without an alpha of its own. A
+     * @param color the line color, with or without an alpha byte
      * @return the {@link Line3D} you added.
      * @since 1.0.6
      */
@@ -534,9 +344,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     *             is depth testing: {@code true} is the ordinary
-     *             line terrain hides and {@code false} is the one drawn over everything,
-     *             which is what the shorter form leaves
+     * Adds a line between two world-space endpoints, optionally depth-tested against world
+     * geometry. With {@code cull} false, it draws over the world.
+     *
      * @param x1 the x coordinate of the start
      * @param y1 the y coordinate of the start
      * @param z1 the z coordinate of the start
@@ -544,7 +354,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param y2 the y coordinate of the end
      * @param z2 the z coordinate of the end
      * @param color the colour of the line, with or without an alpha of its own
-     * @param cull whether the line is depth tested, so terrain draws over it. The name
+     * @param cull whether to depth-test the line against world geometry
      * @return the {@link Line3D} you added.
      * @since 1.3.1
      */
@@ -557,6 +367,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
+     * Adds a line between two world-space endpoints with an explicit alpha from 0 to 255.
+     * The alpha is used as given, so zero makes the line transparent.
      * @param x1 the x coordinate of the start
      * @param y1 the y coordinate of the start
      * @param z1 the z coordinate of the start
@@ -574,6 +386,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
+     * Adds a line between two world-space endpoints with an explicit alpha, optionally depth-tested
+     * against world geometry.
      * @param x1 the x coordinate of the start
      * @param y1 the y coordinate of the start
      * @param z1 the z coordinate of the start
@@ -582,7 +396,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param z2 the z coordinate of the end
      * @param color the colour of the line
      * @param alpha the alpha of the line, from 0 to 255
-     * @param cull whether the line is depth tested, so terrain draws over it
+     * @param cull whether to depth-test the line against world geometry
      * @return the {@link Line3D} you added.
      * @since 1.3.1
      */
@@ -595,7 +409,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * @param l the straight line to take off this overlay
+     * Removes one matching straight line entry from this overlay, if present.
+     *
+     * @param l the straight line to remove
      * @return self for chaining
      * @since 1.0.6
      */
@@ -607,21 +423,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * adds a line running from the crosshair to a point in the world.
-     * <p>
-     * The start is worked out from where the player is looking every frame, so only
-     * the target is given. A colour with no alpha of its own comes out fully opaque,
-     * and the line is drawn over the world rather than being hidden by terrain, which
-     * is what the shorter form leaves. Use
-     * {@link #traceLineBuilder()} to change either.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * // terrain can hide it
-     * line.setAlwaysOnTop(false);
-     * draw.register();
-     * </pre>
+     * Adds a line from the camera toward a fixed world-space target. Its camera endpoint
+     * is updated each frame; it draws over terrain by default. Use {@link #traceLineBuilder()}
+     * to configure depth testing or alpha.
      *
      * @param x the x coordinate of the target
      * @param y the y coordinate of the target
@@ -639,17 +443,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * adds a line running from the crosshair to a point, with the alpha given on its
-     * own.
-     * <p>
-     * Nothing is filled in here, so an alpha of {@code 0} really does make the line
-     * invisible. The line is drawn over the world rather than being hidden by terrain.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * draw.addTraceLine(0, 64, 0, 0xFFFF0000, 128);
-     * draw.register();
-     * </pre>
+     * Adds a camera-to-target line with an explicit alpha from 0 to 255. Unlike the
+     * single-color form, alpha zero remains transparent. It draws over terrain by default.
      *
      * @param x the x coordinate of the target
      * @param y the y coordinate of the target
@@ -668,17 +463,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * adds a line running from the crosshair to a position in the world.
-     * <p>
-     * The same as the three number form. The position is read straight off, so moving
-     * it afterwards does not move the line with it. The line is drawn over the world
-     * rather than being hidden by terrain.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * draw.addTraceLine(PositionCommon.createPos(0, 64, 0), 0xFFFF0000);
-     * draw.register();
-     * </pre>
+     * Adds a camera-to-target line using the position's coordinates at call time. Later
+     * changes to {@code pos} do not move the target; the line draws over terrain by default.
      *
      * @param pos the position of the target
      * @param color the colour of the line
@@ -694,17 +480,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * adds a line running from the crosshair to a position, with the alpha given on its
-     * own.
-     * <p>
-     * Nothing is filled in here, so an alpha of {@code 0} really does make the line
-     * invisible. The line is drawn over the world rather than being hidden by terrain.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * draw.addTraceLine(PositionCommon.createPos(0, 64, 0), 0xFFFF0000, 128);
-     * draw.register();
-     * </pre>
+     * Adds a camera-to-target line using the position's coordinates at call time, with
+     * an explicit alpha from 0 to 255. Alpha zero is transparent; the line draws over
+     * terrain by default.
      *
      * @param pos the position of the target
      * @param color the colour of the line
@@ -721,28 +499,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * adds a line running from the crosshair to an entity.
-     * <p>
-     * The target follows the entity: its interpolated position plus the offset is
-     * worked out every frame, so there is nothing to update as the entity moves. The
-     * offset here is half a block, which on a player-sized entity is a little under a
-     * third of the way up.
-     * <p>
-     * A colour with no alpha of its own comes out fully opaque, and the line is drawn
-     * over the world rather than being hidden by terrain. Both can be changed on the
-     * returned line.
-     * <p>
-     * The line is dropped from the overlay by itself once the entity is gone, so there
-     * is no need to take it off.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   const draw = Hud.createDraw3D();
-     *   draw.addEntityTraceLine(player, 0xFFFF0000);
-     *   draw.register();
-     * }
-     * </pre>
+     * Adds a camera-to-entity line. The target follows the entity's interpolated position
+     * plus a 0.5-block vertical offset, recalculated each frame. The line draws over
+     * terrain by default and is removed from the overlay after the entity is gone.
      *
      * @param entity the entity to point at
      * @param color the colour of the line
@@ -758,20 +517,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * adds a line running from the crosshair to an entity, with the alpha given on its
-     * own.
-     * <p>
-     * The offset is half a block, as in the shorter form, and the line is drawn over
-     * the world rather than being hidden by terrain.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   const draw = Hud.createDraw3D();
-     *   draw.addEntityTraceLine(player, 0xFFFF0000, 128);
-     *   draw.register();
-     * }
-     * </pre>
+     * Adds a line from the crosshair to an entity, with an explicit alpha. It uses the
+     * default 0.5-block vertical offset and is drawn over the world.
      *
      * @param entity the entity to point at
      * @param color the colour of the line
@@ -784,16 +531,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * adds a line running from the crosshair to an entity, at a chosen height above
-     * it.
-     * <p>
-     * The offset is in blocks from the entity's interpolated position and is worked
-     * out every frame, so it follows the entity rather than being applied once. Zero
-     * aims at the entity's own position, which for most entities is inside the ground.
-     * <p>
-     * The line is drawn over the world rather than being hidden by terrain, as in the
-     * shorter forms.
-     * example:
+     * Adds a line from the crosshair to an entity at a chosen vertical offset above
+     * its feet. The offset is in blocks and follows the entity each frame; the line
+     * is drawn over the world.
      * <pre>
      * const player = Player.getPlayer();
      * if (player !== null) {
@@ -820,33 +560,17 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * adds a line running from the crosshair to an entity, at a chosen height, with a
-     * choice of whether terrain hides it.
-     * <p>
-     * This is the full form, and the only one of these that takes {@code alwaysOnTop}:
-     * the shorter forms all leave the line drawn over the world. {@code false} is the
-     * ordinary depth tested line that terrain draws over.
-     * <p>
-     * The line is dropped from the overlay by itself once the entity is gone, so there
-     * is no need to take it off.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   const draw = Hud.createDraw3D();
-     *   // a line something in front of it can hide
-     *   draw.addEntityTraceLine(player, 0xFFFF0000, 255, 0.5, false);
-     *   draw.register();
-     * }
-     * </pre>
+     * Adds a line from the crosshair to an entity at a chosen vertical offset above
+     * its feet. The offset is in blocks and follows the entity each frame. Set
+     * {@code alwaysOnTop} to {@code true} to draw it over the world; {@code false}
+     * allows terrain to hide it.
      *
      * @param entity the entity to point at
      * @param color the colour of the line
      * @param alpha the alpha of the line, from 0 to 255
      * @param yOffset how far above the entity's feet to aim, in blocks
-     * @param alwaysOnTop whether the line is drawn over the world rather than being
-     * @return the {@link EntityTraceLine} you added.
-     *                    hidden by terrain
+     * @param alwaysOnTop whether to draw over the world instead of allowing terrain to hide the line
+     * @return the added line
      * @since 1.9.0
      */
     public EntityTraceLine addEntityTraceLine(EntityHelper<?> entity, int color, int alpha, double yOffset, boolean alwaysOnTop) {
@@ -858,7 +582,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * @param traceLine the trace line to take off this overlay
+     * Removes the trace line from this overlay if present.
+     *
+     * @param traceLine the line to remove
      * @return self for chaining
      * @since 1.9.0
      */
@@ -870,25 +596,12 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * Draws a cube({@link Box}) with a specific radius({@code side length = 2*radius})
-     *
-     * <p>
-     * The cube is filled, not just outlined, and its inside is the same colour as its
-     * edges. It is drawn over the world rather than being hidden by terrain, since the
-     * shorter forms leave the cull flag off. A colour with no alpha of its own comes
-     * out fully opaque.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * // a solid dot half a block across
-     * draw.addPoint(0.5, 64.5, 0.5, 0.5, 0xFFFF0000);
-     * draw.register();
-     * </pre>
+     * Adds a filled cube centered at {@code point}, with side length twice the radius.
      *
      * @param point  the center point
      * @param radius 1/2 of the side length of the cube
      * @param color  point color
-     * @return the {@link Box} generated, and visualized
+     * @return the added box
      * @see Box
      * @since 1.4.0
      */
@@ -897,27 +610,15 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * Draws a cube({@link Box}) with a specific radius({@code side length = 2*radius})
-     *
-     * <p>
-     * The cube is filled, not just outlined, and its inside is the same colour as its
-     * edges. It is drawn over the world rather than being hidden by terrain, since the
-     * cull flag is left off here. A colour with no alpha of its own comes out fully
-     * opaque.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * // a solid dot half a block across
-     * draw.addPoint(0.5, 64.5, 0.5, 0.5, 0xFFFF0000);
-     * draw.register();
-     * </pre>
+     * Adds a filled cube centered at the given coordinates, with side length twice the
+     * radius. Its outline and fill use the same color.
      *
      * @param x      x value of the center point
      * @param y      y value of the center point
      * @param z      z value of the center point
      * @param radius 1/2 of the side length of the cube
      * @param color  point color
-     * @return the {@link Box} generated, and visualized
+     * @return the added box
      * @see Box
      * @since 1.4.0
      */
@@ -937,18 +638,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * Draws a cube({@link Box}) with a specific radius({@code side length = 2*radius})
-     * <p>
-     * This is the full form, and the only one of the three that takes a cull argument
-     * and an alpha. The alpha is used for both the outline and the inside, and nothing
-     * is filled in, so an alpha of {@code 0} really does make the dot invisible.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * // a half transparent dot that terrain can hide
-     * draw.addPoint(0.5, 64.5, 0.5, 0.5, 0xFF0000, 128, true);
-     * draw.register();
-     * </pre>
+     * Adds a filled cube centered at the given coordinates, with side length twice the
+     * radius. The supplied alpha applies to both its outline and fill; {@code cull}
+     * controls whether terrain can hide it.
      *
      * @param x      x value of the center point
      * @param y      y value of the center point
@@ -957,7 +649,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param color  point color
      * @param alpha  alpha of the point, used for both the outline and the inside
      * @param cull   whether to cull the point or not
-     * @return the {@link Box} generated, and visualized
+     * @return the added box
      * @see Box
      * @since 1.4.0
      */
@@ -979,9 +671,12 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * @param x top left
-     * @param y
-     * @param z
+     * Adds a 1-by-1 panel with no rotation, 200 minimum subdivisions, and no back face
+     * rendering or depth culling.
+     *
+     * @param x the x coordinate of the panel corner
+     * @param y the y coordinate of the panel corner
+     * @param z the z coordinate of the panel corner
      * @return the {@link Surface} you added.
      * @since 1.6.5
      */
@@ -990,6 +685,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
+     * Adds a panel of the given size with no rotation, 200 minimum subdivisions, and
+     * no back face rendering or depth culling.
+     *
      * @param x the x coordinate of the panel's corner
      * @param y the y coordinate of the panel's corner
      * @param z the z coordinate of the panel's corner
@@ -1003,6 +701,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
+     * Adds a 1-by-1 panel with the given rotation, 200 minimum subdivisions, and no
+     * back face rendering or depth culling.
+     *
      * @param x the x coordinate of the panel's corner
      * @param y the y coordinate of the panel's corner
      * @param z the z coordinate of the panel's corner
@@ -1017,6 +718,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
+     * Adds a panel with the given position, rotation, and size, using 200 minimum subdivisions
+     * with back-face rendering and depth culling disabled.
+     *
      * @param x the x coordinate of the panel's corner
      * @param y the y coordinate of the panel's corner
      * @param z the z coordinate of the panel's corner
@@ -1033,7 +737,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     *                        Anything below 1 is raised to 1
+     * Adds a panel with the requested minimum subdivision count, clamped to at least 1; back-face
+     * rendering and depth culling are disabled.
+     *
      * @param x the x coordinate of the panel's corner
      * @param y the y coordinate of the panel's corner
      * @param z the z coordinate of the panel's corner
@@ -1042,7 +748,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param zRot the rotation about the z axis, in degrees
      * @param width the width of the panel, in blocks
      * @param height the height of the panel, in blocks
-     * @param minSubdivisions how many surface pixels the smaller side is divided into.
+     * @param minSubdivisions the minimum number of subdivisions along the shorter side
      * @return the {@link Surface} you added.
      * @since 1.6.5
      */
@@ -1051,7 +757,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     *                        Anything below 1 is raised to 1
+     * Adds a panel with optional back-face rendering. The subdivision count is clamped to at least
+     * 1, and depth culling is disabled.
+     *
      * @param x the x coordinate of the panel's corner
      * @param y the y coordinate of the panel's corner
      * @param z the z coordinate of the panel's corner
@@ -1060,7 +768,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param zRot the rotation about the z axis, in degrees
      * @param width the width of the panel, in blocks
      * @param height the height of the panel, in blocks
-     * @param minSubdivisions how many surface pixels the smaller side is divided into.
+     * @param minSubdivisions the minimum number of subdivisions along the shorter side
      * @param renderBack whether the back of the panel is drawn as well as its front
      * @return the {@link Surface} you added.
      * @since 1.6.5
@@ -1070,21 +778,20 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     *                        Anything below 1 is raised to 1
-     *            is depth testing: {@code true} is the panel
-     *            terrain hides and {@code false} is the one drawn over the world, which
-     *            is what the shorter forms leave
-     * @param x               top left, the x coordinate of the panel's corner
-     * @param y
-     * @param z
+     * Adds a panel with the specified geometry and rendering options. The subdivision count is
+     * clamped to at least 1.
+     *
+     * @param x               the x coordinate of the panel corner
+     * @param y               the y coordinate of the panel corner
+     * @param z               the z coordinate of the panel corner
      * @param xRot the rotation about the x axis, in degrees
      * @param yRot the rotation about the y axis, in degrees
      * @param zRot the rotation about the z axis, in degrees
      * @param width the width of the panel, in blocks
      * @param height the height of the panel, in blocks
-     * @param minSubdivisions how many surface pixels the smaller side is divided into.
+     * @param minSubdivisions the minimum number of subdivisions along the shorter side
      * @param renderBack whether the back of the panel is drawn as well as its front
-     * @param cull whether the panel is depth tested, so terrain draws over it. The name
+     * @param cull whether to depth-test the panel against world geometry; {@code false} draws over it
      * @return the {@link Surface} you added.
      * @since 1.6.5
      */
@@ -1104,20 +811,7 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * takes a flat panel off this overlay.
-     * <p>
-     * The panel itself is left alone, so it can be put back with
-     * {@link #addSurface(Surface)} and comes back as it was, and its elements are still
-     * on it. Only this overlay is touched, so it does not disturb other scripts.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const surface = draw.addDraw2D(0, 64, 0);
-     * draw.register();
-     * // taken off, but still holding its elements
-     * draw.removeDraw2D(surface);
-     * Chat.log(`${draw.getDraw2Ds().size()} surfaces left`);
-     * </pre>
+     * Removes a panel from this overlay. The surface object and its elements are not modified.
      *
      * @param surface the surface to take off this overlay
      * @since 1.6.5
@@ -1129,11 +823,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * The builder starts with a box of no size at the origin, white, not filled and
-     * drawn over the world, so the size and the colour both have to be set. For a box
-     * covering exactly one block, {@link #boxBuilder(int, int, int)} already has the
-     * size and saves that step.
-     * example:
+     * Creates a box builder whose corners default to the origin and whose color is white; set
+     * both corners and the color before building. Boxes are unfilled and drawn over the world by
+     * default. For a one-block box, use {@link #boxBuilder(int, int, int)}.
      * <pre>
      * const draw = Hud.createDraw3D();
      * draw.boxBuilder().pos(0, 64, 0, 3, 67, 2).color(0xFFFF0000).buildAndAdd();
@@ -1148,10 +840,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * The same as {@link #boxBuilder()} with the size already set to cover exactly
-     * that one block. The block's own position is used, without its offset, so this is
-     * a block corner rather than the middle of the block.
-     * example:
+     * Creates a box builder with its corners set to the block's position and the opposite corner
+     * one block farther along each axis.
      * <pre>
      * const player = Player.getPlayer();
      * if (player !== null) {
@@ -1170,10 +860,7 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * The same as {@link #boxBuilder()} with the size already set to cover exactly the
-     * one block named by those coordinates. This is the shortest way to say "highlight
-     * this block".
-     * example:
+     * Creates a box builder spanning the block at {@code (x, y, z)}.
      * <pre>
      * const draw = Hud.createDraw3D();
      * // a wireframe around a single block
@@ -1192,10 +879,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * The builder starts with both ends at the origin, so a line built from it
-     * without setting any position has no length and draws nothing. It is white and
-     * drawn over the world by default.
-     * example:
+     * Creates a line builder with both endpoints at the origin, white, and drawn over the world.
+     * Set distinct endpoints for a visible line.
      * <pre>
      * const draw = Hud.createDraw3D();
      * draw.lineBuilder().pos(0, 64, 0, 8, 72, 0).color(0xFF00FF00).buildAndAdd();
@@ -1210,10 +895,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * The builder starts with its target at the origin and is white, fully opaque and
-     * drawn over the world. The start of the line is worked out from the camera every
-     * frame, so there is nothing to set for it.
-     * example:
+     * Creates a trace-line builder targeting the origin, white and fully opaque, drawn over the
+     * world. Its start point is calculated from the camera each frame.
      * <pre>
      * const draw = Hud.createDraw3D();
      * draw.traceLineBuilder().pos(0, 64, 0).color(0xFFFF0000).buildAndAdd();
@@ -1228,11 +911,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * The builder starts with <em>no entity</em>, a half block above where one would
-     * be, white, fully opaque and drawn over the world. A line built from it without
-     * naming an entity is removed on its first frame rather than pointing at the
-     * origin.
-     * example:
+     * Creates a builder for a white, fully opaque, always-on-top line that follows an
+     * entity, with a {@code 0.5}-block vertical offset. No entity is set by default;
+     * a line built without one is removed on its first frame.
      * <pre>
      * const player = Player.getPlayer();
      * if (player !== null) {
@@ -1250,11 +931,10 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * The builder starts ten blocks on a side at the origin, rotated about its middle,
-     * with its back drawn, drawn over the world and lit at full brightness. Ten blocks
-     * is a large default for a panel whose elements are measured in pixels, so the size
-     * is normally set explicitly.
-     * example:
+     * Creates a surface builder with a {@code 10 × 10}-block size, centered rotation,
+     * a rendered back, no depth culling, and full-bright lighting. Its default
+     * subdivision count is {@code 1}, so set the size and subdivisions for the desired
+     * panel dimensions and element resolution.
      * <pre>
      * const draw = Hud.createDraw3D();
      * const surface = draw.surfaceBuilder()
@@ -1274,15 +954,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * register so it actually shows up
-     * <p>
-     * Building the elements is not registering the overlay, so one that was filled in
-     * and never registered draws nothing. This adds it to the list the world renderer
-     * walks, from which point it draws every frame.
-     * <p>
-     * Registering the same overlay twice does nothing different, since the list it goes
-     * into holds each one once.
-     * example:
+     * Registers this overlay for rendering. Adding elements alone does not make them
+     * render; registration adds this instance to the renderer's set. Re-registering an
+     * already registered instance has no additional effect.
      * <pre>
      * const draw = Hud.createDraw3D();
      * draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFF0000, 0x00000000, false);
@@ -1300,13 +974,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * takes this overlay off the list the world renderer walks, so it stops drawing.
-     * <p>
-     * The elements are left on the overlay, so the same object can be registered again
-     * later and comes back as it was. This only affects this overlay and leaves every
-     * other registered one alone; {@code Hud.clearDraw3Ds()} is the one that takes
-     * down all of them.
-     * example:
+     * Unregisters this overlay without removing its elements. It can be registered
+     * again later; other overlays are unaffected.
      * <pre>
      * const draw = Hud.createDraw3D();
      * draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFF0000, 0x00000000, false);
@@ -1353,8 +1022,8 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * Renders non-surface elements. Surfaces are drawn separately across every
-     * registered Draw3D so their back-to-front order is global.
+     * Renders non-surface elements; surfaces are rendered separately to sort them
+     * back-to-front across overlays.
      */
     @DocletIgnore
     public void renderDepthPass(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
@@ -1387,7 +1056,7 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * Renders only the always-on-top (cull=false) surfaces.
+     * Renders only surfaces with depth culling disabled ({@code cull == false}).
      */
     @DocletIgnore
     public void renderAlwaysOnTopSurfaces(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
@@ -1411,10 +1080,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * Renders the elements that draw themselves directly (surfaces and their children:
-     * rect/line/text/image/item) into the buffer source. Must be called inside the render
-     * pass's output override, after the gizmo passes, and flushed by the caller.
-     * {@code alwaysOnTop} selects the group drawn after the always-on-top depth clear.
+     * Renders this overlay's surfaces and their 2D elements into the buffer source for
+     * the selected depth group. The caller must invoke this inside the render pass's
+     * output override, after gizmo passes, and flush the buffer source.
      */
     @DocletIgnore
     public void renderDirect(PoseStack poseStack, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
@@ -1422,8 +1090,9 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * Surface pipelines do not consistently write depth, so every registered
-     * Draw3D must share the same back-to-front order within each depth group.
+     * Renders surfaces from the supplied overlays in back-to-front order within the
+     * selected depth group. To order surfaces across multiple overlays, supply them
+     * together in one call; the caller manages the render pass and buffer flushing.
      */
     @DocletIgnore
     public static void renderDirectSurfaces(Iterable<Draw3D> draws, PoseStack poseStack, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {

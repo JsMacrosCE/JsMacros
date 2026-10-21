@@ -43,10 +43,22 @@ import net.minecraft.advancements.critereon.BlockPredicate;
 import net.minecraft.advancements.critereon.NbtPredicate;
 import net.minecraft.advancements.critereon.StatePropertiesPredicate;
 
+/** Client-side profile implementation with client event, library, and helper registrations and client-specific error reporting.
+ * Scripts can access the active profile through the client core:
+ * <pre>
+ * const Client = Java.type('com.jsmacrosce.jsmacros.client.JsMacrosClient');
+ * const profile = Client.clientCore.profile;
+ * Chat.log(profile.getCurrentProfileName());
+ * </pre>
+ */
 @DocletCategory("Configuration/Profiles")
 public class ClientProfile extends BaseProfile {
     private static final Minecraft mc = Minecraft.getInstance();
 
+    /** Stores the supplied core and logger through the base profile; registry setup and profile loading are not performed here.
+     * @param runner client core associated with this profile
+     * @param logger logger for diagnostics
+     */
     public ClientProfile(Core<ClientProfile, ?> runner, Logger logger) {
         super(runner, logger);
     }
@@ -61,11 +73,17 @@ public class ClientProfile extends BaseProfile {
         return val;
     }
 
+    /** Mutable exception classes suppressed from chat error reporting; matching includes subclasses. Stack traces are still printed first.
+     * Defaults to {@code InterruptedException} and {@code BaseScriptContext.ScriptAssertionError}.
+     */
     public static Class<? extends Throwable>[] ignoredErrors = new Class[]{
             InterruptedException.class,
             BaseScriptContext.ScriptAssertionError.class,
     };
 
+    /** Prints the failure's stack trace, then attempts to queue a chat report when a GUI is available unless its class or a runtime exception's direct cause matches {@code ignoredErrors}. A runtime exception is unwrapped when its message equals its cause's string form. If neither ignore check suppresses it and the runtime exception has a non-null cause but a null message, the comparison can throw {@code NullPointerException}. Chat reporting is queued and is not guaranteed to display successfully.
+     * @param ex non-null failure to report
+     */
     @Override
     public void logError(Throwable ex) {
         ex.printStackTrace();
@@ -107,6 +125,9 @@ public class ClientProfile extends BaseProfile {
         }
     }
 
+    /** Checks whether the current thread is Minecraft's thread or is present in this profile's joined-thread set.
+     * @return {@code true} on the Minecraft thread or when the current thread is in the joined-thread set
+     */
     @Override
     public boolean checkJoinedThreadStack() {
         return mc.isSameThread() || joinedThreadStack.contains(Thread.currentThread());
@@ -149,6 +170,8 @@ public class ClientProfile extends BaseProfile {
         return text;
     }
 
+    /** Initializes base registries, then registers client events, libraries, and helper mappings. Called during profile initialization; not intended for script invocation.
+     */
     @Override
     public void initRegistries() {
         super.initRegistries();

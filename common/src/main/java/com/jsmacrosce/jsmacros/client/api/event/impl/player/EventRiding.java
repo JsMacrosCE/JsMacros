@@ -8,21 +8,11 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the local player starts or stops riding an entity.<br>
- * {@link #state} says which side of the change this is, and {@link #entity} is the entity
- * involved: the one being mounted when {@code state} is {@code true} and the one being left
- * behind when it is {@code false}.<br>
- * The two sides are not symmetric. The dismount side is raised from the game's
- * {@code removeVehicle} call and only when the player actually had a vehicle, so it cannot fire
- * twice for one dismount, and it also fires for dismounts the player did not ask for, such as
- * being thrown off or the vehicle being destroyed.<br>
- * Note: the mount side is raised from the second return of the game's {@code startRiding}
- * method. On the versions this branch builds against that return is the early exit taken when
- * the target entity reports that it cannot accept a passenger, so whether the mount side fires
- * on a successful mount is not verified. Treat a listener for this event as best effort.<br>
- * This event is not cancellable, the mount state is applied to the player no matter what a
- * listener does.
- * example:
+ * Fires from a {@code startRiding} return path when the local player attempts to mount, or when
+ * the player begins removing an existing vehicle. The mount event does not establish that riding
+ * succeeded. {@link #state} is {@code true} for mounting and {@code false} for dismounting;
+ * {@link #entity} is the targeted entity or former vehicle, respectively. The dismount event also
+ * fires for externally caused dismounts. This event is not cancellable.
  * <pre>
  * JsMacros.on("Riding", JavaWrapper.methodToJava(function (event) {
  *   if (event.state) {
@@ -38,27 +28,33 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event("Riding")
 public class EventRiding extends BaseEvent {
     /**
-     * {@code true} if the player just started riding, {@code false} if the player just stopped.
+     * {@code true} when the player started riding, {@code false} when the player dismounted.
      */
     public final boolean state;
     /**
-     * the entity being mounted when {@link #state} is {@code true}, and the entity being left
-     * behind when it is {@code false}. It is wrapped in the most specific
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper} subclass for its
-     * type, so it can be narrowed further with {@code asLiving()}, {@code asPlayer()} and the
-     * other {@code as...()} helpers. Its type is available from
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getType() getType()}
-     * and its name from
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getName() getName()}.
+     * The mounted entity when {@link #state} is {@code true}, or the former vehicle when it is
+     * {@code false}. It is wrapped in the corresponding {@link EntityHelper} subclass.
      */
     public final EntityHelper<?> entity;
 
+    /**
+     * Initializes the event with the supplied state and a wrapped entity; this does not perform a
+     * mount or dismount.
+     * @param state {@code true} for mounting or {@code false} for dismounting; this flag does not
+     *              establish that riding succeeded
+     * @param entity raw Minecraft entity to wrap: target when mounting or former vehicle when dismounting; {@code null} fails with {@link NullPointerException} during wrapping
+     */
     public EventRiding(boolean state, Entity entity) {
         super(JsMacrosClient.clientCore);
         this.state = state;
         this.entity = EntityHelper.create(entity);
     }
 
+    /**
+     * Returns a diagnostic string containing the event name and the state and entity values.
+     * @return the event name followed by {@code {"state": boolean, "entity": entity}}, with
+     *         the boolean unquoted and the entity represented by its {@code toString()} result
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"state\": %b, \"entity\": %s}", this.getEventName(), state, entity.toString());

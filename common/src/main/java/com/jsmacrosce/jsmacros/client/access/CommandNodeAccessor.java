@@ -7,6 +7,17 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
 import java.lang.reflect.Field;
 import java.util.Map;
 
+/**
+ * Reflectively removes direct children from Brigadier command nodes.
+ * This accessor depends on reflective access to the node's child maps, which is
+ * not guaranteed to be available on every version.
+ * <pre>
+ * const CommandNodes = Java.type("com.jsmacrosce.jsmacros.client.access.CommandNodeAccessor");
+ * function removeChild(parent, name) {
+ *   return CommandNodes.remove(parent, name);
+ * }
+ * </pre>
+ */
 public class CommandNodeAccessor {
     static Field children;
     static Field literals;
@@ -29,6 +40,16 @@ public class CommandNodeAccessor {
 
     }
 
+    /**
+     * Removes a direct child by its key from the parent's child map and, for
+     * literal or argument nodes, the corresponding subtype map. Removal is not
+     * recursive; failure accessing a subtype map can occur after the child has
+     * already been removed from the child map.
+     * @param <S> command-source type of the nodes
+     * @param parent node whose direct-child maps are modified
+     * @param name key of the child to remove
+     * @return removed child, or {@code null} if no child has that key
+     */
     public static <S> CommandNode<S> remove(CommandNode<S> parent, String name) throws IllegalAccessException {
         Map<String, CommandNode> c = (Map<String, CommandNode>) children.get(parent);
         CommandNode<S> node = c.remove(name);

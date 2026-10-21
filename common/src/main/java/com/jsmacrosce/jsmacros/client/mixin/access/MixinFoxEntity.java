@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,6 +20,7 @@ import net.minecraft.world.entity.animal.Fox;
  * @since 1.8.4
  */
 @Mixin(Fox.class)
+@DocletIgnore
 public interface MixinFoxEntity {
 
     @Invoker("isDefending")

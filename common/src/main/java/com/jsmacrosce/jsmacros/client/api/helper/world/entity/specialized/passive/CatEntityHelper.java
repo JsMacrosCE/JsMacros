@@ -12,7 +12,7 @@ import net.minecraft.world.entity.animal.Cat;
 //?}
 
 /**
- * the cat, which is a tameable animal with a collar and a coat.
+ * A tameable cat with a coat variant and collar colour.
  * <p>
  * {@link #getVariant() getVariant} is the registry id of the cat's coat - {@code
  * minecraft:tabby} and the like - with the namespace on the front. That is unlike most of
@@ -21,13 +21,12 @@ import net.minecraft.world.entity.animal.Cat;
  * <p>
  * The collar is there whether or not the cat is tamed, so a collar colour is not evidence of
  * anything having happened to the cat.
- * example:
  * <pre>
  * const CatEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.CatEntityHelper");
  * const cats = World.getEntities(32, "cat");
  * if (cats !== null) {
  *   for (const entity of cats) {
- *     const cat = CatEntityHelper.class.cast(entity);
+  *     const cat = CatEntityHelper.class.cast(entity);
  *     Chat.log(`a ${cat.getVariant()} cat in ${cat.getCollarColor().getName()}`);
  *   }
  * }
@@ -41,28 +40,18 @@ import net.minecraft.world.entity.animal.Cat;
 public class CatEntityHelper extends TameableEntityHelper<Cat> {
     private static final Minecraft mc = Minecraft.getInstance();
 
+    /**
+     * Wraps the supplied cat, forwarding its reference to the superclass for storage.
+     *
+     * @param base the cat entity to wrap
+     */
     public CatEntityHelper(Cat base) {
         super(base);
     }
 
     /**
-     * Whether the cat is asleep in a bed or on the floor. This is the generic sleeping flag
-     * the game keeps for every mob that can nod off, not the sitting pose, so it is a
-     * different figure from {@link TameableEntityHelper#isSitting() isSitting} and from the
-     * pose a cat holds while sitting up.
-     * example:
-     * <pre>
-     * const CatEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.CatEntityHelper");
-     * const cats = World.getEntities(32, "cat");
-     * if (cats !== null) {
-     *   for (const entity of cats) {
-     *     const cat = CatEntityHelper.class.cast(entity);
-     *     if (cat.isSleeping()) {
-     *       Chat.log(`asleep at ${cat.getBlockPos()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Whether the cat has a sleeping position. This is distinct from its sitting order
+     * ({@link TameableEntityHelper#isSitting() isSitting}) and sitting pose.
      *
      * @return {@code true} if this cat is sleeping, {@code false} otherwise.
      * @since 1.8.4
@@ -72,9 +61,7 @@ public class CatEntityHelper extends TameableEntityHelper<Cat> {
     }
 
     /**
-     * The colour of the cat's collar. The game keeps a colour on every cat whatever its
-     * state, so this answers the same {@code red} on a stray that has never been tamed as
-     * on one that has.
+     * Returns the cat's collar colour, whether or not it is tamed.
      *
      * @return the color of this cat's collar.
      * @since 1.8.4
@@ -84,25 +71,10 @@ public class CatEntityHelper extends TameableEntityHelper<Cat> {
     }
 
     /**
-     * The registry id of the cat's coat, with the namespace on the front: {@code
-     * minecraft:tabby}, {@code minecraft:black}, and so on. It is looked up in the cat
-     * variant registry rather than read off a fixed list, so a pack that adds coats adds
-     * answers here too.
-     * example:
-     * <pre>
-     * const CatEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.CatEntityHelper");
-     * const cats = World.getEntities(32, "cat");
-     * if (cats !== null) {
-     *   for (const entity of cats) {
-     *     const cat = CatEntityHelper.class.cast(entity);
-     *     if (cat.getVariant() === "minecraft:black") {
-     *       Chat.log("a black cat");
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Returns the coat's registry id, including its namespace (for example,
+     * {@code minecraft:tabby}). The id is obtained from the cat variant registry.
      *
-     * @return the variant of this cat.
+     * @return the namespaced registry id of this cat's coat.
      * @since 1.8.4
      */
     public String getVariant() {

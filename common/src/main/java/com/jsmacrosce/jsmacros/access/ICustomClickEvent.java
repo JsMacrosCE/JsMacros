@@ -1,26 +1,20 @@
 package com.jsmacrosce.jsmacros.access;
 
-/**
- * Platform-agnostic interface for custom click events
- * Platform-specific implementations should provide the actual click event functionality
- */
+/** Provides a platform-independent view of a custom click event. */
 public interface ICustomClickEvent {
 
-    /**
-     * Gets the runnable event to execute
-     * @return the event runnable
+    /** Returns the callback associated with this custom click event.
+     * @return the callback associated with this custom click event
      */
     Runnable getEvent();
 
-    /**
-     * Creates a platform-specific click event from this custom click event
-     * @return native platform click event object
+    /** Converts this custom click event to a platform-specific representation.
+     * @return the platform-specific representation; its concrete type is implementation-defined
      */
     Object toPlatformClickEvent();
 
-    /**
-     * Gets the action type for this click event
-     * @return action type identifier
+    /** Returns the action identifier.
+     * @return the literal {@code "CUSTOM"}
      */
     default String getActionType() {
         return "CUSTOM";

@@ -9,41 +9,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * "Global" variables for passing to other contexts.
- * <p>
- * An instance of this class is passed to scripts as the {@code GlobalVars} variable.
- * <br>
- * These are shared by every script in the profile rather than by one script, which is what makes
- * them a way for two scripts to talk: one writes a value and another reads it back later, with no
- * reference between the two and neither one holding the other alive. The space outlives the scripts
- * that use it, since it belongs to the profile, so a value written by a macro is still there for
- * the next run.<br>
- * The trade is that the space is not typed. Every entry is a name and an object, and the typed
- * getters below only hand a value back when it is the type they were named for, so a
- * {@code getInt} on a string that happens to look like a number gives {@code null} rather than
- * parsing it. {@link #getType(String) getType} is what tells the two apart.<br>
- * Values written by a script are ordinary Java objects, not script values, so a guest object is
- * refused by {@link #putObject(String, Object) putObject}. Numbers written by
- * {@link #putInt(String, int) putInt} come back through {@link #getObject(String) getObject} as a
- * Java number.
- * example:
+ * Stores named Java values shared by scripts in the current profile. Values remain until removed
+ * or the profile is reloaded. Typed getters return {@code null} for a missing value or a value of
+ * another type; they do not coerce.
  * <pre>
- * // a counter that survives between scripts and between runs, which is the
- * // point of it
  * GlobalVars.putInt("sessions", 0);
  * const next = GlobalVars.incrementAndGetInt("sessions");
- * Chat.log(`this is session ${next}`);
- *
- * // a flag any script can flip and any script can read
- * GlobalVars.putBoolean("myFeatureEnabled", true);
- * if (GlobalVars.getBoolean("myFeatureEnabled")) {
- *   Chat.log("the feature is on");
- * }
- *
- * // and getType is how a value written by one script is read by another safely,
- * // since the typed getters give null on a type mismatch rather than coercing
- * GlobalVars.putDouble("ratio", 0.5);
- * Chat.log(`ratio is a ${GlobalVars.getType("ratio")}`);
+ * print(`session ${next}`);
  * </pre>
  * @author Wagyourtail
  * @since 1.0.4
@@ -52,34 +24,27 @@ import java.util.concurrent.ConcurrentHashMap;
 @SuppressWarnings("unused")
 public class FGlobalVars extends BaseLibrary {
     /**
-     * the backing map every call on this library reads and writes, exposed rather than kept
-     * private.<br>
-     * It is the live map, not a copy, so a script that puts into it is writing the same space the
-     * typed calls use, and the typed calls see anything put in this way. Two things come with that.
-     * A guest object goes in unchecked, where
-     * {@link #putObject(String, Object) putObject} would have refused it and something reading it
-     * back later fails instead, and a name can be overwritten with a value of a different type,
-     * where {@link #getType(String) getType} reports the new type and the typed getter for the old
-     * one silently gives {@code null}. The counter and toggle calls here go through the map's
-     * atomic compute, so a value written directly is still seen and counted by them.
-     * <br>
-     * It is shared by every script in the profile, since this library is built once for the
-     * profile rather than per script run, and it is never cleared. A profile that is reloaded from
-     * disk starts with a new one, and a profile that is not keeps everything any script has ever
-     * put in it. {@link #getRaw()} hands the same map back as a method.
+     * Live backing map. Direct writes bypass the guest-object check in
+     * {@link #putObject(String, Object)}; typed getters return {@code null} for values of other
+     * types. Counter and toggle operations use atomic map computations.
      */
     public Map<String, Object> globalRaw = new ConcurrentHashMap<>();
 
+    /**
+     * Associates this library with the supplied core and initializes its backing map.
+     *
+     * @param runner core associated with this event library
+     */
     public FGlobalVars(Core<?, ?> runner) {
         super(runner);
     }
 
     /**
-     * Put an Integer into the global variable space.
+     * Stores an integer under {@code name}.
      *
-     * @param name
-     * @param i
-     * @return
+     * @param name key to store under
+     * @param i value to store
+     * @return the stored value
      * @since 1.0.4
      */
     public int putInt(String name, int i) {
@@ -88,11 +53,11 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * put a String into the global variable space.
+     * Stores a string under {@code name}.
      *
-     * @param name
-     * @param str
-     * @return
+     * @param name key to store under
+     * @param str value to store
+     * @return the stored value
      * @since 1.0.4
      */
     public String putString(String name, String str) {
@@ -101,11 +66,11 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * put a Double into the global variable space.
+     * Stores a double under {@code name}.
      *
-     * @param name
-     * @param d
-     * @return
+     * @param name key to store under
+     * @param d value to store
+     * @return the stored value
      * @since 1.0.8
      */
     public double putDouble(String name, double d) {
@@ -114,11 +79,11 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * put a Boolean into the global variable space.
+     * Stores a boolean under {@code name}.
      *
-     * @param name
-     * @param b
-     * @return
+     * @param name key to store under
+     * @param b value to store
+     * @return the stored value
      * @since 1.1.7
      */
     public boolean putBoolean(String name, boolean b) {
@@ -127,31 +92,11 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * put anything else into the global variable space.
-     * <br>
-     * The escape hatch for the value types with no call of their own, such as a compiled class, a
-     * Java collection or a wrapped helper. What it takes has to be a Java object rather than a
-     * script value, since the space is read from other script contexts and a value belonging to
-     * one language instance cannot be used from another; a script value is refused with an
-     * {@link AssertionError} rather than stored and failed on later.<br>
-     * It does no type checking against what was there before, so a name can be given a value of a
-     * completely different type, which then reads back as {@code null} from the typed getter for
-     * the old type and as {@code "Object"} from {@link #getType(String) getType}.
-     * example:
+     * Stores a Java object under {@code name}. Guest objects are rejected with an
+     * {@link AssertionError}; any existing value is replaced regardless of type.
      * <pre>
-     * // a java object goes in, and reads back as an object since it is not one of
-     * // the four types that have a getter of its own
      * GlobalVars.putObject("lastResult", JavaUtils.createHashMap());
-     * print(`that reads as a ${GlobalVars.getType("lastResult")}`);
-     *
-     * // a name already holding a different type is simply replaced, and the typed
-     * // getter for the old type then gives null rather than converting
-     * GlobalVars.putInt("shared", 1);
-     * GlobalVars.putObject("shared", "now a string");
-     * print(`getInt gives ${GlobalVars.getInt("shared")}, getObject gives ${GlobalVars.getObject("shared")}`);
-     *
-     * // a guest object is refused rather than stored
-     * // GlobalVars.putObject("bad", { a: 1 });
+     * print(GlobalVars.getType("lastResult")); // "Object"
      * </pre>
      *
      * @param name the name to store under
@@ -169,17 +114,10 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * Returns the type of the defined item in the global variable space as a string.
-     * <br>
-     * One of {@code "Int"}, {@code "String"}, {@code "Double"}, {@code "Boolean"} or
-     * {@code "Object"}, and {@code null} for a name that holds nothing at all. {@code "Object"} is
-     * the catch-all rather than a distinct type, so it covers a {@link Long}, a {@link Float} or
-     * anything else put there through {@link #putObject(String, Object) putObject}, and covers a
-     * number written by the wrong typed call. That is also why it cannot be told apart from an
-     * object, and why the typed getter for whatever type was meant gives {@code null} in that case:
-     * an integer stored as a long is reported as an object, not as a number that happens to be
-     * whole.
-     * example:
+     * Returns the stored value's type name: {@code "Int"}, {@code "String"}, {@code "Double"},
+     * {@code "Boolean"}, or {@code "Object"}; returns {@code null} if the name holds nothing.
+     * {@code "Object"} covers all other stored Java types, including
+     * numbers stored under a different numeric type; typed getters do not coerce them.
      * <pre>
      * GlobalVars.putInt("count", 1);
      * GlobalVars.putDouble("ratio", 0.5);
@@ -188,13 +126,8 @@ public class FGlobalVars extends BaseLibrary {
      * print(`${GlobalVars.getType("count")} and ${GlobalVars.getType("ratio")}`);
      * print(`${GlobalVars.getType("name")} and ${GlobalVars.getType("enabled")}`);
      *
-     * // an object put there without a typed call is reported as an object, and the
-     * // typed getter for it gives null rather than converting
      * GlobalVars.putObject("raw", JavaUtils.createArrayList());
-     * print(`${GlobalVars.getType("raw")}, and getInt gives ${GlobalVars.getInt("raw")}`);
-     *
-     * // a name that holds nothing at all gives null rather than a type
-     * print(`nothing there: ${GlobalVars.getType("neverSet")}`);
+     * print(GlobalVars.getType("raw")); // "Object"
      * </pre>
      *
      * @param name the name to look up
@@ -220,10 +153,10 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * Gets an Integer from the global variable space.
+     * Returns the value under {@code name} only if it is an {@link Integer}.
      *
-     * @param name
-     * @return
+     * @param name key to look up
+     * @return the integer value, or {@code null} if absent or of another type
      * @since 1.0.4
      */
     @Nullable
@@ -237,28 +170,13 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * Gets an Integer from the global variable space. and then increment it there.
-     * <br>
-     * This is the post-increment form: it hands back the value as it was and leaves the incremented
-     * one behind, so it is the one to reach for when a counter is being read on the way past. A
-     * name that holds nothing is created as {@code 0} and given {@code 1}, so the first call
-     * returns zero rather than one. That is the difference from
-     * {@link #incrementAndGetInt(String) incrementAndGetInt}, which returns the one it stored.<br>
-     * A name holding something that is not an integer is left exactly as it is and this gives
-     * {@code null}, so the increment is skipped rather than replacing whatever is there. The read
-     * and the write are one atomic step, so two scripts counting the same name cannot both be
-     * handed the same value.
-     * example:
+     * Atomically increments the integer under {@code name} and returns its previous value. An
+     * absent key is set to {@code 1} and returns {@code 0}; a non-integer value is unchanged and
+     * returns {@code null}. Unlike {@link #incrementAndGetInt(String)}, this returns the value
+     * before incrementing.
      * <pre>
-     * // a name that held nothing is created as 1 and reported as 0 on the first call
      * print(`first call: ${GlobalVars.getAndIncrementInt("hits")}`);
      * print(`second call: ${GlobalVars.getAndIncrementInt("hits")}`);
-     * // which left the incremented value behind
-     * print(`stored now: ${GlobalVars.getInt("hits")}`);
-     *
-     * // a name holding a string is left alone rather than overwritten
-     * GlobalVars.putString("hits", "not a number");
-     * print(`skipped: ${GlobalVars.getAndIncrementInt("hits")}, still ${GlobalVars.getType("hits")}`);
      * </pre>
      *
      * @param name the name to read and increment
@@ -284,10 +202,12 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * Gets an integer from the global variable space. and then decrement it there.
+     * Decrements the integer under {@code name} and returns its previous value. A missing key is
+     * set to {@code -1} and returns {@code 0}; a non-integer value is unchanged and returns
+     * {@code null}. The read and update are atomic.
      *
-     * @param name
-     * @return
+     * @param name key to read and decrement
+     * @return the value before decrement, {@code 0} if absent, or {@code null} if not an integer
      * @since 1.6.5
      */
     @Nullable
@@ -309,26 +229,10 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * increment an Integer in the global variable space. then return it.
-     * <br>
-     * The pre-increment form: it hands back the value it stored rather than the one that was
-     * there, so a counter read after being moved on starts at one where
-     * {@link #getAndIncrementInt(String) getAndIncrementInt} would have started at zero. A name
-     * that holds nothing is created as {@code 1} and one is returned, since there is no earlier
-     * value to report.<br>
-     * A name holding something that is not an integer is left exactly as it is and this gives
-     * {@code null}, so nothing is written. The read and the write are one atomic step, so two
-     * scripts counting the same name cannot both be handed the same value.
-     * example:
-     * <pre>
-     * // a name that held nothing is created as 1 and that is what comes back
-     * print(`first call: ${GlobalVars.incrementAndGetInt("deaths")}`);
-     * print(`second call: ${GlobalVars.incrementAndGetInt("deaths")}`);
-     *
-     * // a name holding a string is left alone rather than overwritten
-     * GlobalVars.putString("deaths", "not a number");
-     * print(`skipped: ${GlobalVars.incrementAndGetInt("deaths")}, still ${GlobalVars.getType("deaths")}`);
-     * </pre>
+     * Increments the integer under {@code name} and returns the new value. A missing key is set to
+     * {@code 1} and returns {@code 1}; a non-integer value is unchanged and returns {@code null}. The read
+     * and update are atomic. Unlike {@link #getAndIncrementInt(String)}, this returns the value
+     * after incrementing.
      *
      * @param name the name to increment
      * @return the value after the increment, {@code 1} for a name that held nothing, or
@@ -353,10 +257,12 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * decrement an Integer in the global variable space. then return it.
+     * Decrements the integer under {@code name} and returns the new value. A missing key is set to
+     * and returns {@code -1}; a non-integer value is unchanged and returns {@code null}. The read
+     * and update are atomic.
      *
-     * @param name
-     * @return
+     * @param name key to decrement
+     * @return the value after decrement, {@code -1} if absent, or {@code null} if not an integer
      * @since 1.6.5
      */
     @Nullable
@@ -377,10 +283,10 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * Gets a String from the global variable space
+     * Returns the value under {@code name} only if it is a string.
      *
-     * @param name
-     * @return
+     * @param name key to look up
+     * @return the string value, or {@code null} if absent or of another type
      * @since 1.0.4
      */
     @Nullable
@@ -394,10 +300,10 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * Gets a Double from the global variable space.
+     * Returns the value under {@code name} only if it is a {@link Double}.
      *
-     * @param name
-     * @return
+     * @param name key to look up
+     * @return the double value, or {@code null} if absent or of another type
      * @since 1.0.8
      */
     @Nullable
@@ -411,10 +317,10 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * Gets a Boolean from the global variable space.
+     * Returns the value under {@code name} only if it is a {@link Boolean}.
      *
-     * @param name
-     * @return
+     * @param name key to look up
+     * @return the boolean value, or {@code null} if absent or of another type
      * @since 1.1.7
      */
     @Nullable
@@ -428,10 +334,12 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * toggles a global boolean and returns its new value
+     * Atomically toggles the boolean under {@code name} and returns the resulting value.
+     * A missing key is set to {@code true}; a non-boolean value is left unchanged and yields
+     * {@code null}.
      *
-     * @param name
-     * @return
+     * @param name key to toggle
+     * @return the new value, or {@code null} if the existing value is not boolean
      * @since 1.6.5
      */
     @Nullable
@@ -452,10 +360,10 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * Gets an Object from the global variable space.
+     * Returns the value stored under {@code name}, regardless of its type.
      *
-     * @param name
-     * @return
+     * @param name key to look up
+     * @return the stored value, or {@code null} if absent
      * @since 1.1.7
      */
     public Object getObject(String name) {
@@ -463,9 +371,9 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * removes a key from the global variable space.
+     * Removes a key from the global variable space.
      *
-     * @param key
+     * @param key key to remove
      * @since 1.2.0
      */
     public void remove(String key) {
@@ -473,32 +381,10 @@ public class FGlobalVars extends BaseLibrary {
     }
 
     /**
-     * the backing map itself, the same one {@link #globalRaw} is.
-     * <br>
-     * It is the live map rather than a copy, so reading it shows the current contents and writing
-     * into it is a direct write into the global variable space. Going through it skips the checks
-     * the typed calls make, most visibly the refusal of a guest object that
-     * {@link #putObject(String, Object) putObject} makes, and it lets a name be given a value of a
-     * different type than it had.<br>
-     * It is a Java {@link Map}, so it has {@code size()}, {@code get(key)} and the rest of that
-     * interface rather than the script side of it.
-     * example:
-     * <pre>
-     * // a read through the map sees what the typed calls wrote
-     * GlobalVars.putString("greeting", "hello");
-     * print(`the map agrees: ${GlobalVars.getRaw().get("greeting")}`);
+     * Returns the live backing map, not a copy. Direct writes bypass the guest-object check in
+     * {@link #putObject(String, Object)}.
      *
-     * // and a write through the map is a write into the space, though it skips the
-     * // type checks the typed calls make
-     * const raw = GlobalVars.getRaw();
-     * raw.put("writtenByHand", "text");
-     * print(`and the typed getter reads that: ${GlobalVars.getString("writtenByHand")}`);
-     *
-     * // the map is a Java one, so it is sized with size()
-     * print(`there are ${raw.size()} entries in the space`);
-     * </pre>
-     *
-     * @return the live backing map, not a copy of it.
+     * @return the live backing map
      */
     public Map<String, Object> getRaw() {
         return globalRaw;

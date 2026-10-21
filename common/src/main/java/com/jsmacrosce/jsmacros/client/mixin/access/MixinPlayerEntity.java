@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -13,6 +15,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Player.class)
+@DocletIgnore
 public abstract class MixinPlayerEntity extends LivingEntity {
 
     @Unique

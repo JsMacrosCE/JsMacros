@@ -11,25 +11,9 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires for every line of text the server puts on the HUD above the hotbar, which is the big title
- * that fades in and out, the smaller line under it, and the action bar line over the hotbar. The
- * {@link #type} says which of the three it is, and they are three separate places on screen, so
- * replacing one does not disturb the others.<br>
- * The action bar is also what a client side system message is drawn on, so a system message shows
- * up here as an {@code 'ACTIONBAR'} rather than as a chat line, and a listener that hides every
- * action bar line hides those too.<br>
- * This event is cancellable, and cancelling hides the line rather than merely ignoring it. The
- * game is handed no text at all, so the slot it would have used is left empty and nothing is
- * drawn. For the action bar the showing time is still restarted even though there is nothing to
- * show, so the slot stays reserved for as long as it would have been.<br>
- * A listener can also rewrite {@link #message} to change what the line says, which is the only way
- * to keep it on screen but with different words. Read the text back with
- * {@link TextHelper#getString() getString()}, and build a replacement with
- * {@link com.jsmacrosce.jsmacros.client.api.library.impl.FChat#createTextHelperFromString(String) Chat.createTextHelperFromString(String)}
- * or {@@code Chat.createTextHelperFromTranslationKey(...)}.
- * Remember that assigning {@code null} to the message hides the line in exactly the same way that
- * cancelling does.
- * example:
+ * Fires when the client receives a title, subtitle, or action-bar message; {@link #type} identifies
+ * the HUD line. Action-bar messages include client-side system messages. Listeners can replace
+ * {@link #message}, assign {@code null}, or cancel the event to suppress the message.
  * <pre>
  * JsMacros.on("Title", JavaWrapper.methodToJava(function (event) {
  *   if (event.message === null) {
@@ -55,34 +39,39 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "Title", oldName = "TITLE", cancellable = true)
 public class EventTitle extends BaseEvent {
     /**
-     * which of the three HUD lines this is: {@code 'TITLE'} for the big line that fades in and out
-     * over the screen, {@code 'SUBTITLE'} for the smaller line under it, and {@code 'ACTIONBAR'} for
-     * the line just above the hotbar. The action bar is also what client side system messages are
-     * drawn on, so those arrive here as {@code 'ACTIONBAR'}.<br>
-     * Script type definitions narrow this to a {@code TitleType} union, so comparing it against one
-     * of those three strings is always allowed.
+     * Identifies the message's HUD line: {@code 'TITLE'}, {@code 'SUBTITLE'}, or {@code 'ACTIONBAR'}.
+     * Client-side system messages use {@code 'ACTIONBAR'}.
      */
     @DocletReplaceReturn("TitleType")
     @DocletDeclareType(name = "TitleType", type = "'TITLE' | 'SUBTITLE' | 'ACTIONBAR'")
     public final String type;
     /**
-     * the text the line is about to show, wrapped in a {@link TextHelper}, which keeps the colours
-     * and the click and hover events the server sent with it. Read the plain text from
-     * {@link TextHelper#getString() getString()}.<br>
-     * This field is writable, and assigning to it replaces the text the line shows. Assigning
-     * {@code null} hides the line, which is what cancelling the event does: the client then hands
-     * the game no text rather than an empty one, so the slot is left blank for the whole duration
-     * of the line instead of being cleared straight away.
+     * Message to display, wrapped in a {@link TextHelper}; assigning a replacement changes the
+     * displayed text. {@code null} or cancelling passes no component to the game. For action-bar
+     * messages, the usual display timer is still reset when suppressed.
      */
     @Nullable
     public TextHelper message;
 
+    /**
+     * Initializes this event with a HUD line identifier and its supplied component; this does not dispatch or display the event.
+     * The identifier is stored verbatim and is not checked against {@code TITLE}, {@code SUBTITLE}, or {@code ACTIONBAR}.
+     * The component is wrapped by {@link TextHelper#wrap(Component)} without cloning it; a {@code null} component produces a {@code null} helper.
+     * @param type supplied HUD line identifier, conventionally {@code TITLE}, {@code SUBTITLE}, or {@code ACTIONBAR}
+     * @param message supplied component, or {@code null}
+     */
     public EventTitle(String type, Component message) {
         super(JsMacrosClient.clientCore);
         this.type = type;
         this.message = TextHelper.wrap(message);
     }
 
+    /**
+     * Returns a diagnostic string containing the event name, type, and current message helper's string representation.
+     * The format is {@code %s:{"type": "%s", "message": "%s"}}; it is not JSON serialization, and values are not escaped.
+     * A {@code null} current message is represented as the literal {@code null} inside the quoted message field.
+     * @return diagnostic text with the event name, type, and current message helper representation
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"type\": \"%s\", \"message\": \"%s\"}", this.getEventName(), type, message);

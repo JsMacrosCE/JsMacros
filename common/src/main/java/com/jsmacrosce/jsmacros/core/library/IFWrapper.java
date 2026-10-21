@@ -4,57 +4,40 @@ import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 
-/**
- * {@link FunctionalInterface} implementation for wrapping methods to match the language spec.
- * <br><br>
- * An instance of this class is passed to scripts as the {@code consumer} variable.
- * <br><br>
- * Javascript:
- * language spec requires that only one thread can hold an instance of the language at a time,
- * so this implementation uses a non-preemptive priority queue for the threads that call the resulting {@link MethodWrapper MethodWrappers}.
- * <br><br>
- * JEP:
- * language spec requires everything to be on the same thread, on the java end, so all calls to {@link MethodWrapper MethodWrappers}
- * call back to JEP's starting thread and wait for the call to complete.
- * <br><br>
- * Jython:
- * no limitations
- * <br><br>
- * LUA:
- * no limitations
+/** Wraps script functions as Java-compatible {@link MethodWrapper} callbacks and exposes script-context controls.
  *
- * @author Wagyourtail
  * @since 1.2.5, re-named from {@code consumer} in 1.3.2
  */
 @DocletIgnore
 public interface IFWrapper<T> {
 
     /**
-     * @param c
-     * @return a new {@link MethodWrapper MethodWrapper}
+     * Wraps a script function for Java calls that wait for a result; execution may be scheduled on the script context.
+     * @param c the script function
+     * @return a Java-callable wrapper
      * @since 1.4.0
      */
     @DocletReplaceParams("c: (arg0: A, arg1: B) => R | void")
     <A, B, R> MethodWrapper<A, B, R, ?> methodToJava(T c);
 
     /**
-     * @param c
-     * @return a new {@link MethodWrapper MethodWrapper}
+     * Wraps a script function for Java calls that schedule the callback without returning its result to the Java caller.
+     * @param c the script function
+     * @return a Java-callable wrapper
      * @since 1.4.0
      */
     @DocletReplaceParams("c: (arg0: A, arg1: B) => R | void")
     <A, B, R> MethodWrapper<A, B, R, ?> methodToJavaAsync(T c);
 
     /**
-     * JS/JEP ONLY
-     * allows you to set the position of the thread in the queue. you can use this for return value one's too...
+     * Asynchronously wraps a function, requesting a queue priority where supported. The default implementation ignores the priority.
      *
-     * @param priority
-     * @param c
-     * @param <A>
-     * @param <B>
-     * @param <R>
-     * @return
+     * @param priority requested queue priority; implementations may ignore it
+     * @param c the script function
+     * @param <A> type of the first callback argument
+     * @param <B> type of the second callback argument
+     * @param <R> callback result type
+     * @return a Java-callable wrapper
      * @since 1.8.0
      */
     @DocletReplaceParams("priority: int, c: (arg0: A, arg1: B) => R | void")
@@ -63,10 +46,7 @@ public interface IFWrapper<T> {
     }
 
     /**
-     * JS/JEP only, puts current task at end of queue.
-     * use with caution, don't accidentally cause circular waiting.
-     *
-     * @throws InterruptedException
+     * Defers the current task until queued tasks run, where supported. The default implementation throws {@link AssertionError}.
      * @since 1.8.0
      */
     default void deferCurrentTask() throws InterruptedException {
@@ -74,11 +54,9 @@ public interface IFWrapper<T> {
     }
 
     /**
-     * JS/JEP only, puts current task at end of queue.
-     * use with caution, don't accidentally cause circular waiting.
+     * Adjusts the current task's queue priority before deferring it, where supported. The default implementation throws {@link AssertionError}.
      *
-     * @param priorityAdjust the amount to adjust the priority by
-     * @throws InterruptedException
+     * @param priorityAdjust amount added to the current task's priority
      * @since 1.8.0
      */
     default void deferCurrentTask(int priorityAdjust) throws InterruptedException {
@@ -86,9 +64,7 @@ public interface IFWrapper<T> {
     }
 
     /**
-     * JS/JEP only, get priority of current task.
-     *
-     * @throws InterruptedException
+     * Returns the current task's priority where supported. The default implementation throws {@link AssertionError}.
      * @since 1.8.0
      */
     default int getCurrentPriority() throws InterruptedException {
@@ -96,7 +72,7 @@ public interface IFWrapper<T> {
     }
 
     /**
-     * Close the current context
+     * Stops the current script context.
      *
      * @since 1.2.2
      */

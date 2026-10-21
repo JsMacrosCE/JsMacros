@@ -15,19 +15,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
- * a brewing stand with the three potion slots, the ingredient slot and the fuel slot broken
- * out by name.
- * <p>
- * The slots this exposes are fixed, so unlike a chest there is no map to read:
- * {@link #getFirstPotion()}, {@link #getSecondPotion()} and {@link #getThirdPotion()} are the
- * bottles, {@link #getIngredient()} is what is being put in them, and {@link #getFuel()} is
- * whatever is in the fuel slot, which is usually but not necessarily blaze powder.
- * <p>
- * The pair worth knowing about is the preview pair. {@link #previewPotions()} works out what
- * the three bottles <i>would</i> become from the current ingredient without touching the
- * stand, which is the cheap way to ask a brewing stand a question, and
- * {@link #canBrewCurrentInput()} is the yes or no version of the same question.
- * example:
+ * Exposes a brewing stand's potion, ingredient, and fuel slots by name, with helpers to check
+ * recipes and preview brewing results without changing the stand.
  * <pre>
  * const inv = Player.openInventory();
  * if (inv.is("Brewing Stand")) {
@@ -48,13 +37,21 @@ import java.util.stream.Collectors;
 @SuppressWarnings("unused")
 public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
 
+    /**
+     * Wraps the supplied brewing-stand screen and captures its menu and current client-player state.
+     * This constructor does not open or create a screen; scripts typically obtain the wrapper from
+     * {@link com.jsmacrosce.jsmacros.client.api.library.impl.FPlayer#openInventory()}.
+     *
+     * @param inventory the brewing-stand screen to wrap
+     */
     public BrewingStandInventory(BrewingStandScreen inventory) {
         super(inventory);
     }
 
     /**
      * @param potion the potion to check
-     * @return {@code true} if the given potion is can be brewed, {@code false} otherwise.
+     * @return {@code true} if the stack contains a potion type used as the result of a brewing
+     * recipe; {@code false} if it has no potion type or is not brewable.
      * @since 1.8.4
      */
     public boolean isBrewablePotion(ItemStackHelper potion) {
@@ -86,7 +83,7 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return the left fuel.
+     * @return the current fuel-use count.
      * @since 1.8.4
      */
     public int getFuelCount() {
@@ -94,9 +91,7 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * The maximum fuel count is a constant with the value 20.
-     *
-     * @return the maximum fuel.
+     * @return the maximum fuel-use count (20).
      * @since 1.8.4
      */
     public int getMaxFuelUses() {
@@ -104,8 +99,8 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return {@code true} if the brewing stand can brew any of the held potions with the current
-     * ingredient, {@code false} otherwise.
+     * @return {@code true} if the current ingredient is valid and at least one nonempty potion slot
+     * has a matching recipe; {@code false} otherwise. This does not check fuel or brewing progress.
      * @since 1.8.4
      */
     public boolean canBrewCurrentInput() {
@@ -125,7 +120,8 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return the time the potions have been brewing.
+     * @return elapsed brewing ticks, calculated as the standard brewing duration minus the menu's
+     * remaining ticks.
      * @since 1.8.4
      */
     public int getBrewTime() {
@@ -133,7 +129,7 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return the remaining time the potions have to brew.
+     * @return the menu's brewing-tick value, which counts down while brewing.
      * @since 1.8.4
      */
     public int getRemainingTicks() {
@@ -143,8 +139,8 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     /**
      * @param potion     the potion
      * @param ingredient the ingredient
-     * @return the resulting potion of the given potion and ingredient if it exists and the potion
-     * itself otherwise.
+     * @return the result of mixing the ingredient into the potion stack, or the original potion
+     * stack if no mix applies.
      * @since 1.8.4
      */
     public ItemStackHelper previewPotion(ItemStackHelper potion, ItemStackHelper ingredient) {
@@ -152,7 +148,9 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return a list of all resulting potions of the current input.
+     * Returns the results of mixing the current ingredient with each of the three potion slots.
+     * Empty or incompatible slots are passed through unchanged by the brewing mix operation.
+     * @return the three resulting item stacks, in potion-slot order.
      * @since 1.8.4
      */
     public List<ItemStackHelper> previewPotions() {
@@ -161,7 +159,7 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return the ingredient.
+     * @return the item in slot 3, the ingredient slot.
      * @since 1.8.4
      */
     public ItemStackHelper getIngredient() {
@@ -169,7 +167,7 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return the fuel item.
+     * @return the item in slot 4, the fuel slot.
      * @since 1.8.4
      */
     public ItemStackHelper getFuel() {
@@ -177,7 +175,7 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return the first potion.
+     * @return the item in potion slot 0.
      * @since 1.8.4
      */
     public ItemStackHelper getFirstPotion() {
@@ -185,7 +183,7 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return the second potion.
+     * @return the item in potion slot 1.
      * @since 1.8.4
      */
     public ItemStackHelper getSecondPotion() {
@@ -193,7 +191,7 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return the third potion.
+     * @return the item in potion slot 2.
      * @since 1.8.4
      */
     public ItemStackHelper getThirdPotion() {
@@ -201,13 +199,19 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return a list of the potions inside the brewing stand.
+     * @return the items in potion slots 0, 1, and 2, in slot order.
      * @since 1.8.4
      */
     public List<ItemStackHelper> getPotions() {
         return Arrays.asList(getSlot(0), getSlot(1), getSlot(2));
     }
 
+    /**
+     * Returns the fixed diagnostic string {@code "BrewingStandInventory:{}"}; it does not include
+     * inventory contents.
+     *
+     * @return the literal {@code "BrewingStandInventory:{}"}
+     */
     @Override
     public String toString() {
         return String.format("BrewingStandInventory:{}");

@@ -12,20 +12,14 @@ import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
 /**
- * the handle for an open grindstone screen.
+ * Handle for an open grindstone screen.
  * <p>
- * A grindstone strips enchantments off an item and grinds it down, and it works from two input
- * slots into a single result slot: the top slot, the bottom slot, and the result. Those three
- * are {@link #getTopInput()}, {@link #getBottomInput()} and {@link #getOutput()}, numbered 0,
- * 1 and 2 in the order the grindstone's menu builds them, which is the same numbering as the
- * vanilla {@code GrindstoneMenu} uses for its {@code INPUT_SLOT}, {@code ADDITIONAL_SLOT} and
- * {@code RESULT_SLOT}. {@link #getMap()} names the same two regions {@code input} and
- * {@code output}.
+ * {@link #getTopInput()}, {@link #getBottomInput()} and {@link #getOutput()} read menu slots 0,
+ * 1 and 2 respectively; {@link #getMap()} groups the input and output slots as {@code input}
+ * and {@code output}.
  * <p>
- * The other half of this class is {@link #simulateXp()}, which works out what the grindstone
- * would pay in experience for the enchantments currently on the two inputs. The grindstone
- * pays that out when the result is taken, not when this is called.
- * example:
+ * {@link #simulateXp()} returns the lower bound of the experience awarded when the result is
+ * taken; it does not take the result or change the inventory.
  * <pre>
  * const inv = Player.openInventory();
  * if (inv.is("Grindstone")) {
@@ -43,26 +37,19 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 @SuppressWarnings("unused")
 public class GrindStoneInventory extends Inventory<GrindstoneScreen> {
 
+    /**
+     * Wraps the supplied grindstone screen; it does not open or create a screen.
+     * Use {@link com.jsmacrosce.jsmacros.client.api.library.impl.FPlayer#openInventory()} to obtain
+     * a wrapper for the currently open inventory.
+     *
+     * @param inventory grindstone screen to wrap
+     */
     public GrindStoneInventory(GrindstoneScreen inventory) {
         super(inventory);
     }
 
     /**
-     * the item in the top input slot, which is slot 0.
-     * <p>
-     * Putting something here strips its non-curse enchantments and grinds it down; the result
-     * appears in {@link #getOutput()} as soon as the slot changes. This reads the slot rather
-     * than contributing to anything, so reading it twice gives the same answer unless the slot
-     * changed in between.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Grindstone")) {
-     *   if (!inv.getTopInput().isEmpty()) {
-     *     Chat.log(`top input ${inv.getTopInput().getName()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the item in the top input slot (slot 0).
      *
      * @return the top input item
      * @since 1.8.4
@@ -72,20 +59,7 @@ public class GrindStoneInventory extends Inventory<GrindstoneScreen> {
     }
 
     /**
-     * the item in the bottom input slot, which is slot 1.
-     * <p>
-     * The bottom slot is a second, equivalent input rather than a material: a grindstone takes
-     * up to two items and treats them the same way, so this can be empty while
-     * {@link #getTopInput()} is not.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Grindstone")) {
-     *   if (!inv.getBottomInput().isEmpty()) {
-     *     Chat.log(`bottom input ${inv.getBottomInput().getName()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the item in the bottom input slot (slot 1).
      *
      * @return the bottom input item
      * @since 1.8.4
@@ -95,12 +69,9 @@ public class GrindStoneInventory extends Inventory<GrindstoneScreen> {
     }
 
     /**
-     * the item the grindstone is working towards, which is slot 2.
+     * Returns the current item in the result slot (slot 2), or an empty item if there is no result.
+     * Taking the result awards the experience estimated by {@link #simulateXp()}.
      * <p>
-     * This is the result slot as the client currently has it, not a calculation done here, and
-     * it stays empty when the two inputs produce nothing. Taking it is what the grindstone pays
-     * out the experience {@link #simulateXp()} estimates.
-     * example:
      * <pre>
      * const inv = Player.openInventory();
      * if (inv.is("Grindstone")) {
@@ -119,23 +90,15 @@ public class GrindStoneInventory extends Inventory<GrindstoneScreen> {
     }
 
     /**
-     * the smallest amount of experience the grindstone would pay for the enchantments on the
-     * two input slots, or 0 when there are none to pay for.
+     * Estimates the minimum experience awarded for enchantments in both input slots, or 0 if
+     * there are no non-curse enchantments to remove.
      * <p>
-     * This is a simulation of the grindstone's own arithmetic and it works the same way the
-     * grindstone does: for each of the two inputs it adds up the minimum cost of every
-     * enchantment on the item, skipping curses because the grindstone keeps those and so does
-     * not pay for removing them, then halves the total and rounds up. A curse enchantment is
-     * therefore worth nothing here even though it is on the item.
+     * It sums each non-curse enchantment's minimum cost at its current level across both inputs,
+     * then rounds half the sum up. Curses are retained and contribute nothing. When the result
+     * is taken, the actual award is randomized from this value (inclusive) to
+     * {@code 2 * simulateXp() - 1}. This method only reads the inputs and does not change the
+     * inventory.
      * <p>
-     * The grindstone picks a random amount at that lower bound when it pays out, so this is
-     * the floor and not the amount. The largest it can pay is {@code 2 * simulateXp() - 1},
-     * because the roll it adds is drawn from a range of the halved total, so doubling the
-     * return value overshoots by one whenever the halved total is 1 or more.
-     * <p>
-     * Nothing here changes the grindstone, and the estimate follows the slots rather than the
-     * result: an input that has been put in but whose result has not been taken still counts.
-     * example:
      * <pre>
      * const inv = Player.openInventory();
      * if (inv.is("Grindstone")) {
@@ -146,7 +109,7 @@ public class GrindStoneInventory extends Inventory<GrindstoneScreen> {
      * }
      * </pre>
      *
-     * @return the least experience the grindstone would pay, 0 when there is nothing to pay for
+     * @return the minimum experience award, or 0 when no non-curse enchantment contributes
      * @since 1.8.4
      */
     public int simulateXp() {
@@ -171,6 +134,11 @@ public class GrindStoneInventory extends Inventory<GrindstoneScreen> {
         return i;
     }
 
+    /**
+     * Returns the fixed diagnostic string {@code GrindStoneInventory:{}}.
+     *
+     * @return {@code GrindStoneInventory:{}}
+     */
     @Override
     public String toString() {
         return String.format("GrindStoneInventory:{}");

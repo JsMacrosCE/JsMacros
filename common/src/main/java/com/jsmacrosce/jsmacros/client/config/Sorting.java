@@ -57,7 +57,7 @@ public class Sorting {
     }
 
     /**
-     * @author Etheradon
+     * Selects the ordering used for services: by name, configured file name, enabled state, or running state.
      * @since 1.8.4
      */
     public enum ServiceSortMethod {
@@ -68,7 +68,7 @@ public class Sorting {
     }
 
     /**
-     * @author Etheradon
+     * Orders service names with enabled services first, then alphabetically by name.
      * @since 1.8.4
      */
     public static class SortServiceByEnabled implements Comparator<String> {
@@ -92,7 +92,7 @@ public class Sorting {
     }
 
     /**
-     * @author Etheradon
+     * Orders service names alphabetically.
      * @since 1.8.4
      */
     public static class SortServiceByName implements Comparator<String> {
@@ -104,7 +104,7 @@ public class Sorting {
     }
 
     /**
-     * @author Etheradon
+     * Orders service names with running services first, then alphabetically by name.
      * @since 1.8.4
      */
     public static class SortServiceByRunning implements Comparator<String> {
@@ -129,6 +129,7 @@ public class Sorting {
 
     /**
      * @author Etheradon
+     * Orders registered service names by configured file path, using the name as a tie-breaker.
      * @since 1.8.4
      */
     public static class SortServiceByFileName implements Comparator<String> {

@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.world.level.chunk.PalettedContainer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -10,6 +12,7 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 
 @Mixin(PalettedContainer.class)
+@DocletIgnore
 public class MixinPalettedContainer<T> implements IPalettedContainer<T> {
 
     @Unique

@@ -10,18 +10,11 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 import java.util.List;
 
 /**
- * Fires when the local player opens a sign or other text editing block to edit it.<br>
- * This event is cancellable, and cancelling here does not throw the edit away. Cancelling, or
- * setting {@link #closeScreen}, stops the sign editing screen from opening and instead sends
- * whatever is in {@link #signText} straight to the server as a finished edit. That makes this the
- * place to rewrite sign text without ever showing the player an editor.<br>
- * {@link #signText} starts out holding the sign's current text, and is writable. Only the first
- * four entries are used, a shorter list leaves the remaining lines empty, and assigning
- * {@code null} blanks the sign. If the text ends up different from what was there, the client
- * applies it locally too, so the change shows up on screen without waiting for the server.<br>
- * Note: this only covers the sign editing screen. A hanging sign, a lectern or a sign that
- * another player is already editing follow their own paths.
- * example:
+ * Fires when the local player opens a sign editing screen. Cancelling the event or setting
+ * {@link #closeScreen} prevents the screen from opening and sends the edited text to the server.
+ * Changed text is also applied to the local sign immediately. {@link #signText} starts with the
+ * sign's current text; only its first four entries are used, missing entries become empty, and
+ * {@code null} blanks all four lines.
  * <pre>
  * JsMacros.on("SignEdit", JavaWrapper.methodToJava(function (event) {
  *   const text = event.signText;
@@ -54,32 +47,36 @@ import java.util.List;
 @Event(value = "SignEdit", oldName = "SIGN_EDIT", cancellable = true)
 public class EventSignEdit extends BaseEvent {
     /**
-     * the block position of the sign, as block coordinates rather than the sign's own centred
-     * position.
+     * The sign's block position in block coordinates.
      */
     public final Pos3D pos;
     /**
-     * whether to send the edit and close without opening the sign editing screen. It starts out
-     * {@code false}. Setting it to {@code true} has the same effect on the screen as calling
-     * {@code cancel()}, so use one or the other, not both.
-     * <br>
-     * This field is writable.
+     * Whether to send the edit without opening the screen; defaults to {@code false}. Setting it
+     * to {@code true} has the same effect as cancelling the event.
      */
     public boolean closeScreen = false;
     /**
-     * {@code true} if the sign side being edited is the front, {@code false} if it is the back.
-     * Signs have two independently editable sides.
+     * {@code true} when editing the front side; {@code false} when editing the back side.
      */
     public boolean front;
     /**
-     * the four lines of text on the sign, one string per line. It starts out holding the sign's
-     * current text and is writable.<br>
-     * Only the first four entries are used. A shorter list leaves the remaining lines empty and
-     * any entries past the fourth are ignored. Assigning {@code null} blanks the whole sign.
+     * The sign's four text lines, initially copied from the current sign text. Only the first four
+     * entries are used; missing entries become empty, and {@code null} blanks all four lines.
      */
     @Nullable
     public List<String> signText;
 
+    /**
+     * Initializes the event with its client core, block position, edited text, and sign side.
+     * The supplied coordinates are integer block coordinates stored in a new {@link Pos3D};
+     * {@code front} is stored unchanged. {@code signText} is stored as the supplied list reference,
+     * including {@code null}, without copying or normalizing it.
+     * @param signText the text list to retain, or {@code null}
+     * @param x the block-coordinate x position
+     * @param y the block-coordinate y position
+     * @param z the block-coordinate z position
+     * @param front whether the edited side is the front; {@code false} denotes the back
+     */
     @SuppressWarnings("NullableProblems")
     public EventSignEdit(List<String> signText, int x, int y, int z, boolean front) {
         super(JsMacrosClient.clientCore);
@@ -88,6 +85,12 @@ public class EventSignEdit extends BaseEvent {
         this.signText = signText;
     }
 
+    /**
+     * Returns a diagnostic string containing the event name and current position in the form
+     * {@code %s:{"pos": [%s]}}; the position is enclosed in square brackets. It omits the text,
+     * side, and screen-close flag, and is not a serialization of the full event.
+     * @return the event name and current position in diagnostic format
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"pos\": [%s]}", this.getEventName(), pos);

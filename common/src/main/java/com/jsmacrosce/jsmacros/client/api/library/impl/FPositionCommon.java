@@ -13,27 +13,9 @@ import com.jsmacrosce.jsmacros.core.library.BaseLibrary;
 import com.jsmacrosce.jsmacros.core.library.Library;
 
 /**
- * Factories for the four geometry types the rest of the API is spoken in, and nothing else. There
- * is no state here and no way to observe a world, so every one of these is a plain constructor
- * call under a friendlier name.<br>
- * The pairs to keep straight are {@link Pos3D} against {@link Pos2D}, and {@link Vec3D} against
- * {@link Vec2D}. A {@code Pos} is a single point and carries only coordinates; a {@code Vec} is a
- * line segment and carries the coordinates of <em>both</em> its ends, so a vector can report a
- * length, a direction, and the angle of that direction. {@link #createVec(double, double, double,
- * double, double, double)} gives you the three dimensional one, {@link #createVec(double, double,
- * double, double)} the flat one. {@code Pos3D} extends {@code Pos2D}, so a point is also a
- * two dimensional point and the flat arithmetic still applies to it, but a vector is a different
- * animal and cannot stand in for a point.<br>
- * The one factory that is not just coordinates is {@code createLookingVector}, which is the
- * convenient way to get a unit length segment pointing where something is looking. There are two
- * overloads, one that takes an entity and asks it, and one that takes a yaw and pitch pair and
- * works them out.<br>
- * The distinction that catches people out is that coordinates here are not blocks. A {@code Pos}
- * is a point in the world at double precision, so {@code 0.5} is half a block along, while
- * {@link BlockPosHelper} built by {@link #createBlockPos(int, int, int)} is a whole block
- * coordinate and is what the block lookups take. The two are different types on purpose, and
- * converting between them is done by the type itself rather than by hand.
- * example:
+ * Creates 2D and 3D positions and segments, plus block positions and look-direction vectors.
+ * Positions retain double coordinates; block positions use integer block coordinates. A vector
+ * stores its start and end positions, while a position stores one point.
  * <pre>
  * // a point in the world, at double precision, so this is half a block along x
  * const here = PositionCommon.createPos(0.5, 64, 0.5);
@@ -60,18 +42,21 @@ import com.jsmacrosce.jsmacros.core.library.Library;
 @SuppressWarnings("unused")
 public class FPositionCommon extends BaseLibrary {
 
+    /**
+     * Initializes this position library with its associated core.
+     * @param runner core associated with this library
+     */
     public FPositionCommon(Core<?, ?> runner) {
         super(runner);
     }
 
     /**
-     * create a new vector object
+     * Creates a 3D segment from its start coordinates to its end coordinates.
      * <p>
      * The two triples are the start and the end of the segment, not a minimum and a maximum, so
      * the two ends can be given in either order and reversing them gives a vector running the
      * other way. This is the three dimensional form; {@link #createVec(double, double, double,
      * double)} is the flat one.
-     * example:
      * <pre>
      * // a segment from one corner of a build to the opposite corner
      * const diagonal = PositionCommon.createVec(0, 64, 0, 3, 67, 4);
@@ -95,30 +80,24 @@ public class FPositionCommon extends BaseLibrary {
     }
 
     /**
-     * the direction an entity is looking, as a segment from the origin.
+     * Returns the entity's look direction as a segment from the origin.
      * <p>
-     * The start is the world origin and the end is one block out along the entity's look vector,
-     * so the result is always of length {@code 1} whatever the entity is. That makes it a unit
-     * direction rather than a position, and it is what a trace or a projection wants. The angles
-     * are read straight off the entity, so they follow whatever the entity is looking at, which
-     * for a player means its interpolated view angles rather than its nominal rotation.
+     * The end coordinates are the entity's raw look-angle vector; no normalization is performed.
      * <p>
      * For the angles themselves rather than a direction, {@link #createLookingVector(double,
      * double)} takes them as arguments.
-     * example:
      * <pre>
-     * // null outside a world, so there is nothing to take a look direction from there
      * const player = Player.getPlayer();
      * if (player !== null) {
      *   const look = PositionCommon.createLookingVector(player);
-     *   // unit length by construction, and pointing where the player points
+     *   // the endpoint is the player's raw look-angle vector
      *   const fiveBlocksOut = look.getEnd().scale(5);
      *   Chat.log(`${fiveBlocksOut} is straight ahead`);
      * }
      * </pre>
      *
      * @param entity the entity to read the look direction off
-     * @return a unit length vector from the origin in the direction the entity is looking
+     * @return the entity's raw look-angle vector from the origin
      * @since 1.8.4
      */
     public Vec3D createLookingVector(EntityHelper<?> entity) {
@@ -127,18 +106,11 @@ public class FPositionCommon extends BaseLibrary {
     }
 
     /**
-     * the direction a yaw and pitch pair points in, as a segment from the origin.
+     * Returns the direction for the supplied yaw and pitch as a segment from the origin.
      * <p>
-     * Note the order: <em>yaw first, pitch second</em>. This is the reverse of the vanilla
-     * {@code Vec3.directionFromRotation} call underneath, which takes pitch first, and the two are
-     * deliberately not the same order so that a script reading it lines up with
-     * {@code Entity.getYaw} and {@code Entity.getPitch}. The angles are the same ones the game
-     * uses for a view: yaw is the compass bearing in degrees, where positive is south and it
-     * grows clockwise, and pitch is the vertical angle in degrees, where negative looks up.<br>
-     * The result starts at the origin and ends one block out along that direction, so it is
-     * always of length {@code 1}. Scale the end to get a point in the world, or hand the angles
-     * themselves to something that only needs a bearing.
-     * example:
+     * Arguments are in yaw-then-pitch order, both in degrees; vanilla's conversion takes them in
+     * pitch-then-yaw order. The returned endpoint is the direction vector produced by that
+     * conversion.
      * <pre>
      * // the same two angles a player is looking with, in the same order
      * const player = Player.getPlayer();
@@ -154,7 +126,7 @@ public class FPositionCommon extends BaseLibrary {
      *
      * @param yaw the horizontal angle in degrees, where positive is south and it grows clockwise
      * @param pitch the vertical angle in degrees, where negative looks up
-     * @return a unit length vector from the origin pointing along the given angles
+     * @return the vector produced by converting the given angles, from the origin
      * @since 1.8.4
      */
     public Vec3D createLookingVector(double yaw, double pitch) {
@@ -163,17 +135,9 @@ public class FPositionCommon extends BaseLibrary {
     }
 
     /**
-     * create a new flat vector object.
+     * Creates a 2D segment from its start coordinates to its end coordinates.
      * <p>
-     * Same idea as the three dimensional form, with the z axis left out. The two pairs are the
-     * start and the end of the segment, and the result reports its length, its direction, and the
-     * yaw and pitch of that direction as if the segment lay in the x and y plane.
-     * example:
-     * <pre>
-     * // the span of a GUI element, or of a two axis screen
-     * const width = PositionCommon.createVec(0, 0, 200, 0);
-     * Chat.log(`${width.getMagnitude()} pixels wide`);
-     * </pre>
+     * The two coordinate pairs are the start and end; there is no z coordinate.
      *
      * @param x1 the x coordinate of the start of the segment
      * @param y1 the y coordinate of the start of the segment
@@ -187,21 +151,8 @@ public class FPositionCommon extends BaseLibrary {
     }
 
     /**
-     * a point in the world.
+     * Creates a 3D position from double-precision coordinates.
      * <p>
-     * This is a position, not a block: the coordinates are kept at double precision and are not
-     * rounded, so {@code createPos(0.5, 64, 0.5)} is half a block along x and z. The block that
-     * point falls inside is what {@link FWorld#getBlock(Pos3D)} works out, and
-     * {@link #createBlockPos(int, int, int)} is how you name that block directly.
-     * example:
-     * <pre>
-     * // a point, and then the block it lands in
-     * const feet = PositionCommon.createPos(0.5, 64, 0.5);
-     * const underneath = World.getBlock(feet);
-     * if (underneath !== null) {
-     *   Chat.log(`standing on ${underneath.getName()}`);
-     * }
-     * </pre>
      *
      * @param x the x coordinate of the point
      * @param y the y coordinate of the point
@@ -214,19 +165,9 @@ public class FPositionCommon extends BaseLibrary {
     }
 
     /**
-     * a flat point.
+     * Creates a 2D position from its x and y coordinates.
      * <p>
-     * The two axis version of {@link #createPos(double, double, double)}, for the many things
-     * that have no depth to speak of: a GUI, a map, a two dimensional screen.
-     * example:
-     * <pre>
-     * // the top left and bottom right of a rectangle on a flat surface
-     * const topLeft = PositionCommon.createPos(0, 0);
-     * const bottomRight = PositionCommon.createPos(64, 32);
-     * // which can also be handed over as a segment between them
-     * const across = topLeft.toVector(bottomRight);
-     * Chat.log(`${across.getMagnitude()} across`);
-     * </pre>
+     * Unlike {@link #createPos(double, double, double)}, this position has no z coordinate.
      *
      * @param x the x coordinate of the point
      * @param y the y coordinate of the point
@@ -238,27 +179,16 @@ public class FPositionCommon extends BaseLibrary {
     }
 
     /**
-     * a whole block, by its block coordinates.
+     * Creates a block position from integer block coordinates.
      * <p>
-     * This is the other kind of position to {@link #createPos(double, double, double)}: block
-     * coordinates are whole numbers naming one block, not a point that can sit partway inside
-     * one, and the type is what the block lookups such as {@link FWorld#getBlock(BlockPosHelper)}
-     * and the world scanning calls take. Given a fractional point, round it down rather than to
-     * the nearest block, which is what {@link FWorld#getBlock(Pos3D)} does for you.
-     * example:
-     * <pre>
-     * // a block by name, then the one above it, and a look at what is in each
-     * const base = PositionCommon.createBlockPos(0, 64, 0);
-     * for (const pos of [base, base.up()]) {
-     *   const block = World.getBlock(pos);
-     *   Chat.log(`${pos.getX()}, ${pos.getY()}, ${pos.getZ()}: ${block === null ? "unloaded" : block.getName()}`);
-     * }
-     * </pre>
+     * Unlike {@link #createPos(double, double, double)}, this names a whole block rather than a
+     * point that may lie within one. For a fractional point, {@link FWorld#getBlock(Pos3D)} floors
+     * each coordinate to find its containing block.
      *
-     * @param x the x position of the block
-     * @param y the y position of the block
-     * @param z the z position of the block
-     * @return a {@link BlockPosHelper} for the given coordinates.
+     * @param x the block's x coordinate
+     * @param y the block's y coordinate
+     * @param z the block's z coordinate
+     * @return the block position at those coordinates
      * @since 1.8.4
      */
     public BlockPosHelper createBlockPos(int x, int y, int z) {

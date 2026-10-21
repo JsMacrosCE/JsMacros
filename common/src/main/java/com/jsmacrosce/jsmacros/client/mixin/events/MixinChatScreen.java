@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -10,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.jsmacrosce.jsmacros.client.api.event.impl.EventSendMessage;
 
 @Mixin(ChatScreen.class)
+@DocletIgnore
 public abstract class MixinChatScreen extends Screen {
 
     //IGNORE

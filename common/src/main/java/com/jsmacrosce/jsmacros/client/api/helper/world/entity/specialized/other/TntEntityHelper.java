@@ -5,14 +5,8 @@ import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 
 /**
- * a primed block of TNT, the entity a lit TNT block becomes for the four seconds before it
- * goes off.
+ * Represents primed TNT; its fuse can be read with {@link #getRemainingTime()}.
  * <p>
- * There is no unprimed state: a TNT block that has not been lit is not this entity at all, so
- * a script that finds one has already found something that is about to explode. What is worth
- * reading is the fuse, and it is the only call here, because the entity has nothing else of its
- * own: the position and the entity id come from the shared helpers.
- * example:
  * <pre>
  * const TntEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other.TntEntityHelper");
  * const bombs = World.getEntities(32, "tnt");
@@ -32,37 +26,20 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 @SuppressWarnings("unused")
 public class TntEntityHelper extends EntityHelper<PrimedTnt> {
 
+    /**
+     * Wraps the supplied primed TNT entity, retaining its reference.
+     *
+     * @param base primed TNT entity to wrap
+     */
     public TntEntityHelper(PrimedTnt base) {
         super(base);
     }
 
     /**
-     * how many ticks are left before this TNT explodes, counting the current tick, and the
-     * default fuse is 80 ticks.
-     * <p>
-     * The number comes down by one every tick and the entity is gone once it reaches zero, so a
-     * value of 0 means it is exploding this tick rather than that it is a live bomb. 80 ticks is
-     * four seconds at twenty to the second, which is what a TNT block lit with a flint and
-     * steel gets; the game lets a command or a datapack set it to something else and the value
-     * is stored with the entity, so it survives a chunk reload. There is no unprimed value to
-     * see here, since an unlit TNT block is not an entity.
-     * example:
-     * <pre>
-     * const TntEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other.TntEntityHelper");
-     * const bombs = World.getEntities(32, "tnt");
-     * if (bombs !== null) {
-     *   for (const entity of bombs) {
-     *     const tnt = TntEntityHelper.class.cast(entity);
-     *     const left = tnt.getRemainingTime();
-     *     // a value of 0 is exploding now, not a bomb that is safe to stand next to
-     *     if (20 > left) {
-     *       Chat.log(`about a second left at ${entity.getPos()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Returns the primed TNT entity's fuse in ticks. Newly primed TNT normally starts at 80;
+     * each tick decrements the fuse, and at zero the entity is discarded and explodes server-side.
      *
-     * @return the remaining time until this TNT explodes.
+     * @return the current fuse value in ticks
      * @since 1.8.4
      */
     public int getRemainingTime() {

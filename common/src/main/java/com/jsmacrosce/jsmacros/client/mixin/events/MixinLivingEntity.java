@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -19,6 +21,7 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.world.EventEntityDamaged;
 import com.jsmacrosce.jsmacros.client.api.event.impl.world.EventEntityHealed;
 
 @Mixin(LivingEntity.class)
+@DocletIgnore
 public abstract class MixinLivingEntity extends Entity {
 
     //IGNORE

@@ -5,13 +5,7 @@ import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 
 /**
- * the bat, which is the one mob here with a single state worth asking about: whether it is
- * hanging up out of the way or is flying about.
- * <p>
- * Nothing in this class changes anything. The flag is the game telling the client what its
- * bat is doing, and the game itself is what decides it, so this is a read of the last state
- * the server sent rather than something a script can push.
- * example:
+ * Provides access to a bat's resting state.
  * <pre>
  * const BatEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.BatEntityHelper");
  * const bats = World.getEntities(24, "bat");
@@ -32,17 +26,17 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 @SuppressWarnings("unused")
 public class BatEntityHelper extends MobEntityHelper<Bat> {
 
+    /** Wraps the bat and retains its reference.
+     * @param base bat entity to wrap
+     */
     public BatEntityHelper(Bat base) {
         super(base);
     }
 
     /**
-     * Whether the bat is hanging upside down, which is where it spends the day and where it
-     * goes back to when the light is right. A bat that is flying about answers {@code
-     * false}, and it is worth knowing that the game uses the same flag to keep it quiet: a
-     * resting bat often makes no ambient noise at all.
+     * Returns whether the bat is resting.
      *
-     * @return {@code true} if the bat is hanging upside down, {@code false} otherwise.
+     * @return {@code true} when the bat is resting; {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean isResting() {

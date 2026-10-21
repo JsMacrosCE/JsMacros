@@ -11,19 +11,12 @@ import com.jsmacrosce.wagyourgui.elements.Slider;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * a slider: a bar with a handle on it that the player drags, which is JsMacros' own
- * widget rather than one of the game's.
+ * A JsMacros slider widget with a draggable handle.
  * <p>
- * The value on a slider is a fraction from nothing to all the way along, not a step
- * number, and the number of steps decides how finely it can be set. That is the one
- * thing worth knowing before reaching for it, because the builder's own starting value
- * is the other of the two: {@code initially} takes a step number and the value reader
- * gives a fraction.
+ * The widget value is normalized from {@code 0.0} to {@code 1.0}; builder
+ * {@link SliderBuilder#initially(int)} instead accepts a zero-based position.
  * <p>
- * Setting the value runs the callback when it actually changes, exactly as dragging the
- * handle does, and does not when the new value rounds to what the slider already holds.
- * A script can therefore set the same value twice and only see the callback once.
- * example:
+ * The callback runs only when an input changes the value.
  * <pre>
  * const screen = Hud.createScreen("a screen", true);
  * const slider = screen.sliderBuilder()
@@ -38,10 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *    .build();
  * Hud.openScreen(screen);
  *
- * // a fraction from 0 to 1, not a step number
- * Chat.log(`value ${slider.getValue()} of ${slider.getSteps()} steps`);
- * // setting it to what it already is runs nothing
- * slider.setValue(slider.getValue());
+ * slider.setValue(1); // move to the maximum; callback runs if this changes the value
  * </pre>
  *
  * @author Etheradon
@@ -51,37 +41,29 @@ import java.util.concurrent.atomic.AtomicReference;
 @DocletCategory("Screen and UI Elements")
 public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper, Slider> {
 
+    /**
+     * Wraps the supplied slider, using z-index zero for this helper.
+     *
+     * @param btn the slider to wrap
+     */
     public SliderWidgetHelper(Slider btn) {
         super(btn);
     }
 
+    /**
+     * Wraps the supplied slider and sets this helper's drawing-order index.
+     *
+     * @param btn the slider to wrap
+     * @param zIndex the drawing-order index for this helper
+     */
     public SliderWidgetHelper(Slider btn, int zIndex) {
         super(btn, zIndex);
     }
 
     /**
-     * where the handle is, as a fraction from nothing at all up to all the way along,
-     * rather than as a step number. A slider with ten steps counts fractions in ninths
-     * rather than tenths, so the top of the slider reads one rather than ten and
-     * multiplying by {@link #getSteps()} does not give back a step number either; it has
-     * to be one less than the step count.
-     * <p>
-     * The value is snapped to the nearest position, so it is always exactly one of the
-     * positions the step count describes rather than anything in between.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * const slider = screen.sliderBuilder()
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .message("volume")
-     *    .steps(10)
-     *    .build();
-     * Hud.openScreen(screen);
-     * // a fraction, and the step it lands on out of the ten
-     * const step = Math.round(slider.getValue() * (slider.getSteps() - 1));
-     * Chat.log(`${slider.getValue()} along, step ${step} of ${slider.getSteps() - 1}`);
-     * </pre>
+     * Returns the normalized value from {@code 0.0} to {@code 1.0}, rounded to one of
+     * the configured positions. For {@code n} positions, the increments are
+     * {@code 1.0 / (n - 1)}.
      *
      * @return the current value of this slider.
      * @since 1.8.4
@@ -91,34 +73,10 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
     }
 
     /**
-     * moves the handle, taking the same fraction {@link #getValue()} gives rather than a
-     * step number. A number outside the range is brought to the nearest end of it, and
-     * the new value is snapped to the nearest step, so setting a value that rounds to
-     * what the slider already holds leaves it where it is.
-     * <p>
-     * The callback given to the builder runs when the value actually moves and not when
-     * it does not, so a script setting the value it already reads gets no callback at
-     * all. That is the same rule the handle dragging follows.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * const slider = screen.sliderBuilder()
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .message("volume")
-     *    .steps(10)
-     *    .action(JavaWrapper.methodToJava(function (s) {
-     *       Chat.log(`moved to ${s.getValue()}`);
-     *     }))
-     *    .build();
-     * Hud.openScreen(screen);
-     * // all the way along, which is 1 rather than 9
-     * slider.setValue(1);
-     * // this one rounds to the same place, so the callback does not run
-     * slider.setValue(0.99);
-     * </pre>
+     * Sets the normalized value, clamping it to {@code [0.0, 1.0]} and rounding to a
+     * configured position. The change callback runs only if the resulting value differs.
      *
-     * @param value the new value
+     * @param value requested normalized value
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -128,23 +86,7 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
     }
 
     /**
-     * how many positions the handle can sit at, which is the number of steps rather than
-     * the number of gaps between them. A slider with ten steps has ten positions and
-     * nine gaps, so the fractions the value snaps to are ninths, and a value of one is
-     * the tenth position rather than an eleventh.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * const slider = screen.sliderBuilder()
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .message("volume")
-     *    .steps(10)
-     *    .build();
-     * Hud.openScreen(screen);
-     * // ten positions, so the value is a multiple of a ninth
-     * Chat.log(`${slider.getSteps()} steps, value ${slider.getValue()}`);
-     * </pre>
+     * Returns the configured number of discrete positions (including both endpoints).
      *
      * @return the set amount of steps of this slider.
      * @since 1.8.4
@@ -154,32 +96,11 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
     }
 
     /**
-     * changes how many positions the handle can sit at, without moving the handle. This
-     * is not a rebuild: the value is left exactly where it was rather than being snapped
-     * to the new set of positions, so a slider can be holding a position the new step
-     * count has no place for until it is moved.
-     * <p>
-     * Nothing here checks the number: a step count of one or less is passed straight
-     * through rather than being brought up to two. The floor to two only happens when
-     * the widget is built, so a count under two set on a built slider leaves it
-     * dividing by nothing at all.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * const slider = screen.sliderBuilder()
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .message("volume")
-     *    .steps(10)
-     *    .initially(9)
-     *    .build();
-     * Hud.openScreen(screen);
-     * // finer control, without the handle moving
-     * slider.setSteps(20);
-     * Chat.log(`${slider.getSteps()} steps, still at ${slider.getValue()}`);
-     * </pre>
+     * Sets the number of discrete positions without changing or re-rounding the
+     * current value. Unlike the builder, this method does not clamp the count; use at
+     * least two positions for normal slider operation.
      *
-     * @param steps the amount of steps
+     * @param steps number of discrete positions
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -188,36 +109,21 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
         return this;
     }
 
+    /**
+     * Returns a formatted diagnostic containing this slider's message, value, and step count.
+     * The message is inserted without JSON escaping, and numeric formatting follows the default locale.
+     *
+     * @return the formatted diagnostic string
+     */
     @Override
     public String toString() {
         return String.format("SliderWidgetHelper:{\"message\": \"%s\", \"value\": %f, \"steps\": %d}", base.getMessage().getString(), getValue(), getSteps());
     }
 
     /**
-     * the builder for a slider, handed back by {@code IScreen.sliderBuilder()} and
-     * already bound to that screen.
-     * <p>
-     * It starts with two steps and a starting value of nothing. The two settings that
-     * matter are the step count and the starting value, and the order they are set in
-     * matters: {@code initially} clamps against the step count as it stands, so the
-     * steps have to be set first or the value is clamped against the default of two.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * const builder = screen.sliderBuilder()
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .message("volume")
-     *    // the step count has to be set before the starting value
-     *    .steps(10)
-     *    .initially(5);
-     * // both are readable on the builder before anything is built
-     * Chat.log(`${builder.getSteps()} steps, starting at ${builder.getValue()}`);
-     * const slider = builder.build();
-     * Hud.openScreen(screen);
-     * // the starting value is a step number and the widget's is a fraction
-     * Chat.log(`built at ${slider.getValue()}`);
-     * </pre>
+     * Builds sliders for the screen returned by {@link IScreen#sliderBuilder()}.
+     * Defaults to two positions and position zero. Set {@link #steps(int)} before
+     * {@link #initially(int)}, since the latter clamps against the current count.
      *
      * @author Etheradon
      * @since 1.8.4
@@ -230,22 +136,17 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
         @Nullable
         private MethodWrapper<SliderWidgetHelper, IScreen, Object, ?> action;
 
+        /**
+         * Associates this builder with the screen that will receive widgets built from it.
+         *
+         * @param screen the screen to associate with this builder
+         */
         public SliderBuilder(IScreen screen) {
             super(screen);
         }
 
         /**
-         * the step count set so far, which is the number of positions rather than the
-         * number of gaps between them. It starts at two, which is the smallest count the
-         * slider will work with.
-         * example:
-         * <pre>
-         * const screen = Hud.createScreen("a screen", true);
-         * const builder = screen.sliderBuilder().pos(10, 20).size(100, 20);
-         * Chat.log(`starts at ${builder.getSteps()} steps`);
-         * builder.steps(20);
-         * Chat.log(`now ${builder.getSteps()}`);
-         * </pre>
+         * Returns the configured number of discrete positions; defaults to two.
          *
          * @return the amount of steps of this slider.
          * @since 1.8.4
@@ -255,29 +156,10 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
         }
 
         /**
-         * sets how many positions the handle can sit at, clamping anything under two up
-         * to two rather than refusing it, and leaving anything larger alone. The slider
-         * will not work with fewer than two, so a smaller number is a mistake rather
-         * than something to honour.
-         * <p>
-         * This only affects where the handle can go. The value already on the builder is
-         * not re-clamped against the new count, so the two can disagree until
-         * {@code initially} is called again.
-         * example:
-         * <pre>
-         * const screen = Hud.createScreen("a screen", true);
-         * screen.sliderBuilder()
-         *    .pos(10, 20)
-         *    .size(100, 20)
-         *    .message("volume")
-         *    // a count under two is brought up to two rather than refused
-         *    .steps(1)
-         *    .initially(1)
-         *    .build();
-         * Hud.openScreen(screen);
-         * </pre>
+         * Sets the number of discrete positions, clamping values below two to two.
+         * Does not re-clamp a previously configured starting position.
          *
-         * @param steps the amount of steps for the slider. Must be greater or equal to 2
+         * @param steps requested number of positions; values below two become two
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -287,17 +169,8 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
         }
 
         /**
-         * the starting value set so far, as a step number rather than as the fraction
-         * the widget will hold. It starts at nothing, which is the leftmost position
-         * whatever the step count is.
-         * example:
-         * <pre>
-         * const screen = Hud.createScreen("a screen", true);
-         * const builder = screen.sliderBuilder().pos(10, 20).size(100, 20).steps(10);
-         * Chat.log(`starts at step ${builder.getValue()}`);
-         * builder.initially(5);
-         * Chat.log(`now step ${builder.getValue()}`);
-         * </pre>
+         * Returns the builder's configured starting position as a zero-based step
+         * number; it defaults to zero.
          *
          * @return the initial value of the slider.
          * @since 1.8.4
@@ -307,20 +180,17 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
         }
 
         /**
-         * sets which position the handle starts on, as a step number counted from
-         * nothing. The number is clamped to nothing through one less than the step
-         * count, so a value past the end of the slider is brought back to the end rather
-         * than refused.
+         * Sets the starting position as a zero-based step number, clamped to the range
+         * from zero through {@code steps - 1}.
          * <p>
          * The clamp reads the step count as it stands at the moment of the call, so a
          * chain that sets the value before the steps is clamping against the default of
          * two and a value of five becomes one. Setting the steps first is what makes
          * this land where it looks like it should.
          * <p>
-         * The built widget holds a fraction rather than a step number: the value given
-         * is divided by one less than the step count, so five out of ten steps is five
-         * ninths of the way along rather than halfway.
-         * example:
+         * The widget value is a normalized fraction, so the step number is divided by
+         * {@code steps - 1} (for example, step five of ten corresponds to {@code 5/9}).
+         * <p>
          * <pre>
          * const screen = Hud.createScreen("a screen", true);
          * const builder = screen.sliderBuilder()
@@ -345,23 +215,7 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
         }
 
         /**
-         * the callback to run when the handle moves. It is given the slider and the
-         * screen it was made on, and it runs on a real drag and on a scripted
-         * {@link SliderWidgetHelper#setValue(double)} alike, but only when the value
-         * actually changes.
-         * <p>
-         * It is {@code null} until something is set, which is why a slider built
-         * without one is silent rather than doing nothing unusual.
-         * example:
-         * <pre>
-         * const screen = Hud.createScreen("a screen", true);
-         * const builder = screen.sliderBuilder().pos(10, 20).size(100, 20);
-         * Chat.log(`starts with a listener: ${builder.getAction() !== null}`);
-         * builder.action(JavaWrapper.methodToJava(function (s) {
-         *   Chat.log(`moved to ${s.getValue()}`);
-         * }));
-         * Chat.log(`now: ${builder.getAction() !== null}`);
-         * </pre>
+         * Returns the configured change callback, or {@code null} if none is set.
          *
          * @return the change listener of the slider.
          * @since 1.8.4
@@ -372,26 +226,9 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
         }
 
         /**
-         * sets the callback to run when the handle moves. It is given the slider and the
-         * screen the builder was made for. It runs on a real drag and on a scripted
-         * change alike, and only when the value actually changes.
-         * <p>
-         * Passing {@code null} leaves whatever was set rather than clearing it, so a
-         * chain that sets a listener and then passes {@code null} keeps the first one.
-         * example:
-         * <pre>
-         * const screen = Hud.createScreen("a screen", true);
-         * screen.sliderBuilder()
-         *    .pos(10, 20)
-         *    .size(100, 20)
-         *    .message("volume")
-         *    .steps(10)
-         *    .action(JavaWrapper.methodToJava(function (s) {
-         *       Chat.log(`now ${s.getValue()}`);
-         *     }))
-         *    .build();
-         * Hud.openScreen(screen);
-         * </pre>
+         * Sets the callback invoked with the built slider and its screen when the
+         * slider value changes, whether by dragging or by {@link SliderWidgetHelper#setValue(double)}.
+         * Passing {@code null} clears the callback.
          *
          * @param action the change listener for the slider
          * @return self for chaining.
@@ -402,6 +239,15 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
             return this;
         }
 
+        /**
+         * Constructs a slider from the builder's configured geometry, message, step count,
+         * and initial step converted to a normalized fraction. The configured action receives
+         * this helper and its associated screen; exceptions from the action are logged.
+         * The returned helper uses the configured z-index; {@code build()} applies the other
+         * builder properties and adds the widget to the associated screen.
+         *
+         * @return the helper wrapping the constructed slider
+         */
         @Override
         public SliderWidgetHelper createWidget() {
             AtomicReference<SliderWidgetHelper> b = new AtomicReference<>(null);

@@ -38,6 +38,7 @@ import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
@@ -60,45 +61,20 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
- * a packet's bytes, as something a script can read and write.
+ * Reads and writes typed values in a packet buffer; callers must use the packet's field order
+ * and matching read/write operations.
  * <p>
- * The wire format is a stream of typed values, and this is that stream: the read and write
- * calls mirror each other exactly, so {@code writeVarInt} pairs with {@code readVarInt} and
- * {@code writeString} with {@code readString}, and the order matters. A script reading a
- * packet has to read the fields in the order the packet wrote them, because nothing in the
- * buffer says what is where.
- * <p>
- * A helper is either a <b>fresh buffer</b> or a <b>real packet's</b> buffer, and the difference
- * decides what it is for. The packet events hand one out for the packet in question, which is
- * how a script reads a packet it has just seen, and {@code Client.createPacketByteBuffer()}
- * makes an empty one for a script that wants to build a payload. Everything a script does to a
- * real packet through this is a <i>local</i> change: the game is handed the packet object, not
- * the buffer. To apply edits to an intercepted packet, decode the buffer and assign the result
- * to the event's {@code packet} field.
- * <p>
- * The buffer remembers where it was when the helper was made, and {@link #reset()} puts it
- * back. That is the pattern every read of a real packet should follow — read what you want,
- * then reset, so the next read from this helper starts at the original position.
+ * Packet-event buffers contain encoded packet data; {@code Client.createPacketByteBuffer()}
+ * creates a fresh buffer. Changes to a packet-event buffer do not change the packet object.
+ * {@link #reset()} restores the captured bytes and reader position (normally the start for a
+ * packet-backed helper); use it when you need to reread or decode from that captured position.
  * <p>
  * Supported standalone packets can be decoded using their registered codecs. Packet-backed
  * helpers remember their network phase; overloads taking a protocol select a phase explicitly.
  * Conversion reads from the current reader position, so reset after inspecting a packet before
  * decoding its untouched bytes. {@link #receivePacket()} handles the original packet object,
  * whereas its named and class overloads decode the buffer first.
- * example:
  * <pre class="language-typescript">
- * // read a packet that has just arrived, in the order the packet writes it
- * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event: EventRecvPacket) {
- *   if (event.type !== "HealthUpdateS2CPacket") return;
- *   if (!event.canGetPacketBuffer()) return;
- *   const buffer = event.getPacketBuffer();
- *   // HealthUpdateS2CPacket writes float health, VarInt food, then float saturation
- *   Chat.log(`health ${buffer.readFloat()}`);
- *   // put this helper back before another read or conversion
- *   buffer.reset();
- * }));
- *
- * // or build a payload of your own
  * const payload = Client.createPacketByteBuffer();
  * payload.writeString("hello").writeVarInt(42);
  * Chat.log(`${payload.readString()} and ${payload.readVarInt()}`);
@@ -117,7 +93,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * <p>
      * Don't touch this here!
      * <br>
-     * Populated during class initialization for packet classes with supported standalone codecs.
+     * Populated by {@code init()} for packet classes with supported standalone codecs.
      * {@link #toPacket(Class)} uses it for play-phase decoding; explicit phase decoding selects
      * the matching codec directly.
      */
@@ -137,6 +113,10 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     @Nullable
     private final RegistryAccess originalRegistryAccess;
 
+    /**
+     * Creates a fresh buffer with no originating packet and the default {@code play} phase.
+     * Captures its initial contents for {@code reset()}.
+     */
     public PacketByteBufferHelper() {
         super(getBuffer(null));
         this.packet = null;
@@ -145,6 +125,13 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         this.originalRegistryAccess = base instanceof RegistryFriendlyByteBuf registryBuffer ? registryBuffer.registryAccess() : null;
     }
 
+    /**
+     * Uses the supplied buffer directly as its working buffer and captures a separate copy of its
+     * initial contents for {@code reset()}. This helper has no originating packet and uses the default {@code play}
+     * phase.
+     *
+     * @param base the non-null buffer to wrap
+     */
     public PacketByteBufferHelper(FriendlyByteBuf base) {
         super(base);
         this.packet = null;
@@ -153,6 +140,16 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         this.originalRegistryAccess = base instanceof RegistryFriendlyByteBuf registryBuffer ? registryBuffer.registryAccess() : null;
     }
 
+    /**
+     * Encodes a packet using its selected phase's standalone codec and retains the packet as the
+     * helper's origin; this does not send or handle the packet. The encoded contents are captured
+     * for {@code reset()}. The current connection phase is preferred when registered for the
+     * packet; otherwise its sole registered phase is selected. Unknown packets or packets with
+     * ambiguous phases throw {@code IllegalArgumentException}; a missing standalone codec also
+     * throws {@code IllegalArgumentException}.
+     *
+     * @param packet the non-null packet to encode
+     */
     public PacketByteBufferHelper(Packet<?> packet) {
         this(packet, preferredProtocol(packet, mc.getConnection() == null ? null : mc.getConnection().protocol()));
     }
@@ -162,7 +159,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      *
      * @param packet the packet to encode
      * @param protocol the network phase, such as {@code play} or {@code configuration}
-     * @throws IllegalArgumentException if no standalone codec is available
+     * @throws IllegalArgumentException if the protocol is unknown or no standalone codec is available
      */
     public PacketByteBufferHelper(Packet<?> packet, String protocol) {
         super(getBuffer(packet));
@@ -288,23 +285,13 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * the id the game uses on the wire for a packet class.
-     * <p>
-     * This overload requires the packet class to occur in exactly one protocol. For a class
-     * shared between phases, use {@link #getPacketId(Class, String)} to disambiguate.
-     * <br>
-     * The event's own {@code type} string is the reliable way to tell what a packet is.
-     * example:
-     * <pre>
-     * // the event's type is the reliable identifier
-     * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event) {
-     *   Chat.log(event.type);
-     * }));
-     * </pre>
+     * Returns the packet ID registered for the packet class. The ID is specific to the
+     * protocol and direction, and may change across Minecraft versions; if the class is
+     * registered in multiple protocols, use {@link #getPacketId(Class, String)}.
      *
      * @param packetClass the class of the packet to get the id for
-     * @return the registered packet id
-     * @throws IllegalArgumentException if the class is unknown or belongs to multiple protocols
+     * @return the ID registered for the packet class
+     * @throws IllegalArgumentException if the class is unknown or registered in multiple protocols
      * @since 1.8.4
      */
     public int getPacketId(Class<? extends Packet<?>> packetClass) {
@@ -314,7 +301,13 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         return ids.values().iterator().next();
     }
 
-    /** Returns the packet ID in the requested protocol (for example, "play" or "configuration"). */
+    /** Returns the packet ID registered for the requested protocol (for example, "play" or "configuration").
+     * Throws {@link IllegalArgumentException} if the protocol is unknown or the packet is not registered in it.
+     *
+     * @param packetClass the packet class
+     * @param protocol the protocol identifier or name
+     * @return the registered packet ID
+     */
     public int getPacketId(Class<? extends Packet<?>> packetClass, String protocol) {
         Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packetClass);
         ConnectionProtocol phase = resolveProtocol(protocol);
@@ -343,7 +336,13 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         return ids.keySet().iterator().next().ordinal();
     }
 
-    /** Returns the state ID for a packet registered in the requested protocol. */
+    /** Returns the ordinal of the requested protocol for a packet registered in it.
+     * Throws {@link IllegalArgumentException} if the protocol is unknown or the packet is not registered in it.
+     *
+     * @param packetClass the packet class
+     * @param protocol the protocol identifier or name
+     * @return the requested protocol's ordinal
+     */
     public int getNetworkStateId(Class<? extends Packet<?>> packetClass, String protocol) {
         Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packetClass);
         ConnectionProtocol phase = resolveProtocol(protocol);
@@ -436,15 +435,10 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * Nothing is sent anywhere either, so this is the opposite direction from
      * {@link #sendPacket()} and the send event's {@code replacePacket} has no bearing on it.
      * <br>
-     * The packet is declared as one for a {@code ClientGamePacketListener} and that is the
-     * caveat, but a subtle one: the cast is erased, so this call itself performs no check and
-     * a packet belonging to some other listener, a configuration or login one for instance, is
-     * handed over unchecked. The failure then comes from inside the game's own handler for
-     * that packet rather than from here, which makes it look like something else went wrong.
+     * The listener type is not checked before handling; the packet's handler receives the current
+     * client game connection, so use a packet compatible with that listener.
      *
      * @return self for chaining.
-     * @throws ClassCastException if the packet behind this buffer is not a client game packet,
-     * raised by that packet's own handler rather than by this call
      * @since 1.8.4
      */
     public PacketByteBufferHelper receivePacket() {
@@ -474,11 +468,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * handles a packet of the given class as though the client had received it.
-     * <p>
-     * If this helper has an original packet, decodes through {@link #toPacket(Class)} and
-     * handles the result with the client game connection. Otherwise this is a no-op. The bytes
-     * must be correctly positioned and describe a compatible client game packet.
+     * Decodes the requested packet at the current reader position and handles it with the
+     * client game connection. A helper without an original packet is a no-op; the listener type
+     * is not checked before handling.
      *
      * @param clazz the class of the packet to receive
      * @return self for chaining.
@@ -492,58 +484,14 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * every packet name this class knows, as a shortcut for a packet's class name.
+     * Returns the convenience names registered for packet classes.
      * <p>
-     * These names are subject to change and are only for an easier access. They will probably
-     * not change in the future, but it is not guaranteed.
-     * <br>
-     * The naming carries the direction: a name ending {@code S2CPacket} is one the server sends
-     * to the client and one ending {@code C2SPacket} is one the client sends. That suffix is
-     * a convenient naming convention; registered metadata from {@link #isClientbound(Class)}
-     * and {@link #isServerbound(Class)} is authoritative when the packet class is available.
-     * <br>
-     * It is a rule rather than a certainty, and a script that cares should not assume it holds
-     * for every entry. In the 1.21.8 build the table holds 200 names, of which 132 end in
-     * {@code S2CPacket} and 61 in {@code C2SPacket}; the other seven are the ones to know
-     * about, and all seven are named for the class they are a variant of with a {@code $}
-     * between the two parts, such as {@code EntityS2CPacket$Rotate} and
-     * {@code PlayerMoveC2SPacket$OnGroundOnly}, so the direction sits in the middle of the name
-     * and a {@code endsWith} test misses them. A test on the name is right for the 193 that
-     * follow the rule and only wrong for those seven.
-     * <br>
-     * Those counts are a snapshot of the 1.21.8 table rather than a property of the class, and
-     * they are worth reading that way: entries around the edges of the table sit in
-     * version-gated blocks of the source, so a build for another target compiles a different set
-     * and a packet that is a {@code Clientbound} one on 1.21.11 is an {@code S2CPacket} here.
-     * Nothing else on this class reads the numbers, so a count that has moved is a reason to
-     * recount rather than a reason to distrust {@link #getPacketName(Packet)}.
-     * <br>
-     * The list is also what a filterer's {@code setType} takes, and the same string the packet
-     * events report as their {@code type}.
-     * <br>
-     * Every name here stands for exactly one packet class, and the reverse map behind
-     * {@link #getPacketName(Packet)} is built from this same table, so for a packet that is in
-     * it the two agree. The one way a script can see a name that is not in this list is a
-     * packet class the table does not cover at all: {@link #getPacketName(Packet)} falls back to
-     * that class's real simple class name, which is the game's own rather than one of the
-     * shortcut names, so it will not be findable by matching against this list.
-     * example:
-     * <pre>
-     * const buffer = Client.createPacketByteBuffer();
-     * // a filterer picks a packet by one of these names
-     * const filterer = JsMacros.createEventFilterer("RecvPacket")
-     *   .setType("HealthUpdateS2CPacket");
-     *
-     * // the suffix is the practical direction test, and the seven names that
-     * // break it are the ones to spot by hand
-     * for (const name of buffer.getPacketNames()) {
-     *   if (name.endsWith("C2SPacket")) {
-     *     Chat.log(`${name} goes to the server`);
-     *   } else if (!name.endsWith("S2CPacket")) {
-     *     Chat.log(`${name} is the odd one out`);
-     *   }
-     * }
-     * </pre>
+     * Names are also used as packet-event {@code type} values and by filterer
+     * {@code setType}. Most encode direction in an {@code S2C} or {@code C2S} suffix, but
+     * this is a naming convention, not authoritative direction metadata; use
+     * {@link #isClientbound(Class)} or {@link #isServerbound(Class)} when available. Names
+     * are convenience aliases and may change. {@link #getPacketName(Packet)} can return a
+     * class's simple name when that class has no registered alias.
      *
      * @return a list of all packet names.
      * @since 1.8.4
@@ -554,26 +502,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * Resets the buffer to the state it was in when this helper was created.
+     * Restores the buffer contents and reader position captured when this helper was created.
      * <p>
-     * The position and the contents both go back, so this undoes a read as well as a write.
-     * Use this after inspecting a packet if another read or conversion should start from the
-     * original position. Each packet-buffer helper owns its own bytes; resetting one does not
-     * replace the event's packet. Registry-backed buffers retain their registry access.
-     * <br>
-     * The state it restores is the one captured when the helper was <i>made</i>, which for a
-     * packet event's helper is the state as the packet wrote it, not an empty buffer.
-     * example:
-     * <pre class="language-typescript">
-     * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event: EventRecvPacket) {
-     *   if (event.type !== "HealthUpdateS2CPacket") return;
-     *   if (!event.canGetPacketBuffer()) return;
-     *   const buffer = event.getPacketBuffer();
-     *   // read health, then restore this helper for another read
-     *   Chat.log(`health ${buffer.readFloat()}`);
-     *   buffer.reset();
-     * }));
-     * </pre>
+     * For a packet-backed helper, this is the encoded packet data, not an empty buffer. The
+     * helper's buffer is separate from the packet object; resetting it does not change that
+     * object. Registry access is retained when restoring a registry-backed buffer.
      *
      * @return self for chaining.
      * @since 1.8.4
@@ -586,7 +519,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param key the registry key to store
+     * Writes a registry key to the buffer.
+     *
+     * @param key the key to write
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -596,8 +531,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param registry the registry the read key is from
-     * @return the registry key.
+     * Reads a registry key from the buffer.
+     *
+     * @param registry the registry the key belongs to
+     * @param <T> the type of values identified by the registry key
+     * @return the decoded key
      * @since 1.8.4
      */
     public <T> ResourceKey<T> readRegistryKey(ResourceKey<? extends Registry<T>> registry) {
@@ -605,8 +543,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param collection the collection to store
-     * @param writer     the function that writes the collection's elements to the buffer
+     * Writes a collection and its elements to the buffer.
+     *
+     * @param collection the collection to write
+     * @param writer     writes each element
+     * @param <T> the type of elements in the collection
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -616,8 +557,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param reader the function that reads the collection's elements from the buffer
-     * @return the read list.
+     * Reads a list of elements from the buffer.
+     *
+     * @param reader reads each element
+     * @param <T> the type of elements read
+     * @return the decoded elements
      * @since 1.8.4
      */
     public <T> List<T> readList(MethodWrapper<FriendlyByteBuf, ?, T, ?> reader) {
@@ -625,7 +569,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param list the integer list to store
+     * Writes an integer list to the buffer.
+     *
+     * @param list the list to write
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -635,7 +581,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @return the read integer list.
+     * Reads an integer list from the buffer.
+     *
+     * @return the decoded list
      * @since 1.8.4
      */
     public IntList readIntList() {
@@ -643,9 +591,13 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param map         the map to store
-     * @param keyWriter   the function to write the map's keys to the buffer
-     * @param valueWriter the function to write the map's values to the buffer
+     * Writes a map and its keys and values to the buffer.
+     *
+     * @param map         the map to write
+     * @param keyWriter   writes each key
+     * @param valueWriter writes each value
+     * @param <K> the type of map keys
+     * @param <V> the type of map values
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -655,8 +607,12 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param keyReader   the function to read the map's keys from the buffer
-     * @param valueReader the function to read the map's values from the buffer
+     * Reads a map's keys and values from the buffer.
+     *
+     * @param keyReader   reads each map key
+     * @param valueReader reads each map value
+     * @param <K> the type of map keys
+     * @param <V> the type of map values
      * @return the read map.
      * @since 1.8.4
      */
@@ -677,6 +633,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     /**
      * @param value  the optional value to store
      * @param writer the function to write the optional value if present to the buffer
+     * @param <T> the value type
      * @return self for chaining.
      * @see #writeNullable(Object, MethodWrapper)
      * @since 1.8.4
@@ -688,6 +645,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
 
     /**
      * @param reader the function to read the optional value from the buffer if present
+     * @param <T> the value type
      * @return the optional value.
      * @see #readNullable(MethodWrapper)
      * @since 1.8.4
@@ -710,6 +668,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
 
     /**
      * @param reader the function to read the value from the buffer if it's not null
+     * @param <T> the value type
      * @return the read value or {@code null} if it was null.
      * @see #readOptional(MethodWrapper)
      * @since 1.8.4
@@ -766,10 +725,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * Will throw an exception if the int array is bigger than the given maximum size.
+     * Reads and discards an int array, then returns this helper. The reader rejects an encoded
+     * array length greater than {@code maxSize}.
      *
      * @param maxSize the maximum size of the int array to read
-     * @return self for chaining.
+     * @return this helper
      * @since 1.8.4
      */
     public PacketByteBufferHelper readIntArray(int maxSize) {
@@ -796,10 +756,12 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * Will throw an exception if the long array is bigger than the given maximum size.
+     * Reads and returns a long array. The {@code maxSize} argument is ignored; the underlying
+     * reader instead rejects a length greater than the number of complete longs remaining in
+     * the buffer.
      *
      * @param maxSize the maximum size of the long array to read
-     * @return the read long array.
+     * @return the read long array
      * @since 1.8.4
      */
     public long[] readLongArray(int maxSize) {
@@ -858,7 +820,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @return the position of the read chunk, x at index 0, z at index 1.
+     * @return the chunk coordinates, with x at index 0 and z at index 1.
      * @since 1.8.4
      */
     public int[] readChunkPos() {
@@ -867,7 +829,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @return a {@link ChunkHelper} for the read chunk position.
+     * Reads a chunk position and looks up that chunk in the current client level.
+     *
+     * @return its {@link ChunkHelper}, or {@code null} if the lookup returns no chunk.
      * @since 1.8.4
      */
     @Nullable
@@ -879,9 +843,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param chunkX the x coordinate of the chunk to store
-     * @param y      the y coordinate to store
-     * @param chunkZ the z coordinate of the chunk to store
+     * @param chunkX the section's x coordinate
+     * @param y      the section's y coordinate
+     * @param chunkZ the section's z coordinate
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -895,8 +859,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param chunk the chunk whose position should be stored
-     * @param y     the y to store
+     * @param chunk the chunk whose x and z coordinates define the section position
+     * @param y     the section's y coordinate
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -910,7 +874,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @return the read chunk section pos, as a {@link BlockPosHelper}.
+     * @return the read section coordinates, wrapped as a {@link BlockPosHelper}.
      * @since 1.8.4
      */
     public BlockPosHelper readChunkSectionPos() {
@@ -923,8 +887,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param dimension the dimension, vanilla default are {@code overworld}, {@code the_nether},
-     *                  {@code the_end}
+     * @param dimension the dimension identifier; vanilla dimensions include {@code overworld},
+     *                  {@code the_nether}, and {@code the_end}
      * @param pos       the position to store
      * @return self for chaining.
      * @since 1.8.4
@@ -937,8 +901,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param dimension the dimension, vanilla default are {@code overworld}, {@code the_nether},
-     *                  {@code the_end}
+     * @param dimension the dimension identifier; vanilla dimensions include {@code overworld},
+     *                  {@code the_nether}, and {@code the_end}
      * @param x         the x coordinate of the position to store
      * @param y         the y coordinate of the position to store
      * @param z         the z coordinate of the position to store
@@ -953,7 +917,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param constant the enum constant to store
+     * @param constant the enum constant to encode by ordinal
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -963,8 +927,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param enumClass the class of the enum to read from
-     * @return the read enum constant.
+     * @param enumClass the enum class whose constant is selected by the encoded ordinal
+     * @param <T> the enum type to read
+     * @return the enum constant at the encoded ordinal
      * @since 1.8.4
      */
     public <T extends Enum<T>> T readEnumConstant(Class<T> enumClass) {
@@ -972,7 +937,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param i the int to store
+     * @param i the integer to encode as a variable-length integer
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -1172,6 +1137,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @deprecated use {@link PacketByteBufferHelper#writeBlockHitResult(HitResultHelper.Block hitResult)} instead.
      */
     @Deprecated
+    @DocletIgnore
     public PacketByteBufferHelper writeBlockHitResult(BlockHitResult hitResult) {
         base.writeBlockHitResult(hitResult);
         return this;
@@ -1214,6 +1180,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @deprecated use {@link PacketByteBufferHelper#readBlockHitResultHelper()} instead.
      */
     @Deprecated
+    @DocletIgnore
     public BlockHitResult readBlockHitResult() {
         return base.readBlockHitResult();
     }
@@ -1224,6 +1191,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @deprecated use {@link PacketByteBufferHelper#readBlockHitResultHelper()} instead.
      */
     @Deprecated
+    @DocletIgnore
     public Map<String, Object> readBlockHitResultMap() {
         BlockHitResult hitResult = base.readBlockHitResult();
         return ImmutableMap.of("side", new DirectionHelper(hitResult.getDirection()), "blockPos", new BlockPosHelper(hitResult.getBlockPos()), "missed", hitResult.getType() == HitResult.Type.MISS, "inside", hitResult.isInside());
@@ -1341,10 +1309,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * Marks the writers current index for later use.
+     * Marks the current writer index for later use by {@link #resetWriterIndex()}.
      *
      * @return self for chaining.
-     * @see #resetWriterIndex() ()
      * @since 1.8.4
      */
     public PacketByteBufferHelper markWriterIndex() {
@@ -1406,6 +1373,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * Reads a byte at the given index without changing the reader index.
      * @param index the index to read from
      * @return the boolean value at the given index.
      * @since 1.8.4
@@ -1444,6 +1412,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * Reads an unsigned byte at the given index without changing the reader index.
      * @param index the index to read from
      * @return the char at the given index.
      * @since 1.8.4
@@ -1453,6 +1422,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * Writes a short at the current writer index.
      * @param value the value to store
      * @return self for chaining.
      * @since 1.8.4
@@ -1463,6 +1433,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * Writes a short at the given index without changing the writer index.
      * @param index the index to write to
      * @param value the value to store
      * @return self for chaining.
@@ -1529,6 +1500,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * Reads a short from the current reader index.
      * @return the read short value.
      * @since 1.8.4
      */
@@ -1537,6 +1509,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * Reads an unsigned short from the current reader index.
      * @return the read unsigned short value, represented as an int.
      * @since 1.8.4
      */
@@ -1545,6 +1518,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * Reads a short at the given index without changing the reader index.
      * @param index the index to read from
      * @return the short at the given index.
      * @since 1.8.4
@@ -1554,6 +1528,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * Reads an unsigned short at the given index without changing the reader index.
      * @param index the index to read from
      * @return the unsigned short at the given index, represented as an int.
      * @since 1.8.4
@@ -1563,6 +1538,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * Writes a medium at the current writer index.
      * @param value the value to store
      * @return self for chaining.
      * @since 1.8.4
@@ -1573,6 +1549,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * Writes a medium at the given index without changing the writer index.
      * @param index the index to write to
      * @param value the value to store
      * @return self for chaining.
@@ -1584,7 +1561,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @return the read medium value.
+     * Reads a signed medium from the current reader index.
+     * @return the value read.
      * @since 1.8.4
      */
     public int readMedium() {
@@ -1592,7 +1570,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @return the read unsigned medium value.
+     * Reads an unsigned medium from the current reader index.
+     * @return the value read.
      * @since 1.8.4
      */
     public int readUnsignedMedium() {
@@ -1600,8 +1579,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param index the index to read from
-     * @return the medium at the given index.
+     * @param index the byte index to read from
+     * @return the signed medium at that index.
      * @since 1.8.4
      */
     public int getMedium(int index) {
@@ -1609,8 +1588,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param index the index to read from
-     * @return the unsigned medium at the given index.
+     * @param index the byte index to read from
+     * @return the unsigned medium at that index.
      * @since 1.8.4
      */
     public int getUnsignedMedium(int index) {
@@ -1618,8 +1597,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param value the value to store
-     * @return self for chaining.
+     * Writes an integer at the current writer index.
+     * @param value the value to write
+     * @return this buffer helper.
      * @since 1.8.4
      */
     public PacketByteBufferHelper writeInt(int value) {
@@ -1628,9 +1608,10 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param index the index to write to
-     * @param value the value to store
-     * @return self for chaining.
+     * Writes an integer at the given byte index without changing the writer index.
+     * @param index the byte index to write to
+     * @param value the value to write
+     * @return this buffer helper.
      * @since 1.8.4
      */
     public PacketByteBufferHelper setInt(int index, int value) {
@@ -1639,7 +1620,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @return the read int value.
+     * Reads an integer from the current reader index.
+     * @return the value read.
      * @since 1.8.4
      */
     public int readInt() {
@@ -1647,7 +1629,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @return the read unsigned int value, represented as a long.
+     * Reads an unsigned integer from the current reader index.
+     * @return the value read, represented as a long.
      * @since 1.8.4
      */
     public long readUnsignedInt() {
@@ -1655,8 +1638,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param index the index to read from
-     * @return the int at the given index.
+     * @param index the byte index to read from
+     * @return the integer at that index.
      * @since 1.8.4
      */
     public int getInt(int index) {
@@ -1664,8 +1647,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @param index the index to read from
-     * @return the unsigned int at the given index, represented as a long.
+     * @param index the byte index to read from
+     * @return the unsigned integer at that index, represented as a long.
      * @since 1.8.4
      */
     public long getUnsignedInt(int index) {
@@ -1844,7 +1827,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     /**
      * @param index  the index to start reading from
      * @param length the length of the array to read
-     * @return the read byte array .
+     * @return the bytes at the specified index; the reader index is unchanged
      * @since 1.8.4
      */
     public byte[] getBytes(int index, int length) {
@@ -1865,34 +1848,34 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         return this;
     }
 
+    /**
+     * Returns a diagnostic string containing the underlying buffer's string representation.
+     *
+     * @return a diagnostic string describing the underlying buffer
+     */
     @Override
     public String toString() {
         return String.format("PacketByteBufferHelper:{\"base\": %s}", base);
     }
 
     /**
-     * the shortcut name of a packet object, or its class name if it has none.
+     * Returns the shortcut name for a packet, or its simple class name when no shortcut is registered.
      * <p>
-     * The reverse of {@link #getPacketNames()} for a packet that is in hand: it gives the name
-     * a filterer would take and that the packet events report as their {@code type}, without
-     * the script having to reach the class itself. A packet class that is not in the table falls
-     * back to its simple class name, so the answer is always something usable.
-     * example:
-     * <pre>
-     * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event) {
-     *   // the event's own type is the same string
-     *   Chat.log(event.type);
-     * }));
-     * </pre>
+     * The returned name is also used as packet-event {@code type} and accepted by packet filterers.
      *
      * @param packet the packet to name
-     * @return the packet's shortcut name, or its simple class name if it has no entry
+     * @return the packet's shortcut name, or its simple class name if none is registered
      * @since 1.8.4
      */
     public static String getPacketName(Packet<?> packet) {
         return PACKET_NAMES.getOrDefault(packet.getClass(), packet.getClass().getSimpleName());
     }
 
+    /**
+     * Populates convenience packet-name mappings and registers packet IDs, directions, and
+     * supported standalone play-phase decoders using reflection. Reflective lookup failures may
+     * cause an {@code IllegalStateException}.
+     */
     public static void init() {
 //        for (NetworkState state : NetworkState.values()) {
 //            for (NetworkSide side : NetworkSide.values()) {
@@ -2196,10 +2179,10 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * Checks whether a packet has a registered phase and a standalone codec for that phase.
-     * Uses the same phase selection as {@link #PacketByteBufferHelper(Packet)}. Bundles,
-     * unregistered packets and packets whose phase cannot be selected return {@code false}.
-     * This checks codec availability, not whether encoding the packet's contents will succeed.
+     * Checks whether the packet has a standalone codec for the phase selected as in
+     * {@link #PacketByteBufferHelper(Packet)}. Returns {@code false} for {@code null}, unknown
+     * packets, ambiguous phase selection, or missing codecs; it does not test whether encoding
+     * the packet's contents will succeed.
      *
      * @param packet the packet to check, or {@code null}
      * @return whether the packet has a supported standalone codec
@@ -2215,7 +2198,15 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         }
     }
 
-    /** Choose the registered phase, preferring the connection's current phase for shared packets. */
+    /**
+     * Selects a registered phase for the packet, preferring {@code current} when registered.
+     * If no current phase applies, selects the sole registered phase; throws
+     * {@link IllegalArgumentException} for an unknown packet or when multiple phases remain.
+     *
+     * @param packet the packet whose registered phase to select
+     * @param current the current connection phase, or {@code null}
+     * @return the selected phase identifier
+     */
     public static String preferredProtocol(Packet<?> packet, @Nullable ConnectionProtocol current) {
         Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packet.getClass());
         if (ids == null || ids.isEmpty()) throw new IllegalArgumentException("Unknown packet: " + packet.getClass());
@@ -2224,6 +2215,14 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         throw new IllegalArgumentException("Packet occurs in multiple protocols; specify its phase: " + packet.getClass());
     }
 
+    /**
+     * Runs the packet-mapping generator: initializes mappings, scans legacy packet classes on the
+     * class path (including declared nested classes), and prints missing {@code PACKETS.put} lines
+     * to standard output. Class-path scanning can fail with {@code IOException}; arguments are
+     * ignored.
+     *
+     * @param args ignored command-line arguments
+     */
     public static void main(String[] args) throws IOException {
         StringBuilder builder = new StringBuilder();
         PacketByteBufferHelper.init();

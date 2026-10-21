@@ -21,11 +21,13 @@ import net.minecraft.world.entity.player.ChatVisiblity;
 import net.minecraft.world.entity.player.PlayerModelPart;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.jetbrains.annotations.Nullable;
 
 import org.lwjgl.glfw.GLFW;
 
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletDeclareType;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.access.IResourcePackManager;
@@ -42,45 +44,19 @@ import java.util.stream.Stream;
 *///?}
 
 /**
- * a handle on the game's own settings, which is what the options screen edits.
+ * Provides access to the client's game settings.
  * <p>
- * This wraps the client's options object rather than copying it, so a value written here is the
- * real setting and the game picks it up the next time it looks, the same as a change made
- * through the options screen. A fresh helper is made on every {@code Client.getGameOptions()}
- * call and they all wrap the same settings, so a value written through one is visible through
- * another.
+ * Wraps the supplied options object; changes made through this helper affect that object.
  * <p>
- * The settings are split into six groups, and each group is available two ways: as a field on
- * this class ({@link #skin}, {@link #video}, {@link #music}, {@link #control}, {@link #chat},
- * {@link #accessibility}) and as a getter ({@link #getSkinOptions()} and its siblings). The
- * two are the same object, so which one to use is a matter of taste; the getters read a little
- * better in a chain and the fields a little better when a value is being held on to.
- * <br>
- * The fields are created once, when the helper is made, so they are safe to keep and compare,
- * unlike the helpers made on the fly by some of the older calls in this class. A setting that
- * is not a simple value — a dropdown's name, a volume, an enabled pack list — comes back as a
- * string or a list rather than an enum, and the group helper for it says what the accepted
- * values are.
- * example:
+ * Settings are grouped in {@link #skin}, {@link #video}, {@link #music}, {@link #control},
+ * {@link #chat}, and {@link #accessibility}; each field and its corresponding getter return
+ * the same group object.
+ * <p>
+ * Setting changes are not necessarily saved to {@code options.txt} until {@link #saveOptions()}
+ * is called; some methods save as part of their own behavior.
  * <pre>
  * const options = Client.getGameOptions();
- *
- * // the group helpers, either as a field or through its getter
  * options.video.setRenderDistance(12);
- * options.music.setMasterVolume(0.5);
- * options.control.setMouseSensitivity(0.75);
- * options.chat.setChatOpacity(0.8);
- * // the same object the getter hands back
- * options.getVideoOptions().setGuiScale(2);
- *
- * // read one back to confirm
- * Chat.log(`render distance is now ${options.video.getRenderDistance()}`);
- *
- * // a few settings live on the helper itself
- * options.setLanguage("en_us");
- * options.setFov(90);
- *
- * // changes are only written to options.txt when asked
  * options.saveOptions();
  * </pre>
  *
@@ -96,85 +72,41 @@ public class OptionsHelper extends BaseHelper<Options> {
     private final PackRepository rpm = mc.getResourcePackRepository();
 
     /**
-     * which parts of the player model are shown: the cape, the jacket, the sleeves, the pants
-     * and the hat.
-     * <p>
-     * These are the "Player Skin" settings from the options screen. Each part has a matching
-     * {@code is...Activated} reader and a {@code toggle...} writer, and the outer layer is only
-     * visible on its own when the skin actually has one, so a toggle here can be on while
-     * nothing is drawn.
-     * <br>
-     * The same object is returned by {@link #getSkinOptions()}.
+ * Player skin model-part visibility and main-hand settings.
      * @since 1.8.4
      */
     public final SkinOptionsHelper skin = new SkinOptionsHelper(this);
     /**
-     * the graphics settings: render distance, gui scale, frame rate limit, and the rest of what
-     * the "Video Settings" screen holds.
-     * <p>
-     * This is the group that most scripts reach for. Values that are a choice rather than a
-     * number — the graphics mode, the clouds mode, the particle mode — come back and go in as
-     * the names the options screen shows, such as {@code "fancy"}, and the group helper says
-     * which names are accepted.
-     * <br>
-     * The same object is returned by {@link #getVideoOptions()}.
+ * Graphics and video settings.
      * @since 1.8.4
      */
     public final VideoOptionsHelper video = new VideoOptionsHelper(this);
     /**
-     * the sound settings: the master volume, the per-category volumes, the output device and
-     * whether subtitles are shown.
-     * <p>
-     * The per-category volumes are also reachable as one call each,
-     * {@link MusicOptionsHelper#getVolume(String)} and
-     * {@link MusicOptionsHelper#setVolume(String, double)}, which take a category name such as
-     * {@code "master"} or {@code "music"}; the group helper is the longer form with a method
-     * per category. A volume is a number from 0 to 1, and the master one multiplies the rest.
-     * The same two names still exist on the outer class, but those are deprecated in favour of
-     * the two linked here.
-     * <br>
-     * The same object is returned by {@link #getMusicOptions()}.
+ * Sound volumes, audio device selection, and subtitles. Per-category volumes are available by
+ * category name or through individual methods.
      * @since 1.8.4
      */
     public final MusicOptionsHelper music = new MusicOptionsHelper(this);
     /**
-     * the input settings: mouse sensitivity, the invert-mouse and toggle-sneak switches, and the
-     * whole key binding list.
-     * <p>
-     * The key bindings are the fiddly part. {@link ControlOptionsHelper#getKeyBinds()} gives
-     * every binding and {@link ControlOptionsHelper#getKeyBindsByCategory()} the same grouped
-     * by the options-screen section they appear under; changing one goes through the key bind
-     * helper rather than by name.
-     * <br>
-     * The same object is returned by {@link #getControlOptions()}.
+ * Input settings and key bindings.
      * @since 1.8.4
      */
     public final ControlOptionsHelper control = new ControlOptionsHelper(this);
     /**
-     * the chat settings: chat visibility, colours, links, opacity, text size, width, line
-     * spacing and the narrator mode.
-     * <p>
-     * Several of these are per-server, which is what makes them interesting from a script: a
-     * server sends its own chat settings down and the game applies them, so reading a value
-     * after a server sets one gives the server's value rather than the player's preference.
-     * <br>
-     * The same object is returned by {@link #getChatOptions()}.
+ * Chat display and behavior settings.
      * @since 1.8.4
      */
     public final ChatOptionsHelper chat = new ChatOptionsHelper(this);
     /**
-     * the accessibility settings, which is where the game puts anything about making the game
-     * easier to see or hear.
-     * <p>
-     * Some of these duplicate a setting that also lives in another group — the narrator mode
-     * and the subtitle setting are in {@link #chat} as well — and where that is the case the
-     * two are the same underlying setting, so a change through either shows up in the other.
-     * <br>
-     * The same object is returned by {@link #getAccessibilityOptions()}.
+ * Accessibility settings. Some settings are also exposed by other groups and operate on the same
+ * underlying option.
      * @since 1.8.4
      */
     public final AccessibilityOptionsHelper accessibility = new AccessibilityOptionsHelper(this);
 
+    /** Wraps the supplied game options object, retaining its reference.
+     * @param options game options to wrap
+     */
     public OptionsHelper(Options options) {
         super(options);
     }
@@ -188,7 +120,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return a helper for the skin options.
+     * @return the skin options group.
      * @since 1.8.4
      */
     public SkinOptionsHelper getSkinOptions() {
@@ -196,7 +128,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return a helper for the video options.
+     * @return the video options group.
      * @since 1.8.4
      */
     public VideoOptionsHelper getVideoOptions() {
@@ -204,7 +136,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return a helper for the music options.
+     * @return the music options group.
      * @since 1.8.4
      */
     public MusicOptionsHelper getMusicOptions() {
@@ -212,7 +144,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return a helper for the control options.
+     * @return the control options group.
      * @since 1.8.4
      */
     public ControlOptionsHelper getControlOptions() {
@@ -220,7 +152,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return a helper for the chat options.
+     * @return the chat options group.
      * @since 1.8.4
      */
     public ChatOptionsHelper getChatOptions() {
@@ -228,7 +160,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return a helper for the accessibility options.
+     * @return the accessibility options group.
      * @since 1.8.4
      */
     public AccessibilityOptionsHelper getAccessibilityOptions() {
@@ -236,7 +168,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return self for chaining.
+     * @return this helper for chaining.
      * @since 1.8.4
      */
     public OptionsHelper saveOptions() {
@@ -245,7 +177,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return list of names of resource packs.
+     * @return the available resource-pack IDs.
      * @since 1.1.7
      */
     public List<String> getResourcePacks() {
@@ -253,7 +185,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return list of names of enabled resource packs.
+     * @return the selected resource-pack IDs.
      * @since 1.2.0
      */
     public List<String> getEnabledResourcePacks() {
@@ -261,10 +193,10 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * Set the enabled resource packs to the provided list.
+     * Selects resource packs, saves the options, and reloads packs if the saved selection changes.
      *
-     * @param enabled
-     * @return self for chaining.
+     * @param enabled resource-pack IDs to select; duplicate IDs are ignored
+     * @return this helper for chaining
      * @since 1.2.0
      */
     public OptionsHelper setEnabledResourcePacks(String[] enabled) {
@@ -290,7 +222,9 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @param state false to put it back
+     * Disables or allows server-provided resource packs. Reloads packs only when the disabled state changes.
+     * @param state {@code true} to disable server-provided resource packs; {@code false} to allow them
+     * @return self for chaining
      * @since 1.8.3
      */
     public OptionsHelper removeServerResourcePack(boolean state) {
@@ -302,7 +236,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return the active language.
+     * @return the configured language code.
      * @since 1.8.4
      */
     @DocletReplaceReturn("Locale")
@@ -311,8 +245,10 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @param languageCode the language to change to
-     * @return self for chaining.
+     * Selects the language if its code is recognized, then always reloads resource packs and saves options.
+     *
+     * @param languageCode language code to select
+     * @return this helper for chaining
      * @since 1.8.4
      */
     @DocletReplaceParams("languageCode: Locale")
@@ -331,7 +267,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return the active difficulty.
+     * @return the active difficulty's name: {@code peaceful}, {@code easy}, {@code normal}, or {@code hard}.
      * @since 1.8.4
      */
     @DocletReplaceReturn("Difficulty")
@@ -344,9 +280,9 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * The name be either "peaceful", "easy", "normal", or "hard".
+     * Sets the singleplayer world's difficulty; multiplayer clients do not apply this change.
      *
-     * @param name the name of the difficulty to change to
+     * @param name {@code peaceful}, {@code easy}, {@code normal}, or {@code hard}
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -360,7 +296,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return {@code true} if the difficulty is locked, {@code false} otherwise.
+     * @return {@code true} if the current world's difficulty is locked
      * @since 1.8.4
      */
     public boolean isDifficultyLocked() {
@@ -368,7 +304,9 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return self for chaining.
+     * Sends a request to lock the world's difficulty.
+     *
+     * @return this helper for chaining
      * @since 1.8.4
      */
     public OptionsHelper lockDifficulty() {
@@ -377,9 +315,9 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * Unlocks the difficulty of the world. This can't be done in an unmodified client.
+     * Sends a request to unlock the world's difficulty; the server may reject it if the player lacks permission.
      *
-     * @return self for chaining.
+     * @return this helper for chaining
      * @since 1.8.4
      */
     public OptionsHelper unlockDifficulty() {
@@ -388,7 +326,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return the current fov value.
+     * @return the configured field-of-view value
      * @since 1.1.7
      */
     public int getFov() {
@@ -396,8 +334,8 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @param fov the new fov value
-     * @return self for chaining.
+     * @param fov the new field-of-view value
+     * @return this helper for chaining
      * @since 1.1.7
      */
     public OptionsHelper setFov(int fov) {
@@ -406,7 +344,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return 0 for 1st person, 2 for in front.
+     * @return {@code 0} for first person, {@code 1} for third person from behind, or {@code 2} for third person from the front
      * @since 1.5.0
      */
     @DocletReplaceReturn("Trit")
@@ -415,7 +353,8 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @param mode 0: first, 2: front
+     * @param mode {@code 0} for first person, {@code 1} for third person from behind, or {@code 2} for third person from the front
+     * @return self for chaining
      * @since 1.5.0
      */
     @DocletReplaceParams("mode: Trit")
@@ -425,7 +364,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return
+     * @return whether smooth camera is enabled
      * @since 1.5.0
      */
     public boolean getSmoothCamera() {
@@ -433,7 +372,9 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @param val
+     * Sets whether smooth camera is enabled.
+     * @param val {@code true} to enable smooth camera; {@code false} to disable it
+     * @return self for chaining
      * @since 1.5.0
      */
     public OptionsHelper setSmoothCamera(boolean val) {
@@ -442,7 +383,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return
+     * @return the window's screen width in pixels
      * @since 1.2.6
      */
     public int getWidth() {
@@ -450,7 +391,7 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return
+     * @return the window's screen height in pixels
      * @since 1.2.6
      */
     public int getHeight() {
@@ -468,7 +409,9 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @param w
+     * Sets the window's screen width, preserving its current screen height.
+     * @param w the width in pixels
+     * @return self for chaining
      * @since 1.2.6
      */
     public OptionsHelper setWidth(int w) {
@@ -478,7 +421,9 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @param h
+     * Sets the window's screen height, preserving its current screen width.
+     * @param h the height in pixels
+     * @return self for chaining
      * @since 1.2.6
      */
     public OptionsHelper setHeight(int h) {
@@ -488,8 +433,10 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @param w
-     * @param h
+     * Sets the window's screen size.
+     * @param w the width in pixels
+     * @param h the height in pixels
+     * @return self for chaining
      * @since 1.2.6
      */
     public OptionsHelper setSize(int w, int h) {
@@ -500,11 +447,9 @@ public class OptionsHelper extends BaseHelper<Options> {
 
 
     /**
-     * sends the synced options to the server.
-     * this may be necessary for certain things like the skin layers and (serverside) language to update.
-     * <br>
-     * normally this is called when the options screen is closed, but obviously, we don't open a screen, thus
-     * this must get called manually.
+     * Sends the current synchronized options to the server. Setting changes do not
+     * automatically call this method; call it manually when those changes need to be
+     * broadcast.
      *
      * @since 2.0.0
      */
@@ -516,28 +461,24 @@ public class OptionsHelper extends BaseHelper<Options> {
         return (MixinSimpleOption) (Object) option;
     }
 
+    /** Skin model-part visibility and main-hand settings.
+     * <pre>
+     * const options = Client.getGameOptions();
+     * options.skin.isCapeActivated();
+     * </pre>
+     */
     @DocletCategory("Configuration/Profiles")
     public class SkinOptionsHelper {
 
         /**
-         * the whole options helper this group belongs to.
-         * <p>
-         * Each group is a view onto one part of the settings, and this is the way back to the
-         * rest of them, so a script that starts in a group and needs a setting from another
-         * does not have to keep the outer handle around separately. It is the same object the
-         * field was created with, and the same one the group's {@code getParent()} returns.
-         * <br>
-         * example:
-         * <pre>
-         * const options = Client.getGameOptions();
-         * // back out to the whole helper, then into a different group
-         * options.skin.parent.music.setMasterVolume(0.4);
-         * options.skin.parent.chat.setChatOpacity(0.5);
-         * </pre>
+         * The options helper that owns this settings group.
          * @since 1.8.4
          */
         public final OptionsHelper parent;
 
+        /** Stores the supplied parent reference; settings methods use the enclosing {@code OptionsHelper} instance, which may differ.
+         * @param OptionsHelper parent helper reference to retain
+         */
         public SkinOptionsHelper(OptionsHelper OptionsHelper) {
             parent = OptionsHelper;
         }
@@ -648,7 +589,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether the left sleeve should be shown or not
+         * Sets whether the left sleeve is shown.
+         * @param val {@code true} to show the sleeve; {@code false} to hide it
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -658,7 +600,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether the right sleeve should be shown or not
+         * Sets whether the right sleeve is shown.
+         * @param val {@code true} to show the sleeve; {@code false} to hide it
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -668,7 +611,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether the left pants should be shown or not
+         * Sets whether the left pants leg is shown.
+         * @param val {@code true} to show the pants leg; {@code false} to hide it
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -678,7 +622,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether the right pants should be shown or not
+         * Sets whether the right pants leg is shown.
+         * @param val {@code true} to show the pants leg; {@code false} to hide it
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -688,7 +633,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether the hat should be shown or not
+         * Sets whether the hat is shown.
+         * @param val {@code true} to show the hat; {@code false} to hide it
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -698,9 +644,10 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * The hand must be either {@code "left"} or {@code "right"}.
+         * Sets the main hand. The value is case-insensitive; only {@code "left"} selects the left hand,
+         * and any other value selects the right hand.
          *
-         * @param hand the hand to set as main hand
+         * @param hand the requested hand
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -711,23 +658,25 @@ public class OptionsHelper extends BaseHelper<Options> {
 
     }
 
+    /** Graphics and display settings.
+     * <pre>
+     * const options = Client.getGameOptions();
+     * options.video.getGraphicsMode();
+     * </pre>
+     */
     @DocletCategory("Configuration/Profiles")
     public class VideoOptionsHelper {
 
         /**
-         * the whole options helper this group belongs to.
-         * <p>
-         * Each group is a view onto one part of the settings, and this is the way back to the
-         * rest of them, so a script that starts in a group and needs a setting from another
-         * does not have to keep the outer handle around separately. It is the same object the
-         * field was created with, and the same one the group's {@code getParent()} returns.
-         * <br>
-         * The six group fields hold the same thing, so the example on
-         * {@code SkinOptionsHelper.parent}, the first of them, covers this one too.
+         * The {@link OptionsHelper} that owns this settings group; this is the same object returned by
+         * {@link #getParent()}.
          * @since 1.8.4
          */
         public final OptionsHelper parent;
 
+        /** Stores the supplied parent reference; settings methods use the enclosing {@code OptionsHelper} instance, which may differ.
+         * @param OptionsHelper parent helper reference to retain
+         */
         public VideoOptionsHelper(OptionsHelper OptionsHelper) {
             parent = OptionsHelper;
         }
@@ -741,15 +690,18 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the full screen resolution as a string.
+         * @return the configured fullscreen video mode string, such as {@code 1920x1080@60:24}
+         * (width x height @ refresh rate : total color bits), or {@code null} if none is configured;
+         * this may not match the active display mode
          * @since 1.8.4
          */
+        @Nullable
         public String getFullscreenResolution() {
             return base.fullscreenVideoModeString;
         }
 
         /**
-         * @return the current biome blend radius.
+         * @return the current biome blend radius, in blocks.
          * @since 1.8.4
          */
         public int getBiomeBlendRadius() {
@@ -757,7 +709,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param radius the new biome blend radius
+         * @param radius the new biome blend radius, in blocks
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -794,6 +746,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
         //?}
 
+        /** Returns the selected graphics mode name.
+         * @return {@code "fast"}, {@code "fancy"}, or {@code "fabulous"}; an unrecognized stored mode throws {@code IllegalArgumentException}.
+         */
         @DocletReplaceReturn("GraphicsMode")
         public String getGraphicsMode() {
             switch (graphicsOption().get()) {
@@ -804,6 +759,10 @@ public class OptionsHelper extends BaseHelper<Options> {
             }
         }
 
+        /** Sets the graphics mode. Matching is case-insensitive; an unrecognized value retains the current selection but still calls the option setter.
+         * @param mode non-null mode name; recognized values are {@code "fast"}, {@code "fancy"}, and {@code "fabulous"}
+         * @return self for chaining
+         */
         @DocletReplaceParams("mode: GraphicsMode")
         @DocletDeclareType(name = "GraphicsMode", type = "'fast' | 'fancy' | 'fabulous'")
         public VideoOptionsHelper setGraphicsMode(String mode) {
@@ -830,8 +789,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param mode the chunk builder mode to select. Must be either "none", "nearby" or
-         *             "player_affected"
+         * @param mode the chunk builder mode; {@code "none"}, {@code "nearby"}, or
+         *             {@code "player_affected"}, case-insensitively. Other values leave the
+         *             current mode unchanged.
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -858,7 +818,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the selected smooth lightning mode.
+         * @return whether ambient occlusion is enabled.
          * @since 1.8.4
          */
         public boolean getSmoothLightningMode() {
@@ -866,7 +826,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param mode the smooth lightning mode to select. boolean value
+         * @param mode {@code true} to enable ambient occlusion; {@code false} to disable it
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -884,7 +844,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param radius the new render distance in chunks
+         * @param radius the new render distance, in chunks
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -902,7 +862,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param radius the new simulation distance in chunks
+         * @param radius the new simulation distance, in chunks
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -920,7 +880,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param maxFps the new maximum fps limit
+         * @param maxFps the maximum frame-rate limit to set
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -938,7 +898,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable vsync or not
+         * @param val {@code true} to enable vsync; {@code false} to disable it
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -956,7 +916,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable view bobbing or not
+         * @param val {@code true} to enable view bobbing; {@code false} to disable it
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -966,7 +926,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current gui scale.
+         * @return the configured GUI scale factor; Minecraft may calculate a different effective scale
+         *         to fit the display.
          * @since 1.8.4
          */
         public int getGuiScale() {
@@ -974,7 +935,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param scale the gui scale to set. Must be 1, 2, 3 or 4
+         * @param scale the GUI scale factor to set; Minecraft may adjust the effective scale to fit
+         *              the display
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -989,7 +951,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current attack indicator type.
+         * @return {@code "off"}, {@code "crosshair"}, or {@code "hotbar"}, according to the selected
+         *         attack indicator
          * @since 1.8.4
          */
         @DocletReplaceReturn("AttackIndicatorType")
@@ -1003,7 +966,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param type the attack indicator type. Must be either "off", "crosshair", or "hotbar"
+         * @param type the attack indicator type: {@code "off"}, {@code "crosshair"}, or {@code "hotbar"};
+         *             other values leave the current setting unchanged
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -1030,7 +994,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current gamma value.
+         * @return the current brightness (gamma) value.
          * @since 1.8.4
          */
         public double getGamma() {
@@ -1038,7 +1002,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param gamma the new gamma value
+         * @param gamma the gamma (brightness) value to set
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -1055,7 +1019,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param gamma the new brightness value
+         * @param gamma the brightness (gamma) value to set
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -1083,7 +1047,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param mode the cloud rendering mode to select. Must be either "off", "fast" or "fancy"
+         * @param mode the cloud rendering mode; accepts "off", "fast", or "fancy" (case-insensitive). Other values leave the setting unchanged
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -1118,7 +1082,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param fullscreen whether to enable fullscreen mode or not
+         * @param fullscreen whether to enable fullscreen mode
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -1146,8 +1110,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param mode the particle rendering mode to select. Must be either "minimal", "decreased"
-         *             or "all"
+         * @param mode the particle rendering mode; accepts "minimal", "decreased", or "all" (case-insensitive). Other values leave the setting unchanged
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -1182,8 +1145,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new mip map level
-         * @return self for chaining.
+         * Sets the mipmap level.
+         * @param val the mipmap level to set
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public VideoOptionsHelper setMipMapLevels(int val) {
@@ -1192,7 +1156,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if entity shadows should be rendered, {@code false} otherwise.
+         * @return {@code true} if entity shadows are enabled; {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean areEntityShadowsEnabled() {
@@ -1200,8 +1164,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable entity shadows or not
-         * @return self for chaining.
+         * Enables or disables entity shadows.
+         * @param val whether to enable entity shadows
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public VideoOptionsHelper enableEntityShadows(boolean val) {
@@ -1210,7 +1175,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current distortion effect scale.
+         * @return the current screen-effect scale.
          * @since 1.8.4
          */
         public double getDistortionEffect() {
@@ -1218,8 +1183,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new distortion effect scale
-         * @return self for chaining.
+         * Sets the screen-effect scale.
+         * @param val the screen-effect scale to set
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public VideoOptionsHelper setDistortionEffects(double val) {
@@ -1228,7 +1194,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current entity render distance.
+         * @return the current entity-distance scaling value.
          * @since 1.8.4
          */
         public double getEntityDistance() {
@@ -1236,8 +1202,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new entity render distance
-         * @return self for chaining.
+         * Sets the entity-distance scaling value.
+         * @param val the scaling value to set
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public VideoOptionsHelper setEntityDistance(double val) {
@@ -1246,7 +1213,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current fov value.
+         * @return the current field-of-view effect scale.
          * @since 1.8.4
          */
         public double getFovEffects() {
@@ -1254,8 +1221,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new fov value
-         * @return self for chaining.
+         * Sets the field-of-view effect scale.
+         * @param val the scale to set
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public VideoOptionsHelper setFovEffects(double val) {
@@ -1264,7 +1232,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if the autosave indicator is enabled, {@code false} otherwise.
+         * @return {@code true} if the autosave indicator is enabled; {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean isAutosaveIndicatorEnabled() {
@@ -1272,7 +1240,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return self for chaining.
+         * @param val whether to show the autosave indicator
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public VideoOptionsHelper enableAutosaveIndicator(boolean val) {
@@ -1282,29 +1251,30 @@ public class OptionsHelper extends BaseHelper<Options> {
 
     }
 
+    /** Sound volumes, audio-device selection, and subtitles.
+     * <pre>
+     * const options = Client.getGameOptions();
+     * options.music.getMasterVolume();
+     * </pre>
+     */
     @DocletCategory("Configuration/Profiles")
     public class MusicOptionsHelper {
 
         /**
-         * the whole options helper this group belongs to.
-         * <p>
-         * Each group is a view onto one part of the settings, and this is the way back to the
-         * rest of them, so a script that starts in a group and needs a setting from another
-         * does not have to keep the outer handle around separately. It is the same object the
-         * field was created with, and the same one the group's {@code getParent()} returns.
-         * <br>
-         * The six group fields hold the same thing, so the example on
-         * {@code SkinOptionsHelper.parent}, the first of them, covers this one too.
+         * The options helper that owns this group.
          * @since 1.8.4
          */
         public final OptionsHelper parent;
 
+        /** Stores the supplied parent reference; settings methods use the enclosing {@code OptionsHelper} instance, which may differ.
+         * @param OptionsHelper parent helper reference to retain
+         */
         public MusicOptionsHelper(OptionsHelper OptionsHelper) {
             parent = OptionsHelper;
         }
 
         /**
-         * @return the parent options helper.
+         * @return the options helper that owns this group.
          * @since 1.8.4
          */
         public OptionsHelper getParent() {
@@ -1312,7 +1282,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current master volume.
+         * @return the current master sound volume.
          * @since 1.8.4
          */
         public float getMasterVolume() {
@@ -1320,8 +1290,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param volume the new master volume
-         * @return self for chaining.
+         * @param volume the new master sound volume
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public MusicOptionsHelper setMasterVolume(double volume) {
@@ -1330,7 +1300,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current music volume.
+         * @return the current music sound volume.
          * @since 1.8.4
          */
         public float getMusicVolume() {
@@ -1338,8 +1308,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param volume the new music volume
-         * @return self for chaining.
+         * @param volume the new music sound volume
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public MusicOptionsHelper setMusicVolume(double volume) {
@@ -1348,7 +1318,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current value of played recods.
+         * @return the current records sound volume.
          * @since 1.8.4
          */
         public float getRecordsVolume() {
@@ -1356,8 +1326,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param volume the new volume for playing records
-         * @return self for chaining.
+         * @param volume the new records sound volume
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public MusicOptionsHelper setRecordsVolume(double volume) {
@@ -1366,7 +1336,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current volume of the weather.
+         * @return the current weather sound volume.
          * @since 1.8.4
          */
         public float getWeatherVolume() {
@@ -1464,6 +1434,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Sets the ambient sound volume.
          * @param volume the new ambient volume
          * @return self for chaining.
          * @since 1.8.4
@@ -1474,6 +1445,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Returns the voice sound volume.
          * @return the current voice volume.
          * @since 1.8.4
          */
@@ -1482,6 +1454,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Sets the voice sound volume.
+         * @param volume the new voice volume
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -1491,6 +1465,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Returns the volume for a sound category, looked up by its category name.
          * @param category the category to get the volume of
          * @return the volume of the given sound category.
          * @since 1.8.4
@@ -1501,6 +1476,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Returns the volume of each sound category, keyed by category name.
          * @return a map of all sound categories and their volumes.
          * @since 1.8.4
          */
@@ -1513,6 +1489,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Sets the volume for a sound category, looked up by its category name.
          * @param category the category to set the volume for
          * @param volume   the new volume
          * @return self for chaining.
@@ -1525,6 +1502,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Returns the selected audio device identifier.
          * @return the currently selected sound device.
          * @since 1.8.4
          */
@@ -1533,6 +1511,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Selects an audio device and reloads the sound manager. An identifier not present in
+         * {@link #getAudioDevices()} selects the default device.
          * @param audioDevice the audio device to use
          * @return self for chaining.
          * @since 1.8.4
@@ -1549,7 +1529,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return a list of all connected audio devices.
+         * Returns available audio device identifiers, including the empty identifier for the
+         * default device.
+         * @return the available audio device identifiers.
          * @since 1.8.4
          */
         public List<String> getAudioDevices() {
@@ -1557,6 +1539,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Returns whether subtitles are enabled.
          * @return {@code true} if subtitles should be shown, {@code false} otherwise.
          * @since 1.8.4
          */
@@ -1576,6 +1559,12 @@ public class OptionsHelper extends BaseHelper<Options> {
 
     }
 
+    /** Input and mouse settings, including key bindings.
+     * <pre>
+     * const options = Client.getGameOptions();
+     * options.control.getMouseSensitivity();
+     * </pre>
+     */
     @DocletCategory("Configuration/Profiles")
     public class ControlOptionsHelper {
 
@@ -1593,6 +1582,9 @@ public class OptionsHelper extends BaseHelper<Options> {
          */
         public final OptionsHelper parent;
 
+        /** Stores the supplied parent reference; settings methods use the enclosing {@code OptionsHelper} instance, which may differ.
+         * @param OptionsHelper parent helper reference to retain
+         */
         public ControlOptionsHelper(OptionsHelper OptionsHelper) {
             parent = OptionsHelper;
         }
@@ -1679,8 +1671,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable discrete scrolling or not
-         * @return self for chaining.
+         * Sets whether discrete mouse scrolling is enabled.
+         * @param val {@code true} to enable discrete scrolling
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public ControlOptionsHelper enableDiscreteScrolling(boolean val) {
@@ -1689,7 +1682,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if touchscreen mode is enabled, {@code false} otherwise.
+         * Returns whether touchscreen mode is enabled.
+         * @return {@code true} if enabled; {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean isTouchscreenEnabled() {
@@ -1697,8 +1691,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable touchscreen mode or not
-         * @return self for chaining.
+         * Sets whether touchscreen mode is enabled.
+         * @param val {@code true} to enable touchscreen mode
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public ControlOptionsHelper enableTouchscreen(boolean val) {
@@ -1707,10 +1702,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * Raw input is directly reading the mouse data, without any adjustments due to other
-         * programs or the operating system.
-         *
-         * @return {@code true} if raw mouse input is enabled, {@code false} otherwise.
+         * Returns whether raw mouse input is enabled.
+         * @return {@code true} if enabled; {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean isRawMouseInputEnabled() {
@@ -1718,8 +1711,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable raw mouse input or not
-         * @return self for chaining.
+         * Sets whether raw mouse input is enabled.
+         * @param val {@code true} to enable raw mouse input
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public ControlOptionsHelper enableRawMouseInput(boolean val) {
@@ -1728,7 +1722,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if auto jump is enabled, {@code false} otherwise.
+         * Returns whether auto-jump is enabled.
+         * @return {@code true} if enabled; {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean isAutoJumpEnabled() {
@@ -1736,8 +1731,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable auto jump or not or not
-         * @return self for chaining.
+         * Sets whether auto-jump is enabled.
+         * @param val {@code true} to enable auto-jump
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public ControlOptionsHelper enableAutoJump(boolean val) {
@@ -1746,8 +1742,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if the toggle functionality for sneaking is enabled, {@code false}
-         * otherwise.
+         * Returns whether sneak toggling is enabled.
+         * @return {@code true} if enabled; {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean isSneakTogglingEnabled() {
@@ -1755,8 +1751,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable or disable the toggle functionality for sneaking
-         * @return self for chaining.
+         * Sets whether sneak toggling is enabled.
+         * @param val {@code true} to enable sneak toggling
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public ControlOptionsHelper toggleSneak(boolean val) {
@@ -1765,8 +1762,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if the toggle functionality for sprinting is enabled, {@code false}
-         * otherwise.
+         * Returns whether sprint toggling is enabled.
+         * @return {@code true} if enabled; {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean isSprintTogglingEnabled() {
@@ -1774,8 +1771,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable or disable the toggle functionality for sprinting
-         * @return self for chaining.
+         * @param val whether sprint toggling is enabled
+         * @return this helper, for chaining.
          * @since 1.8.4
          */
         public ControlOptionsHelper toggleSprint(boolean val) {
@@ -1784,7 +1781,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return an array of all raw minecraft keybindings.
+         * @return a shallow clone of Minecraft's key-mapping array; the mappings themselves are not cloned.
          * @since 1.8.4
          */
         public KeyMapping[] getRawKeys() {
@@ -1792,7 +1789,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return a list of all keybinding categories.
+         * @return distinct category identifiers used by the key mappings.
          * @since 1.8.4
          */
         @DocletReplaceReturn("JavaList<KeyCategory>")
@@ -1806,7 +1803,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return a list of all key names.
+         * @return the key-mapping names, in mapping-array order.
          * @since 1.8.4
          */
         @DocletReplaceReturn("JavaList<Key>")
@@ -1815,7 +1812,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return a map of all keybindings and their bound key.
+         * @return translated key-mapping names mapped to their translated bound-key labels.
          * @since 1.8.4
          */
         @DocletReplaceReturn("JavaMap<Bind, Key>")
@@ -1829,8 +1826,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param category the category to get keybindings from
-         * @return a map of all keybindings and their bound key in the specified category.
+         * @param category the category identifier
+         * @return translated key-mapping names and bound-key labels for the category, or {@code null} if absent.
          * @since 1.8.4
          */
         @DocletReplaceParams("category: KeyCategory")
@@ -1839,8 +1836,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return a map of all keybinding categories, containing a map of all keybindings in that
-         * category and their bound key.
+         * @return category identifiers mapped to translated key-mapping names and bound-key labels.
          * @since 1.8.4
          */
         public Map<String, Map<String, String>> getKeyBindsByCategory() {
@@ -1866,29 +1862,31 @@ public class OptionsHelper extends BaseHelper<Options> {
 
     }
 
+    /** Chat visibility and layout settings.
+     * <pre>
+     * const options = Client.getGameOptions();
+     * Chat.log(options.chat.getChatVisibility());
+     * </pre>
+     */
     @DocletCategory("Configuration/Profiles")
     public class ChatOptionsHelper {
 
         /**
-         * the whole options helper this group belongs to.
-         * <p>
-         * Each group is a view onto one part of the settings, and this is the way back to the
-         * rest of them, so a script that starts in a group and needs a setting from another
-         * does not have to keep the outer handle around separately. It is the same object the
-         * field was created with, and the same one the group's {@code getParent()} returns.
-         * <br>
-         * The six group fields hold the same thing, so the example on
-         * {@code SkinOptionsHelper.parent}, the first of them, covers this one too.
+         * The options helper that owns this settings group; the same instance is returned by
+         * {@link #getParent()}.
          * @since 1.8.4
          */
         public final OptionsHelper parent;
 
+        /** Stores the supplied parent reference; this does not replace the options object bound to this inner group.
+         * @param OptionsHelper optionshelper retained as the parent
+         */
         public ChatOptionsHelper(OptionsHelper OptionsHelper) {
             parent = OptionsHelper;
         }
 
         /**
-         * @return the parent options helper.
+         * @return the options helper that owns this settings group.
          * @since 1.8.4
          */
         public OptionsHelper getParent() {
@@ -1896,7 +1894,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current chat visibility mode.
+         * @return the final segment of the chat-visibility translation key, including its leading dot (for example, {@code .full}).
          * @since 1.8.4
          */
         @DocletReplaceReturn("ChatVisibility")
@@ -1911,8 +1909,10 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param mode the new chat visibility mode. Must be "FULL", "SYSTEM" or "HIDDEN
-         * @return self for chaining.
+         * Sets chat visibility to {@code FULL}, {@code SYSTEM}, or {@code HIDDEN}; matching is case-insensitive.
+         * Unrecognized values leave the current setting unchanged.
+         * @param mode the visibility mode
+         * @return this helper
          * @since 1.8.4
          */
         @DocletReplaceParams("mode: ChatVisibility")
@@ -1938,7 +1938,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if messages can use color codes, {@code false} otherwise.
+         * @return whether chat colors are enabled
          * @since 1.8.4
          */
         public boolean areColorsShown() {
@@ -1946,8 +1946,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to allow color codes in messages or not
-         * @return self for chaining.
+         * Sets whether chat colors are enabled.
+         * @param val whether chat colors are enabled
+         * @return this helper
          * @since 1.8.4
          */
         public ChatOptionsHelper setShowColors(boolean val) {
@@ -1956,8 +1957,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if it's allowed to open web links from chat, {@code false}
-         * otherwise.
+         * @return whether opening web links from chat is enabled
          * @since 1.8.4
          */
         public boolean areWebLinksEnabled() {
@@ -1965,8 +1965,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to allow opening web links from chat or not
-         * @return self for chaining.
+         * Sets whether opening web links from chat is enabled.
+         * @param val whether opening chat links is enabled
+         * @return this helper
          * @since 1.8.4
          */
         public ChatOptionsHelper enableWebLinks(boolean val) {
@@ -1975,8 +1976,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if a warning prompt before opening links should be shown,
-         * {@code false} otherwise.
+         * @return whether a warning prompt is enabled before opening chat links
          * @since 1.8.4
          */
         public boolean isWebLinkPromptEnabled() {
@@ -1984,8 +1984,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to show warning prompts before opening links or not
-         * @return self for chaining.
+         * Sets whether to show a warning prompt before opening chat links.
+         * @param val whether the warning prompt is enabled
+         * @return this helper
          * @since 1.8.4
          */
         public ChatOptionsHelper enableWebLinkPrompt(boolean val) {
@@ -1994,7 +1995,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current chat opacity.
+         * @return the configured chat opacity
          * @since 1.8.4
          */
         public double getChatOpacity() {
@@ -2002,8 +2003,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new chat opacity
-         * @return self for chaining.
+         * Sets the chat opacity.
+         * @param val the new opacity
+         * @return this helper
          * @since 1.8.4
          */
         public ChatOptionsHelper setChatOpacity(double val) {
@@ -2012,8 +2014,9 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new background opacity for text
-         * @return self for chaining.
+         * Sets the opacity of text backgrounds.
+         * @param val the new text background opacity
+         * @return this helper
          * @since 1.8.4
          */
         public ChatOptionsHelper setTextBackgroundOpacity(double val) {
@@ -2022,7 +2025,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current background opacity of text.
+         * Returns the configured opacity for text backgrounds.
+         * @return the current text background opacity.
          * @since 1.8.4
          */
         public double getTextBackgroundOpacity() {
@@ -2030,7 +2034,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current text size.
+         * Returns the configured chat text scale.
+         * @return the current text scale.
          * @since 1.8.4
          */
         public double getTextSize() {
@@ -2038,7 +2043,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new text size
+         * Sets the chat text scale.
+         * @param val the new text scale
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2048,6 +2054,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Returns the configured spacing between chat lines.
          * @return the current chat line spacing.
          * @since 1.8.4
          */
@@ -2056,6 +2063,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Sets the spacing between chat lines.
          * @param val the new chat line spacing
          * @return self for chaining.
          * @since 1.8.4
@@ -2066,6 +2074,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Returns the configured delay between chat messages.
          * @return the current chat delay in seconds.
          * @since 1.8.4
          */
@@ -2074,6 +2083,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
+         * Sets the delay between chat messages.
          * @param val the new chat delay in seconds
          * @return self for chaining.
          * @since 1.8.4
@@ -2084,7 +2094,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current chat width.
+         * Returns the configured chat width scale.
+         * @return the current chat width scale.
          * @since 1.8.4
          */
         public double getChatWidth() {
@@ -2092,7 +2103,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new chat width
+         * Sets the chat width scale.
+         * @param val the new chat width scale
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2102,7 +2114,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the focused chat height.
+         * Returns the configured chat height scale while chat is focused.
+         * @return the focused chat height scale.
          * @since 1.8.4
          */
         public double getChatFocusedHeight() {
@@ -2110,7 +2123,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new focused chat height
+         * @param val the chat height scale while chat is focused
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2120,7 +2133,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the unfocused chat height.
+         * @return the chat height scale while chat is unfocused.
          * @since 1.8.4
          */
         public double getChatUnfocusedHeight() {
@@ -2128,7 +2141,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new unfocused chat height
+         * @param val the chat height scale while chat is unfocused
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2138,7 +2151,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current narrator mode.
+         * @return the final segment of the narrator translation key, including its leading dot (for example, {@code .all}).
          * @since 1.8.4
          */
         @DocletReplaceReturn("NarratorMode")
@@ -2148,8 +2161,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param mode the mode to set the narrator to. Must be either "OFF", "ALL", "CHAT", or
-         *             "SYSTEM"
+         * @param mode the narrator mode to set; accepts {@code OFF}, {@code ALL}, {@code CHAT}, or {@code SYSTEM}, case-insensitively. Other values leave the current mode unchanged.
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2179,7 +2191,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if command suggestions are enabled
+         * @return {@code true} if command suggestions are enabled, {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean areCommandSuggestionsEnabled() {
@@ -2187,7 +2199,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable command suggestions or not
+         * @param val whether to enable command suggestions
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2197,7 +2209,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if messages from blocked users are hidden.
+         * @return {@code true} if messages from blocked players are hidden, {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean areMatchedNamesHidden() {
@@ -2205,7 +2217,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to hide messages of blocked users or not
+         * @param val whether to hide messages from blocked players
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2215,7 +2227,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if reduced debug info is enabled, {@code false} otherwise.
+         * @return {@code true} if reduced debug information is enabled, {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean isDebugInfoReduced() {
@@ -2234,6 +2246,13 @@ public class OptionsHelper extends BaseHelper<Options> {
 
     }
 
+    /** Provides accessibility settings, including narrator, subtitle, and chat-display options, on the enclosing options object.
+     * <pre>
+     * const options = Client.getGameOptions();
+     * const accessibility = options.accessibility;
+     * Chat.log(accessibility.getNarratorMode());
+     * </pre>
+     */
     @DocletCategory("Configuration/Profiles")
     public class AccessibilityOptionsHelper {
 
@@ -2251,6 +2270,9 @@ public class OptionsHelper extends BaseHelper<Options> {
          */
         public final OptionsHelper parent;
 
+        /** Stores the supplied parent reference; this does not replace the options object bound to this inner group.
+         * @param OptionsHelper optionshelper retained as the parent
+         */
         public AccessibilityOptionsHelper(OptionsHelper OptionsHelper) {
             parent = OptionsHelper;
         }
@@ -2273,8 +2295,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param mode the mode to set the narrator to. Must be either "OFF", "ALL", "CHAT", or
-         *             "SYSTEM"
+         * @param mode the narrator mode: {@code "OFF"}, {@code "ALL"}, {@code "CHAT"}, or
+         *             {@code "SYSTEM"} (case-insensitive); other values leave the current mode unchanged.
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2338,7 +2360,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return
+         * @return {@code true} if the text background is shown only behind chat.
          * @since 1.8.4
          */
         public boolean isBackgroundForChatOnly() {
@@ -2346,8 +2368,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val
-         * @return self for chaining.
+         * @param val whether to show the text background only behind chat
+         * @return this helper for chaining.
          * @since 1.8.4
          */
         public AccessibilityOptionsHelper enableBackgroundForChatOnly(boolean val) {
@@ -2418,7 +2440,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable auto jump or not or not
+         * @param val whether to enable auto jump
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2437,7 +2459,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable or disable the toggle functionality for sneaking
+         * @param val whether sneaking uses toggle behavior
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2447,8 +2469,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if the toggle functionality for sprinting is enabled, {@code false}
-         * otherwise.
+         * @return {@code true} if sprinting uses toggle behavior; {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean isSprintTogglingEnabled() {
@@ -2456,7 +2477,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable or disable the toggle functionality for sprinting
+         * @param val whether sprinting uses toggle behavior
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2466,7 +2487,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current distortion effect scale.
+         * @return the current screen distortion effect scale.
          * @since 1.8.4
          */
         public double getDistortionEffect() {
@@ -2474,7 +2495,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new distortion effect scale
+         * @param val the new screen distortion effect scale
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2484,7 +2505,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return the current fov effect scale.
+         * @return the current FOV effect scale.
          * @since 1.8.4
          */
         public double getFovEffect() {
@@ -2492,7 +2513,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val the new fov effect scale
+         * @param val the new FOV effect scale
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -2502,7 +2523,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if the monochrome logo is enabled, {@code false} otherwise.
+         * @return {@code true} if the dark Mojang Studios background is enabled; {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean isMonochromeLogoEnabled() {
@@ -2510,7 +2531,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @param val whether to enable the monochrome logo or not
+         * @param val whether to enable the dark Mojang Studios background
          * @return the current helper instance for chaining.
          * @since 1.8.4
          */
@@ -2520,7 +2541,7 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * @return {@code true} if lighting flashes are hidden, {@code false} otherwise.
+         * @return {@code true} if lightning flashes are hidden; {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean areLightningFlashesHidden() {
@@ -2528,27 +2549,8 @@ public class OptionsHelper extends BaseHelper<Options> {
         }
 
         /**
-         * Enables or disables FOV effects by setting their scale to {@code 1.0} or {@code 0.0}.
-         * <p>
-         * Use {@link #setFovEffect(double)} for an intermediate scale, and read the current scale
-         * with {@link #getFovEffect()}. This overload does not change the hide-lightning option.
-         * <p>
-         * It is written straight into the option rather than through the game's own setter, as
-         * several others in this group are, so the value does not go through the option's range
-         * check. For a plain on/off there is nothing to refuse, so the two routes agree.
-         * example:
-         * <pre>
-         * const options = Client.getGameOptions();
-         *
-         * // enable the full FOV effect
-         * options.accessibility.setFovEffect(true);
-         * Chat.log(`fov effect scale: ${options.accessibility.getFovEffect()}`);
-         *
-         * // the fov effect scale is the overload taking a number
-         * options.accessibility.setFovEffect(0.5);
-         * Chat.log(`fov effect scale: ${options.accessibility.getFovEffect()}`);
-         * </pre>
-         *
+         * Sets the FOV effect scale to {@code 1.0} when enabled or {@code 0.0} when disabled.
+         * Use {@link #setFovEffect(double)} to set an intermediate scale.
          * @param val whether to enable FOV effects at full scale
          * @return self for chaining.
          * @since 1.8.4
@@ -2561,11 +2563,12 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return 0: off, 2: fancy
+     * @return {@code 0} when off, {@code 1} for fast, or {@code 2} for fancy clouds
      * @since 1.1.7
      * @deprecated use {@link VideoOptionsHelper#getCloudsMode()} instead.
      */
     @Deprecated
+    @DocletIgnore
     @DocletReplaceReturn("Trit")
     public int getCloudMode() {
         switch (base.cloudStatus().get()) {
@@ -2579,12 +2582,13 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @param mode 0: off, 2: fancy
-     * @return
+     * @param mode {@code 0} for off, {@code 1} for fast, or {@code 2} for fancy; other values turn clouds off
+     * @return this helper for chaining
      * @since 1.1.7
      * @deprecated use {@link VideoOptionsHelper#setCloudsMode(String)} instead.
      */
     @Deprecated
+    @DocletIgnore
     @DocletReplaceParams("mode: Trit")
     public OptionsHelper setCloudMode(int mode) {
         switch (mode) {
@@ -2601,11 +2605,12 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return
+     * @return {@code 0} for fast, {@code 1} for fancy, {@code 2} for fabulous, or {@code -1} for an unrecognized mode
      * @since 1.1.7
      * @deprecated use {@link VideoOptionsHelper#getGraphicsMode()} instead.
      */
     @Deprecated
+    @DocletIgnore
     public int getGraphicsMode() {
         switch (video.getGraphicsMode()) {
             case "fabulous":
@@ -2620,12 +2625,13 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @param mode 0: fast, 1: fancy, 2: fabulous
-     * @return
+     * @param mode {@code 0} for fast, {@code 1} for fancy, {@code 2} for fabulous; other values select fast
+     * @return this helper for chaining
      * @since 1.1.7
      * @deprecated use {@link VideoOptionsHelper#setGraphicsMode(String)} instead.
      */
     @Deprecated
+    @DocletIgnore
     public OptionsHelper setGraphicsMode(int mode) {
         switch (mode) {
             case 2:
@@ -2641,21 +2647,23 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return
+     * @return {@code true} when the main hand is right, otherwise {@code false}
      * @since 1.1.7
      * @deprecated use {@link SkinOptionsHelper#isRightHanded()} instead.
      */
     @Deprecated
+    @DocletIgnore
     public boolean isRightHanded() {
         return base.mainHand().get() == HumanoidArm.RIGHT;
     }
 
     /**
-     * @param val
+     * @param val {@code true} to set the main hand to right, {@code false} to set it to left
      * @since 1.1.7
      * @deprecated use {@link SkinOptionsHelper#toggleMainHand(String)} instead.
      */
     @Deprecated
+    @DocletIgnore
     public OptionsHelper setRightHanded(boolean val) {
         if (val) {
             base.mainHand().set(HumanoidArm.RIGHT);
@@ -2666,78 +2674,96 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return
+     * @return the configured render distance in chunks
      * @since 1.1.7
      * @deprecated use {@link VideoOptionsHelper#getRenderDistance()} instead.
      */
     @Deprecated
+    @DocletIgnore
     public int getRenderDistance() {
         return base.renderDistance().get();
     }
 
     /**
-     * @param d
+     * @param d the render distance in chunks
+     * @return this helper for chaining
      * @since 1.1.7
      * @deprecated use {@link VideoOptionsHelper#setRenderDistance(int)} instead.
      */
     @Deprecated
+    @DocletIgnore
     public OptionsHelper setRenderDistance(int d) {
         ((MixinSimpleOption) (Object) base.renderDistance()).forceSetValue(d);
         return this;
     }
 
     /**
+     * @return the configured gamma value
      * @since 1.3.0 normal values for gamma are between {@code 0} and {@code 1}
      * @deprecated use {@link VideoOptionsHelper#getGamma()} instead.
      */
     @Deprecated
+    @DocletIgnore
     public double getGamma() {
         return base.gamma().get();
     }
 
     /**
+     * Sets the gamma value.
+     *
+     * @param gamma the gamma value; normal values are between {@code 0} and {@code 1}
+     * @return this helper for chaining
      * @since 1.3.0 normal values for gamma are between {@code 0} and {@code 1}
      * @deprecated use {@link VideoOptionsHelper#setGamma(double)} instead.
      */
     @Deprecated
+    @DocletIgnore
     public OptionsHelper setGamma(double gamma) {
         ((MixinSimpleOption) (Object) base.gamma()).forceSetValue(gamma);
         return this;
     }
 
     /**
-     * @param vol
+     * Sets the master volume.
+     *
+     * @param vol the volume value
+     * @return this helper for chaining
      * @since 1.3.1
      * @deprecated use {@link MusicOptionsHelper#setMasterVolume(double)} instead.
      */
     @Deprecated
+    @DocletIgnore
     public OptionsHelper setVolume(double vol) {
         base.getSoundSourceOptionInstance(SoundSource.MASTER).set(vol);
         return this;
     }
 
     /**
-     * set volume by category.
+     * Sets the volume for a sound category.
      *
-     * @param category
-     * @param volume
+     * @param category the sound category name
+     * @param volume the volume value
+     * @return this helper for chaining
      * @since 1.3.1
      * @deprecated use {@link MusicOptionsHelper#setVolume(String, double)} instead.
      */
     @Deprecated
     @DocletReplaceParams("category: SoundCategory, volume: double")
+    @DocletIgnore
     public OptionsHelper setVolume(String category, double volume) {
         base.getSoundSourceOptionInstance(Arrays.stream(SoundSource.values()).filter(e -> e.getName().equals(category)).findFirst().orElseThrow(() -> new IllegalArgumentException("unknown sound category"))).set(volume);
         return this;
     }
 
     /**
-     * @return
+     * Returns the configured volume for every sound category, keyed by category name.
+     * @return a map from sound-category names to their configured volumes
      * @since 1.3.1
      * @deprecated use {@link MusicOptionsHelper#getVolumes()} instead.
      */
     @Deprecated
     @DocletReplaceReturn("JavaMap<SoundCategory, float>")
+    @DocletIgnore
     public Map<String, Float> getVolumes() {
         Map<String, Float> volumes = new HashMap<>();
         for (SoundSource category : SoundSource.values()) {
@@ -2747,13 +2773,15 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * sets gui scale, {@code 0} for auto.
+     * Sets the GUI scale; {@code 0} selects automatic scaling.
      *
-     * @param scale
+     * @param scale the GUI scale, or {@code 0} for automatic scaling
+     * @return this helper for chaining
      * @since 1.3.1
      * @deprecated use {@link VideoOptionsHelper#setGuiScale(int)} instead.
      */
     @Deprecated
+    @DocletIgnore
     public OptionsHelper setGuiScale(int scale) {
         base.guiScale().set(scale);
         //? if >=26.1 {
@@ -2765,23 +2793,29 @@ public class OptionsHelper extends BaseHelper<Options> {
     }
 
     /**
-     * @return gui scale, {@code 0} for auto.
+     * @return the configured GUI scale; {@code 0} means automatic scaling
      * @since 1.3.1
      * @deprecated use {@link VideoOptionsHelper#getGuiScale()} instead.
      */
     @Deprecated
+    @DocletIgnore
     public int getGuiScale() {
         return base.guiScale().get();
     }
 
     /**
-     * @param category
-     * @return
+     * Returns the configured volume for a sound category. The name must be one of {@code master},
+     * {@code music}, {@code record}, {@code weather}, {@code block}, {@code hostile},
+     * {@code neutral}, {@code player}, {@code ambient}, {@code voice}, or {@code ui}.
+     *
+     * @param category a sound category name
+     * @return the configured volume
      * @since 1.3.1
      * @deprecated use {@link MusicOptionsHelper#getVolume(String)} instead.
      */
     @Deprecated
     @DocletReplaceParams("category: SoundCategory")
+    @DocletIgnore
     public float getVolume(String category) {
         return getSoundSourceVolume(SOUND_CATEGORY_MAP.get(category));
     }

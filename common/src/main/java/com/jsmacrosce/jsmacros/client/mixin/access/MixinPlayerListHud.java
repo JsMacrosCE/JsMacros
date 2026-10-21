@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.gui.components.PlayerTabOverlay;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
@@ -7,6 +9,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import com.jsmacrosce.jsmacros.client.access.IPlayerListHud;
 
 @Mixin(PlayerTabOverlay.class)
+@DocletIgnore
 public class MixinPlayerListHud implements IPlayerListHud {
 
     @Shadow

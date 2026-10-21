@@ -7,20 +7,13 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.BlockStateHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 
 /**
- * the enderman, and the two moods it has.
+ * Provides access to an enderman's target-related flags and carried block state.
  * <p>
- * An enderman starts out standing still and takes a block, and it turns aggressive when a
- * player looks straight at it. The game tracks that as two flags rather than as one
- * state, and they are not the same question:
- * {@link #isScreaming() isScreaming} is the flag the enderman's ambient sound is chosen
- * from, and it is raised as soon as the enderman is given a target, while
- * {@link #isProvoked() isProvoked} is the separate flag the stare goal raises to record
- * that a player has actually been looking at it.
- * <p>
- * What it is carrying is the other half of an enderman's day, and
- * {@link #isHoldingBlock() isHoldingBlock} and {@link #getHeldBlock() getHeldBlock} are the
- * check and the answer to the same question.
- * example:
+ * {@link #isScreaming()} reflects whether the enderman has a target; that flag selects its
+ * screaming ambient sound. {@link #isProvoked()} separately reflects whether its stare goal
+ * has started after identifying a player as a target. An enderman may therefore be provoked
+ * before it has a target. When an enderman picks up a block, the game stores that block's
+ * default state, not necessarily the state of the block at its original location.
  * <pre>
  * const EndermanEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.EndermanEntityHelper");
  * const endermen = World.getEntities(32, "enderman");
@@ -28,7 +21,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
  *   for (const entity of endermen) {
  *     const enderman = EndermanEntityHelper.class.cast(entity);
  *     if (enderman.isHoldingBlock()) {
- *       // the held block is a block state, and it is the block it will put down or drop
+ *       // The carried block is exposed as a block state.
  *       Chat.log(`an enderman at ${enderman.getPos()} is carrying ${enderman.getHeldBlock().getId()}`);
  *     }
  *   }
@@ -42,33 +35,19 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 @SuppressWarnings("unused")
 public class EndermanEntityHelper extends MobEntityHelper<EnderMan> {
 
+    /**
+     * Wraps the supplied enderman and retains its reference for this helper.
+     *
+     * @param base enderman entity to wrap
+     */
     public EndermanEntityHelper(EnderMan base) {
         super(base);
     }
 
     /**
-     * Whether the enderman is in its aggressive mood, which is the flag the game picks the
-     * enderman's ambient sound from: a screaming enderman makes the screaming sound rather
-     * than the idle one. The game sets it as soon as the enderman is given a target and
-     * clears it when that target is dropped, so it is really "is it after something".
-     * <p>
-     * This is a separate flag from {@link #isProvoked() isProvoked} and the wider of the
-     * two. The two are not simply one behind the other: the stare goal raises the provoked
-     * flag as it starts and the enderman is only given its target a few ticks after that,
-     * so a provoked enderman can read {@code false} here for those ticks.
-     * example:
-     * <pre>
-     * const EndermanEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.EndermanEntityHelper");
-     * const endermen = World.getEntities(32, "enderman");
-     * if (endermen !== null) {
-     *   for (const entity of endermen) {
-     *     const enderman = EndermanEntityHelper.class.cast(entity);
-     *     if (enderman.isScreaming()) {
-     *       Chat.log(`a screaming enderman at ${enderman.getPos()}, provoked: ${enderman.isProvoked()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Whether the enderman has a target. This flag also selects the screaming ambient sound
+     * and is distinct from {@link #isProvoked()}, which can become {@code true} before a
+     * target is assigned.
      *
      * @return {@code true} if this enderman is screaming, {@code false} otherwise.
      * @since 1.8.4
@@ -78,28 +57,9 @@ public class EndermanEntityHelper extends MobEntityHelper<EnderMan> {
     }
 
     /**
-     * Whether the enderman has been provoked, which is the game's separate record that a
-     * player looked at it. The stare goal raises the flag as it starts, and the game only
-     * lowers it again when the enderman is given no target at all.
-     * <p>
-     * It is set a few ticks before the enderman actually has a target, so a provoked
-     * enderman can still read {@code false} on {@link #isScreaming() isScreaming} for a
-     * moment. Once the target is there the two stay together, because the game clears both
-     * flags in the same place.
-     * example:
-     * <pre>
-     * const EndermanEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.EndermanEntityHelper");
-     * const endermen = World.getEntities(32, "enderman");
-     * if (endermen !== null) {
-     *   for (const entity of endermen) {
-     *     const enderman = EndermanEntityHelper.class.cast(entity);
-     *     if (enderman.isProvoked()) {
-     *       // a provoked enderman is the one that teleports out of the way
-     *       Chat.log(`a provoked enderman at ${enderman.getPos()}, health ${enderman.getHealth()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Whether the enderman's player-targeting goal has identified a player and started
+     * pursuing it. This flag is set when that goal starts, before it assigns the target,
+     * and is cleared when the target is set to {@code null}.
      *
      * @return {@code true} if this enderman was provoked by a player, {@code false}
      * otherwise.
@@ -110,23 +70,8 @@ public class EndermanEntityHelper extends MobEntityHelper<EnderMan> {
     }
 
     /**
-     * Whether the enderman is carrying a block, which is the same check
-     * {@link #getHeldBlock() getHeldBlock} makes before handing anything back, so a script
-     * can ask this first and only unwrap the result when it is {@code true}.
-     * example:
-     * <pre>
-     * const EndermanEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.EndermanEntityHelper");
-     * const endermen = World.getEntities(32, "enderman");
-     * if (endermen !== null) {
-     *   for (const entity of endermen) {
-     *     const enderman = EndermanEntityHelper.class.cast(entity);
-     *     if (enderman.isHoldingBlock()) {
-     *       // asking first keeps the null check off the unwrapping
-     *       Chat.log(`carrying something at ${enderman.getPos()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Whether the enderman has a carried block; equivalent to checking whether
+     * {@link #getHeldBlock()} returns a non-null value.
      *
      * @return {@code true} if this enderman is holding a block, {@code false} otherwise.
      * @since 1.8.4
@@ -136,23 +81,8 @@ public class EndermanEntityHelper extends MobEntityHelper<EnderMan> {
     }
 
     /**
-     * The block state the enderman is carrying, or {@code null} when it has nothing. What
-     * comes back is the block as a state rather than as an item, so a block that has
-     * several states is the state the enderman picked up rather than the bare block id.
-     * example:
-     * <pre>
-     * const EndermanEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.EndermanEntityHelper");
-     * const endermen = World.getEntities(32, "enderman");
-     * if (endermen !== null) {
-     *   for (const entity of endermen) {
-     *     const enderman = EndermanEntityHelper.class.cast(entity);
-     *     const held = enderman.getHeldBlock();
-     *     if (held !== null) {
-     *       Chat.log(`an enderman at ${enderman.getPos()} is carrying ${held.getId()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * The carried block's default state, or {@code null} if the enderman is carrying no
+     * block. When a block is picked up, its original state properties are not retained.
      *
      * @return the held block of this enderman, or {@code null} if it is not holding a
      * block.

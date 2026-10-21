@@ -6,13 +6,9 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventClickSlot;
 import com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventDropSlot;
 
 /**
- * Shared slot-click event dispatch for the container screen mixins.
- * <p>
- * {@code MixinHandledScreen} and {@code MixinCreativeInventoryScreen} fire the same pair
- * of events. The injection signatures still differ per Minecraft version, but everything
- * after that is version-independent and lives here so the two mixins cannot drift apart.
- * <p>
- * Version-specific action handling is delegated to {@link ContainerInputCompat}.
+ * Dispatches slot-click and applicable drop events for container-screen mixins.
+ * The click is triggered first; if it is cancelled, no drop event is triggered. Otherwise,
+ * a drop event is triggered for a throw action or an outside-window slot click.
  */
 public final class SlotClickEvents {
 
@@ -20,9 +16,17 @@ public final class SlotClickEvents {
     }
 
     /**
-     * Fires the click (and, when applicable, drop) events for one slot click.
+     * Fires the click event and, unless it is cancelled, a drop event for a throw or
+     * outside-window click.
      *
-     * @return {@code true} when the click should be cancelled
+     * @param screen screen receiving the click
+     * @param actionId numeric action identifier supplied by the version-specific caller
+     * @param isThrow whether the action is a throw
+     * @param button button value supplied by the screen handler
+     * @param slotId clicked menu slot, or the outside-window sentinel
+     *
+     * @return {@code true} when the click event is cancelled, or when the applicable drop event
+     *         is cancelled; {@code false} otherwise
      */
     public static boolean fire(AbstractContainerScreen<?> screen, int actionId, boolean isThrow, int button, int slotId) {
         EventClickSlot event = new EventClickSlot(screen, actionId, button, slotId);

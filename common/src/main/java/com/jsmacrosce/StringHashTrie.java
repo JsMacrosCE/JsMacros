@@ -6,12 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Is this even faster than just iterating through a LinkedHashSet / HashSet at this point?
- * also should the node-length just always be 1?
- *
- * @author Wagyourtail
- */
+/** Stores strings in a prefix trie and provides collection operations and prefix searches. */
 @SuppressWarnings("unused")
 public class StringHashTrie implements Collection<String> {
     private Map<String, StringHashTrie> children = new HashMap<>();
@@ -34,21 +29,36 @@ public class StringHashTrie implements Collection<String> {
         this.key = key;
     }
 
+    /** Initializes an empty root trie with no parent. */
     public StringHashTrie() {
         this.parent = null;
     }
 
+    /** Returns the number of strings stored in this trie, including strings in descendant nodes.
+     *
+     * @return the total stored string count
+     */
     @Override
     public int size() {
         Optional<Integer> childrenSize = children.values().stream().map(StringHashTrie::size).reduce(Integer::sum);
         return leafs.size() + childrenSize.orElse(0);
     }
 
+    /** Returns whether this node has no directly stored strings and no children.
+     *
+     * @return {@code true} when this node has neither leaves nor children
+     */
     @Override
     public boolean isEmpty() {
         return leafs.size() == 0 && children.size() == 0;
     }
 
+    /** Tests whether this trie contains the supplied string, using case-sensitive matching.
+     * Non-string values, including {@code null}, are not contained.
+     *
+     * @param o value to test
+     * @return {@code true} if {@code o} is a stored string
+     */
     @Override
     public boolean contains(Object o) {
         if (o instanceof String) {
@@ -64,24 +74,47 @@ public class StringHashTrie implements Collection<String> {
         return false;
     }
 
+    /** Returns an iterator over a snapshot of the strings currently stored in this trie. Its order is unspecified;
+     * removing through the iterator affects only the snapshot, and later trie changes are not reflected.
+     *
+     * @return an iterator over the snapshot
+     */
     @NotNull
     @Override
     public Iterator<String> iterator() {
         return getAll().iterator();
     }
 
+    /** Returns the strings currently stored in this trie as a new array; its order is unspecified.
+     *
+     * @return a new array containing the current strings
+     */
     @NotNull
     @Override
     public String[] toArray() {
         return getAll().toArray(new String[0]);
     }
 
+    /** Copies the strings currently stored in this trie into an array, following {@code Set.toArray(T[])} semantics.
+     * The result is a snapshot with unspecified element order. If {@code a} is too small, a new array of the same runtime
+     * type is returned; if it is larger, the first unused element is set to {@code null}. A null array causes
+     * {@code NullPointerException}, and an incompatible component type causes {@code ArrayStoreException}.
+     *
+     * @param <T> the array element type
+     * @param a destination array
+     * @return the destination array if large enough, otherwise a new array of the same runtime type
+     */
     @NotNull
     @Override
     public <T> T[] toArray(@NotNull T[] a) {
         return getAll().toArray(a);
     }
 
+    /** Adds a case-sensitive string if it is not already stored. A null string causes {@link NullPointerException}.
+     *
+     * @param s string to add
+     * @return {@code true} if the string was added; {@code false} if it was already present
+     */
     @Override
     public synchronized boolean add(String s) {
         if (children.size() == 0 && leafs.size() == 0) {
@@ -137,11 +170,10 @@ public class StringHashTrie implements Collection<String> {
     }
 
     /**
-     * this can make the StringHashTrie sparse, this can cause extra steps in lookup that are no longer needed,
-     * at some point it would be best to rebase the StringHashTrie with {@code new StringHashTrie().addAll(current.getAll())}
+     * Removes a string from this trie if present.
      *
-     * @param o
-     * @return
+     * @param o string to remove
+     * @return {@code true} if the string was present and removed
      */
     @Override
     public boolean remove(Object o) {
@@ -163,6 +195,11 @@ public class StringHashTrie implements Collection<String> {
         return false;
     }
 
+    /** Tests whether every element of the collection is a stored string. Non-strings and {@code null} elements are not contained; a null collection causes {@link NullPointerException}.
+     *
+     * @param c collection of values to test
+     * @return {@code true} if every element is contained, including when the collection is empty
+     */
     @Override
     public boolean containsAll(@NotNull Collection<?> c) {
         final boolean[] a = {true};
@@ -170,12 +207,23 @@ public class StringHashTrie implements Collection<String> {
         return a[0];
     }
 
+    /** Tests whether every supplied string is stored; unlike the collection overload, this accepts an array of strings.
+     * Null elements are not contained; a null array causes {@link NullPointerException}.
+     *
+     * @param o strings to test
+     * @return {@code true} if every string is contained, including when the array is empty
+     */
     public boolean containsAll(String... o) {
         final boolean[] a = {true};
         Arrays.stream(o).forEach(e -> a[0] = a[0] && contains(e));
         return a[0];
     }
 
+    /** Adds each string in the collection. Processing is not rolled back if an element fails; a null collection or null element causes {@link NullPointerException}.
+     *
+     * @param c strings to add
+     * @return {@code true} if at least one string was added
+     */
     @Override
     public boolean addAll(@NotNull Collection<? extends String> c) {
         final boolean[] a = {false};
@@ -183,12 +231,22 @@ public class StringHashTrie implements Collection<String> {
         return a[0];
     }
 
+    /** Adds each supplied string. Processing is not rolled back if an element fails; a null array or null element causes {@link NullPointerException}.
+     *
+     * @param o strings to add
+     * @return {@code true} if at least one string was added
+     */
     public boolean addAll(String... o) {
         final boolean[] a = {false};
         Arrays.stream(o).forEach(e -> a[0] = add(e) || a[0]);
         return a[0];
     }
 
+    /** Removes each supplied element that is a string in this trie. The collection must not be {@code null}; otherwise this method throws {@code NullPointerException}.
+     *
+     * @param c non-null collection of elements to remove; non-strings and null elements are ignored
+     * @return {@code true} if at least one string was removed
+     */
     @Override
     public boolean removeAll(@NotNull Collection<?> c) {
         final boolean[] a = {false};
@@ -196,12 +254,22 @@ public class StringHashTrie implements Collection<String> {
         return a[0];
     }
 
+    /** Removes each supplied string from this trie. The array must not be {@code null}; otherwise this method throws {@code NullPointerException}.
+     *
+     * @param o non-null array of strings to remove
+     * @return {@code true} if at least one string was removed
+     */
     public boolean removeAll(String... o) {
         final boolean[] a = {false};
         Arrays.stream(o).forEach(e -> a[0] = remove(e) || a[0]);
         return a[0];
     }
 
+    /** Removes every stored string not contained in the supplied collection. The collection must not be {@code null}; otherwise this method throws {@code NullPointerException}.
+     *
+     * @param c non-null collection of strings to retain
+     * @return {@code true} if at least one string was removed
+     */
     @Override
     public boolean retainAll(@NotNull Collection<?> c) {
         Set<String> content = getAll();
@@ -209,12 +277,18 @@ public class StringHashTrie implements Collection<String> {
         return removeAll(content);
     }
 
+    /** Removes every stored string not present in the supplied strings. The array must not be {@code null}; otherwise this method throws {@code NullPointerException}.
+     *
+     * @param o non-null array of strings to retain
+     * @return {@code true} if at least one string was removed
+     */
     public boolean retainAll(String... o) {
         Set<String> content = getAll();
         content.removeAll(Arrays.asList(o));
         return removeAll(content);
     }
 
+    /** Removes all strings stored directly or below this trie node. */
     @Override
     public void clear() {
         leafs.clear();
@@ -222,8 +296,12 @@ public class StringHashTrie implements Collection<String> {
     }
 
     /**
-     * @param prefix prefix to search with
-     * @return all elements that start with the given prefix
+     * Searches for strings beginning with the given case-sensitive prefix. When the prefix ends within a trie key,
+     * this returns the first matching leaf if present; otherwise, it returns the first matching child subtree, so
+     * other matches may be omitted.
+     *
+     * @param prefix prefix to match
+     * @return matching strings, or all strings when {@code prefix} is empty
      */
     public Set<String> getAllWithPrefix(String prefix) {
         if (prefix.length() > keyLength) {
@@ -253,8 +331,11 @@ public class StringHashTrie implements Collection<String> {
     }
 
     /**
-     * @param prefix prefix to search with
-     * @return all elements that start with the given prefix (case insensitive)
+     * Searches for strings beginning with the given prefix, ignoring case. When the prefix is longer than a trie key,
+     * matching is performed segment by segment, which may omit matches when case-insensitive comparison changes length.
+     *
+     * @param prefix prefix to match
+     * @return matching strings, or all strings when {@code prefix} is empty
      */
     public Set<String> getAllWithPrefixCaseInsensitive(String prefix) {
         if (prefix.length() > keyLength) {
@@ -287,9 +368,9 @@ public class StringHashTrie implements Collection<String> {
     }
 
     /**
-     * all contained elements as a {@link Set}
+     * Returns a snapshot of the strings in this trie; modifying the set does not modify the trie.
      *
-     * @return
+     * @return all strings
      */
     public Set<String> getAll() {
         Set<String> results = new HashSet<>(leafs);
@@ -344,7 +425,7 @@ public class StringHashTrie implements Collection<String> {
     }
 
     /**
-     * @return json representation, mainly for debugging.
+     * @return a structural representation for debugging; it may not be valid JSON
      */
     public String toString() {
         return String.format("{\"leafs\":%s, \"children\":%s}", jsonLeafString(), jsonChildrenString());

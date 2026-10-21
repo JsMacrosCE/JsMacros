@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -9,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.jsmacrosce.jsmacros.client.access.IMixinEntity;
 
 @Mixin(Entity.class)
+@DocletIgnore
 public abstract class MixinEntity implements IMixinEntity {
 
     @Unique

@@ -24,17 +24,43 @@ import java.util.function.Consumer;
 
 import net.minecraft.Util;
 
+/** Browses native Java files with optional selection and edit callbacks. Construct the overlay, set {@code root} before opening when needed, then open it through its parent to initialize its controls. The root is a navigation reference, not a filesystem boundary; relative paths may escape it.
+ * <pre>
+ * function openFileChooser(parent, font, directory, onSelect, onEdit) {
+ *   const FileChooser = Java.type('com.jsmacrosce.jsmacros.client.gui.overlays.FileChooser');
+ *   const chooser = new FileChooser(10, 10, 320, 180, font, directory, null, parent,
+ *     JavaWrapper.methodToJava(onSelect), JavaWrapper.methodToJava(onEdit));
+ *   chooser.root = directory;
+ *   parent.openOverlay(chooser);
+ *   return chooser;
+ * }
+ * </pre>
+ * The caller supplies a listable native Java directory, native font, overlay parent and JavaScript callback functions.
+ */
 @DocletCategory("Screen and UI Elements")
 public class FileChooser extends OverlayContainer {
     private File directory;
     private Component dirname;
     private File selected;
+    /** Expected non-null navigation base used for the displayed relative path, parent-row boundary and failed-directory-creation fallback; initially the configured macro folder. It is not a security boundary, and changing it does not itself navigate or refresh the listing. */
     public File root = JsMacrosClient.clientCore.config.macroFolder;
     private final List<fileObj> files = new ArrayList<>();
     private final Consumer<File> setFile;
     private final Consumer<File> editFile;
     private int topScroll;
 
+    /** Stores the overlay geometry, browser state and callbacks; controls are registered when the parent opens and initializes this overlay.
+     * @param x left coordinate in GUI space
+     * @param y top coordinate in GUI space
+     * @param width width in GUI units
+     * @param height height in GUI units
+     * @param textRenderer non-null native font for the controls
+     * @param directory non-null initial browse directory, listable or creatable during initialization
+     * @param selected nullable file initially selected during initialization
+     * @param parent non-null overlay host
+     * @param setFile nullable callback invoked by the Select button when a selection is stored; null makes Select do nothing, and the overlay closes only after a normal callback return
+     * @param editFile callback invoked by the Edit button with the stored selection; it is not null-checked and does not close the overlay
+     */
     public FileChooser(int x, int y, int width, int height, Font textRenderer, File directory, File selected, IOverlayParent parent, Consumer<File> setFile, Consumer<File> editFile) {
         super(x, y, width, height, textRenderer, parent);
         this.setFile = setFile;
@@ -43,6 +69,13 @@ public class FileChooser extends OverlayContainer {
         this.editFile = editFile;
     }
 
+    /** Rebuilds the listing for {@code dir}, attempting to create it when absent. Requires an initialized scrollbar and usable root; old rows are removed before filesystem checks.
+     * Failed creation recursively attempts {@code root}; there is no cycle guard if that directory cannot be created either.
+     * The heading is relative to the absolute root path, not a canonical containment check. Entries are sorted directories first, then by name.
+     * A null directory listing is not treated as empty; unchecked filesystem or path failures can leave a partial rebuild.
+     * Existing selection is retained. Row additions update scrollbar page count, which can reset the offset through its callback.
+     * @param dir non-null directory to browse, listable or creatable and with a path compatible with the root for relativization
+     */
     public void setDir(File dir) {
         for (fileObj f : files) {
             this.removeWidget(f.btn);
@@ -70,6 +103,10 @@ public class FileChooser extends OverlayContainer {
         }
     }
 
+    /** Navigates into a directory without clearing the stored file selection, or stores a non-directory file as the selection, then updates row highlighting against the supplied file.
+     * Does not require a listed or existing file, invoke either callback, confirm a choice or close the overlay.
+     * @param f file or directory to navigate to or select
+     */
     public void selectFile(File f) {
         if (f.isDirectory()) {
             this.setDir(f);
@@ -85,6 +122,11 @@ public class FileChooser extends OverlayContainer {
         }
     }
 
+    /** Clears local tracking, registers new controls and a scrollbar, resets the row origin to {@code y + 13}, then rebuilds the directory listing.
+     * Opening through the parent calls this. The listing rebuild separately removes old file rows from the parent, but repeated initialization leaves prior non-row controls registered.
+     * A non-null initial selection is passed to {@code selectFile}, so a directory selection can navigate again; initialization does not notify the selection or edit consumers.
+     * Filesystem failures can leave partially initialized controls.
+     */
     @Override
     public void init() {
         super.init();
@@ -163,10 +205,19 @@ public class FileChooser extends OverlayContainer {
         }
     }
 
+    /** Adds a row using the file's name as its literal button label. Requires initialized controls.
+     * @param f non-null native file or directory represented by the row
+     */
     public void addFile(File f) {
         addFile(f, f.getName());
     }
 
+    /** Appends and registers a row with the supplied literal label, using five columns and twelve-GUI-unit rows. Clicking it calls {@code selectFile}; duplicate entries are not filtered.
+     * Requires an initialized scrollbar: the row is appended and registered before the scrollbar page-count update, so failures can leave partial effects.
+     * The page-count update can change scrollbar state and notify its callback, repositioning rows.
+     * @param f file or directory represented by the row
+     * @param btnText literal button label
+     */
     public void addFile(File f, String btnText) {
         fileObj file = new fileObj(f, new Button(x + 3 + (files.size() % 5 * (width - 12) / 5), topScroll + (files.size() / 5 * 12), (width - 12) / 5, 12, textRenderer, 0, 0, 0x7FFFFFFF, f.isDirectory() ? 0xFFFFFF00 : 0xFFFFFFFF, Component.literal(btnText), (btn) -> {
             selectFile(f);
@@ -177,6 +228,9 @@ public class FileChooser extends OverlayContainer {
         scroll.setScrollPages((Math.ceil(files.size() / 5D) * 12) / (double) Math.max(1, height - 39));
     }
 
+    /** Repositions and resizes existing rows in five columns of twelve-GUI-unit rows using current geometry and scroll position.
+     * A row is visible when its top lies between {@code y + 13} and {@code y + height - 27}, inclusive.
+     * Does not change active flags, create controls, rebuild the listing or update scrollbar page count. */
     public void updateFilePos() {
         for (int i = 0; i < files.size(); ++i) {
             fileObj f = files.get(i);
@@ -185,12 +239,21 @@ public class FileChooser extends OverlayContainer {
         }
     }
 
+    /** Opens a confirmation overlay that calls {@code delete(f)} only when confirmed; it does not delete immediately.
+     * Captures the mutable row record, not a snapshot of its fields. This method does not verify listing membership or require a regular file.
+     * @param f row record captured by the confirmation callback
+     */
     public void confirmDelete(fileObj f) {
         this.openOverlay(new ConfirmOverlay(x + width / 2 - 100, y + height / 2 - 50, 200, 100, textRenderer, Component.translatable("jsmacrosce.confirmdeletefile"), this, (conf) -> {
             delete(f);
         }));
     }
 
+    /** Removes the row from tracking and the parent, then attempts {@code File.delete()} and repositions remaining rows.
+     * The delete result is ignored: a false result does not restore the row. Unchecked failures interrupt the remaining steps without rollback.
+     * Does not confirm, verify membership, require a regular file or recursively delete a directory. Selection and scrollbar page count are not updated.
+     * @param f row record whose button and file are used
+     */
     public void delete(fileObj f) {
         removeWidget(f.btn);
         files.remove(f);
@@ -198,6 +261,10 @@ public class FileChooser extends OverlayContainer {
         updateFilePos();
     }
 
+    /** Sets the row origin to {@code y + 13 - (int) (page * (height - 27))} and repositions rows on every call.
+     * The page argument is not clamped; this changes row positions and visibility, not active flags, directory contents, page count or the scrollbar thumb.
+     * @param page scrollbar amount in multiples of {@code height - 27}
+     */
     public void onScrollbar(double page) {
         topScroll = y + 13 - (int) (page * (height - 27));
         int i = 0;
@@ -208,6 +275,12 @@ public class FileChooser extends OverlayContainer {
         }
     }
 
+    /** Submits this chooser's background, directory heading and separators, then delegates widget and child-overlay rendering before submitting popups for truncated hovered buttons. Popup eligibility uses each button's stored hover state and text-fit state; it does not check visibility or active state, and multiple buttons can qualify. Call after initialization so the directory heading is set.
+     * @param drawContext graphics context receiving the drawing operations
+     * @param mouseX GUI-space mouse x-coordinate forwarded to widgets and used for popup placement
+     * @param mouseY GUI-space mouse y-coordinate forwarded to widgets and used for popup placement
+     * @param delta frame value forwarded to the superclass
+     */
     @Override
     //? if >=26.1 {
     /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
@@ -251,11 +324,25 @@ public class FileChooser extends OverlayContainer {
         }
     }
 
+    /** Mutable pair associating a caller-supplied native Java file reference with a project button. Constructing or changing a pair does not register it with a chooser; changing {@code file} also does not change the callback captured by an existing row button.
+     * <pre>
+     * function makeRowRecord(file, button) {
+     *   const Row = Java.type('com.jsmacrosce.jsmacros.client.gui.overlays.FileChooser$fileObj');
+     *   return new Row(file, button);
+     * }
+     * </pre>
+     */
     @DocletCategory("Screen and UI Elements")
     public static class fileObj {
+        /** Native Java file reference used for row lookup and deletion; reassigning it does not rewire an existing row button's callback. */
         public File file;
+        /** Button reference used by the chooser for row layout and removal; reassigning it does not replace the registered widget. */
         public Button btn;
 
+        /** Stores the supplied references without copying, validating, or registering them.
+         * @param file native Java file reference for row lookup and deletion; expected non-null in normal row use
+         * @param btn project button reference for row layout and removal; expected non-null in normal row use
+         */
         public fileObj(File file, Button btn) {
             this.file = file;
             this.btn = btn;
@@ -263,8 +350,21 @@ public class FileChooser extends OverlayContainer {
 
     }
 
+    /** Comparator used by the chooser to order directories before other entries, then entries by case-sensitive lexicographic basename.
+     * <pre>
+     * function compareFiles(a, b) {
+     *   const Sorter = Java.type('com.jsmacrosce.jsmacros.client.gui.overlays.FileChooser$sortFile');
+     *   return new Sorter().compare(a, b);
+     * }
+     * </pre>
+     */
     @DocletCategory("Screen and UI Elements")
     public static class sortFile implements Comparator<File> {
+        /** Compares entries by directory status and then case-sensitive basename; it does not compare full paths.
+         * @param a first native Java file entry
+         * @param b second native Java file entry
+         * @return negative when {@code a} sorts first, positive when {@code b} sorts first, or zero for equal directory status and basename even when paths differ
+         */
         @Override
         public int compare(File a, File b) {
             if (a.isDirectory() ^ b.isDirectory()) {

@@ -49,32 +49,15 @@ import java.util.List;
 *///? }
 
  /**
- * an item icon, drawn the way the game draws one in an inventory slot.
- * <p>
- * The icon is always a 16 by 16 box whatever size the element reports, which is what
- * the game's own slots use and the reason the scaled width here is the size multiplied
- * by 16 rather than by anything the item itself says. There is no width to set: an item
- * is a fixed square.
- * <p>
- * The overlay is the set of things drawn over the icon by the game, which is a durability
- * or energy bar, the cooldown overlay, and either the stack count or a text of the
- * script's choosing. It is off unless something turns it on.
- * <p>
- * The colour on this element is not used for tinting an item the way it is for a
- * rectangle. What a 2D element can do about a plain icon is scale, move and turn it, and
- * the item's own model supplies the rest.
- * <p>
- * On a surface in the world, rather than on a 2D overlay, this element has a separate
- * path: the model carries a depth that has to be flattened, and the
- * {@code render3D} taking a {@code PoseStack} is what handles it. {@link Text} has a
- * separate path too, for its own reasons, so this is not the only element with one. On
- * a 2D overlay the normal path is used.
- * <p>
- * The other {@code render3D}, the one taking a {@code GuiGraphics}, is where a
- * 1.21.5-era flattening used to happen. On 1.21.8 it does not, because the two branches
- * that the {@code is3dRender} flag picks between are the same call: the matrix stack
- * from 1.21.5 on is 2D and has no z axis to collapse.
- * example:
+  * Draws an item stack using its model in a 16-by-16 GUI-pixel box; scale changes its
+  * reported dimensions, and rotation affects drawing. The element's color does not tint
+  * the icon. Optional game decorations (durability bar, cooldown, and count or custom
+  * text) are disabled by default; a null stack draws nothing.
+  * <p>
+  * The world-space surface path flattens the item's model depth. In the GUI-context path,
+  * versions newer than Minecraft 1.21.5 use the same item-drawing call for {@code render3D}
+  * as for {@code render}; the older 3D-matrix path also adjusts model depth.
+  * <p>
  * <pre>
  * const draw = Hud.createDraw2D();
  * draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
@@ -99,57 +82,38 @@ public class Item implements RenderElement, Alignable<Item> {
     *///? }
 
     /**
-    * the overlay this icon was added to, and {@code null} when it has not been put on
-    * one.
-    * <p>
-    * This is what the parent width and height are read from, and they fall back to the
-    * window when it is null.
+    * the overlay this icon belongs to, or {@code null} when unbound. Parent dimensions
+    * come from this overlay and fall back to the window when it is null.
     */
     @Nullable
     public IDraw2D<?> parent;
     /**
-    * the stack whose icon is drawn, and {@code null} for an icon that draws nothing.
-    * <p>
-    * A public field, so it can be written directly. The icon is a fixed 16 by 16 box
-    * whatever is in the stack, so nothing else about the element is derived from it.
+    * the stack whose icon is drawn, or {@code null} for no icon.
     */
     public ItemStack item;
     /**
-    * the text drawn over the icon when the overlay is on, or {@code null} for the
-    * stack count instead.
-    * <p>
-    * The constructors leave this null, so the count is what shows, and a builder starts
-    * it as an empty string rather than null, which is a different thing to ask for.
+    * the custom text drawn when the overlay is on, or {@code null} to use the stack
+    * count. Builders initialize this to an empty string, which requests an empty label.
     */
     public String ovText;
     /**
-    * whether the game's own decorations are drawn over this icon.
-    * <p>
-    * Off on an icon made directly unless the constructor was told otherwise, and off on
-    * a builder until an {@code overlayText} or an {@code overlayVisible} call.
+    * whether the game's decorations (bar, cooldown, and count or custom text) are drawn.
+    * Defaults to the constructor argument, or {@code false} in a builder.
     */
     public boolean overlay;
     /**
-    * the scale applied to this icon, and one is what an icon comes with from a
-    * builder. Made through the constructor there is no default at all, since the
-    * scale is one of its arguments.
-    * <p>
-    * The icon is a 16 by 16 box, so a scale of two draws it as a 32 by 32 box. A
-    * negative scale is accepted on the element itself and refused by its builder.
+    * the scale applied to the fixed 16-by-16 icon; builders default to {@code 1}.
+    * Negative values are accepted on the element but rejected by its builder.
     */
     public double scale;
     /**
-    * the rotation in degrees, wrapped into a single turn.
-    * <p>
-    * Constructors and setters normalize finite angles to {@code [-180, 180)}, so 450
-    * reads back as 90. Direct field writes bypass normalization.
+    * the rotation in degrees. Constructors and setters normalize finite angles to
+    * {@code [-180, 180)}; direct field writes do not.
     */
     public float rotation;
     /**
-    * whether the rotation is about the middle of the icon or about its position.
-    * <p>
-    * False on an icon made directly and true on one from a builder, so the two turn
-    * differently at the same angle.
+    * whether rotation is about the icon's center; defaults to {@code false} for direct
+    * construction and {@code true} for builder-created icons.
     */
     public boolean rotateCenter;
     /**
@@ -157,26 +121,19 @@ public class Item implements RenderElement, Alignable<Item> {
     */
     public int x;
     /**
-    * the y position of this icon, which is the top of its 16 by 16 box.
-    * <p>
-    * The counterpart of {@code x}, and read the same way.
+    * the y coordinate of the icon's top-left position.
     */
     public int y;
     /**
-    * the number this icon is ordered against the other elements on its overlay, lower
-    * drawn first.
+    * The overlay draw-order value for this icon; lower values are drawn first.
     */
     public int zIndex;
 
     /**
-    * makes an item icon from an id and a count of one.
-    * <p>
-    * The id goes through the usual parser, so a bare name gets the {@code minecraft}
-    * namespace. An id that does not resolve to anything in the game's item registry
-    * does not fail: the registry has a default entry and hands that back, so a mistyped
-    * id gives the default item rather than nothing.
-    * <p>
-    * Finite rotations are normalized to {@code [-180, 180)}.
+    * Constructs an icon using the default instance of the identified item.
+    * Bare names use the {@code minecraft} namespace; an unknown item id resolves to
+    * the registry's default item (air in Minecraft 1.21.8). Finite rotations are
+    * normalized to {@code [-180, 180)}.
     *
     * @param x        the x position
     * @param y        the y position
@@ -192,10 +149,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * makes an item icon from a stack, with no text of its own over it.
-    * <p>
-    * The overlay text is left null, so with the overlay turned on what shows over the
-    * icon is the stack count when it is more than one.
+    * Constructs an icon from a stack, leaving overlay text {@code null} so the stack
+    * count is shown when greater than one if the overlay is enabled.
     *
     * @param x        the x position
     * @param y        the y position
@@ -210,11 +165,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * makes an item icon from a stack, with text of its own to go over it.
-    * <p>
-    * This is the only constructor that can set the overlay text, and the text is shown
-    * in place of the stack count rather than in addition to it. A null text here is the
-    * same as not calling this one.
+    * Constructs an icon from a stack with optional overlay text, which replaces rather
+    * than supplements the stack count. A {@code null} text uses the count instead.
     *
     * @param x         the x position
     * @param y         the y position
@@ -237,20 +189,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * puts a different stack on this icon, or empties it.
-    * <p>
-    * The stack is used as it is rather than copied, so the icon and the helper share
-    * one stack and a change to one is a change to both. A null helper is not ignored
-    * here as it is on the builder: it clears the icon, and an icon with nothing in it
-    * draws nothing at all.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-    * const ItemStackHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper");
-    * icon.setItem(new ItemStackHelper("minecraft:emerald", 1));
-    * draw.register();
-    * </pre>
+    * Sets the icon's stack, or clears the icon when {@code i} is {@code null}. The
+    * helper's underlying stack is used without copying.
     *
     * @param i the stack to draw, or {@code null} for nothing
     * @return self for chaining.
@@ -266,25 +206,12 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * puts a different stack on this icon from an id and a count.
-    * <p>
-    * The stack is built fresh here, so there is nothing shared with anything else. The
-    * id goes through the usual parser, so a bare name gets the {@code minecraft}
-    * namespace, and an id that resolves to nothing in the item registry does not fail:
-    * the registry's default entry is handed back instead, which for the vanilla item
-    * registry is air. So a mistyped id gives an air icon rather than an error.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-    * draw.register();
-    * icon.setItem("minecraft:emerald", 5);
-    * </pre>
+    * Replaces the icon's stack with a newly constructed stack for the given id and count.
+    * Bare names use the {@code minecraft} namespace; unknown ids resolve to the
+    * registry's default item (air in Minecraft 1.21.8).
     *
     * @param id    the item to draw, with the namespace optional
-    * @param count the stack size, which is what the overlay puts over the icon when it
-    * is on and the overlay text on this icon is still null, as it is on an icon made
-    * through a constructor and not on one from a builder
+    * @param count the new stack count
     * @return self for chaining.
     * @since 1.0.5
     */
@@ -295,18 +222,7 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the stack this icon is drawing, as a helper.
-    * <p>
-    * Wrapped rather than copied, so this is the same stack the icon is using and a
-    * change to it changes what is drawn. The builder's own getter is the opposite and
-    * hands back a copy.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond", 5).pos(10, 10).buildAndAdd();
-    * draw.register();
-    * Chat.log(`a stack of ${icon.getItem().getCount()}, empty: ${icon.getItem().isEmpty()}`);
-    * </pre>
+    * Returns the icon's stack wrapped as a helper.
     *
     * @return the stack being drawn, as a helper
     * @since 1.2.0
@@ -316,16 +232,7 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * moves this icon along the x axis, and leaves the y axis alone.
-    * <p>
-    * The stack is untouched, so this only changes where the 16 by 16 box is drawn.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(0, 0).buildAndAdd();
-    * icon.setX(40);
-    * draw.register();
-    * </pre>
+    * Sets the icon's x position without changing its y position.
     *
     * @param x the new x position of this element
     * @return self for chaining.
@@ -337,16 +244,7 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the x position of this icon, which is the left of its 16 by 16 box.
-    * <p>
-    * Unchanged by the scale, which makes the box bigger rather than moving it.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(40, 20).buildAndAdd();
-    * draw.register();
-    * Chat.log(`box starts at ${icon.getX()}, ${icon.getY()} and is ${icon.getScaledWidth()} wide`);
-    * </pre>
+    * Returns the x coordinate of the icon's box; scaling does not change this position.
     *
     * @return the x position of this element.
     * @since 1.8.4
@@ -356,16 +254,7 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * moves this icon along the y axis, and leaves the x axis alone.
-    * <p>
-    * The counterpart of {@code setX}, and the stack is untouched.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(0, 0).buildAndAdd();
-    * icon.setY(40);
-    * draw.register();
-    * </pre>
+    * Sets the icon's y position without changing its x position.
     *
     * @param y the new y position of this element
     * @return self for chaining.
@@ -377,16 +266,7 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the y position of this icon, which is the top of its 16 by 16 box.
-    * <p>
-    * The counterpart of {@code getX}, and read the same way.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(40, 20).buildAndAdd();
-    * draw.register();
-    * Chat.log(`box starts at ${icon.getX()}, ${icon.getY()}`);
-    * </pre>
+    * Returns the icon's y coordinate; scaling does not change its position.
     *
     * @return the y position of this element.
     * @since 1.8.4
@@ -396,17 +276,7 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * puts this icon at a position, and leaves the stack alone.
-    * <p>
-    * Both coordinates are set and nothing is re-measured, since the icon is always a
-    * 16 by 16 box.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(0, 0).buildAndAdd();
-    * icon.setPos(40, 20);
-    * draw.register();
-    * </pre>
+    * Sets both coordinates without changing the stack.
     *
     * @param x the new x position
     * @param y the new y position
@@ -420,20 +290,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * scales this icon, and one is what an icon comes with.
-    * <p>
-    * The icon is a 16 by 16 box, so the drawn size is this multiplied by 16. Only zero
-    * is refused: a negative scale is accepted here and left in, which turns the box
-    * about as well as shrinking it, whereas the builder refuses anything at or below
-    * zero, so the same number can be legal on one and not the other.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-    * icon.setScale(2);
-    * draw.register();
-    * Chat.log(`drawn ${icon.getScaledWidth()} wide`);
-    * </pre>
+    * Sets the icon scale. The base size is 16 by 16; zero is rejected, but negative
+    * values are accepted here (the builder rejects them).
     *
     * @param scale the scale to apply
     * @return self for chaining.
@@ -449,17 +307,7 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the scale on this icon, which is one unless something has changed it.
-    * <p>
-    * A double, and the number the 16 by 16 box is multiplied by.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-    * icon.setScale(1.5);
-    * draw.register();
-    * Chat.log(`scale ${icon.getScale()}, drawn ${icon.getScaledWidth()} wide`);
-    * </pre>
+    * Returns the scale applied to the icon's 16-by-16 base size.
     *
     * @return the scale of this item.
     * @since 1.8.4
@@ -469,18 +317,9 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * turns this icon by an angle in degrees.
-    * <p>
-    * Finite angles are normalized to {@code [-180, 180)}, so 450 reads back as 90.
-    * Constructors apply the same normalization.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(20, 20).buildAndAdd();
-    * icon.setRotation(45);
-    * draw.register();
-    * Chat.log(`reads back as ${icon.getRotation()}`);
-    * </pre>
+    * Sets the rotation in degrees, wrapping finite float-converted angles to
+    * {@code [-180, 180)}; for example, {@code 450} becomes {@code 90}. Constructors
+    * apply the same wrapping.
     *
     * @param rotation the angle in degrees
     * @return self for chaining.
@@ -492,17 +331,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the rotation on this icon in degrees, folded into a single turn.
-    * <p>
-    * Constructors and setters normalize finite angles to {@code [-180, 180)}. Direct
-    * writes to the public field bypass that normalization.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(20, 20).rotation(450).buildAndAdd();
-    * draw.register();
-    * Chat.log(`reads back as ${icon.getRotation()}`);
-    * </pre>
+    * Returns the stored rotation in degrees. Constructors and setters normalize it;
+    * direct writes to the public field do not.
     *
     * @return the rotation of this item.
     * @since 1.8.4
@@ -512,19 +342,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * chooses whether the rotation is about the middle of the icon or about its
-    * position.
-    * <p>
-    * An icon made directly turns about its position and an icon from a builder turns
-    * about the middle, so this is what makes the two agree. The middle is half of the
-    * 16 by 16 box, so it does not move when the scale changes.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(20, 20).buildAndAdd();
-    * icon.setRotateCenter(true).setRotation(90);
-    * draw.register();
-    * </pre>
+    * Sets whether rotation is about the center of the 16-by-16 icon box rather than
+    * its top-left position.
     *
     * @param rotateCenter whether the item should be rotated around its center
     * @return self for chaining.
@@ -536,17 +355,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * whether the rotation on this icon is about its middle.
-    * <p>
-    * False on an icon made directly and true on one from a builder, since only the
-    * builder sets it.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(20, 20).buildAndAdd();
-    * draw.register();
-    * Chat.log(`turns about the middle: ${icon.isRotatingCenter()}`);
-    * </pre>
+    * Returns whether rotation is about the icon's center. Directly constructed icons
+    * default to {@code false}; builder-created icons default to {@code true}.
     *
     * @return {@code true} if this item should be rotated around its center, {@code false}
     * otherwise.
@@ -557,28 +367,11 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * chooses whether the game's own decorations are drawn over this icon.
-    * <p>
-    * This is the whole of the set of things the game draws over an icon: the durability
-    * or energy bar, the cooldown overlay, and either the stack count or the text of the
-    * script's choosing.
-    * <p>
-    * The text is a separate thing from this flag, and which of the two ends up drawn
-    * follows from how the icon was made rather than from this. The constructors leave
-    * the text null, which is what asks for the stack count, while a builder starts it
-    * as an empty string rather than null, which is a different thing to ask for and
-    * draws an empty label in place of the count. An icon from a builder therefore needs
-    * an {@code overlayText} or a {@code setOverlayText} call as well as this one to put
-    * anything over it.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond", 5).pos(10, 10).buildAndAdd();
-    * // a builder starts the text as an empty string, so it is set here to show a number
-    * icon.setOverlayText("5");
-    * icon.setOverlay(true);
-    * draw.register();
-    * </pre>
+    * Enables or disables item decorations. In 2D rendering these include the game's
+    * durability bar, cooldown overlay, and stack count or custom text; the custom 3D
+    * surface renderer draws the bar and count or text, but not the cooldown overlay.
+    * Builder-created icons start with empty overlay text, so set text separately if a
+    * label is wanted.
     *
     * @param overlay whether to draw the decorations
     * @return self for chaining.
@@ -590,28 +383,11 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * whether the game's decorations are drawn over this icon, which is to say the
-    * durability or energy bar, the cooldown overlay, and the overlay text or item
-    * count.
-    * <p>
-    * The source comment said only the bar and the text or count. Checked against the
-    * game, the game's own decorations call also draws the cooldown overlay, so that is
-    * a third thing this turns on, and it has been added here rather than taken out.
-    * <p>
-    * The bar only appears on a stack that has one, and the text only when there is text
-    * or a count above one, so turning this on does not guarantee that anything is drawn
-    * over a plain stack of one, and an icon from a builder draws an empty label rather
-    * than the count until the text is set on it.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond", 5).pos(10, 10).buildAndAdd();
-    * draw.register();
-    * Chat.log(`overlay on: ${icon.shouldShowOverlay()}`);
-    * </pre>
+    * Returns whether the game's item decorations are enabled. This flag alone does not
+    * guarantee visible decoration; for example, a builder's default empty text draws
+    * no count label.
     *
-    * @return {@code true}, if the overlay, i.e. the durability bar, and the overlay text or
-    * item count should be shown, {@code false} otherwise.
+    * @return {@code true} if decorations are enabled; {@code false} otherwise.
     * @since 1.8.4
     */
     public boolean shouldShowOverlay() {
@@ -619,20 +395,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * sets the text drawn over this icon, without turning the overlay on.
-    * <p>
-    * The text replaces the stack count rather than sitting beside it, so an icon with
-    * this set shows this and not the count. Nothing is drawn until the overlay is on as
-    * well, which is why this does not set it: a script can set the text and then decide
-    * separately whether the bar should be there.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond", 5).pos(10, 10).buildAndAdd();
-    * icon.setOverlayText("5");
-    * icon.setOverlay(true);
-    * draw.register();
-    * </pre>
+    * Sets the text used for the overlay label; this does not enable the overlay. When
+    * enabled, a non-null value replaces the stack count.
     *
     * @param ovText the text to draw over the icon
     * @return self for chaining.
@@ -644,18 +408,7 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the text that would be drawn over this icon, or {@code null} for the stack count.
-    * <p>
-    * A constructor leaves this null and a builder starts it as an empty string, so the
-    * two kinds of element answer this differently before anything is set. The icon does
-    * not care what it is set to while the overlay is off.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond", 5).pos(10, 10).buildAndAdd();
-    * draw.register();
-    * Chat.log(`overlay text is ${icon.getOverlayText()}`);
-    * </pre>
+    * Returns the custom overlay label, or {@code null} when the stack count is used.
     *
     * @return the overlay text of this item.
     * @since 1.8.4
@@ -665,21 +418,7 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * sets the number this icon is ordered against the other elements on its overlay,
-    * lower drawn first.
-    * <p>
-    * Two icons drawn in the same place are ordered by this and by nothing else, and a
-    * tie keeps the order they were added in.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const under = draw.itemBuilder().item("minecraft:diamond").pos(0, 0).buildAndAdd();
-    * const over = draw.itemBuilder().item("minecraft:emerald").pos(0, 0).buildAndAdd();
-    * // both sit in the same spot, so this is what decides which one draws on top
-    * over.setZIndex(1);
-    * draw.register();
-    * Chat.log(`${under.getZIndex()} under, ${over.getZIndex()} over`);
-    * </pre>
+    * Sets this element's z-index; lower values are drawn first.
     *
     * @param zIndex the new z-index for this item
     * @return self for chaining.
@@ -691,17 +430,7 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the number this icon is ordered against the other elements on its overlay.
-    * <p>
-    * Zero is what an icon comes with, and the overlay sorts by this lowest first.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-    * icon.setZIndex(3);
-    * draw.register();
-    * Chat.log(`z-index ${icon.getZIndex()}`);
-    * </pre>
+    * Returns this element's z-index; lower values are drawn first.
     *
     * @return the z-index of this element
     */
@@ -711,24 +440,9 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * draws this icon, and is called by the overlay rather than by a script.
-    * <p>
-    * The element's own transform is put on first, so the position, the scale and the
-    * turn are those of the icon as it lands rather than of the box it was placed by,
-    * and the game then draws the item into it. When the overlay is on, the game's own
-    * decorations are drawn through the same transform, so the count and the bar are
-    * turned and scaled along with the icon.
-    * <p>
-    * An icon with nothing in it draws nothing and returns before touching the context.
-    * The mouse arguments are not used: they are the real mouse on a screen and zero on a
-    * plain overlay, and neither is looked at here.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-    * // the overlay calls render on it; a script does not
-    * draw.register();
-    * </pre>
+    * Renders this icon using its position, scale, and rotation. The overlay calls this
+    * method; a {@code null} item draws nothing. Mouse coordinates and frame delta are
+    * unused.
     *
     * @param drawContext the graphics context to draw into
     * @param mouseX      the mouse x, not used by this element
@@ -944,22 +658,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * binds this icon to the overlay it belongs to, which is what the parent width and
-    * height are then read from.
-    * <p>
-    * The element builders call this as they build, so an icon that has been built is
-    * already bound. Binding is what makes the parent-relative align methods measure
-    * against that overlay rather than against the window, and {@code null} puts it back
-    * to the window.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(10, 10).build();
-    * // a built icon is already bound, and can be bound again by hand
-    * icon.setParent(draw);
-    * draw.reAddElement(icon);
-    * draw.register();
-    * </pre>
+    * Sets the overlay parent used for parent-relative alignment and dimensions. A
+    * {@code null} parent makes dimensions fall back to the window.
     *
     * @param parent the overlay this element is on, or {@code null} for the window
     * @return self for chaining.
@@ -970,22 +670,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the size of this icon as it is drawn, which is the 16 by 16 box put through the
-    * scale.
-    * <p>
-    * There is no width to set on an item, so this is 16 multiplied by the scale and cut
-    * to a whole number of pixels. A scale of one gives 16 and a scale of two gives 32.
-    * The cut is toward zero, so a positive scale rounds down and a negative one, which
-    * {@code setScale} allows on an element, rounds up. This is the number the align
-    * methods measure.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-    * icon.setScale(2);
-    * draw.register();
-    * Chat.log(`drawn ${icon.getScaledWidth()} wide and ${icon.getScaledHeight()} tall`);
-    * </pre>
+    * Returns the icon's scaled width, computed as {@code (int) (scale * 16)} (truncated
+    * toward zero).
     *
     * @return the scaled width of this element
     */
@@ -995,18 +681,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the width of the overlay this icon is on, or the window's width if it has not been
-    * put on one.
-    * <p>
-    * This is what the parent-relative align methods measure against, so an icon that
-    * has not been added still aligns against the screen.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-    * draw.register();
-    * Chat.log(`measured against ${icon.getParentWidth()}`);
-    * </pre>
+    * Returns the parent overlay's width, or the window's GUI-scaled width when no parent
+    * is set.
     *
     * @return the width of the parent
     */
@@ -1016,19 +692,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the height of this icon as it is drawn, which is the 16 by 16 box put through the
-    * scale.
-    * <p>
-    * The counterpart of {@code getScaledWidth}, and the same number, because an item
-    * icon is always square.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-    * icon.setScale(2);
-    * draw.register();
-    * Chat.log(`drawn ${icon.getScaledHeight()} tall`);
-    * </pre>
+    * Returns the icon's scaled height, computed as {@code (int) (scale * 16)} (truncated
+    * toward zero).
     *
     * @return the scaled height of this element
     */
@@ -1038,17 +703,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the height of the overlay this icon is on, or the window's height if it has not
-    * been put on one.
-    * <p>
-    * The counterpart of {@code getParentWidth}, and read the same way.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-    * draw.register();
-    * Chat.log(`measured against ${icon.getParentHeight()}`);
-    * </pre>
+    * Returns the parent overlay's height, or the window's GUI-scaled height when no
+    * parent is set.
     *
     * @return the height of the parent
     */
@@ -1058,19 +714,9 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the x position of this icon, which is the left of its 16 by 16 box.
-    * <p>
-    * The same as {@code getX}: a scale makes the box bigger rather than moving it, so
-    * the width the icon covers is {@code getScaledWidth} measured from here.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(40, 20).buildAndAdd();
-    * draw.register();
-    * Chat.log(`from ${icon.getScaledLeft()} to ${icon.getScaledRight()}`);
-    * </pre>
+    * Returns the icon's x position; scaling changes its rendered size, not this position.
     *
-    * @return the position of the scaled element's left side
+    * @return the icon's x position
     */
     @Override
     public int getScaledLeft() {
@@ -1078,18 +724,9 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the y position of this icon, which is the top of its 16 by 16 box.
-    * <p>
-    * The counterpart of {@code getScaledLeft}, and the same as {@code getY}.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(40, 20).buildAndAdd();
-    * draw.register();
-    * Chat.log(`from ${icon.getScaledTop()} to ${icon.getScaledBottom()}`);
-    * </pre>
+    * Returns the icon's y position; scaling changes its rendered size, not this position.
     *
-    * @return the position of the scaled element's top side
+    * @return the icon's y position
     */
     @Override
     public int getScaledTop() {
@@ -1097,18 +734,7 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * puts this icon at a position, which is the same as {@code setPos}.
-    * <p>
-    * Nothing is resized, since an item icon is a fixed 16 by 16 box whatever else is
-    * true of it. This is what the align methods call.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const icon = draw.itemBuilder().item("minecraft:diamond").pos(0, 0).buildAndAdd();
-    * icon.moveTo(40, 20);
-    * draw.register();
-    * Chat.log(`moved to ${icon.getX()}, ${icon.getY()}`);
-    * </pre>
+    * Sets this icon's position. Scaling and rotation settings are unchanged.
     *
     * @param x the new x position
     * @param y the new y position
@@ -1120,28 +746,8 @@ public class Item implements RenderElement, Alignable<Item> {
     }
 
     /**
-    * the builder for an item icon, made by the overlay's own {@code itemBuilder}
-    * method.
-    * <p>
-    * The item can be given in three ways, as a stack, as an id for a single item, or as
-    * an id with a count, and the two id forms are typed slightly differently: the
-    * one-argument form's annotation lets the namespace be left off while the
-    * two-argument form's asks for a full id. Both go through the same parser at runtime,
-    * so a bare name works on both and the difference is in the typing rather than in
-    * what happens.
-    * <p>
-    * The position starts at zero, the stack starts empty and so draws nothing, the
-    * overlay text starts as an empty string rather than null, the overlay starts off,
-    * the scale starts at one, the rotation starts at zero and is not folded into a
-    * single turn, and the rotation is about the middle of the icon until
-    * {@code rotateCenter} says otherwise. That last one is the opposite of an icon made
-    * directly.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-    * draw.register();
-    * </pre>
+    * Builds item icons for an overlay. Set the stack, position, scale, rotation, and
+    * optional count overlay before building; the default stack is empty.
     *
     * @author Etheradon
     * @since 1.8.4
@@ -1159,10 +765,7 @@ public class Item implements RenderElement, Alignable<Item> {
         private int zIndex = 0;
 
         /**
-        * makes a builder for item icons on one overlay.
-        * <p>
-        * A script does not call this directly: the overlay's own {@code itemBuilder}
-        * method is what fills in the overlay.
+        * Creates a builder associated with the supplied overlay.
         *
         * @param draw2D the overlay the icons will be added to
         */
@@ -1171,16 +774,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * puts the icon at an x position, and leaves the y position alone.
-        * <p>
-        * Zero is where an element starts, and the icon is a fixed 16 by 16 box, so
-        * nothing is resized by moving it.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.itemBuilder().item("minecraft:diamond").x(40).y(20).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the icon's x position without changing its y position.
         *
         * @param x the x position of the item
         * @return self for chaining.
@@ -1192,15 +786,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the x position this builder will build the icon at.
-        * <p>
-        * Zero until an {@code x} or a {@code pos} call says otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder().x(40);
-        * Chat.log(`will be built at x ${builder.getX()}`);
-        * </pre>
+        * Returns the x position configured for this builder (zero by default).
         *
         * @return the x position of the item.
         * @since 1.8.4
@@ -1210,15 +796,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * puts the icon at a y position, and leaves the x position alone.
-        * <p>
-        * The counterpart of {@code x}, and the icon is a fixed box either way.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.itemBuilder().item("minecraft:diamond").y(20).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the icon's y position without changing its x position.
         *
         * @param y the y position of the item
         * @return self for chaining.
@@ -1230,15 +808,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the y position this builder will build the icon at.
-        * <p>
-        * Zero until a {@code y} or a {@code pos} call says otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder().y(20);
-        * Chat.log(`will be built at y ${builder.getY()}`);
-        * </pre>
+        * Returns the y position configured for this builder (zero by default).
         *
         * @return the y position of the item.
         * @since 1.8.4
@@ -1248,16 +818,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * puts the icon at a position, and leaves the stack alone.
-        * <p>
-        * Both coordinates are set and nothing is resized, since an item icon is a fixed
-        * 16 by 16 box whatever else is true of it.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets both icon coordinates without changing its stack.
         *
         * @param x the x position of the item
         * @param y the y position of the item
@@ -1271,21 +832,8 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * sets the stack to draw, from a helper.
-        * <p>
-        * The stack is copied here, so the icon and the helper do not share one and a
-        * change to either is not a change to both. A null helper is ignored rather than
-        * applied, which is the opposite of the same method on the icon itself, where
-        * null clears it.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const player = Player.getPlayer();
-        * if (player !== null) {
-        * draw.itemBuilder().item(player.getMainHand()).pos(10, 10).buildAndAdd();
-        * draw.register();
-        * }
-        * </pre>
+        * Sets the stack to draw, copying it into the builder. A {@code null} helper leaves
+        * the builder's current stack unchanged.
         *
         * @param item the item to draw
         * @return self for chaining.
@@ -1299,20 +847,8 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * sets the item to draw from an id, as a single one.
-        * <p>
-        * The annotation on this one lets the namespace be left off, so a bare name works
-        * and is filled in with {@code minecraft}. An id that resolves to nothing in the
-        * game's item registry does not fail: that registry has a default entry and hands
-        * that back, so a mistyped id gives the default item rather than nothing. The
-        * stack is a fresh default instance rather than one with a count, so it is a
-        * single item.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.itemBuilder().item("diamond").pos(10, 10).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the item to draw from its id, using the item's default stack. The namespace
+        * may be omitted; an unknown id resolves to the registry's default item.
         *
         * @param id the id of the item to draw, with the namespace optional
         * @return self for chaining.
@@ -1326,24 +862,11 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * sets the item to draw from an id and a count.
-        * <p>
-        * The annotation on this one asks for a full id, where the one-argument form
-        * lets the namespace be left off. Both run the id through the same parser at
-        * runtime, so a bare name is filled in either way, and both fall back to the
-        * registry's default entry rather than failing on an id that resolves to nothing.
-        * <p>
-        * The count is not what the overlay puts over the icon on its own, because this
-        * builder starts the overlay text as an empty string rather than null, and an
-        * empty string is not the same as the null that asks for the stack count. An
-        * {@code overlayText} call is what puts a number over the icon, and it turns the
-        * overlay on at the same time.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.itemBuilder().item("minecraft:diamond", 5).pos(10, 10).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the item stack from its id and count. Unlike the one-argument overload,
+        * this overload's script typing requires a namespace, although runtime parsing
+        * accepts a bare name. Unknown ids resolve to the registry's default item. The
+        * count does not appear as overlay text by default: the builder's empty overlay
+        * text differs from {@code null}, which requests the stack count.
         *
         * @param id    the id of the item to draw
         * @param count the stack size
@@ -1357,17 +880,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the stack this builder will build the icon with, as a copy.
-        * <p>
-        * A copy rather than the stack itself, so changing this does not change what will
-        * be built. The icon that comes out of it has a getter of its own that does not
-        * copy, so the two behave differently.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder().item("minecraft:diamond", 5);
-        * Chat.log(`will build a stack of ${builder.getItem().getCount()}`);
-        * </pre>
+        * Returns a copy of the stack the builder will use.
         *
         * @return the item to be drawn.
         * @since 1.8.4
@@ -1377,7 +890,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * This also sets the overlay to be shown.
+        * Sets the overlay text and enables the overlay.
         *
         * @param overlayText the overlay text
         * @return self for chaining.
@@ -1390,17 +903,8 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the overlay text this builder will build the icon with.
-        * <p>
-        * An empty string to begin with, which is not the same as null: the icons made
-        * by the constructors start with null, which is what asks for the stack count.
-        * An empty string asks for an empty label instead.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder();
-        * Chat.log(`overlay text is "${builder.getOverlayText()}"`);
-        * </pre>
+        * Returns the builder's overlay text, initially an empty string. Unlike
+        * {@code null}, an empty string requests an empty label rather than the stack count.
         *
         * @return the overlay text.
         * @since 1.8.4
@@ -1410,26 +914,9 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * chooses whether the game's own decorations are drawn over the icon this
-        * builder builds.
-        * <p>
-        * The same flag as the element's {@code setOverlay}, and the same whole set of
-        * things: the durability or energy bar, the cooldown overlay, and either the
-        * stack count or the text of the script's choosing. Off until this or an
-        * {@code overlayText} call says otherwise.
-        * <p>
-        * The text is a separate thing from this flag, and this does not set it. A builder
-        * starts the text as an empty string rather than null, which is not the same as
-        * the null the constructors would have given, so turning the overlay on like this
-        * on its own draws an empty label rather than the stack count, and an
-        * {@code overlayText} call is what puts a number there.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * // overlayVisible on its own would draw an empty label, so the text is set too
-        * draw.itemBuilder().item("minecraft:diamond", 5).pos(10, 10).overlayText("5").overlayVisible(true).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets whether the built icon draws the game's overlay decorations. This does not
+        * change the overlay text; the builder's default empty string produces an empty
+        * label rather than the stack count.
         *
         * @param visible whether to draw the decorations
         * @return self for chaining.
@@ -1441,17 +928,8 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * whether the icon this builder builds will have the game's decorations over it.
-        * <p>
-        * False to begin with, so a builder shows nothing over the icon until it is told
-        * to, which is the opposite of the {@code add} methods, which take the overlay as
-        * an argument.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder();
-        * Chat.log(`builds with an overlay: ${builder.isOverlayVisible()}`);
-        * </pre>
+        * Returns whether the built icon will draw its overlay decorations; this is
+        * {@code false} initially.
         *
         * @return {@code true} if the overlay should be visible, {@code false} otherwise.
         * @since 1.8.4
@@ -1461,19 +939,9 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * scales the icon, and one is what a builder starts at.
-        * <p>
-        * The icon is a 16 by 16 box, so the drawn size is this multiplied by 16. A
-        * scale of zero or less is refused here, which is stricter than the icon's own
-        * setter, which refuses only zero and lets a negative scale through, so the same
-        * number can be legal on one and not the other.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const icon = draw.itemBuilder().item("minecraft:diamond").pos(10, 10).scale(2).buildAndAdd();
-        * draw.register();
-        * Chat.log(`drawn ${icon.getScaledWidth()} wide`);
-        * </pre>
+        * Sets the icon scale; the builder defaults to {@code 1}. The icon's base size is
+        * 16 by 16, and the scale must be greater than zero (unlike the element setter,
+        * which permits negative values).
         *
         * @param scale the scale of the item
         * @return self for chaining.
@@ -1489,15 +957,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the scale this builder will build the icon at.
-        * <p>
-        * One until a {@code scale} call says otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder().scale(1.5);
-        * Chat.log(`will be built at ${builder.getScale()} times the size`);
-        * </pre>
+        * Returns the scale the builder will use, initially {@code 1}.
         *
         * @return the scale of the item.
         * @since 1.8.4
@@ -1507,16 +967,9 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * turns the icon by an angle in degrees.
-        * <p>
-        * Stored as given rather than folded into a single turn, so this reads back as
-        * 450 on the builder. The built icon's constructor normalizes it to 90.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.itemBuilder().item("minecraft:diamond").pos(20, 20).rotation(45).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the rotation used when building the icon, in degrees. The builder stores
+        * the float-converted angle without wrapping (so {@code 450} remains {@code 450});
+        * building wraps finite values to {@code [-180, 180)}, making that angle {@code 90}.
         *
         * @param rotation the rotation (clockwise) of the item in degrees
         * @return self for chaining.
@@ -1528,16 +981,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the rotation this builder will build the icon at, in degrees.
-        * <p>
-        * Zero until a {@code rotation} call says otherwise, and not folded into a
-        * single turn.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder().rotation(45);
-        * Chat.log(`will be built turned ${builder.getRotation()} degrees`);
-        * </pre>
+        * Returns the builder's rotation in degrees, before the built icon normalizes it.
         *
         * @return the rotation (clockwise) of the item in degrees.
         * @since 1.8.4
@@ -1547,18 +991,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * chooses whether the rotation is about the middle of the icon or about its
-        * position.
-        * <p>
-        * True is what a builder starts at, which is the opposite of an icon made
-        * directly, so the two turn differently until one of them is told otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const icon = draw.itemBuilder().item("minecraft:diamond").pos(20, 20).rotateCenter(false).buildAndAdd();
-        * draw.register();
-        * Chat.log(`turns about its position: ${!icon.isRotatingCenter()}`);
-        * </pre>
+        * Sets whether the built icon rotates about its center rather than its position.
         *
         * @param rotateCenter whether the item should be rotated around its center
         * @return self for chaining.
@@ -1570,15 +1003,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * whether the icon this builder builds will turn about its middle.
-        * <p>
-        * True until a {@code rotateCenter} call says otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder();
-        * Chat.log(`builds turning about the middle: ${builder.isRotatingCenter()}`);
-        * </pre>
+        * Returns whether the built icon will rotate about its center.
         *
         * @return {@code true} if this item should be rotated around its center,
         * {@code false} otherwise.
@@ -1589,17 +1014,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * sets the number the icon will be ordered against the other elements on its
-        * overlay, lower drawn first.
-        * <p>
-        * Zero is what a builder starts at, and a tie keeps the order the elements were
-        * added in.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.itemBuilder().item("minecraft:diamond").pos(0, 0).zIndex(5).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the icon's draw-order value on its overlay; lower values draw first.
         *
         * @param zIndex the z-index of the item
         * @return self for chaining.
@@ -1611,15 +1026,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the z-index this builder will build the icon at.
-        * <p>
-        * Zero until a {@code zIndex} call says otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder().zIndex(5);
-        * Chat.log(`will be built at z-index ${builder.getZIndex()}`);
-        * </pre>
+        * Returns the draw-order value that the builder will assign to the icon.
         *
         * @return the z-index of the item.
         * @since 1.8.4
@@ -1629,14 +1036,9 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * makes the icon out of everything set on this builder, and binds it to the
-        * overlay this builder was made from.
-        * <p>
-        * A new icon each time, so the same builder can build more than one. This is what
-        * {@code build} and {@code buildAndAdd} call.
-        * <p>
-        * The overlay text is passed on as it stands, so a builder that has not set one
-        * passes an empty string rather than the null the constructors would have given.
+        * Creates a new icon from the builder's current values and binds it to its overlay.
+        * Each call creates a separate icon. Unset overlay text is passed as an empty
+        * string, unlike the constructors' {@code null} default that requests the stack count.
         *
         * @return the new icon.
         */
@@ -1647,16 +1049,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the size this builder will build the icon at, which is 16 put through the scale.
-        * <p>
-        * Cut to a whole number of pixels, so a scale that does not land on a whole
-        * number rounds down. This is the number the align methods measure.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder().scale(2);
-        * Chat.log(`will be built ${builder.getScaledWidth()} wide`);
-        * </pre>
+        * Returns the icon's scaled width in whole pixels; fractional results are truncated.
         *
         * @return the scaled width
         */
@@ -1666,16 +1059,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the width of the overlay this builder was made from, which is what the
-        * parent-relative align methods measure against.
-        * <p>
-        * There is no window fallback here, because a builder always has an overlay.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder();
-        * Chat.log(`measuring against ${builder.getParentWidth()}`);
-        * </pre>
+        * Returns the width of the builder's overlay.
         *
         * @return the width of the parent
         */
@@ -1685,16 +1069,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the size this builder will build the icon at, which is 16 put through the scale.
-        * <p>
-        * The counterpart of {@code getScaledWidth}, and the same number, because an item
-        * icon is always square.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder().scale(2);
-        * Chat.log(`will be built ${builder.getScaledHeight()} tall`);
-        * </pre>
+        * Returns the icon's scaled height in whole pixels; it equals its scaled width.
         *
         * @return the scaled height
         */
@@ -1704,16 +1079,8 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the height of the overlay this builder was made from, which is what the
-        * parent-relative align methods measure against.
-        * <p>
-        * The counterpart of {@code getParentWidth}, and with no window fallback either.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder();
-        * Chat.log(`measuring against ${builder.getParentHeight()}`);
-        * </pre>
+        * Returns the height of the overlay this builder belongs to, used by
+        * parent-relative alignment.
         *
         * @return the height of the parent
         */
@@ -1723,16 +1090,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the x position this builder will build the icon at, which is the left of its
-        * 16 by 16 box.
-        * <p>
-        * The same as {@code getX}: a scale makes the box bigger rather than moving it.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder().pos(40, 20);
-        * Chat.log(`will be at ${builder.getScaledLeft()}, ${builder.getScaledTop()}`);
-        * </pre>
+        * Returns the icon's x position; scaling changes its size, not this position.
         *
         * @return the position of the scaled element's left side
         */
@@ -1742,16 +1100,7 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * the y position this builder will build the icon at, which is the top of its
-        * 16 by 16 box.
-        * <p>
-        * The counterpart of {@code getScaledLeft}, and the same as {@code getY}.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder().pos(40, 20);
-        * Chat.log(`will be at ${builder.getScaledLeft()}, ${builder.getScaledTop()}`);
-        * </pre>
+        * Returns the icon's y position; scaling changes its size, not this position.
         *
         * @return the position of the scaled element's top side
         */
@@ -1761,19 +1110,8 @@ public class Item implements RenderElement, Alignable<Item> {
         }
 
         /**
-        * puts the icon at a position, which is the same as {@code pos}.
-        * <p>
-        * Nothing is resized, since an item icon is a fixed 16 by 16 box. This is what
-        * the align methods call.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.itemBuilder().item("minecraft:diamond");
-        * builder.moveTo(40, 20);
-        * builder.buildAndAdd();
-        * draw.register();
-        * Chat.log(`will be built at ${builder.getX()}, ${builder.getY()}`);
-        * </pre>
+        * Sets the icon position, equivalent to {@code pos}; alignment methods use this
+        * operation. It does not change the icon's size.
         *
         * @param x the new x position
         * @param y the new y position

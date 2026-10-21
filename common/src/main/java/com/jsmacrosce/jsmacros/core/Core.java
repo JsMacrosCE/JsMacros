@@ -30,23 +30,50 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * Connects a runtime's profile, configuration, event and library registries, extensions, services, and script execution facilities.
+ * <pre>
+ * const Client = Java.type('com.jsmacrosce.jsmacros.client.JsMacrosClient');
+ * const core = Client.clientCore;
+ * Chat.log(core.profile.getCurrentProfileName());
+ * </pre>
+ * @param <T> profile implementation type
+ * @param <U> event registry factory result type
+ */
 public class Core<T extends BaseProfile, U extends BaseEventRegistry> {
     private static final MethodHandles.Lookup lookup = MethodHandles.lookup();
 
     private final Set<BaseScriptContext<?>> contexts = new SynchronizedWeakHashSet<>();
 
+    /** Maps Java object types to helper wrappers; initially, unmatched objects use an {@code Object} fallback returning {@code null}. */
     public final ClassWrapperTree<Object, BaseHelper<?>> helperRegistry = new ClassWrapperTree<>(Object.class, a -> null);
+    /** Registry of scripting libraries associated with this core. */
     public final LibraryRegistry libraryRegistry = new LibraryRegistry(this);
+    /** Event registry supplied by the event-registry factory. */
     public final BaseEventRegistry eventRegistry;
 
+    /** Extension loader associated with this core; extensions are not necessarily loaded during construction. */
     public final ExtensionLoader extensions;
 
+    /** Profile instance returned by the profile factory. */
     public final T profile;
+    /** Configuration manager associated with this core. */
     public final ConfigManager config;
+    /** Service manager associated with this core. */
     public final ServiceManager services;
 
+    /** Worker pool used for scripts associated with this core. */
     public final JsMacrosThreadPool threadPool = new JsMacrosThreadPool();
 
+    /**
+     * Creates the event registry, loads configuration, creates the profile and managers, then calls profile initialization with the configured default name and loads configured services, starting enabled entries.
+     * The event-registry factory runs first and receives this partially initialized core; the profile factory runs after configuration setup but before the extension loader and service manager are assigned.
+     * @param eventRegistryFunction factory that creates the event registry from this core
+     * @param profileFunction factory that creates the profile from this core and logger
+     * @param configFolder configuration directory
+     * @param macroFolder script directory
+     * @param logger diagnostics logger
+     */
     public Core(Function<Core<T, U>, U> eventRegistryFunction, BiFunction<Core<T, U>, Logger, T> profileFunction, File configFolder, File macroFolder, Logger logger) {
         eventRegistry = eventRegistryFunction.apply(this);
         config = new ConfigManager(this, configFolder, macroFolder, logger);
@@ -59,38 +86,42 @@ public class Core<T extends BaseProfile, U extends BaseEventRegistry> {
     }
 
     /**
-     * @param container
+     * Adds the event container's context to the weakly tracked set.
+     *
+     * @param container event container whose context is tracked
      */
     public void addContext(EventContainer<?> container) {
         contexts.add(container.getCtx());
     }
 
     /**
-     * @return
+     * Returns the tracked script contexts.
+     *
+     * @return the live set, which holds contexts weakly and does not keep them alive
      */
     public Set<BaseScriptContext<?>> getContexts() {
         return contexts;
     }
 
     /**
-     * executes an {@link BaseEvent Event} on a ${@link ScriptTrigger}
+     * Starts the trigger's script for an event and returns its event container.
      *
-     * @param macro
-     * @param event
-     * @return
+     * @param macro script trigger to execute
+     * @param event event supplied to the script
+     * @return the event container for the script execution
      */
     public EventContainer<?> exec(ScriptTrigger macro, BaseEvent event) {
         return exec(macro, event, null, null);
     }
 
     /**
-     * Executes an {@link BaseEvent Event} on a ${@link ScriptTrigger} with callback.
+     * Starts the trigger's script and returns its event container, with optional completion and failure callbacks.
      *
-     * @param macro
-     * @param event
-     * @param then
-     * @param catcher
-     * @return
+     * @param macro script trigger to execute
+     * @param event event supplied to the script
+     * @param then callback run after successful script execution
+     * @param catcher callback given an execution failure
+     * @return the event container for the script execution
      */
     public EventContainer<?> exec(ScriptTrigger macro, BaseEvent event, Runnable then,
                                   Consumer<Throwable> catcher) {
@@ -109,13 +140,14 @@ public class Core<T extends BaseProfile, U extends BaseEventRegistry> {
     }
 
     /**
-     * @param lang
-     * @param script
-     * @param fakeFile
-     * @param event
-     * @param then
-     * @param catcher
-     * @return
+     * Starts source execution, selecting its language from {@code fakeFile}'s extension when supplied, or from {@code lang} otherwise.
+     * @param lang language identifier or extension hint
+     * @param script source text
+     * @param fakeFile optional file used to select a language extension and as the script file; may be {@code null}
+     * @param event event supplied to the script
+     * @param then callback run after successful script execution
+     * @param catcher callback given an execution failure
+     * @return the event container for the script execution
      * @since 1.7.0
      */
     public EventContainer<?> exec(String lang, String script, File fakeFile, BaseEvent event, Runnable then, Consumer<Throwable> catcher) {
@@ -125,10 +157,10 @@ public class Core<T extends BaseProfile, U extends BaseEventRegistry> {
     }
 
     /**
-     * wraps an exception for more uniform parsing between languages, also extracts useful info.
+     * Wraps an exception with the first language-specific wrapper available, or as a host-stack exception otherwise.
      *
-     * @param ex exception to wrap.
-     * @return
+     * @param ex exception to wrap
+     * @return the wrapped exception, or {@code null} when {@code ex} is {@code null}
      */
     public BaseWrappedException<?> wrapException(Throwable ex) {
         if (ex == null) {
@@ -153,6 +185,13 @@ public class Core<T extends BaseProfile, U extends BaseEventRegistry> {
         return BaseWrappedException.wrapHostElement(e, elements.hasNext() ? wrapHostInternal(elements.next(), elements) : null);
     }
 
+    /**
+     * Registers a helper wrapper for objects of the specified Java type; the wrapper is constructed when the registered mapping is used. A missing or inaccessible matching constructor causes {@code RuntimeException} during registration. Failures invoking the constructor are wrapped in {@code RuntimeException} when the mapping is used.
+     * @param <E> input Java object type
+     * @param <R> helper type for {@code E}
+     * @param type exact constructor parameter type accepted by the wrapper
+     * @param wrapper helper class with an accessible constructor taking {@code type}
+     */
     public <E, R extends BaseHelper<E>> void registerHelper(Class<E> type, Class<R> wrapper) {
         try {
             MethodHandle mh = lookup.findConstructor(wrapper, MethodType.methodType(void.class, type));

@@ -9,13 +9,8 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the client has just joined a server, right after the login packet was handled and
- * the local player exists.<br>
- * The world is not fully loaded at this point, most chunks and entities are still on their way,
- * so use {@link com.jsmacrosce.jsmacros.client.api.event.impl.world.EventChunkLoad ChunkLoad} to
- * react to the world filling in.<br>
- * This event is not cancellable.
- * example:
+ * Fires after the login packet is handled and the local player exists; the world may still be
+ * loading. This event is not cancellable.
  * <pre>
  * JsMacros.on("JoinServer", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`Joined ${event.address} as ${event.player.getName().getString()}`);
@@ -28,26 +23,37 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "JoinServer", oldName = "JOIN_SERVER")
 public class EventJoinServer extends BaseEvent {
     /**
-     * the local player that was created for this connection. Being a
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.ClientPlayerEntityHelper}, it
-     * also exposes the movement and interaction helpers, such as
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.ClientPlayerEntityHelper#lookAt(String) lookAt(String)}
-     * and
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.ClientPlayerEntityHelper#attack(EntityHelper) attack(EntityHelper)}.
+     * Local player for this connection.
      */
     public final ClientPlayerEntityHelper<LocalPlayer> player;
     /**
-     * the address of the server the client connected to, the remote address the connection was
-     * opened with.
+     * Remote address used for the connection.
      */
     public final String address;
 
+    /**
+     * Initializes this event with the supplied player and connection address.
+     * The player is stored in a {@link ClientPlayerEntityHelper} wrapper, including when
+     * {@code player} is {@code null}; the address is stored unchanged. This constructor
+     * does not perform connection setup or dispatch the event.
+     *
+     * @param player the local player to wrap; {@code null} is retained by the wrapper
+     * @param address the supplied connection address, stored unchanged and possibly {@code null}
+     */
     public EventJoinServer(LocalPlayer player, String address) {
         super(JsMacrosClient.clientCore);
         this.player = new ClientPlayerEntityHelper<>(player);
         this.address = address;
     }
 
+    /**
+     * Returns a diagnostic string containing the event name and address.
+     * The address is interpolated as a quoted string without escaping; a {@code null}
+     * address therefore appears as the text {@code "null"}. This is not a JSON serializer.
+     *
+     * @return the event name followed by {@code :{"address": "..."}}, with the supplied
+     * address inserted between the quotes
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"address\": \"%s\"}", this.getEventName(), address);

@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -11,6 +13,7 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.world.EventEntityLoad;
 import com.jsmacrosce.jsmacros.client.api.event.impl.world.EventEntityUnload;
 
 @Mixin(ClientLevel.class)
+@DocletIgnore
 public class MixinClientWorld {
 
     @Inject(at = @At("TAIL"), method = "addEntity")

@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.world.inventory.AbstractFurnaceMenu;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.ItemStack;
@@ -12,6 +14,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
  * @since 1.8.4
  */
 @Mixin(AbstractFurnaceMenu.class)
+@DocletIgnore
 public interface MixinAbstractFurnaceScreenHandler {
 
     @Invoker("canSmelt")

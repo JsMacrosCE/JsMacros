@@ -10,19 +10,13 @@ import net.minecraft.world.entity.monster.Spider;
 //? }
 
 /**
- * the spider, which is the one hostile mob that climbs.
- * <p>
- * A spider can walk up a wall the way a player can, and {@link #isClimbing() isClimbing}
- * is the flag the game keeps for it, synced from the server with everything else. Nothing
- * else about a spider is exposed here, so this is a thin class on purpose.
- * example:
+ * Provides access to a spider's climbing state through {@link #isClimbing()}.
  * <pre>
  * const SpiderEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.SpiderEntityHelper");
  * const spiders = World.getEntities(16, "spider");
  * if (spiders !== null) {
  *   for (const entity of spiders) {
  *     const spider = SpiderEntityHelper.class.cast(entity);
- *     // a climbing spider is off the floor, which a script walking the ground can miss
  *     if (spider.isClimbing()) {
  *       Chat.log(`a spider at ${spider.getPos()} is up the wall`);
  *     }
@@ -37,34 +31,19 @@ import net.minecraft.world.entity.monster.Spider;
 @SuppressWarnings("unused")
 public class SpiderEntityHelper extends MobEntityHelper<Spider> {
 
+    /**
+     * Wraps the supplied spider and retains its reference for this helper.
+     *
+     * @param base spider entity to wrap
+     */
     public SpiderEntityHelper(Spider base) {
         super(base);
     }
 
     /**
-     * Whether the spider is climbing. The game keeps this as a bit in the spider's own flag
-     * byte rather than deriving it from where it is, so it is a state the spider is in
-     * rather than a question about the block it happens to be next to.
-     * <p>
-     * The call this makes is the general "is it on something climbable" question rather
-     * than a spider-only one, and a spider answers it from its own flag.
-     * example:
-     * <pre>
-     * const SpiderEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.SpiderEntityHelper");
-     * const spiders = World.getEntities(16, "spider");
-     * if (spiders !== null) {
-     *   for (const entity of spiders) {
-     *     const spider = SpiderEntityHelper.class.cast(entity);
-     *     if (spider.isClimbing()) {
-     *       // a climbing spider is off the floor, so a ground-level sweep walks past it
-     *       Chat.log(`a climbing spider at y ${spider.getY()}, x ${spider.getX()}, z ${spider.getZ()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Returns whether the spider's climbing flag is set.
      *
-     * @return {@code true} if this spider is currently climbing a wall, {@code false}
-     * otherwise.
+     * @return {@code true} if the spider's climbing flag is set; {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean isClimbing() {

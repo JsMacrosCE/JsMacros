@@ -9,6 +9,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.PlayerInput;
 
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @SuppressWarnings("EntityConstructor")
+@DocletIgnore
 public class MovementDummy extends LivingEntity {
 
     private List<Vec3> coordsHistory = new ArrayList<>();
@@ -130,11 +132,7 @@ public class MovementDummy extends LivingEntity {
         return this.position();
     }
 
-    /**
-     * We have to do this "inject" since the the applyClimbingSpeed() method
-     * in LivingEntity is checking if we are a PlayerEntity, we want to apply the outcome of this check,
-     * so this is why we need to set the y-velocity to 0.<p>
-     */
+    /** Prevents downward ladder movement when Minecraft's player-only ladder rule would suppress it. */
     @Override
     public void travel(Vec3 movementInput) {
         if (this.onClimbable() && this.getDeltaMovement().y() < 0.0D && !this.getInBlockState().is(Blocks.SCAFFOLDING) && this.isSuppressingSlidingDownLadder()) {

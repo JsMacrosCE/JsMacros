@@ -9,19 +9,12 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.EventFilterer;
 
 /**
- * A filter for the {@code SendPacket} event, which fires for every packet the client sends to the
- * server, so it is the busiest event there is. A filterer is built with
+ * Filters callbacks for the {@code SendPacket} event. Create it with
  * {@link com.jsmacrosce.jsmacros.core.library.impl.FJsMacros#createEventFilterer(java.lang.String) createEventFilterer()}
- * and handed to the {@code JsMacros.on} overload that takes a filterer, which then only calls back
- * for the packets this filterer accepts.<br>
- * The single {@link #type} is the only thing that can be filtered on, and it has to match the
- * packet's name exactly. It starts out {@code null}, which means no filtering, so an untouched
- * filterer accepts every sent packet.<br>
- * A filterer only decides whether the listener runs, it never touches the packet. To actually
- * change or block a packet, cancel the event inside the listener instead. This filterer can only
- * be used with {@code SendPacket}, and handing it to {@code JsMacros.on} for any other event
- * throws an error.
- * example:
+ * and pass it to the filterer-taking {@code JsMacros.on} overload. It matches packet names
+ * exactly; {@code null} accepts every sent packet. Filtering only controls whether the listener
+ * runs. Packet changes or cancellation must be done by the listener. This filterer is valid only
+ * for {@code SendPacket}.
  * <pre>
  * // only look at chat packets
  * const filterer = JsMacros.createEventFilterer("SendPacket")
@@ -39,25 +32,18 @@ import com.jsmacrosce.jsmacros.core.event.EventFilterer;
 @SuppressWarnings("unused")
 public class FiltererSendPacket implements EventFilterer {
     /**
-     * the name of the packet to accept, such as {@code "ChatCommandSignedC2SPacket"} for a chat
-     * command, or {@code null} to accept every packet. The names are the ones
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.PacketByteBufferHelper#getPacketNames() getPacketNames()}
-     * lists, not the game's class names, and they change between game versions, so look one up
-     * rather than hardcoding it.<br>
-     * The name has to match exactly, so a name the game does not use lets nothing through rather
-     * than everything.<br>
-     * This field is writable, {@link FiltererSendPacket#setType(String) setType()} only does this
-     * assignment.
+     * Exact packet event type to accept, or {@code null} to accept every packet. Use a registered
+     * shortcut from {@link com.jsmacrosce.jsmacros.client.api.helper.PacketByteBufferHelper#getPacketNames() getPacketNames()}
+     * when available; otherwise the type is the packet's simple class name. Shortcuts can differ
+     * from class names and vary between game versions.
      */
     @Nullable
     @DocletReplaceReturn("PacketName | null")
     public String type;
 
     /**
-     * whether this filterer can be used for the given event name. It only answers {@code true}
-     * for {@code "SendPacket"}, which is the event it is registered for, and the
-     * {@code JsMacros.on} overload that takes a filterer refuses a filterer that cannot filter
-     * the event it was given.
+     * Whether this filterer supports the named event; the filterer-taking {@code JsMacros.on}
+     * overload rejects unsupported event names.
      *
      * @param event the name of the event being listened to
      * @return {@code true} only for {@code "SendPacket"}
@@ -68,10 +54,9 @@ public class FiltererSendPacket implements EventFilterer {
     }
 
     /**
-     * the predicate this filterer evaluates. It is called for every packet the client sends, so it
-     * is on the hot path. Anything that is not a sent-packet event is rejected outright, and for a
-     * sent-packet event it passes every packet while {@link #type} is {@code null}, otherwise only
-     * the packets whose name is exactly that. It never changes or blocks the packet.
+     * Tests whether the event is a sent-packet event matching {@link #type}, or accepts every sent
+     * packet when {@code type} is {@code null}. Other event types are rejected. This only controls
+     * listener invocation and does not modify or cancel the packet.
      *
      * @param event the event being filtered, which is an
      * {@link com.jsmacrosce.jsmacros.client.api.event.impl.EventSendPacket} here
@@ -83,9 +68,8 @@ public class FiltererSendPacket implements EventFilterer {
     }
 
     /**
-     * sets the name of the packet to accept, which turns filtering off entirely when passed
-     * {@code null}. The name has to match the packet's name exactly. Returns the same filterer so
-     * calls can be chained.
+     * Sets the exact packet name to accept; {@code null} disables type filtering. Returns this
+     * filterer for chaining.
      *
      * @param type the packet name to match, or {@code null} to accept every packet
      * @return this filterer, for chaining

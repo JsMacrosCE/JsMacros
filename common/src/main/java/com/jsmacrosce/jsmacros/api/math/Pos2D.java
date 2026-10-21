@@ -6,30 +6,15 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Objects;
 
 /**
- * A point in the x/y plane, held as two plain {@code double} coordinates that are also public
- * writable fields, so a position can be read off and nudged directly instead of only through
- * {@link #getX()} and {@link #getY()}. They are not validated against each other, so assigning to
- * one of them is enough to move the position.<br>
- * Nothing on this class modifies the position it is called on. Every arithmetic member builds and
- * returns a brand new {@code Pos2D} and leaves this one exactly as it was, which makes them safe
- * to chain and safe to keep a reference to. There is no in-place form of any of them.<br>
- * {@link Pos3D} extends this class, so a three dimensional position is also accepted anywhere a
- * {@code Pos2D} is asked for. What that costs is worth knowing about: the inherited two-argument
- * arithmetic on a {@code Pos3D} is still the version below and still returns a {@code Pos2D}, so it
- * silently throws the z coordinate away. Use the three-argument forms
- * {@link Pos3D#add(double, double, double) add}, {@link Pos3D#sub(double, double, double) sub},
- * {@link Pos3D#multiply(double, double, double) multiply} and
- * {@link Pos3D#divide(double, double, double) divide} on a {@code Pos3D} when the result has to
- * stay three dimensional.<br>
- * Positions normally arrive from other parts of the API rather than being built by hand, and
- * {@link com.jsmacrosce.jsmacros.client.api.library.impl.FPositionCommon the PositionCommon library}
- * is the in-scope factory for new ones.
- * example:
+ * A mutable pair of {@code double} coordinates. Arithmetic methods return new positions without
+ * changing the receiver. Because {@link Pos3D} extends this class, calling an inherited two-argument
+ * arithmetic method on a {@code Pos3D} returns a {@code Pos2D} and drops z; use the three-argument
+ * {@link Pos3D} methods to retain all coordinates.
  * <pre>
  * const start = PositionCommon.createPos(0, 0);
  * const end = PositionCommon.createPos(3, 4);
  *
- * // arithmetic runs on a copy, so `start` is still 0, 0 after this
+ * // Arithmetic returns a new position; start remains unchanged.
  * const offset = end.sub(start);                            // 3, 4
  * const doubled = end.scale(2);                             // 6, 8
  * const length = end.toVector(start).getMagnitude();        // 5
@@ -40,26 +25,20 @@ import java.util.Objects;
  */
 public class Pos2D {
     /**
-     * a shared position at {@code 0, 0}, which is the origin the no-argument vector conversions
-     * below start from.<br>
-     * It is a plain constant rather than a frozen one, so it can be written to like any other
-     * position. Writing to it changes the start of every later vector built from a position that
-     * relies on it, so leave it alone.
+     * Mutable origin used by the no-argument vector conversions; changing it affects later conversions.
      */
     public static final Pos2D ZERO = new Pos2D(0, 0);
     /**
-     * the x coordinate, in whatever unit the position came from. Public and writable, so assigning
-     * to it moves the position without going through any of the arithmetic below.
+     * The mutable x coordinate.
      */
     public double x;
     /**
-     * the y coordinate, in whatever unit the position came from. Public and writable, so assigning
-     * to it moves the position without going through any of the arithmetic below.
+     * The mutable y coordinate.
      */
     public double y;
 
     /**
-     * copies a vanilla two component vector into a position.
+     * Copies the coordinates from a vanilla two-component vector.
      *
      * @param vec the vector to copy the coordinates out of
      * @since 1.2.6
@@ -69,8 +48,7 @@ public class Pos2D {
     }
 
     /**
-     * copies another position. The result is a separate object, so writing to it afterwards does
-     * not touch {@code pos}.
+     * Copies another position into a separate object.
      *
      * @param pos the position to copy
      * @since 1.2.6
@@ -80,7 +58,7 @@ public class Pos2D {
     }
 
     /**
-     * makes a position from raw coordinates.
+     * Creates a position with the given coordinates.
      *
      * @param x the x coordinate
      * @param y the y coordinate
@@ -92,10 +70,8 @@ public class Pos2D {
     }
 
     /**
-     * the x coordinate, the same value as the {@code x} field. There is no reason to prefer one
-     * over the other, both read the same live field.
-     *
-     * @return the x coordinate
+     * Returns the current x coordinate.
+     * @return the current x coordinate
      * @since 1.2.6
      */
     public double getX() {
@@ -103,10 +79,8 @@ public class Pos2D {
     }
 
     /**
-     * the y coordinate, the same value as the {@code y} field. There is no reason to prefer one
-     * over the other, both read the same live field.
-     *
-     * @return the y coordinate
+     * Returns the current y coordinate.
+     * @return the current y coordinate
      * @since 1.2.6
      */
     public double getY() {
@@ -114,11 +88,10 @@ public class Pos2D {
     }
 
     /**
-     * a new position offset from this one by another position, that is with each coordinate added
-     * separately. This position is not changed.
+     * Returns a new position with the corresponding coordinates added; this position is unchanged.
      *
      * @param pos the position to add to this one
-     * @return a new position at {@code x + pos.x, y + pos.y}
+     * @return the coordinate-wise sum
      * @since 1.2.6
      */
     public Pos2D add(Pos2D pos) {
@@ -126,7 +99,7 @@ public class Pos2D {
     }
 
     /**
-     * a new position offset from this one by the given amounts. This position is not changed.
+     * Returns a new position with the given amounts added to its coordinates; this position is unchanged.
      *
      * @param x the amount to add to the x coordinate
      * @param y the amount to add to the y coordinate
@@ -138,8 +111,7 @@ public class Pos2D {
     }
 
     /**
-     * a new position that is this one moved back by another position, that is with each coordinate
-     * subtracted separately. This position is not changed.
+     * Returns a new position with the corresponding coordinates of {@code pos} subtracted; this position is unchanged.
      *
      * @param pos the position to subtract
      * @return a new position at {@code x - pos.x, y - pos.y}.
@@ -150,8 +122,7 @@ public class Pos2D {
     }
 
     /**
-     * a new position that is this one moved back by the given amounts. This position is not
-     * changed.
+     * Returns a new position with the given amounts subtracted from its coordinates; this position is unchanged.
      *
      * @param x the x coordinate to subtract
      * @param y the y coordinate to subtract
@@ -163,9 +134,7 @@ public class Pos2D {
     }
 
     /**
-     * a new position with each of this position's coordinates multiplied by the matching coordinate
-     * of another one. This is a componentwise product, not a scale, so a position that straddles
-     * the origin does not simply get bigger. This position is not changed.
+     * Returns a new position with each coordinate multiplied by the corresponding coordinate of {@code pos}; this position is unchanged.
      *
      * @param pos the position to multiply by, coordinate for coordinate
      * @return a new position at {@code x * pos.x, y * pos.y}
@@ -176,9 +145,7 @@ public class Pos2D {
     }
 
     /**
-     * a new position with each of this position's coordinates multiplied by the matching factor
-     * given here. To scale a position about the origin by one factor, use
-     * {@link #scale(double)} instead of passing the same number twice. This position is not changed.
+     * Returns a new position with its x and y coordinates multiplied by the respective factors; this position is unchanged. For one factor on both coordinates, use {@link #scale(double)}.
      *
      * @param x the factor for the x coordinate
      * @param y the factor for the y coordinate
@@ -190,10 +157,7 @@ public class Pos2D {
     }
 
     /**
-     * a new position with each of this position's coordinates divided by the matching coordinate
-     * of another one. Nothing guards against a zero divisor, so a zero in {@code pos} gives
-     * infinity for a non zero coordinate here and {@code NaN} for a zero one. This position is not
-     * changed.
+     * Returns a new position with each coordinate divided by the corresponding coordinate of {@code pos}; this position is unchanged. Division by zero follows Java floating-point rules.
      *
      * @param pos the position to divide by, coordinate for coordinate
      * @return a new position at {@code x / pos.x, y / pos.y}.
@@ -204,9 +168,7 @@ public class Pos2D {
     }
 
     /**
-     * a new position with each of this position's coordinates divided by the matching divisor given
-     * here. Nothing guards against a zero divisor, so dividing by zero gives infinity for a non
-     * zero coordinate and {@code NaN} for a zero one. This position is not changed.
+     * Returns a new position with its coordinates divided by the respective divisors; this position is unchanged. Division by zero follows Java floating-point rules.
      *
      * @param x the x coordinate to divide by
      * @param y the y coordinate to divide by
@@ -218,8 +180,7 @@ public class Pos2D {
     }
 
     /**
-     * a new position with both coordinates multiplied by one factor, which scales the position
-     * about the origin along the line from the origin to it. This position is not changed.
+     * Returns a new position with both coordinates multiplied by {@code scale}; this position is unchanged.
      *
      * @param scale the factor to multiply both coordinates by
      * @return a new position at {@code this.x * scale, this.y * scale}
@@ -229,14 +190,17 @@ public class Pos2D {
         return new Pos2D(x * scale, y * scale);
     }
 
+    /**
+     * Formats the coordinates as {@code x, y}; finite coordinates have six fractional digits.
+     * Formatting uses the default format locale, so the decimal separator may vary.
+     * @return the formatted coordinates
+     */
     public String toString() {
         return String.format("%f, %f", x, y);
     }
 
     /**
-     * a new three dimensional position at the same x and y, with z at {@code 0}. A {@code Pos3D}
-     * covers a different space in the game, so this only makes sense for a position that is being
-     * used as a plain pair of numbers.
+     * Returns a new {@link Pos3D} with the same x and y coordinates and z set to {@code 0}.
      *
      * @return a new {@link Pos3D} at {@code x, y, 0}
      * @since 1.2.6
@@ -246,8 +210,7 @@ public class Pos2D {
     }
 
     /**
-     * a new vector from the origin to this position, so the position becomes the end of the vector
-     * and the start is {@code 0, 0}. Use {@link #toReverseVector()} for the other direction.
+     * Returns a new vector from {@code (0, 0)} to this position. Use {@link #toReverseVector()} for the opposite direction.
      *
      * @return a new {@link Vec2D} from {@code 0, 0} to this position
      * @since 1.2.6
@@ -257,7 +220,7 @@ public class Pos2D {
     }
 
     /**
-     * a new vector from the given position to this one, so this position is the end of the vector.
+     * Returns a vector from {@code start_pos} to this position.
      *
      * @param start_pos the position the vector starts at
      * @return a new {@link Vec2D} from {@code start_pos} to this position
@@ -268,8 +231,7 @@ public class Pos2D {
     }
 
     /**
-     * a new vector from the given coordinates to this position, so this position is the end of the
-     * vector.
+     * Returns a vector from the given coordinates to this position.
      *
      * @param start_x the x coordinate the vector starts at
      * @param start_y the y coordinate the vector starts at
@@ -281,8 +243,7 @@ public class Pos2D {
     }
 
     /**
-     * a new vector from this position back to the origin, the opposite direction to
-     * {@link #toVector()}.
+     * Returns a vector from this position to the origin, opposite to {@link #toVector()}.
      *
      * @return a new {@link Vec2D} from this position to {@code 0, 0}
      * @since 1.6.4
@@ -292,9 +253,8 @@ public class Pos2D {
     }
 
     /**
-     * a new vector from this position to the given one, so this position is the start of the
-     * vector. Note that the argument is the far end, not the near one, so this is not the reverse
-     * of {@link #toVector(Pos2D) toVector()} for the same argument.
+     * Returns a vector from this position to {@code end_pos}; this is the opposite direction of
+     * {@link #toVector(Pos2D)} with the same argument.
      *
      * @param end_pos the position the vector ends at
      * @return a new {@link Vec2D} from this position to {@code end_pos}
@@ -305,9 +265,8 @@ public class Pos2D {
     }
 
     /**
-     * a new vector from this position to the given coordinates, so this position is the start of
-     * the vector. Note that the arguments are the far end, not the near one, so this is not the
-     * reverse of {@link #toVector(double, double) toVector()} for the same arguments.
+     * Returns a vector from this position to the given coordinates, opposite to
+     * {@link #toVector(double, double)} with the same coordinates.
      *
      * @param end_x the x coordinate the vector ends at
      * @param end_y the y coordinate the vector ends at
@@ -318,6 +277,13 @@ public class Pos2D {
         return new Vec2D(this, new Pos2D(end_x, end_y));
     }
 
+    /**
+     * Returns whether {@code o} is a {@code Pos2D} of the exact same runtime class with matching coordinates.
+     * {@code null} and instances of other classes return {@code false}; {@link Double#compare(double, double)}
+     * treats NaNs as equal and distinguishes positive and negative zero. Thus a {@code Pos2D} does not equal a {@link Pos3D}.
+     * @param o the object to compare
+     * @return {@code true} if the runtime classes and both coordinates match; {@code false} otherwise
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -326,21 +292,19 @@ public class Pos2D {
         return Double.compare(x, pos2D.x) == 0 && Double.compare(y, pos2D.y) == 0;
     }
 
+    /**
+     * Computes a hash code from the current x and y coordinates. Because coordinates are mutable, the result can change when they do; avoid using a mutable position as a hash key.
+     * @return the hash code for the current coordinates
+     */
     @Override
     public int hashCode() {
         return Objects.hash(x, y);
     }
 
     /**
-     * orders this position against another one, first by x and then, only if the two x coordinates
-     * compare equal, by y. That makes it a usable sort key for a list of positions, though the
-     * comparison is a raw one on the coordinates: it separates {@code 0.0} from {@code -0.0}, and
-     * two positions that are only almost equal still order against each other rather than tying.<br>
-     * {@link Pos3D#compareTo(Pos3D) Pos3D.compareTo(Pos3D)} is an overload of this rather than an
-     * override, so a {@code Pos3D} argument is a choice of which method runs and not a sign that
-     * three coordinates are compared: anything typed as a {@code Pos2D} on either side lands here
-     * and gets an x and y comparison, which reports two positions that differ only in z as equal.
-     * A {@code Pos3D} on both sides selects the three coordinate version instead.
+     * Compares x first, then y using {@link Double#compare(double, double)}. When a {@code Pos3D}
+     * is typed as {@code Pos2D}, this overload compares only x and y; use the
+     * {@link Pos3D#compareTo(Pos3D)} overload with {@code Pos3D} arguments to include z.
      *
      * @param o the position to compare this one against
      * @return a negative number, zero, or a positive number as this position is before, the same

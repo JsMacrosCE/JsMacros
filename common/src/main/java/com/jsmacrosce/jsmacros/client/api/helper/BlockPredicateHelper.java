@@ -16,27 +16,11 @@ import java.util.List;
 import net.minecraft.advancements.critereon.BlockPredicate;
 
 /**
- * a block condition from an item or a recipe, such as "any oak log".
+ * A condition that tests whether a block at a position matches its block, state, and NBT criteria.
  * <p>
- * This is a <i>condition</i> rather than a block: it is a test that a position either passes or
- * does not, and {@link #test(BlockPosHelper)} is the only way to ask. It is the shape the game
- * uses for the restrictions items carry — where a compass or an elytra may be used, and what an
- * item is allowed to break or place — and the same shape a recipe's ingredient list uses.
- * <p>
- * A condition is made of up to three parts, and any of them may be absent: the blocks it accepts
- * ({@link #getBlocks()}), the exact block states it accepts ({@link #getStatePredicate()}), and
- * the extra block data it requires ({@link #getNbtPredicate()}). A condition with none of them
- * is "any block", and a part that is absent gives {@code null} rather than an empty list, so a
- * script has to treat {@code null} and empty as the same thing.
- * <br>
- * All three narrow rather than widen: a condition passes only if every part it names passes, so
- * a condition naming both a block list and a state is a stricter test than either alone. The
- * condition does carry a fourth part in the game — a data-component matcher on the block entity
- * — and the check the game runs against a server world does apply it, but the overload
- * {@link #test(BlockPosHelper)} reaches is the one that reads only the three parts above, so a
- * data-component matcher cannot turn down a position through this class. A script cannot see
- * that fourth part either, since this wrapper exposes no getter for it.
- * example:
+ * Each criterion may be absent; the getters return {@code null} when absent. {@link #test(BlockPosHelper)}
+ * checks the block and state criteria and, when present, its block-entity NBT predicate. It does
+ * not apply the underlying predicate's data-component matcher.
  * <pre>
  * const player = Player.getPlayer();
  * if (player === null) { throw new Error("not in a world"); }
@@ -66,34 +50,20 @@ import net.minecraft.advancements.critereon.BlockPredicate;
 public class BlockPredicateHelper extends BaseHelper<BlockPredicate> {
     private static final Minecraft mc = Minecraft.getInstance();
 
+    /** Wraps the supplied block predicate reference without copying or validating it.
+     * @param base raw block predicate to wrap
+     */
     public BlockPredicateHelper(BlockPredicate base) {
         super(base);
     }
 
     /**
-     * the blocks this condition accepts, or {@code null} if it names none.
+     * Returns the blocks this condition accepts, or {@code null} if it names none.
      * <p>
-     * An absent list means the condition does not restrict which block it is, so
-     * {@code null} and an empty result both mean "any block" as far as {@link #test} is
-     * concerned. What is returned is a snapshot list built on each call.
-     * <p>
-     * A block is a type rather than a state, so a condition naming stone accepts every state
-     * of stone unless {@link #getStatePredicate()} narrows it further.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player === null) { throw new Error("not in a world"); }
-     * const elytra = player.getMainHand();
-     * for (const condition of elytra.getDestroyRestrictions()) {
-     *   const blocks = condition.getBlocks();
-     *   if (blocks !== null) {
-     *     for (const block of blocks) {
-     *       Chat.log(`allowed block ${block.getName().getString()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * An absent list means the condition does not restrict the block type. The returned list is
+     * newly built on each call.
      *
+     * @return the accepted blocks, or {@code null} when the condition does not restrict block type
      * @since 1.9.1
      */
     @Nullable
@@ -103,28 +73,12 @@ public class BlockPredicateHelper extends BaseHelper<BlockPredicate> {
     }
 
     /**
-     * the exact block states this condition accepts, or {@code null} if it names none.
+     * Returns the exact block states this condition accepts, or {@code null} if it names none.
      * <p>
-     * This is the narrower half of a block condition: {@link #getBlocks()} picks which blocks
-     * are acceptable and this picks which of their states are. A condition that has one but not
-     * the other is more permissive than one that has both.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player === null) { throw new Error("not in a world"); }
-     * const elytra = player.getMainHand();
-     * for (const condition of elytra.getDestroyRestrictions()) {
-     *   const states = condition.getStatePredicate();
-     *   if (states !== null) {
-     *     // the state test needs the actual state, so ask the world for it
-     *     const below = World.getBlock(player.getBlockPos().down());
-     *     if (below !== null) {
-     *       Chat.log(`the block below matches the state: ${states.test(below.getBlockStateHelper())}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * When present, this criterion further restricts the block states accepted by
+     * {@link #getBlocks()}.
      *
+     * @return the state criterion, or {@code null} when absent
      * @since 1.9.1
      */
     @Nullable
@@ -134,31 +88,11 @@ public class BlockPredicateHelper extends BaseHelper<BlockPredicate> {
     }
 
     /**
-     * the extra block data this condition requires, or {@code null} if it names none.
+     * Returns the extra block data this condition requires, or {@code null} if it names none.
      * <p>
-     * This is the third and last part, and it is the one that checks data rather than the block
-     * itself — a chest's contents, a sign's text. It is also the only part that can be applied
-     * to something that is not a block in the world, which is what makes it usable against an
-     * item or an entity.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player === null) { throw new Error("not in a world"); }
-     * const elytra = player.getMainHand();
-     * for (const condition of elytra.getDestroyRestrictions()) {
-     *   const nbt = condition.getNbtPredicate();
-     *   if (nbt !== null) {
-     *     const below = World.getBlock(player.getBlockPos().down());
-     *     if (below !== null) {
-     *       const data = below.getNBT();
-     *       if (data !== null) {
-     *         Chat.log(`the block below matches the data: ${nbt.test(data)}`);
-     *       }
-     *     }
-     *   }
-     * }
-     * </pre>
+     * When present, this criterion is tested against block-entity data at the position.
      *
+     * @return the NBT criterion, or {@code null} when absent
      * @since 1.9.1
      */
     @Nullable
@@ -168,32 +102,12 @@ public class BlockPredicateHelper extends BaseHelper<BlockPredicate> {
     }
 
     /**
-     * whether a block in the world satisfies this condition.
-     * <p>
-     * This is the test the whole class is for. It reads the block at the given position out of
-     * the current level and applies every part of the condition to it, so all of
-     * {@link #getBlocks()}, {@link #getStatePredicate()} and {@link #getNbtPredicate()} have to
-     * pass for the answer to be {@code true} — and a condition with none of them set accepts
-     * anything.
-     * <br>
-     * The position is read from the level this client has, so a position that is not loaded
-     * gives whatever the unloaded chunk looks like rather than a failure. This needs a world.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   const elytra = player.getMainHand();
-     *   const target = player.getBlockPos();
-     *   for (const condition of elytra.getDestroyRestrictions()) {
-     *     if (condition.test(target)) {
-     *       Chat.log(`the elytra may be used at ${target.getX()}, ${target.getY()}, ${target.getZ()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Tests the block at the position against this condition using the current client level.
+     * The test uses the block and state criteria and optional block-entity NBT predicate; it
+     * does not check the data-component matcher. A world must be available.
      *
-     * @param state
-     * @return
+     * @param state position to test in the current client world
+     * @return whether the block matches the criteria checked by this method
      * @since 1.9.1
      */
     public boolean test(BlockPosHelper state) {

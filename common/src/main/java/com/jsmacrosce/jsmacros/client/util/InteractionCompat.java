@@ -10,17 +10,26 @@ import net.minecraft.world.entity.player.Player;
 *///?}
 
 /**
- * Bridges the {@code MultiPlayerGameMode.interact} entity overload.
+ * Calls the entity-interaction overload across Minecraft API versions.
  * <p>
- * Up to 1.21.x the target {@link Entity} is the last argument; 26.1 inserts an
- * {@code EntityHitResult} before the hand. Callers pass the entity and the hand, and
- * the synthetic hit result is built here.
+ * On Minecraft 26.1 and later, constructs an {@code EntityHitResult} for the entity;
+ * earlier versions pass the entity directly.
  */
 public final class InteractionCompat {
 
     private InteractionCompat() {
     }
 
+    /**
+     * Delegates to the supplied game mode's entity-interaction API. On Minecraft 26.1 and later, the hit result is
+     * constructed from {@code entity} rather than supplied by the caller.
+     *
+     * @param gameMode the non-null client game-mode controller handling the interaction
+     * @param player the non-null interacting player
+     * @param entity the non-null target entity
+     * @param hand the non-null hand to use
+     * @return the interaction result returned by the game mode; this does not indicate server acceptance
+     */
     public static InteractionResult interact(MultiPlayerGameMode gameMode, Player player, Entity entity, InteractionHand hand) {
         //? if >=26.1 {
         /*return gameMode.interact(player, entity, new EntityHitResult(entity), hand);

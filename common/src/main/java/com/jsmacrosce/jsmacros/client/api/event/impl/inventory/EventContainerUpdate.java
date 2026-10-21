@@ -11,52 +11,46 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the client receives a full container content packet, which is the server resending
- * every slot of a container at once. This happens when a container is first opened, when the
- * server decides to resync it, and when the player's own inventory is filled in on join, so it is
- * much rarer than a single slot changing.<br>
- * This event is not cancellable, it only reports what the server sent.<br>
- * For a single slot changing, listen for
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventSlotUpdate} instead. For the
- * screen itself opening, see
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventOpenContainer}.
- * <br>
- * The player inventory case wraps a screen that is not on display: when the packet is for the
- * player's own inventory the event builds a throwaway inventory screen for it, so
- * {@link #screen} there is not the screen the player is looking at, if any.
- * example:
- * <pre>
- * JsMacros.on("ContainerUpdate", JavaWrapper.methodToJava(function (event) {
- *   const inv = event.inventory;
- *   Chat.log(`${inv.getType()} resynced, ${inv.getItems().size()} non empty stacks in ${inv.getTotalSlots()} slots`);
- * }))
- * </pre>
+ * Fires after the client handles a full container-content packet; this event is not cancellable.
+ * For individual slot updates, see
+ * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventSlotUpdate}. For screen
+ * openings, see {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventOpenContainer}.
+ * A packet for the player's inventory supplies a newly created inventory screen as {@link #screen},
+ * which may not be the screen currently displayed.
  * @author Wagyourtail
  */
 @DocletCategory("Inventory")
 @Event(value = "ContainerUpdate")
 public class EventContainerUpdate extends BaseEvent {
     /**
-     * the container that was resynced, wrapped in a fresh {@link Inventory}. The concrete type
-     * follows the screen, so a chest gives back a container inventory and the player's own
-     * inventory gives back a player inventory. Read the contents through this rather than through
-     * {@link #screen}, because this is already the type-specific wrapper for the container.
+     * The container represented by the associated screen, wrapped in a new {@link Inventory}.
      */
     public final Inventory<?> inventory;
     /**
-     * the screen the resynced container belongs to, as the
-     * {@link IScreen} interface every game screen implements.<br>
-     * This is not {@code null}, but for a resync of the player's own inventory it is a screen that
-     * was built just for this event rather than the one the player is actually looking at.
+     * The screen associated with the resynced container. For a player-inventory packet this is a
+     * newly created inventory screen, not necessarily the screen currently displayed.
      */
     public final IScreen screen;
 
+    /**
+     * Wraps the supplied container screen as the event's screen and inventory.
+     * A {@code null} screen produces null values for both fields. A non-null screen must implement
+     * {@link IScreen}; otherwise the cast fails after the inventory wrapper is created.
+     * @param screen the container screen to wrap and retain as {@link #screen}; may be null
+     */
     public EventContainerUpdate(AbstractContainerScreen<?> screen) {
         super(JsMacrosClient.clientCore);
         this.inventory = Inventory.create(screen);
         this.screen = (IScreen) screen;
     }
 
+    /**
+     * Returns a diagnostic string containing the event name, current screen name, and inventory.
+     * A null screen name is rendered as the quoted string {@code "null"}; a null inventory is
+     * rendered as the unquoted token {@code null}. This is a formatted diagnostic, not a JSON
+     * serialization of the screen or container.
+     * @return a brace-delimited diagnostic of the form {@code eventName:{"screenName": "name", "inventory": value}}
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"screenName\": \"%s\", \"inventory\": %s}", this.getEventName(), JsMacrosClient.getScreenName((Screen) screen), inventory);

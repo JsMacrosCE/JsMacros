@@ -10,14 +10,8 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when an entity is removed from the client world, together with the reason the client
- * removed it.<br>
- * This fires for the entity dying, and for the client dropping it because it left the loaded
- * area. It is not a "death" event, use
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventDeath} for the local player
- * dying.<br>
- * This event is not cancellable, the entity is already leaving the client world when it fires.
- * example:
+ * Fires when an entity is removed from the client world. The reason is the removal reason's name;
+ * the available names depend on the Minecraft version. This event is not cancellable.
  * <pre>
  * JsMacros.on("EntityUnload", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`${event.entity.getType()} unloaded (${event.reason})`);
@@ -28,29 +22,31 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event("EntityUnload")
 public class EventEntityUnload extends BaseEvent {
     /**
-     * the entity that is being removed. It is wrapped in the most specific
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper} subclass for its
-     * type, so it can be narrowed further with {@code asLiving()}, {@code asPlayer()} and the
-     * other {@code as...()} helpers. Its type is available from
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getType() getType()}
-     * and its uuid from
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getUUID() getUUID()}.
+     * The entity being removed from the client world.
      */
     public final EntityHelper<?> entity;
     /**
-     * why the entity was removed, the name of the vanilla removal reason. The exact set of
-     * reasons depends on the Minecraft version. Script type definitions narrow this to an
-     * {@code EntityUnloadReason} union.
+     * The removal reason's name; available names depend on the Minecraft version.
      */
     @DocletReplaceReturn("EntityUnloadReason")
     public final String reason;
 
+    /** Wraps the entity and captures the removal reason as a string; it does not perform the removal.
+     * Construction throws {@link NullPointerException} if either argument is {@code null}.
+     * @param e the Minecraft entity to wrap; must not be {@code null}
+     * @param reason the removal reason to convert to a string; must not be {@code null}
+     */
     public EventEntityUnload(Entity e, Entity.RemovalReason reason) {
         super(JsMacrosClient.clientCore);
         this.entity = EntityHelper.create(e);
         this.reason = reason.toString();
     }
 
+    /** Returns a diagnostic string containing the event name, entity helper string, and captured reason.
+     * The format is {@code %s:{"entity": %s, "reason": "%s"}}; the reason is the captured string,
+     * quoted in the output, not a newly computed enum value or serialized entity data.
+     * @return the diagnostic string in the format described above
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"entity\": %s, \"reason\": \"%s\"}", this.getEventName(), entity.toString(), reason);

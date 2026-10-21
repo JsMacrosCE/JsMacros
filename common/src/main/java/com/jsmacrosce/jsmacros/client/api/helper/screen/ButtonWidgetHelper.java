@@ -13,57 +13,49 @@ import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * a push button: the plain game button that is drawn with the game's own look and does
- * whatever it was given to do when it is pressed.
- * <p>
- * Everything about position, size, label, tooltips and the flags is on the shared base
- * class, and this adds only what is particular to a button. The two builders on a
- * screen are where a script makes one: {@code IScreen.buttonBuilder()} for the plain
- * look and {@code IScreen.texturedButtonBuilder()} for a button drawn from a texture.
- * <p>
- * The button's height is fixed at twenty whatever a builder is asked for, which is the
- * height the game draws its own buttons at.
- * example:
+ * Wraps a game button and exposes its button-specific behavior to scripts. Use
+ * {@code IScreen.buttonBuilder()} for the standard appearance or
+ * {@code IScreen.texturedButtonBuilder()} for a texture-based button.
  * <pre>
  * const screen = Hud.createScreen("a screen", true);
  * const button = screen.buttonBuilder()
  *    .pos(10, 20)
  *    .size(100, 20)
  *    .message("press me")
- *    .action(JavaWrapper.methodToJava(function (btn) {
- *      // the callback is given the button and the screen it was made on
+ *    .action(JavaWrapper.methodToJava(function (btn, screen) {
  *      btn.setLabel("pressed");
  *    }))
  *    .build();
  * Hud.openScreen(screen);
  *
- * // a script can press its own button rather than leaving it to the player
- * button.click();
- * Chat.log(`the label now reads ${button.getLabel().getString()}`);
  * </pre>
  *
+ * @param <T> the game button type wrapped by this helper
  * @author Etheradon
  * @since 1.8.4
  */
 @DocletCategory("Screen and UI Elements")
 public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<ButtonWidgetHelper<T>, T> {
 
+    /**
+     * Wraps the supplied button with helper z-index {@code 0}. Empty helper tooltips are set during initialization.
+     * @param btn button to wrap
+     */
     public ButtonWidgetHelper(T btn) {
         super(btn);
     }
 
+    /** Wraps the supplied button using the given helper draw-order value. Empty helper tooltips are set during initialization.
+     * @param btn button to wrap
+     * @param zIndex helper draw-order value
+     */
     public ButtonWidgetHelper(T btn, int zIndex) {
         super(btn, zIndex);
     }
 
     /**
-     * the builder for a button with the game's own look, handed back by
-     * {@code IScreen.buttonBuilder()} and already bound to that screen.
-     * <p>
-     * The height is the one thing this pins: a button is always built twenty tall,
-     * whatever it is asked for, which is the height the game draws its own buttons at.
-     * Everything else comes from the shared builder.
-     * example:
+     * Builds a standard-appearance button bound to the screen that supplied this builder.
+     * Its height is fixed at 20; other properties are configured through the shared builder.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.buttonBuilder()
@@ -87,13 +79,16 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         @Nullable
         private MethodWrapper<ButtonWidgetHelper<Button>, IScreen, Object, ?> action;
 
+        /** Retains the screen associated with this builder for later widget creation.
+         * @param screen screen associated with the builder
+         */
         public ButtonBuilder(IScreen screen) {
             super(screen);
         }
 
         /**
-         * @param height this argument is ignored and will always be set to 20
-         * @return self for chaining.
+         * @param height ignored; the button height remains 20
+         * @return this builder
          * @since 1.8.4
          */
         @Override
@@ -103,9 +98,9 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * @param width  the width of the button
-         * @param height this argument is ignored and will always be set to 20
-         * @return self for chaining.
+         * @param width the button width
+         * @param height ignored; the button height remains 20
+         * @return this builder
          * @since 1.8.4
          */
         @Override
@@ -115,7 +110,7 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * @return the action to run when the button is pressed.
+         * @return the configured action, or {@code null} if none is set
          * @since 1.8.4
          */
         @Nullable
@@ -124,8 +119,8 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * @param action the action to run when the button is pressed
-         * @return self for chaining.
+         * @param action the action to run on activation, or {@code null} for no action
+         * @return this builder
          * @since 1.8.4
          */
         public ButtonBuilder action(@Nullable MethodWrapper<ButtonWidgetHelper<Button>, IScreen, Object, ?> action) {
@@ -133,6 +128,9 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
             return this;
         }
 
+        /** Creates and wraps a new standard-appearance button from this builder's current configuration without adding it to the screen or applying shared post-creation styles. Use {@code build()} to create, configure, and add the button.
+         * @return the newly wrapped standard-appearance button
+         */
         @Override
         public ButtonWidgetHelper<Button> createWidget() {
             AtomicReference<ButtonWidgetHelper<Button>> b = new AtomicReference<>(null);
@@ -153,17 +151,9 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
     }
 
     /**
-     * the builder for a button drawn from a texture rather than with the game's own look,
-     * handed back by {@code IScreen.texturedButtonBuilder()} and already bound to that
-     * screen.
-     * <p>
-     * The four texture setters are the four states the button is drawn in: enabled,
-     * disabled, enabled and focused, disabled and focused. They go into the button's
-     * sprite set exactly as given with no defaulting to the enabled one, so a texture
-     * has to be given for every state the button can be seen in.
-     * <p>
-     * The height is pinned at twenty here as it is on the plain button builder.
-     * example:
+     * Builds a texture-based button bound to the screen that supplied this builder.
+     * Provide textures for the enabled, disabled, enabled-focused, and disabled-focused
+     * states; none falls back to another. Its height is fixed at 20.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.texturedButtonBuilder()
@@ -191,13 +181,16 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         private ResourceLocation enabledFocused;
         private ResourceLocation disabledFocused;
 
+        /** Retains the screen associated with this builder for later widget creation.
+         * @param screen screen associated with the builder
+         */
         public TexturedButtonBuilder(IScreen screen) {
             super(screen);
         }
 
         /**
-         * @param height this argument is ignored and will always be set to 20
-         * @return self for chaining.
+         * @param height ignored; the button height remains 20
+         * @return this builder
          * @since 1.8.4
          */
         @Override
@@ -207,9 +200,9 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * @param width  the width of the button
-         * @param height this argument is ignored and will always be set to 20
-         * @return self for chaining.
+         * @param width the button width
+         * @param height ignored; the button height remains 20
+         * @return this builder
          * @since 1.8.4
          */
         @Override
@@ -219,7 +212,7 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * @return the action to run when the button is pressed.
+         * @return the configured action, or {@code null} if none is set
          * @since 1.8.4
          */
         @Nullable
@@ -228,8 +221,9 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * @param action the action to run when the button is pressed
-         * @return self for chaining.
+         * Sets the action run when the button is activated; pass {@code null} to clear it.
+         * @param action the action to run, or {@code null} for no action
+         * @return this builder
          * @since 1.8.4
          */
         public TexturedButtonBuilder action(@Nullable MethodWrapper<ButtonWidgetHelper<ImageButton>, IScreen, Object, ?> action) {
@@ -238,23 +232,10 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * the texture drawn while the button is enabled and not focused. The button can
-         * be drawn in this state without ever being focused if the mouse never reaches
-         * it, so a texture is needed here even for a button that is only ever clicked by
-         * script.
-         * example:
-         * <pre>
-         * const screen = Hud.createScreen("a screen", true);
-         * screen.texturedButtonBuilder()
-         *    .pos(10, 20)
-         *    .size(100, 20)
-         *    .enabledTexture("minecraft:item/diamond")
-         *    .build();
-         * Hud.openScreen(screen);
-         * </pre>
+         * Sets the texture used when the button is active and neither hovered nor focused.
          *
          * @param enabled the texture to draw while enabled and not focused
-         * @return self for chaining.
+         * @return this builder
          * @since 1.9.0
          */
         public TexturedButtonBuilder enabledTexture(ResourceLocation enabled) {
@@ -263,22 +244,10 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * the same as the {@link ResourceLocation} form, with the texture named as a
-         * string. The namespace may be left off, in which case it is read as
-         * {@code minecraft}.
-         * example:
-         * <pre>
-         * const screen = Hud.createScreen("a screen", true);
-         * screen.texturedButtonBuilder()
-         *    .pos(10, 20)
-         *    .size(100, 20)
-         *    .enabledTexture("item/diamond")
-         *    .build();
-         * Hud.openScreen(screen);
-         * </pre>
+         * Sets the enabled, unfocused texture from its resource-location string; an omitted namespace defaults to {@code minecraft}.
          *
          * @param enabled the texture to draw while enabled and not focused
-         * @return self for chaining.
+         * @return this builder
          * @since 1.9.3
          */
         public TexturedButtonBuilder enabledTexture(String enabled) {
@@ -286,23 +255,10 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * the texture drawn while the button is disabled, which is the greyed out look.
-         * A button that is never made inactive still needs one here, because the button
-         * goes to this state whenever its active flag is turned off.
-         * example:
-         * <pre>
-         * const screen = Hud.createScreen("a screen", true);
-         * screen.texturedButtonBuilder()
-         *    .pos(10, 20)
-         *    .size(100, 20)
-         *    .enabledTexture("minecraft:item/diamond")
-         *    .disabledTexture("minecraft:item/emerald")
-         *    .build();
-         * Hud.openScreen(screen);
-         * </pre>
+         * Sets the texture used when the button is inactive and neither hovered nor focused.
          *
          * @param disabled the texture to draw while disabled
-         * @return self for chaining.
+         * @return this builder
          * @since 1.9.0
          */
         public TexturedButtonBuilder disabledTexture(ResourceLocation disabled) {
@@ -311,12 +267,10 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * the same as the {@link ResourceLocation} form, with the texture named as a
-         * string. The namespace may be left off, in which case it is read as
-         * {@code minecraft}.
+         * Sets the disabled, unfocused texture from its resource-location string; an omitted namespace defaults to {@code minecraft}.
          *
          * @param disabled the texture to draw while disabled
-         * @return self for chaining.
+         * @return this builder
          * @since 1.9.3
          */
         public TexturedButtonBuilder disabledTexture(String disabled) {
@@ -324,25 +278,10 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * the texture drawn while the button is enabled and focused, which is the state
-         * it is in under the mouse. This is a separate texture rather than the enabled
-         * one with a highlight, so a button that is never focused still needs one.
-         * example:
-         * <pre>
-         * const screen = Hud.createScreen("a screen", true);
-         * screen.texturedButtonBuilder()
-         *    .pos(10, 20)
-         *    .size(100, 20)
-         *    .enabledTexture("minecraft:item/diamond")
-         *    .disabledTexture("minecraft:item/emerald")
-         *    .enabledFocusedTexture("minecraft:item/emerald")
-         *    .disabledFocusedTexture("minecraft:item/coal")
-         *    .build();
-         * Hud.openScreen(screen);
-         * </pre>
+         * Sets the texture used when the button is active and hovered or focused.
          *
          * @param enabledFocused the texture to draw while enabled and focused
-         * @return self for chaining.
+         * @return this builder
          * @since 1.9.0
          */
         public TexturedButtonBuilder enabledFocusedTexture(ResourceLocation enabledFocused) {
@@ -351,12 +290,10 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * the same as the {@link ResourceLocation} form, with the texture named as a
-         * string. The namespace may be left off, in which case it is read as
-         * {@code minecraft}.
+         * Sets the enabled, focused texture from its resource-location string; an omitted namespace defaults to {@code minecraft}.
          *
          * @param enabledFocused the texture to draw while enabled and focused
-         * @return self for chaining.
+         * @return this builder
          * @since 1.9.3
          */
         public TexturedButtonBuilder enabledFocusedTexture(String enabledFocused) {
@@ -364,26 +301,10 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * the texture drawn while the button is disabled and focused, which is the one
-         * state that needs all four textures filled in to be seen at all. A button that
-         * is disabled and has the mouse over it is drawn with this.
-         * example:
-         * <pre>
-         * const screen = Hud.createScreen("a screen", true);
-         * const button = screen.texturedButtonBuilder()
-         *    .pos(10, 20)
-         *    .size(100, 20)
-         *    .enabledTexture("minecraft:item/diamond")
-         *    .disabledTexture("minecraft:item/emerald")
-         *    .enabledFocusedTexture("minecraft:item/emerald")
-         *    .disabledFocusedTexture("minecraft:item/coal")
-         *    .active(false)
-         *    .build();
-         * Hud.openScreen(screen);
-         * </pre>
+         * Sets the texture used when the button is inactive and hovered or focused.
          *
          * @param disabledFocused the texture to draw while disabled and focused
-         * @return self for chaining.
+         * @return this builder
          * @since 1.9.0
          */
         public TexturedButtonBuilder disabledFocusedTexture(ResourceLocation disabledFocused) {
@@ -392,18 +313,19 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
         }
 
         /**
-         * the same as the {@link ResourceLocation} form, with the texture named as a
-         * string. The namespace may be left off, in which case it is read as
-         * {@code minecraft}.
+         * Sets the disabled, focused texture from its resource-location string; an omitted namespace defaults to {@code minecraft}.
          *
          * @param disabledFocused the texture to draw while disabled and focused
-         * @return self for chaining.
+         * @return this builder
          * @since 1.9.3
          */
         public TexturedButtonBuilder disabledFocusedTexture(String disabledFocused) {
             return disabledFocusedTexture(ResourceLocation.parse(disabledFocused));
         }
 
+        /** Creates and wraps a new texture-based button from this builder's current configuration without adding it to the screen or applying shared post-creation styles. Use {@code build()} to create, configure, and add the button.
+         * @return the newly wrapped texture-based button
+         */
         @Override
         public ButtonWidgetHelper<ImageButton> createWidget() {
             AtomicReference<ButtonWidgetHelper<ImageButton>> b = new AtomicReference<>(null);

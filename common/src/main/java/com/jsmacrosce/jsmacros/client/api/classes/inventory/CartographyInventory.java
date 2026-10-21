@@ -5,24 +5,17 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.doclet.DocletCategory;
 
 /**
- * the handle for an open cartography table screen.
+ * A handle for an open cartography table screen. The input slots are 0 and 1, and slot 2 is
+ * the result; {@link #getMap()} groups the inputs as {@code input} and the result as {@code output}.
  * <p>
- * A cartography table is a two-in, one-out block: a map or an item that carries one goes in
- * the first slot, paper goes in the second, and the result is a map. The three methods here are
- * those three slots, in the order the table builds them, so 0 is the map,
- * {@code CartographyTableMenu.MAP_SLOT}, 1 is the material, {@code ADDITIONAL_SLOT}, and 2 is
- * the result, {@code RESULT_SLOT}. {@link #getMap()} names the same two regions
- * {@code input} and {@code output}.
- * <p>
- * Nothing here works out what a map would become; {@link #getOutput()} reads the result slot
- * as the client currently has it.
- * example:
+ * The second input accepts paper, maps, or glass panes. The menu supplies the result; this
+ * wrapper does not calculate it.
  * <pre>
  * const inv = Player.openInventory();
  * if (inv.is("Cartography Table")) {
  *   Chat.log(`${inv.getMapItem().getItemId()} with ${inv.getMaterial().getItemId()}`);
  *   if (!inv.getOutput().isEmpty()) {
- *     Chat.log(`clones to ${inv.getOutput().getCount()} map(s)`);
+ *     Chat.log(`table offers ${inv.getOutput().getCount()} item(s)`);
  *   }
  * }
  * </pre>
@@ -34,25 +27,19 @@ import com.jsmacrosce.doclet.DocletCategory;
 @SuppressWarnings("unused")
 public class CartographyInventory extends Inventory<CartographyTableScreen> {
 
+    /**
+     * Wraps the supplied cartography screen and captures its menu and the current client player
+     * through {@link Inventory}'s setup. This does not open or create a screen; scripts can obtain
+     * a wrapper for the current screen through {@link com.jsmacrosce.jsmacros.client.api.library.impl.FPlayer#openInventory()}.
+     *
+     * @param inventory the cartography screen to wrap
+     */
     public CartographyInventory(CartographyTableScreen inventory) {
         super(inventory);
     }
 
     /**
-     * the map or map item the table is working from, which is slot 0.
-     * <p>
-     * An empty map counts here as well as a filled one, since cloning a map is one of the
-     * things the table does. Reading this never changes the result; the table reacts to the
-     * slot changing.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Cartography Table")) {
-     *   if (!inv.getMapItem().isEmpty()) {
-     *     Chat.log(`cartographing ${inv.getMapItem().getName()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the item in the first input slot. The menu accepts items carrying a map ID here.
      *
      * @return the map item in the first slot
      * @since 1.8.4
@@ -62,21 +49,8 @@ public class CartographyInventory extends Inventory<CartographyTableScreen> {
     }
 
     /**
-     * the material added to the map, which is slot 1.
-     * <p>
-     * The slot only accepts paper, another map or a glass pane, and what it means depends on
-     * which: paper clones the map, a glass pane locks it, and a map in this slot recrafts the
-     * first one into something else. So "the paper item" is the common case rather than the
-     * only one.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Cartography Table")) {
-     *   if (!inv.getMaterial().isEmpty()) {
-     *     Chat.log(`adding ${inv.getMaterial().getItemId()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the second input item. It may be paper, a map, or a glass pane; its effect depends
+     * on the item and the first input map's state.
      *
      * @return the item in the second slot
      * @since 1.8.4
@@ -86,20 +60,8 @@ public class CartographyInventory extends Inventory<CartographyTableScreen> {
     }
 
     /**
-     * the map the table is working towards, which is slot 2.
-     * <p>
-     * This is the result slot as the client currently has it rather than a calculation done
-     * here, so it is empty unless the two inputs actually combine into something.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Cartography Table")) {
-     *   const out = inv.getOutput();
-     *   if (!out.isEmpty()) {
-     *     Chat.log(`the table offers ${out.getName()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the result slot (slot 2) as currently exposed by the menu; this wrapper does not
+     * calculate a result.
      *
      * @return the result the table is currently offering
      * @since 1.8.4
@@ -108,6 +70,11 @@ public class CartographyInventory extends Inventory<CartographyTableScreen> {
         return getSlot(2);
     }
 
+    /**
+     * Returns this wrapper's fixed diagnostic label.
+     *
+     * @return {@code CartographyInventory:{}}
+     */
     @Override
     public String toString() {
         return String.format("CartographyInventory:{}");

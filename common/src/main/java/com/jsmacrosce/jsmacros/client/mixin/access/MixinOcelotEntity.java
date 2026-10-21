@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
@@ -14,6 +16,7 @@ import net.minecraft.world.entity.animal.Ocelot;
  * @since 1.8.4
  */
 @Mixin(Ocelot.class)
+@DocletIgnore
 public interface MixinOcelotEntity {
 
     @Invoker

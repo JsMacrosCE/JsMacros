@@ -20,6 +20,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
+ * Handles the creative inventory screen and its item tabs.
+ *
  * @author Etheradon
  * @since 1.8.4
  */
@@ -35,9 +37,9 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * The total scroll value is always clamp between 0 and 1.
+     * Scrolls the creative item list by a relative amount when it has a scrollbar.
      *
-     * @param amount the amount to scroll by, between -1 and 1
+     * @param amount relative change to the current scroll position; the resulting position is clamped to {@code 0..1}
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -47,9 +49,9 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * The total scroll value is always clamp between 0 and 1.
+     * Sets the creative item list's scroll position when it has a scrollbar; otherwise, does nothing.
      *
-     * @param position the position to scroll to, between 0 and 1
+     * @param position scroll position, clamped to {@code 0..1}
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -62,7 +64,7 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @return a list of all shown items.
+     * @return the items currently displayed in the creative item list.
      * @since 1.8.4
      */
     public List<ItemStackHelper> getShownItems() {
@@ -70,7 +72,9 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @param search the string to search for
+     * Sets the search text and refreshes results only while the search tab is selected.
+     * Otherwise, it does nothing.
+     * @param search text to search for
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -83,7 +87,7 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * Select the search tab.
+     * Selects the search tab asynchronously on the client executor.
      *
      * @return self for chaining.
      * @since 1.8.4
@@ -94,7 +98,7 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * Select the inventory tab.
+     * Selects the inventory tab asynchronously on the client executor.
      *
      * @return self for chaining.
      * @since 1.8.4
@@ -105,7 +109,7 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * Select the tab where the hotbars are stored.
+     * Selects the hotbar tab asynchronously on the client executor.
      *
      * @return self for chaining.
      * @since 1.8.4
@@ -116,22 +120,8 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * selects a tab by its display name.
-     * <p>
-     * The name is matched against the same translated names {@link #getTabNames()} returns, so it
-     * has to be the name as the client is showing it rather than the tab id, and a name that
-     * matches no tab is an error rather than a no-op. The two methods for the common tabs,
-     * {@link #selectInventory()} and {@link #selectHotbar()}, do not have that problem.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Creative Inventory")) {
-     *   const names = inv.getTabNames();
-     *   if (names.length > 0) {
-     *     inv.selectTab(names[0]);
-     *   }
-     * }
-     * </pre>
+     * Selects the tab whose current display name exactly matches the argument. The selection is
+     * scheduled on the client executor; comparison uses the localized display name.
      * @param tabName the display name of the tab to select
      * @return self for chaining.
      * @throws IllegalArgumentException if no tab has that display name
@@ -144,21 +134,9 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * the display name of every creative tab, in the order the tabs are laid out.
-     * <p>
-     * These are the translated names the game shows, so they follow the language the client is in
-     * and are not the ids. That makes this the list to match a name typed into the search box
-     * against, and it is what {@link #selectTab(String)} takes.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Creative Inventory")) {
-     *   for (const name of inv.getTabNames()) {
-     *     Chat.log(name);
-     *   }
-     * }
-     * </pre>
-     * @return a list of the display name of each tab
+     * Returns the current localized display name of each creative tab, in {@link CreativeModeTabs#allTabs()} order.
+     * These names are not tab IDs and are the values matched by {@link #selectTab(String)}.
+     * @return the tab display names
      * @since 1.8.4
      */
     public List<String> getTabNames() {
@@ -166,21 +144,9 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * the same list as {@link #getTabNames()}, but as text objects rather than strings.
-     * <p>
-     * The two are built from the same source in the same order, so the index of an entry matches
-     * between them. Reach for this one when the name is going somewhere that takes text, and for
-     * the plain one when it is being compared.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Creative Inventory")) {
-     *   for (const text of inv.getTabTexts()) {
-     *     Chat.log(text.getString());
-     *   }
-     * }
-     * </pre>
-     * @return a list of the display name of each tab, as text
+     * Returns each creative tab's current localized display name as a text object, in the same order as {@link #getTabNames()}.
+     *
+     * @return the tab display names as text objects
      * @since 1.8.4
      */
     public List<TextHelper> getTabTexts() {
@@ -193,7 +159,7 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * Destroys the currently held item.
+     * Clears the item stack carried by the creative inventory menu.
      *
      * @return self for chaining.
      * @since 1.8.4
@@ -204,7 +170,7 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * Destroys all items in the player's inventory.
+     * Clears every slot in this inventory menu by sending an empty stack for each slot through the creative item-add operation.
      *
      * @return self for chaining.
      * @since 1.8.4
@@ -218,9 +184,9 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @param stack the item stack to drag
+     * Sets the stack carried by the creative inventory menu.
+     * @param stack the stack to carry
      * @return self for chaining.
-     * @see RegistryHelper#getItemStack(String, String)
      * @since 1.8.4
      */
     public CreativeInventory setCursorStack(ItemStackHelper stack) {
@@ -229,10 +195,10 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @param slot  the slot to insert the item into
-     * @param stack the item stack to insert
+     * Sets a slot through the creative item-add operation.
+     * @param slot  the menu slot to set
+     * @param stack the stack to set
      * @return self for chaining.
-     * @see RegistryHelper#getItemStack(String, String)
      * @since 1.8.4
      */
     public CreativeInventory setStack(int slot, ItemStackHelper stack) {
@@ -241,7 +207,8 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @param index the index to save the hotbar to, from 0 to 8
+     * Saves the player's current hotbar to a saved-hotbar slot.
+     * @param index saved-hotbar index, from 0 to 8
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -251,7 +218,8 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @param index the index to save the hotbar to, from 0 to 8
+     * Restores a saved hotbar to the player's current hotbar.
+     * @param index saved-hotbar index, from 0 to 8
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -261,8 +229,9 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @param index the index to save the hotbar to, from 0 to 8
-     * @return a list of all items in the saved hotbar.
+     * Returns the item stacks stored in a saved hotbar.
+     * @param index saved-hotbar index, from 0 to 8
+     * @return the saved hotbar's item stacks
      * @since 1.8.4
      */
     public List<ItemStackHelper> getSavedHotbar(int index) {
@@ -271,9 +240,9 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @param slot the slot to check
-     * @return {@code true} if the slot is in the hotbar or the offhand slot, {@code false}
-     * otherwise.
+     * Tests whether a menu slot is one of the player's nine hotbar slots or the offhand slot.
+     * @param slot menu slot index
+     * @return {@code true} for hotbar slots {@code 36..44} or offhand slot {@code 45}; {@code false} otherwise
      * @since 1.8.4
      */
     public boolean isInHotbar(int slot) {
@@ -281,7 +250,7 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @return the item in the offhand.
+     * @return the item in creative-menu slot {@code 40}
      * @since 1.8.4
      */
     public ItemStackHelper getOffhand() {
@@ -289,7 +258,7 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @return the equipped helmet item.
+     * @return the item in creative-menu slot {@code 39}
      * @since 1.8.4
      */
     public ItemStackHelper getHelmet() {
@@ -297,7 +266,7 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @return the equipped chestplate item.
+     * @return the item in creative-menu slot {@code 38}
      * @since 1.8.4
      */
     public ItemStackHelper getChestplate() {
@@ -305,7 +274,7 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @return the equipped leggings item.
+     * @return the item in creative-menu slot {@code 37}
      * @since 1.8.4
      */
     public ItemStackHelper getLeggings() {
@@ -313,13 +282,18 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @return the equipped boots item.
+     * @return the item in creative-menu slot {@code 36}
      * @since 1.8.4
      */
     public ItemStackHelper getBoots() {
         return getSlot(36);
     }
 
+    /**
+     * Returns the diagnostic label {@code CreativeInventory:{}}.
+     *
+     * @return the fixed diagnostic label {@code CreativeInventory:{}}
+     */
     @Override
     public String toString() {
         return String.format("CreativeInventory:{}");

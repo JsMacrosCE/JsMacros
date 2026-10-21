@@ -19,6 +19,22 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 
+/**
+ * Displays registered event names in a five-column overlay and lets the caller confirm a selection.
+ * Closing or cancelling does not invoke the callback. In this factory the caller supplies an
+ * {@code IOverlayParent}, native {@code Font}, non-null initial event name and JavaScript callback:
+ * <pre>
+ * function showEventChooser(parent, font, selected, onSelected) {
+ *   const EventChooser = Java.type('com.jsmacrosce.jsmacros.client.gui.overlays.EventChooser');
+ *   const chooser = new EventChooser(10, 10, 300, 180, font, selected, parent, JavaWrapper.methodToJava(onSelected));
+ *   parent.openOverlay(chooser);
+ *   return chooser;
+ * }
+ * </pre>
+ * The callback runs on confirmation only when both a selection and callback are non-null. An arbitrary non-null
+ * selection can be confirmed, whether or not it is in the registered event list. Confirmation closes the
+ * overlay only after the callback returns normally; a missing callback leaves the Select button without this action.
+ */
 @DocletCategory("Screen and UI Elements")
 public class EventChooser extends OverlayContainer {
     private String selected;
@@ -27,6 +43,16 @@ public class EventChooser extends OverlayContainer {
     private final Consumer<String> setEvent;
     private final Component eventText;
 
+    /** Stores the overlay geometry, initial selection, parent, and optional confirmation callback; the constructor does not open the overlay or initialize its widgets.
+     * @param x left edge in GUI coordinates
+     * @param y top edge in GUI coordinates
+     * @param width overlay width in GUI coordinates
+     * @param height overlay height in GUI coordinates
+     * @param textRenderer non-null font used for overlay text and buttons
+     * @param selected initial event name; must be non-null if the initialized event list is nonempty, but need not name a registered event
+     * @param parent non-null overlay parent
+     * @param setEvent nullable callback invoked on confirmation when a selection is non-null
+     */
     public EventChooser(int x, int y, int width, int height, Font textRenderer, String selected, IOverlayParent parent, Consumer<String> setEvent) {
         super(x, y, width, height, textRenderer, parent);
         this.selected = selected;
@@ -34,6 +60,9 @@ public class EventChooser extends OverlayContainer {
         this.eventText = Component.translatable("jsmacrosce.events");
     }
 
+    /** Sets the selection and highlights every row whose event name exactly matches it; does not confirm or close the overlay.
+     * @param event non-null event name to select; matching is case-sensitive
+     */
     public void selectEvent(String event) {
         this.selected = event;
         for (EventObj e : events) {
@@ -45,6 +74,10 @@ public class EventChooser extends OverlayContainer {
         }
     }
 
+    /** Initializes the overlay controls, copies and sorts the registered event names, and adds rows before applying the current selection.
+     * Requires an initialized client event registry and a non-null selection when there are rows.
+     * Repeated calls reset the scroll position and container button tracking but retain prior rows, so they append duplicate rows and are not a refresh operation. Previously registered parent widgets are not removed.
+     */
     @Override
     public void init() {
         super.init();
@@ -72,6 +105,12 @@ public class EventChooser extends OverlayContainer {
         this.selectEvent(selected);
     }
 
+    /** Appends an event row after existing rows and updates the scrollbar range; this does not sort, deduplicate, or register the name.
+     * Requires the scrollbar created by {@code init}. Uses an available translation for
+     * {@code "jsmacrosce.event."} plus the name lowercased with {@code Locale.ROOT}, otherwise the literal name.
+     * Adding a row does not select or highlight it, even if its name matches the current selection.
+     * @param eventName non-null event name represented by the row and selected when its button is clicked
+     */
     public void addEvent(String eventName) {
         String lowerCaseName = eventName.toLowerCase(Locale.ROOT);
         Component translatedName;
@@ -91,6 +130,11 @@ public class EventChooser extends OverlayContainer {
         scroll.setScrollPages((Math.ceil(events.size() / 5D) * 12) / (double) Math.max(1, height - 39));
     }
 
+    /** Repositions retained rows from the current overlay geometry and scroll offset, updating visibility from each row's top edge.
+     * Rows use five columns with 12-unit row heights. Visibility checks whether each row's top is within
+     * the inclusive interval from {@code y + 13} to {@code y + height - 27}, not whether its full bounds fit.
+     * This does not change the scroll offset or recompute the scrollbar range.
+     */
     public void updateEventPos() {
         for (int i = 0; i < events.size(); ++i) {
             EventObj e = events.get(i);
@@ -99,6 +143,10 @@ public class EventChooser extends OverlayContainer {
         }
     }
 
+    /** Applies an unclamped scrollbar offset and repositions rows; visibility uses row top edges, not full-row clipping.
+     * Sets the row origin to {@code y + 13 - (int) (page * (height - 27))}.
+     * @param page scroll offset in units of {@code height - 27} GUI coordinates, not a normalized percentage
+     */
     public void onScrollbar(double page) {
         topScroll = y + 13 - (int) (page * (height - 27));
         int i = 0;
@@ -109,6 +157,14 @@ public class EventChooser extends OverlayContainer {
         }
     }
 
+    /** Submits the background, caption and separators, forwards the hook to widgets and a child overlay,
+     * then submits full-label popups for tracked buttons with the stored hovering flag and truncated text.
+     * Neither the inherited visibility flag nor the popup button's visibility or active flag is checked here.
+     * @param drawContext context receiving the overlay and widget drawing operations
+     * @param mouseX mouse x-coordinate in GUI coordinates, forwarded to widgets and used to position label popups
+     * @param mouseY mouse y-coordinate in GUI coordinates, forwarded to widgets and used to position label popups
+     * @param delta frame value forwarded to widgets
+     */
     @Override
     //? if >=26.1 {
     /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {
@@ -152,10 +208,23 @@ public class EventChooser extends OverlayContainer {
         }
     }
 
+    /** Holds an event name and its associated button as a row value; it does not register the button itself.
+     * This supporting type is not a global library. The caller supplies a name and WagYourGUI button:
+     * <pre>
+     * function makeEventRow(name, button) {
+     *   const EventObj = Java.type('com.jsmacrosce.jsmacros.client.gui.overlays.EventChooser$EventObj');
+     *   return new EventObj(name, button);
+     * }
+     * </pre>
+     */
     public static class EventObj {
         String event;
         Button btn;
 
+        /** Stores the supplied row name and button references.
+         * @param event event name represented by the row
+         * @param btn associated WagYourGUI button
+         */
         public EventObj(String event, Button btn) {
             this.event = event;
             this.btn = btn;

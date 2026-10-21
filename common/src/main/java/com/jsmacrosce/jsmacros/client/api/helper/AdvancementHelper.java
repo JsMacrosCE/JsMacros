@@ -20,22 +20,11 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 /**
- * one advancement in the tree, together with where it sits in that tree.
+ * Represents an advancement definition and its position in the advancement tree. Use
+ * {@link #getParent()} and {@link #getChildren()} to navigate the tree; rewards and requirements
+ * describe the definition, while {@link #getProgress()} reports local-player progress.
  * <p>
- * The tree is the hierarchy the advancements tab shows: a root with children, each of those with
- * children of its own. This class is a node in it, so it answers two different kinds of question
- * at once. About the advancement itself: {@link #getId()}, {@link #getExperience()},
- * {@link #getRequirements()} and the rewards. And about the tree: {@link #getParent()} and
- * {@link #getChildren()}, which is what a script walks to find a whole branch.
- * <p>
- * How far along the player is on it is a separate object, {@link #getProgress()}, because
- * progress belongs to the player rather than to the advancement.
- * <p>
- * An advancement is reached through the manager, which is
- * {@code Player.getPlayer().getAdvancementManager()}. The manager can be asked for one
- * advancement by identifier or for all of them; a fresh helper is made on each call, so there
- * is nothing to keep alive.
- * example:
+ * Obtain advancements from the player's advancement manager.
  * <pre>
  * const player = Player.getPlayer();
  * if (player !== null) {
@@ -43,19 +32,23 @@ import java.util.stream.StreamSupport;
  *
  *   // one advancement by identifier, and what it awards
  *   const root = manager.getAdvancement("minecraft:story/root");
- *   Chat.log(`${root.getId()} gives ${root.getExperience()} xp`);
- *   if (root.getLoot().length > 0) {
- *     Chat.log(`and loot: ${root.getLoot().join(", ")}`);
- *   }
+ *   if (root.getRaw() !== null) {
+ *     Chat.log(`${root.getId()} gives ${root.getExperience()} xp`);
+ *     if (root.getLoot().length > 0) {
+ *       Chat.log(`and loot: ${root.getLoot().join(", ")}`);
+ *     }
  *
- *   // walk the tree downwards from there
- *   for (const child of root.getChildren()) {
- *     Chat.log(`  child ${child.getId()}`);
- *   }
+ *     // walk the tree downwards from there
+ *     for (const child of root.getChildren()) {
+ *       Chat.log(`  child ${child.getId()}`);
+ *     }
  *
- *   // and how far the player has got on it
- *   const progress = root.getProgress();
- *   Chat.log(`${Math.round(progress.getPercentage() * 100)} percent`);
+ *     // and how far the player has got on it
+ *     const progress = root.getProgress();
+ *     if (progress.getRaw() !== null) {
+ *       Chat.log(`${Math.round(progress.getPercentage() * 100)} percent`);
+ *     }
+ *   }
  * }
  * </pre>
  *
@@ -68,27 +61,16 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
     private static final Minecraft mc = Minecraft.getInstance();
 
 
+    /** Wraps the supplied advancement node.
+     *
+     * @param base raw advancement node to wrap
+     */
     public AdvancementHelper(AdvancementNode base) {
         super(base);
     }
 
     /**
-     * the advancement this one is drawn as a child of, or {@code null} for a root.
-     * <p>
-     * This is the tree structure rather than the advancement's own definition, so it answers
-     * where this sits in the advancements tab. A root has no parent and gives {@code null}.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player === null) { throw new Error("not in a world"); }
-     * const manager = player.getAdvancementManager();
-     * const parent = manager.getAdvancement("minecraft:story/mine_stone").getParent();
-     * if (parent !== null) {
-     *   Chat.log(`that one is under ${parent.getId()}`);
-     * } else {
-     *   Chat.log("that one is a root");
-     * }
-     * </pre>
+     * Returns this advancement's parent in the tree, or {@code null} if it is a root.
      *
      * @return the parent advancement or {@code null} if there is none.
      * @since 1.8.4
@@ -99,24 +81,7 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
     }
 
     /**
-     * the advancements drawn directly below this one.
-     * <p>
-     * This is one level of the tree, not the whole branch underneath: a script that wants
-     * everything below this walks down level by level from here. A leaf gives an empty list
-     * rather than {@code null}.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player === null) { throw new Error("not in a world"); }
-     * const manager = player.getAdvancementManager();
-     * // one level down, then one more from each of those
-     * const root = manager.getAdvancement("minecraft:story/root");
-     * for (const child of root.getChildren()) {
-     *   for (const grandchild of child.getChildren()) {
-     *     Chat.log(grandchild.getId());
-     *   }
-     * }
-     * </pre>
+     * Returns this node's direct children, not their descendants. A leaf has no children.
      *
      * @return a list of all child advancements.
      * @since 1.8.4
@@ -126,22 +91,9 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
     }
 
     /**
-     * the conditions that have to be met, grouped the way the tab counts them.
+     * Returns the advancement's criterion requirements grouped by completion rule.
      * <p>
-     * The outer list is the groups and the inner lists are the alternatives within a group.
-     * <b>Every</b> group has to be satisfied for the advancement to be done, and <b>any one</b>
-     * criterion inside a group satisfies that group. An advancement whose criteria are all
-     * independent puts each in a group of its own, and for that shape the rule reduces to
-     * "every criterion has to be met". The other shape is a group holding more than one entry,
-     * which is an explicit "any of these" in the data, and in the vanilla advancements that
-     * shape is the common one rather than the exception: of the 1520 advancement files shipped
-     * with 1.21.8, 1409 have at least one such group, and 1326 of those are a single group of
-     * exactly two alternatives. A script that wants "any of these" has to read the inner
-     * lists rather than assume one criterion per group.
-     * <br>
-     * The inner lists are the game's own objects, so a script should read them rather than write
-     * to them.
-     * example:
+     * Every group must be satisfied; satisfying any one criterion in a group satisfies that group.
      * <pre>
      * const player = Player.getPlayer();
      * if (player === null) { throw new Error("not in a world"); }
@@ -161,26 +113,7 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
     }
 
     /**
-     * how many groups of requirements this advancement has.
-     * <p>
-     * This is the size of {@link #getRequirements()}, so it counts groups and not criteria.
-     * The two are the same number only on an advancement that puts every criterion in a group
-     * of its own; where a group holds several criteria as alternatives, one group counts once
-     * however many of them the player has met. In the vanilla advancements that second shape
-     * is the common one, so the two numbers are frequently different and this one is usually
-     * the smaller.
-     * <br>
-     * It is the denominator of {@link AdvancementProgressHelper#getPercentage()}, so a script
-     * working out how far along the player is wants this alongside that call.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player === null) { throw new Error("not in a world"); }
-     * const manager = player.getAdvancementManager();
-     * const adv = manager.getAdvancement("minecraft:story/mine_stone");
-     * // the groups, which is what is left to do
-     * Chat.log(`${adv.getRequirementCount()} group(s) of criteria`);
-     * </pre>
+     * Returns the number of requirement groups, not the number of individual criteria.
      *
      * @return the amount of requirements.
      * @since 1.8.4
@@ -190,19 +123,7 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
     }
 
     /**
-     * the advancement's identifier, the one it is written as in the data files.
-     * <p>
-     * This is the same string the manager's {@code getAdvancement} takes, so it round-trips:
-     * an id from here can be handed straight back to look the advancement up again.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player === null) { throw new Error("not in a world"); }
-     * const manager = player.getAdvancementManager();
-     * for (const adv of manager.getAdvancements()) {
-     *   Chat.log(adv.getId());
-     * }
-     * </pre>
+     * Returns the advancement's data-pack identifier.
      *
      * @return the identifier of this advancement.
      * @since 1.8.4
@@ -213,19 +134,7 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
     }
 
     /**
-     * the experience this advancement awards when it is earned.
-     * <p>
-     * This is the number the toast shows. It is a property of the advancement, not of the
-     * player, so it is the same whether or not the player has earned it; whether it has been
-     * earned is on the progress.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player === null) { throw new Error("not in a world"); }
-     * const manager = player.getAdvancementManager();
-     * const root = manager.getAdvancement("minecraft:story/root");
-     * Chat.log(`${root.getId()} is worth ${root.getExperience()} xp`);
-     * </pre>
+     * Returns the experience points awarded when this advancement is earned.
      *
      * @return the experience awarded by this advancement.
      * @since 1.8.4
@@ -235,25 +144,7 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
     }
 
     /**
-     * the loot tables this advancement hands out, as identifiers.
-     * <p>
-     * An advancement can grant items by way of a loot table rather than by giving them
-     * directly, and this is where those tables are named. On a vanilla 1.21.8 server the list
-     * is in fact always empty: none of the 1520 advancement files the game ships have a loot
-     * reward at all, so this only has something in it when a datapack adds one.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player === null) { throw new Error("not in a world"); }
-     * const manager = player.getAdvancementManager();
-     * const adv = manager.getAdvancement("minecraft:story/root");
-     * const loot = adv.getLoot();
-     * if (loot.length > 0) {
-     *   Chat.log(`drops ${loot.join(", ")}`);
-     * } else {
-     *   Chat.log("no loot");
-     * }
-     * </pre>
+     * Returns the identifiers of loot tables granted by this advancement.
      *
      * @return the loot table ids for this advancement's rewards.
      * @since 1.8.4
@@ -269,22 +160,7 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
     }
 
     /**
-     * the recipes this advancement unlocks, as identifiers.
-     * <p>
-     * This is what makes a crafting recipe appear in the recipe book, and it is populated for
-     * the large majority of advancements: 1395 of the 1520 vanilla files name at least one
-     * recipe. The rest award their items some other way, such as experience or nothing at all,
-     * and those give an empty list here.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player === null) { throw new Error("not in a world"); }
-     * const manager = player.getAdvancementManager();
-     * const adv = manager.getAdvancement("minecraft:story/mine_stone");
-     * for (const recipe of adv.getRecipes()) {
-     *   Chat.log(`unlocks ${recipe}`);
-     * }
-     * </pre>
+     * Returns identifiers of recipes unlocked by this advancement; empty when it has no recipe rewards.
      *
      * @return the recipes unlocked through this advancement.
      * @since 1.8.4
@@ -306,34 +182,11 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
     }
 
     /**
-     * how far the player has got on this advancement.
-     * <p>
-     * The progress is the player's, not the advancement's, so this is about the player rather
-     * than the tree. It is also the call that ties the two halves of this class together: a
-     * script that has just found an advancement through {@link #getChildren()} and now wants to
-     * know whether the player has it comes here.
-     * <br>
-     * The progress is read from the connection's own store, and the store only holds what the
-     * server has sent. An advancement the server has not sent progress for gives a progress
-     * object with nothing behind it, and the first call that reads it throws.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player === null) { throw new Error("not in a world"); }
-     * const manager = player.getAdvancementManager();
-     * const adv = manager.getAdvancement("minecraft:story/mine_stone");
-     * const progress = adv.getProgress();
-     * if (progress.isDone()) {
-     *   Chat.log("already earned");
-     * } else if (progress.isAnyObtained()) {
-     *   Chat.log(`partly done: ${progress.getPercentage()} percent`);
-     *   for (const missing of progress.getUnobtainedCriteria()) {
-     *     Chat.log(`  still to do: ${missing}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the local player's progress for this advancement, from the progress data received
+     * from the server. If no progress entry exists, the returned helper wraps {@code null}; its
+     * progress methods cannot be used in that state.
      *
-     * @return the progress.
+     * @return the local player's progress, or a helper wrapping {@code null} if no progress entry exists.
      * @since 1.8.4
      */
     public AdvancementProgressHelper getProgress() {
@@ -343,13 +196,19 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
     }
 
     /**
+     * Returns this advancement's definition encoded as a JSON string.
+     *
+     * @return this advancement's JSON definition.
      * @since 1.9.0
-     * @return the json string of this advancement.
      */
     public String toJson() {
         return Advancement.CODEC.encodeStart(JsonOps.INSTANCE, base.advancement()).getOrThrow().toString();
     }
 
+    /** Returns a diagnostic representation containing this advancement's identifier.
+     *
+     * @return diagnostic representation of this advancement
+     */
     @Override
     public String toString() {
         return String.format("AdvancementHelper:{\"id\": \"%s\"}", getId());

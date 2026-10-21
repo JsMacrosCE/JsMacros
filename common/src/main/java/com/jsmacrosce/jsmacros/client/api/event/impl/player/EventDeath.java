@@ -14,15 +14,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Fires when the local player dies, that is when the server tells the client the player was
- * killed in combat.<br>
- * This is not cancellable, the death has already been applied when the event fires. The death
- * screen appears a moment later, so call
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventDeath#respawn() respawn()} to
- * skip it, but only from a later tick.<br>
- * In a singleplayer world the client also runs the integrated server, and the event is not raised
- * for that server's own copy of the player, so it still fires exactly once.
- * example:
+ * Fires while handling the server's player-combat-kill packet, before the client shows the death
+ * screen. It is not cancellable. Call {@link #respawn()} on a later tick rather than during
+ * packet handling; this requests respawn but does not guarantee that the death screen never opens.
  * <pre>
  * JsMacros.on("Death", JavaWrapper.methodToJava(function (event) {
  *   const pos = event.deathPos;
@@ -44,24 +38,21 @@ import java.util.List;
 public class EventDeath extends BaseEvent {
 
     /**
-     * the block the player was standing in when the death packet arrived, which is where the
-     * player was killed. Its coordinates are available from
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper#getX() getX()},
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper#getY() getY()} and
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper#getZ() getZ()}.
+     * The player's block position when the death packet is handled.
      */
     public final BlockPosHelper deathPos;
     /**
-     * a snapshot of the player's whole inventory at the moment of death, one entry per inventory
-     * slot in the inventory's own order, so the list index is the slot index. This covers every
-     * slot the player inventory has, not just the 36 main ones, so the armor and offhand are
-     * included too. Empty slots are present as empty
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper} entries, so
-     * check {@link com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper#isEmpty() isEmpty()}
-     * before reading them.
+     * A snapshot of the player inventory's slots in inventory order, including armor and offhand.
+     * Empty slots are represented by empty entries; check {@code isEmpty()} before reading one.
      */
     public final List<ItemStackHelper> inventory;
 
+    /**
+     * Captures the current local player's block position and inventory entries. Construction
+     * requires a non-null local player; otherwise reading its block position throws a
+     * {@link NullPointerException}. The list and wrappers are created at construction time,
+     * without copying the underlying item stacks.
+     */
     public EventDeath() {
         super(JsMacrosClient.clientCore);
         this.deathPos = new BlockPosHelper(Minecraft.getInstance().player.blockPosition());
@@ -73,12 +64,9 @@ public class EventDeath extends BaseEvent {
     }
 
     /**
-     * Respawns the player. Should be used with some delay, one tick should be enough.<br>
-     * It does nothing at all if the player is already alive, so calling it more than once is
-     * harmless. It puts the player straight back into the world, skipping the death screen,
-     * which means the player is back before the server has necessarily finished applying the
-     * death.
-     * example:
+     * Requests respawn if the local player is not alive. Use from a later tick rather than
+     * during death-packet handling. The server can ignore the request while its player is
+     * still alive; sending it does not confirm respawn or guarantee the death screen never opens.
      * <pre>
      * JsMacros.on("Death", JavaWrapper.methodToJava(function (event) {
      *   // the "Death" listener stays registered, so every death is caught
@@ -98,6 +86,11 @@ public class EventDeath extends BaseEvent {
         }
     }
 
+    /**
+     * Formats the event name and stored death position as {@code %s:{"deathPos": %s}}; the
+     * inventory is not included.
+     * @return the diagnostic event-name and death-position string
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"deathPos\": %s}", this.getEventName(), deathPos);

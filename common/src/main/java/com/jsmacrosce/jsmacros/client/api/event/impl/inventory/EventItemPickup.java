@@ -8,24 +8,14 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the local player picks up an item that was lying on the ground, which is also when the
- * game plays the pickup sound. The client does not put the item into the inventory itself, the
- * server does that and sends the slot updates separately, so this event fires before any slot on
- * the client has changed.<br>
- * It only fires for the local player. Another player picking up an item nearby does not raise it,
- * and neither does the client picking up an experience orb, since the game only sends this packet
- * with an item entity in it.<br>
- * This event is not cancellable, the pickup has already been decided. To watch the individual
- * slots change, listen for
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventSlotUpdate} instead.
- * example:
+ * Fires while handling an item-pickup packet for the local player, before the corresponding client
+ * inventory update. It is not cancellable. To watch individual slot changes, listen for
+ * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventSlotUpdate}.
  * <pre>
  * JsMacros.on("ItemPickup", JavaWrapper.methodToJava(function (event) {
  *   const item = event.item;
- *   if (item.getItemID() === "minecraft:diamond") {
- *     if (item.getCount() >= 5) {
- *       Chat.log(`picked up ${item.getCount()} diamonds`);
- *     }
+ *   if (item.getItemID() === "minecraft:diamond" && item.getCount() >= 5) {
+ *     Chat.log(`picked up ${item.getCount()} diamonds`);
  *   }
  * }))
  * </pre>
@@ -36,21 +26,27 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "ItemPickup", oldName = "ITEM_PICKUP")
 public class EventItemPickup extends BaseEvent {
     /**
-     * the stack that was picked up, with its count set to how many were taken.<br>
-     * This is a copy of the dropped item entity's stack, so it is a snapshot rather than the live
-     * item. Writing to it changes the copy and nothing else, so a listener can freely overwrite
-     * the damage with {@link ItemStackHelper#setDamage(int) setDamage()} without the game ever
-     * seeing it. The id is available from {@link ItemStackHelper#getItemID() getItemID()}, the
-     * name from {@link ItemStackHelper#getName() getName()} and the data from
-     * {@link ItemStackHelper#getNBT() getNBT()}.
+     * A snapshot of the picked-up item stack, with its count set to the packet's pickup amount.
+     * Mutating it does not modify the dropped item or inventory.
      */
     public final ItemStackHelper item;
 
+    /**
+     * Wraps the supplied raw stack as the event's item; the wrapper retains the same reference
+     * without copying it. A {@code null} stack is retained as the wrapper's raw value.
+     * @param item raw stack to wrap; may be {@code null}
+     */
     public EventItemPickup(ItemStack item) {
         super(JsMacrosClient.clientCore);
         this.item = new ItemStackHelper(item);
     }
 
+    /**
+     * Returns a diagnostic string containing the event name and the stored item's string form.
+     * Calling this method throws {@link NullPointerException} if the wrapped raw stack is
+     * {@code null}.
+     * @return the string in the form {@code %s:{"item": %s}}, with the event name and item string
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"item\": %s}", this.getEventName(), item.toString());

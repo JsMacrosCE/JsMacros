@@ -23,6 +23,18 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.input.MouseButtonEvent;
 *///?}
 
+/** A component-choice overlay with optional scrolling and a callback reporting the chosen zero-based index.
+ * Keyboard confirmation can report -1 when nothing is selected. Construct it with a font, component collection and host; opening registers its controls.
+ * <pre>
+ * function openChoices(parent, font, choices, onChoice) {
+ *   const Dropdown = Java.type("com.jsmacrosce.wagyourgui.overlays.SelectorDropdownOverlay");
+ *   const overlay = new Dropdown(10, 10, 160, 100, choices, font, parent,
+ *     JavaWrapper.methodToJava(onChoice));
+ *   parent.openOverlay(overlay);
+ *   return overlay;
+ * }
+ * </pre>
+ */
 @DocletCategory("Screen and UI Elements")
 public class SelectorDropdownOverlay extends OverlayContainer {
     private final int lineHeight;
@@ -32,6 +44,17 @@ public class SelectorDropdownOverlay extends OverlayContainer {
     protected int selected = -1;
     private final double pages;
 
+    /** Retains the choices collection and caches row height and page count from the font, collection size and geometry.
+     * Does not initialize or open the overlay, register controls, or invoke the callback. Later collection changes do not refresh the cached metrics.
+     * @param x left edge in GUI coordinates
+     * @param y top edge in GUI coordinates
+     * @param width overlay width in GUI units
+     * @param height overlay height in GUI units; values greater than four are needed for meaningful page calculation
+     * @param choices non-null collection of non-null native components, displayed in iteration order
+     * @param textRenderer non-null font used to size and render choices
+     * @param parent non-null overlay host
+     * @param onChoice optional callback receiving the zero-based choice index, or -1 on keyboard confirmation without a selection; may be null
+     */
     public SelectorDropdownOverlay(int x, int y, int width, int height, Collection<Component> choices, Font textRenderer, IOverlayParent parent, Consumer<Integer> onChoice) {
         super(x, y, width, height, textRenderer, parent);
         this.choices = choices;
@@ -40,6 +63,11 @@ public class SelectorDropdownOverlay extends OverlayContainer {
         this.pages = lineHeight * choices.size() / (height - 4F);
     }
 
+    /** Registers a scrollbar when the cached page count exceeds one, then buttons for the current choices in iteration order.
+     * A choice button invokes the optional callback before closing; if it throws, closing is not reached.
+     * Only the base local widget list is cleared. Reinitialization appends to the retained choice-button list without removing earlier host registrations or resetting selection; cached metrics and an old scroll reference are not reset.
+     * When scrolling is enabled, this pass finishes by laying out the retained choice buttons at offset zero.
+     */
     @Override
     public void init() {
         super.init();
@@ -66,6 +94,10 @@ public class SelectorDropdownOverlay extends OverlayContainer {
         }
     }
 
+    /** Positions all retained choice buttons for a page offset, hiding rows unless both edges lie strictly inside the overlay's inner bounds.
+     * Sets row width to overlay width minus ten. The offset is not clamped, and this does not change selection or invoke the choice callback.
+     * @param page page offset, not a fraction or percentage; displacement is page multiplied by overlay height in GUI units
+     */
     public void onScroll(double page) {
         int pos = 0;
         for (Button btn : scrollChoices) {
@@ -76,6 +108,19 @@ public class SelectorDropdownOverlay extends OverlayContainer {
         }
     }
 
+    /** Requests closing when the pointer is strictly outside the overlay bounds; points on the border do not close it.
+     * Does not forward the click to a child overlay or invoke the choice callback itself.
+     * @param mouseX pointer x-coordinate in GUI coordinates
+     * @param mouseY pointer y-coordinate in GUI coordinates
+     * @param button unused mouse-button value
+     */
+    //? if >1.21.8 {
+    /*/^* Requests closing when the pointer is strictly outside the overlay bounds; points on the border do not close it.
+     * Does not forward the click to a child overlay or invoke the choice callback itself.
+     * @param buttonEvent non-null pointer event supplying x/y in GUI coordinates; its button value is unused
+     * @param doubleClick unused double-click indicator
+     ^/
+    *///?}
     @Override
     //? if >1.21.8 {
     /*public void onClick(MouseButtonEvent buttonEvent, boolean doubleClick) {
@@ -89,6 +134,10 @@ public class SelectorDropdownOverlay extends OverlayContainer {
         }
     }
 
+    /** Moves forced-hover highlighting from the old retained button to the clamped new selection, or clears it for -1.
+     * Hidden and previously retained buttons can be selected; this does not invoke the callback, close the overlay, change native focus, or scroll the selection into view.
+     * @param sel zero-based retained-button index, or -1 to clear; values are clamped to -1 through the retained list's last index
+     */
     public void setSelected(int sel) {
         if (selected != -1) {
             scrollChoices.get(selected).forceHover = false;
@@ -99,6 +148,22 @@ public class SelectorDropdownOverlay extends OverlayContainer {
         }
     }
 
+    /** Handles up/down selection and enter/tab confirmation; confirmation invokes the optional callback with the current selection, including -1, then closes.
+     * If the callback throws, closing and the return are not reached. Down is handled even when selection cannot change; up is not handled when nothing is selected.
+     * Other keys return false without superclass or child delegation. There is no local focus, activation or visibility check, and changing selection does not scroll it into view.
+     * @param keyCode native GLFW key code
+     * @param scanCode unused scan code
+     * @param modifiers unused modifier flags
+     * @return true for down, enter or tab, and for up when a selection exists; false otherwise
+     */
+    //? if >1.21.8 {
+    /*/^* Handles up/down selection and enter/tab confirmation; confirmation invokes the optional callback with the current selection, including -1, then requests closing.
+     * If the callback throws, closing and the return are not reached. Down is handled even when selection cannot change; up is not handled when nothing is selected.
+     * Other keys return false without superclass or child delegation. There is no local focus, activation or visibility check, and changing selection does not scroll it into view.
+     * @param keyEvent non-null native key event; only its GLFW key code is used, not its scan code or modifiers
+     * @return true for down, enter or tab, and for up when a selection exists; false otherwise
+     ^/
+    *///?}
     @Override
     //? if >1.21.8 {
     /*public boolean keyPressed(KeyEvent keyEvent) {
@@ -128,6 +193,13 @@ public class SelectorDropdownOverlay extends OverlayContainer {
         }
     }
 
+    /** Submits the overlay background, then delegates rendering of current tracked widgets and the direct child overlay.
+     * Does not check the stored container visibility flag or recalculate layout; widgets apply their own rendering behavior.
+     * @param drawContext non-null native graphics context
+     * @param mouseX pointer x-coordinate in GUI coordinates
+     * @param mouseY pointer y-coordinate in GUI coordinates
+     * @param delta frame value forwarded to the superclass
+     */
     @Override
     //? if >=26.1 {
     /*public void extractRenderState(final GuiGraphicsExtractor drawContext, int mouseX, int mouseY, final float delta) {

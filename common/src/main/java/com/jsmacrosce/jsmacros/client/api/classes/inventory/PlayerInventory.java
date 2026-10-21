@@ -5,7 +5,8 @@ import net.minecraft.world.inventory.InventoryMenu;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
-/**
+/** The player's inventory screen, including its crafting result, input grid, equipment, and hotbar.
+ *
  * @author Etheradon
  * @since 1.8.4
  */
@@ -17,28 +18,11 @@ public class PlayerInventory extends RecipeInventory<InventoryScreen> {
     }
 
     /**
-     * the result slot, which is what the 2 by 2 grid in the player inventory is working towards.
-     * <p>
-     * The player inventory has a crafting grid of its own, so unlike a plain chest this is a
-     * recipe inventory. This reads the slot rather than working out the recipe, so it is
-     * whatever the client currently has there. The grid is read with
-     * {@link #getInput(int, int)}, and note that {@link #getCraftingWidth()} reports 0 rather
-     * than the grid's real width, so the two are worth telling apart.
-     * <p>
-     * It is slot 0 of the menu, the same as {@code getSlot(0)}, with the four grid slots after
-     * it.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Survival Inventory")) {
-     *   const out = inv.getOutput();
-     *   if (!out.isEmpty()) {
-     *     Chat.log(`crafting into ${out.getName()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the item currently in the player's crafting result slot. Read the 2-by-2 input
+     * grid with {@link #getInput(int, int)}; the crafting dimensions reported by this class are
+     * zero.
      *
-     * @return the item in the result slot
+     * @return the current crafting result
      * @since 1.8.4
      */
     @Override
@@ -47,9 +31,12 @@ public class PlayerInventory extends RecipeInventory<InventoryScreen> {
     }
 
     /**
-     * @param x the x position of the input from 0 to 1, going left to right
-     * @param y the y position of the input from 0 to 1, going top to bottom
-     * @return the input item at the given position of the crafting grid.
+     * Returns the item in the player's 2-by-2 crafting grid. Coordinates are zero-based, with
+     * {@code x} increasing left to right and {@code y} top to bottom.
+     *
+     * @param x column in the grid, from 0 to 1
+     * @param y row in the grid, from 0 to 1
+     * @return the item in the selected grid slot
      * @since 1.8.4
      */
     public ItemStackHelper getInput(int x, int y) {
@@ -57,14 +44,8 @@ public class PlayerInventory extends RecipeInventory<InventoryScreen> {
     }
 
     /**
-     * always 0, which is not a statement about the grid.
-     * <p>
-     * The player inventory does have a 2 by 2 crafting grid, but this reports 0, so the number is
-     * not measuring it. A script should not read the grid size off this: {@link #getInput(int,
-     * int)} is the way in to the grid, and the reason for the 0 is not recorded in the code.
-     * Neither does {@link #getInputSize()} help, because it works this and {@link
-     * #getCraftingHeight()} out as a multiplication, so it comes back as 0 here too.
-     * @return 0
+     * Returns 0; this value does not describe the player's 2-by-2 crafting grid. Use
+     * {@link #getInput(int, int)} to read its cells.
      * @since 1.8.4
      */
     @Override
@@ -73,12 +54,8 @@ public class PlayerInventory extends RecipeInventory<InventoryScreen> {
     }
 
     /**
-     * always 0, which is not a statement about the grid.
-     * <p>
-     * The player inventory does have a 2 by 2 crafting grid, but this reports 0, so the number is
-     * not measuring it, and the same goes for {@link #getCraftingWidth()}. A script should read
-     * the grid with {@link #getInput(int, int)} rather than off this.
-     * @return 0
+     * Returns 0; this value does not describe the player's 2-by-2 crafting grid. Use
+     * {@link #getInput(int, int)} to read its cells.
      * @since 1.8.4
      */
     @Override
@@ -87,13 +64,8 @@ public class PlayerInventory extends RecipeInventory<InventoryScreen> {
     }
 
     /**
-     * always 0, which is not a statement about the grid.
-     * <p>
-     * Like {@link #getCraftingWidth()} and {@link #getCraftingHeight()}, this is fixed at 0 even
-     * though the player inventory does have a crafting grid, and it is a literal rather than a
-     * multiplication, so it happens to agree with {@link #getInputSize()} here. The consequence
-     * is that {@link #getInput()} hands back a zero-length array instead of the four grid slots.
-     * @return 0
+     * Returns 0 despite the four crafting cells; {@link #getInput()} therefore returns an
+     * empty grid.
      * @since 1.8.4
      */
     @Override
@@ -102,9 +74,11 @@ public class PlayerInventory extends RecipeInventory<InventoryScreen> {
     }
 
     /**
-     * @param slot the slot to check
-     * @return {@code true} if the slot is in the hotbar or the offhand slot, {@code false}
-     * otherwise.
+     * Checks whether a player-inventory menu slot is in the hotbar or offhand.
+     *
+     * @param slot menu slot index
+     * @return {@code true} for hotbar slots 36 through 44 or offhand slot 45; {@code false}
+     * otherwise
      * @since 1.8.4
      */
     public boolean isInHotbar(int slot) {
@@ -112,7 +86,7 @@ public class PlayerInventory extends RecipeInventory<InventoryScreen> {
     }
 
     /**
-     * @return the item in the offhand.
+     * @return the item in menu slot 45 (the offhand)
      * @since 1.8.4
      */
     public ItemStackHelper getOffhand() {
@@ -120,7 +94,7 @@ public class PlayerInventory extends RecipeInventory<InventoryScreen> {
     }
 
     /**
-     * @return the equipped helmet item.
+     * @return the item in the helmet slot
      * @since 1.8.4
      */
     public ItemStackHelper getHelmet() {
@@ -128,7 +102,7 @@ public class PlayerInventory extends RecipeInventory<InventoryScreen> {
     }
 
     /**
-     * @return the equipped chestplate item.
+     * @return the item in the chestplate slot
      * @since 1.8.4
      */
     public ItemStackHelper getChestplate() {
@@ -136,7 +110,7 @@ public class PlayerInventory extends RecipeInventory<InventoryScreen> {
     }
 
     /**
-     * @return the equipped leggings item.
+     * @return the item in the leggings slot
      * @since 1.8.4
      */
     public ItemStackHelper getLeggings() {
@@ -144,13 +118,17 @@ public class PlayerInventory extends RecipeInventory<InventoryScreen> {
     }
 
     /**
-     * @return the equipped boots item.
+     * @return the item in the boots slot
      * @since 1.8.4
      */
     public ItemStackHelper getBoots() {
         return getSlot(8);
     }
 
+    /** Returns the fixed diagnostic label {@code PlayerInventory:{}}.
+     *
+     * @return the fixed diagnostic label {@code PlayerInventory:{}}
+     */
     @Override
     public String toString() {
         return String.format("PlayerInventory:{}");

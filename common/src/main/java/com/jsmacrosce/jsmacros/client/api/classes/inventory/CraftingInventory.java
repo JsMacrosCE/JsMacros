@@ -4,7 +4,8 @@ import net.minecraft.client.gui.screens.inventory.CraftingScreen;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
-/**
+/** Provides access to the input grid and result of a crafting menu.
+ *
  * @author Etheradon
  * @since 1.8.4
  */
@@ -16,25 +17,8 @@ public class CraftingInventory extends RecipeInventory<CraftingScreen> {
     }
 
     /**
-     * the result slot, which is what the crafting table grid is working towards.
-     * <p>
-     * This reads the slot rather than working out the recipe, so it is whatever the client
-     * currently has there. The grid it is worked out from is read with
-     * {@link #getInput(int, int)}, and the recipes the table can make are the ones
-     * {@link #getRecipes(boolean)} lists.
-     * <p>
-     * It is slot 0 of the menu, the same as {@code getSlot(0)}, so it is counted before the
-     * grid slots rather than after them.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Crafting Table")) {
-     *   const out = inv.getOutput();
-     *   if (!out.isEmpty()) {
-     *     Chat.log(`crafting into ${out.getName()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the current contents of the crafting menu's result slot; it does not calculate a
+     * result independently.
      *
      * @return the item in the result slot
      * @since 1.8.4
@@ -47,9 +31,11 @@ public class CraftingInventory extends RecipeInventory<CraftingScreen> {
     }
 
     /**
-     * @param x the x position of the input from 0 to 2, going left to right
-     * @param y the y position of the input from 0 to 2, going top to bottom
-     * @return the input item at the given position.
+     * Returns the input cell at the given column and row in the 3 by 3 grid.
+     *
+     * @param x column, from 0 (left) to 2 (right)
+     * @param y row, from 0 (top) to 2 (bottom)
+     * @return the item in that input slot
      * @since 1.8.4
      */
     public ItemStackHelper getInput(int x, int y) {
@@ -58,19 +44,7 @@ public class CraftingInventory extends RecipeInventory<CraftingScreen> {
     }
 
     /**
-     * the width of the crafting grid, read from the table rather than fixed.
-     * <p>
-     * A crafting table is 3 by 3, so this is 3 here, and the height is the same. Unlike
-     * {@code PlayerInventory}, this is measured from the menu, so it would follow a grid of a
-     * different size if the menu had one.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Crafting Table")) {
-     *   Chat.log(`the grid is ${inv.getCraftingWidth()} by ${inv.getCraftingHeight()}`);
-     * }
-     * </pre>
-     * @return the width of the grid, which is 3 for a crafting table
+     * @return the crafting menu's grid width
      * @since 1.8.4
      */
     @Override
@@ -79,17 +53,7 @@ public class CraftingInventory extends RecipeInventory<CraftingScreen> {
     }
 
     /**
-     * the height of the crafting grid, read from the table rather than fixed.
-     * <p>
-     * A crafting table is 3 by 3, so this is 3 here, and the width is the same.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Crafting Table")) {
-     *   Chat.log(`the grid is ${inv.getCraftingWidth()} by ${inv.getCraftingHeight()}`);
-     * }
-     * </pre>
-     * @return the height of the grid, which is 3 for a crafting table
+     * @return the crafting menu's grid height
      * @since 1.8.4
      */
     @Override
@@ -98,19 +62,7 @@ public class CraftingInventory extends RecipeInventory<CraftingScreen> {
     }
 
     /**
-     * the number of slots in the grid, which is the width times the height.
-     * <p>
-     * This is a count of input slots only, so it leaves out the result slot and the player
-     * inventory around the table. It is also what {@link #getInputSize()} works out, so the two
-     * agree.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * if (inv.is("Crafting Table")) {
-     *   Chat.log(`${inv.getCraftingSlotCount()} grid slots`);
-     * }
-     * </pre>
-     * @return the number of input slots in the grid
+     * @return the number of input slots in the grid, excluding the result slot and player inventory
      * @since 1.8.4
      */
     @Override
@@ -118,6 +70,10 @@ public class CraftingInventory extends RecipeInventory<CraftingScreen> {
         return getCraftingWidth() * getCraftingHeight();
     }
 
+    /** Returns the fixed diagnostic label {@code CraftingInventory:{}}.
+     *
+     * @return the fixed diagnostic label {@code CraftingInventory:{}}
+     */
     @Override
     public String toString() {
         return String.format("CraftingInventory:{}");
