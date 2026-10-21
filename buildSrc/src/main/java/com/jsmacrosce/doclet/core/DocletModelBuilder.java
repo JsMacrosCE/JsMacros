@@ -409,6 +409,11 @@ public class DocletModelBuilder {
      * Marks the members whose shape cannot be written the way the definitions write them: a
      * member that answers to the same name on the type it builds on, with a different shape.
      * Java allows that, the type system of the definitions does not.
+     * <p>
+     * The results are only compared for the types the definitions declare for themselves. A
+     * type of the API is written with the members it inherits, so a narrower result still
+     * fits the wider one it is written against; a type the definitions declare on its own is
+     * written with the members it declares, so a narrower result cannot always be written.
      */
     private void markShapeConflicts(TypeElement type, List<MemberDoc> members, boolean compareResults) {
         Map<String, List<Element>> inherited = inheritedMembers(type);
