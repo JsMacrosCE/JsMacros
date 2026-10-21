@@ -115,6 +115,10 @@ public final class DocletLinksTest {
                        SyntheticEvents.WrappedScript<Integer, Integer, Integer> event) { return event; }
                  /** @deprecated Use {@link #nullableResult()} with {@code safeCall()}. */
                  @Deprecated public void oldCall() {}
+                /** A static helper that takes an argument. */
+                public static int staticHelper(int value) { return value; }
+                /** A static helper that takes nothing. */
+                public static String staticNoArgs() { return ""; }
                 /** Creates an API fixture.
                  * @param player the {@code player & profile} entry
                  */
@@ -551,6 +555,8 @@ public final class DocletLinksTest {
             contains(md, "<p><strong>Deprecated:</strong> Use <a href=\"#example.Api_nullableResult-\">nullableResult()</a> instead.</p>");
             contains(md, "<p><strong>Deprecated:</strong> Use <a href=\"#example.Api_nullableResult-\">nullableResult()</a> before constructing this fixture.</p>");
             contains(py, "def nullableMap(self) -> MutableMapping[str, int] | None:");
+            assertStaticPythonMethod(py, "staticHelper", "def staticHelper(value: int) -> int:");
+            assertStaticPythonMethod(py, "staticNoArgs", "def staticNoArgs() -> str:");
             contains(py, "LIMIT: Final[int]");
             contains(py, "writable: float");
             contains(py, "def nullableResult(self) -> str | None:");
@@ -843,6 +849,18 @@ public final class DocletLinksTest {
 
     private static void assertNoTypeParameters(String member) {
         if (member.contains("Type Parameters") || member.contains("## Type Parameters")) throw new AssertionError("Unexpected type-parameter section:\n" + member);
+    }
+
+    private static void assertStaticPythonMethod(String py, String name, String signature) {
+        int at = py.indexOf("def " + name + "(");
+        if (at < 0) throw new AssertionError("Missing Python method " + name);
+        String member = pythonMember(py, "def " + name + "(");
+        contains(member, signature);
+        // A static method is called on the class, so it takes no receiver.
+        excludes(member, "(" + name + "(self");
+        int blockStart = py.lastIndexOf("\n\n", at);
+        String decorators = py.substring(blockStart < 0 ? 0 : blockStart, at);
+        contains(decorators, "@staticmethod");
     }
 
     private static void assertMinecraftOverrides(String md, String py, String ts) {

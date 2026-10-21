@@ -132,7 +132,7 @@ public class PythonWriter {
         ctx.setOverloadUsed(true);
         builder.append("    @overload\n");
         builder.append("    def __init__(self");
-        appendParams(builder, member.params(), ctx);
+        appendParams(builder, member.params(), ctx, true);
         builder.append(") -> None:\n");
         appendDocstring(builder, 2, member.docComment(), member.params(), false, member.typeParams());
         builder.append("        pass\n\n");
@@ -142,9 +142,17 @@ public class PythonWriter {
     private String renderMethod(MemberDoc member, PythonTypeContext ctx) {
         StringBuilder builder = new StringBuilder();
         ctx.setOverloadUsed(true);
+        boolean isStatic = member.modifiers().contains("static");
+        if (isStatic) {
+            // A static Java method is called on the class, so it takes no receiver.
+            builder.append("    @staticmethod\n");
+        }
         builder.append("    @overload\n");
-        builder.append("    def ").append(getVarName(member.name())).append("(self");
-        appendParams(builder, member.params(), ctx);
+        builder.append("    def ").append(getVarName(member.name())).append("(");
+        if (!isStatic) {
+            builder.append("self");
+        }
+        appendParams(builder, member.params(), ctx, !isStatic);
         String returnType = ctx.formatType(member.returnType(), false);
         if (member.returnType() != null && member.returnType().nullable()
             && !returnType.matches("(?s).*(?:\\bNone\\b|\\bOptional\\s*\\[).*")) {
@@ -156,15 +164,24 @@ public class PythonWriter {
         return builder.toString();
     }
 
-    private void appendParams(StringBuilder builder, List<ParamDoc> params, PythonTypeContext ctx) {
+    /**
+     * Appends the parameter list. {@code separate} is false when nothing precedes the first
+     * parameter, which is the case for a static method that has no receiver.
+     */
+    private void appendParams(StringBuilder builder, List<ParamDoc> params, PythonTypeContext ctx, boolean separate) {
+        boolean first = true;
         for (ParamDoc param : params) {
             String type = ctx.formatType(param.type(), false);
             if (param.type() != null && param.type().nullable()
                 && !type.matches("(?s).*(?:\\bNone\\b|\\bOptional\\s*\\[).*")) {
                 type += " | None";
             }
-            builder.append(", ").append(getVarName(param.name())).append(": ")
-                .append(type);
+            if (first && !separate) {
+                builder.append(getVarName(param.name())).append(": ").append(type);
+            } else {
+                builder.append(", ").append(getVarName(param.name())).append(": ").append(type);
+            }
+            first = false;
         }
     }
 
