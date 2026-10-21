@@ -119,6 +119,15 @@ public final class DocletLinksTest {
                 public static int staticHelper(int value) { return value; }
                 /** A static helper that takes nothing. */
                 public static String staticNoArgs() { return ""; }
+                /** A method whose example is written over several lines.
+                 * example:
+                 * <pre>
+                 * const first = 1;
+                 * const second = 2;
+                 * log(first + second);
+                 * </pre>
+                 */
+                public void withExample() {}
                 /** A flag that is also a method. */
                 public boolean joinable;
                 /** The same flag, read as a method. */
@@ -645,6 +654,10 @@ public final class DocletLinksTest {
             // The Markdown reference marks static members the way the legacy HTML does.
             contains(md, "<span class=\"syntax-token-keyword\">static</span> <span class=\"syntax-token-method\">staticHelper</span>");
             contains(md, "<span class=\"syntax-token-keyword\">static</span> <span class=\"syntax-token-method\">staticNoArgs</span>");
+            // An example reads the way it was written: the space that the comment's own marker
+            // leaves on a line is not part of the example.
+            contains(md, "<pre><code>const first = 1;&#10;const second = 2;&#10;log(first + second);</code></pre>");
+            contains(py, "const first = 1;\nconst second = 2;\nlog(first + second);");
             contains(html, "class=\"flag staticFlag\">Static");
             // A member that is both a field and a method is one member in the typings, and the
             // Markdown reference keeps both because their anchors do not collide.
