@@ -850,7 +850,7 @@ public class TsRenderer implements Renderer {
     }
 
     private String formatHeritageType(TypeRef type, boolean isExtends) {
-        String formatted = typeResolver.format(type, TargetLanguage.TYPESCRIPT, false);
+        String formatted = typeResolver.formatHeritage(type);
         if (isExtends) {
             if (formatted.equals("any") || formatted.equals("JavaObject") || formatted.equals("Object")
                 || formatted.equals("void")) {

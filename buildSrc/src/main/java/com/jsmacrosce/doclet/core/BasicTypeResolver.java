@@ -280,7 +280,20 @@ public class BasicTypeResolver implements TypeResolver {
         };
     }
 
+    @Override
+    public String formatHeritage(TypeRef type) {
+        return formatTypeScript(type, false, false);
+    }
+
     private String formatTypeScript(TypeRef type, boolean paramType) {
+        return formatTypeScript(type, paramType, true);
+    }
+
+    /**
+     * Writes the type the way the definitions write it. The aliases are the ones a script
+     * uses, and a type the definitions build on is named by the type it is instead.
+     */
+    private String formatTypeScript(TypeRef type, boolean paramType, boolean aliases) {
         return switch (type.kind()) {
             case PRIMITIVE -> switch (type.name()) {
                 case "boolean" -> "boolean";
@@ -307,7 +320,7 @@ public class BasicTypeResolver implements TypeResolver {
                     yield formatFunctionalInterface(type, paramType);
                 }
 
-                String base = mapDeclaredTypeScript(type, paramType);
+                String base = mapDeclaredTypeScript(type, paramType, aliases);
                 if (!type.typeArgs().isEmpty()) {
                     base = base + "<" + joinTypes(type.typeArgs(), TargetLanguage.TYPESCRIPT, paramType) + ">";
                 }
@@ -321,7 +334,7 @@ public class BasicTypeResolver implements TypeResolver {
         };
     }
 
-    private String mapDeclaredTypeScript(TypeRef type, boolean paramType) {
+    private String mapDeclaredTypeScript(TypeRef type, boolean paramType, boolean aliases) {
         String qualifiedName = type.qualifiedName();
         if (undeclaredTypes.contains(qualifiedName)) {
             return "any";
@@ -337,7 +350,7 @@ public class BasicTypeResolver implements TypeResolver {
             case "java.lang.Boolean" -> "boolean";
             case "java.lang.Object" -> "any";
             default -> {
-                if (JAVA_ALIASES.contains(qualifiedName)) {
+                if (aliases && JAVA_ALIASES.contains(qualifiedName)) {
                     String base = "Java" + simpleName(qualifiedName);
                     if (paramType && base.equals("JavaClass")) {
                         base = "JavaClassArg";
