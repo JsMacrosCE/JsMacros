@@ -676,8 +676,10 @@ public class DocletModelBuilder {
         if (!(element instanceof TypeElement typeElement)) {
             return false;
         }
-        String pkg = ElementNameUtils.getPackageName(typeElement);
-        return pkg != null && pkg.startsWith("net.minecraft.");
+        // The game keeps a few types in the root package of its own, next to the ones in the
+        // packages below it, so the name of the type is what tells them apart.
+        String qualified = ElementNameUtils.getQualifiedName(typeElement);
+        return qualified.startsWith("net.minecraft.");
     }
 
     /**
