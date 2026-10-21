@@ -22,7 +22,11 @@ import com.jsmacrosce.doclet.core.model.TypeRef;
 import com.jsmacrosce.doclet.core.util.DocBodyRenderer;
 import com.jsmacrosce.doclet.core.util.ElementNameUtils;
 
+import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.util.DocTrees;
+import com.sun.source.util.SourcePositions;
+import com.sun.source.util.TreePath;
+import com.sun.source.util.Trees;
 import jdk.javadoc.doclet.DocletEnvironment;
 
 import javax.lang.model.element.AnnotationMirror;
@@ -38,6 +42,7 @@ import javax.lang.model.util.Elements;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeKind;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -45,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.regex.Pattern;
 import java.util.LinkedHashSet;
 
 @DocletIgnore
@@ -56,6 +62,7 @@ public class DocletModelBuilder {
     private Elements elementUtils;
     private Set<ExecutableElement> objectMethods = Set.of();
     private Set<String> objectMethodNames = Set.of();
+    private static final Pattern NULL_INITIALIZER = Pattern.compile("=\\s*null\\s*;?\\s*$");
 
     public DocletModelBuilder(
         TypeResolver typeResolver,
@@ -559,7 +566,7 @@ public class DocletModelBuilder {
         DocletReplaceReturn replaceReturn = element.getAnnotation(DocletReplaceReturn.class);
         String replaceReturnValue = replaceReturn == null ? null : replaceReturn.value();
         TypeRef typeRef = typeResolver.resolve(element.asType());
-        if (isNullable(element)) {
+        if (isNullable(element) || isNullInitialized(element)) {
             typeRef = typeRef.withNullable(true);
         }
 
@@ -700,5 +707,93 @@ public class DocletModelBuilder {
     private boolean isNullable(Element element) {
         return element.getAnnotationMirrors().stream()
             .anyMatch(a -> a.getAnnotationType().asElement().getSimpleName().contentEquals("Nullable"));
+    }
+
+    /**
+     * A field that starts out as {@code null} holds {@code null} until something fills it in, so
+     * its type has to admit that. The initializer is the evidence; the declared type alone does
+     * not say whether the field can be null.
+     */
+    private boolean isNullInitialized(Element element) {
+        if (!(docTrees instanceof Trees trees)) {
+            return false;
+        }
+        TreePath path = trees.getPath(element);
+        if (path == null) {
+            return false;
+        }
+        CompilationUnitTree unit = path.getCompilationUnit();
+        long start = trees.getSourcePositions().getStartPosition(unit, path.getLeaf());
+        if (start < 0) {
+            return false;
+        }
+        String source;
+        try {
+            source = unit.getSourceFile().getCharContent(true).toString();
+        } catch (IOException e) {
+            return false;
+        }
+        String declaration = fieldDeclaration(source, (int) start);
+        return declaration != null && NULL_INITIALIZER.matcher(declaration).find();
+    }
+
+    /**
+     * Reads the field declaration that starts at {@code start} and ends at its own semicolon.
+     * Returns null when the declaration cannot be read.
+     */
+    private static String fieldDeclaration(String source, int start) {
+        StringBuilder out = new StringBuilder();
+        int depth = 0;
+        int index = start;
+        while (index < source.length()) {
+            char c = source.charAt(index);
+            if (c == '"' || c == '\'') {
+                int end = skipLiteral(source, index);
+                out.append(source, index, end);
+                index = end;
+                continue;
+            }
+            if (c == '/' && index + 1 < source.length() && source.charAt(index + 1) == '/') {
+                int lineEnd = source.indexOf('\n', index);
+                index = lineEnd < 0 ? source.length() : lineEnd;
+                continue;
+            }
+            if (c == '/' && index + 1 < source.length() && source.charAt(index + 1) == '*') {
+                int commentEnd = source.indexOf("*/", index + 2);
+                index = commentEnd < 0 ? source.length() : commentEnd + 2;
+                continue;
+            }
+            if (c == '{') {
+                depth++;
+            } else if (c == '}') {
+                depth--;
+            } else if (c == ';' && depth == 0) {
+                return out.append(c).toString();
+            }
+            out.append(c);
+            index++;
+        }
+        return null;
+    }
+
+    /** Returns the index just past the string or character literal that starts at {@code start}. */
+    private static int skipLiteral(String source, int start) {
+        char quote = source.charAt(start);
+        int index = start + 1;
+        while (index < source.length()) {
+            char c = source.charAt(index);
+            if (c == '\\') {
+                index += 2;
+                continue;
+            }
+            if (c == quote) {
+                return index + 1;
+            }
+            if (c == '\n') {
+                return index;
+            }
+            index++;
+        }
+        return source.length();
     }
 }

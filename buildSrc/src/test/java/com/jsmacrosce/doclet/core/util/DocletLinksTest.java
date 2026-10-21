@@ -139,6 +139,10 @@ public final class DocletLinksTest {
                  @org.jetbrains.annotations.Nullable public final String nullableFinalField = null;
                  /** Nullable generic field contract. */
                  @org.jetbrains.annotations.Nullable public java.util.Map<String, Integer> nullableMapField;
+                 /** A field that starts out null. */
+                 public String nullInitialized = null;
+                 /** A field that starts out with a value. */
+                 public String initialized = "value";
                  /** Old field contract.
                   * @deprecated Use {@link #nullableResult()} instead.
                   */
@@ -555,6 +559,12 @@ public final class DocletLinksTest {
             contains(md, "<p><strong>Deprecated:</strong> Use <a href=\"#example.Api_nullableResult-\">nullableResult()</a> instead.</p>");
             contains(md, "<p><strong>Deprecated:</strong> Use <a href=\"#example.Api_nullableResult-\">nullableResult()</a> before constructing this fixture.</p>");
             contains(py, "def nullableMap(self) -> MutableMapping[str, int] | None:");
+            // A field that starts out null holds null until something fills it in.
+            contains(py, "nullInitialized: str | None");
+            contains(ts, "nullInitialized: string | null;");
+            contains(py, "initialized: str");
+            excludes(py, "initialized: str | None");
+            excludes(ts, "initialized: string | null;");
             assertStaticPythonMethod(py, "staticHelper", "def staticHelper(value: int) -> int:");
             assertStaticPythonMethod(py, "staticNoArgs", "def staticNoArgs() -> str:");
             contains(py, "LIMIT: Final[int]");
