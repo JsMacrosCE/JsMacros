@@ -17,15 +17,21 @@ public final class MarkdownWriterTest {
             new DocBodyNode.Html("<a target=\"_blank\" href=\"https://example.org/source\">"),
             new DocBodyNode.Text("Original's $source"),
             new DocBodyNode.Html("</a>")), List.of());
+        var memberSince = new DocComment(List.of(), List.of(), List.of(
+            new DocTag(DocTagKind.SINCE, null, List.of(new DocBodyNode.Text("member-release")))));
+        var classSince = new DocComment(List.of(), List.of(), List.of(
+            new DocTag(DocTagKind.SINCE, null, List.of(new DocBodyNode.Text("1.9.0")))));
         var constructor = new MemberDoc(MemberKind.CONSTRUCTOR, "Result", "Result_constructor", List.of(), List.of(),
-            null, null, null, null, List.of("public"), false, empty);
+            null, null, null, null, List.of("public"), false, memberSince);
         var classes = List.of(
             clz("FExample", ClassGroup.Library, "Example", null, empty, List.of()),
-            clz("FExample.Result", ClassGroup.Library, null, null, links, List.of(constructor)),
+            clz("FExample.Result", ClassGroup.Library, null, null,
+                new DocComment(List.of(), links.body(), classSince.tags()), List.of(constructor)),
             clz("FExample.Result.Details", ClassGroup.Library, null, null, empty, List.of()),
             clz("OptionsHelper", ClassGroup.Class, null, "Helpers", empty, List.of()),
             clz("OptionsHelper.Controls", ClassGroup.Class, null, null, empty, List.of()),
-            clz("Other", ClassGroup.Class, null, null, empty, List.of())
+            clz("Other", ClassGroup.Class, null, null, empty, List.of()),
+            clz("Versioned", ClassGroup.Class, null, null, classSince, List.of())
         );
         new MarkdownWriter().write(new DocletModel(List.of(new PackageDoc("example", classes)), List.of()),
             out.toFile(), "fixture", "26.1.2");
@@ -46,8 +52,16 @@ public final class MarkdownWriterTest {
         contains(result, "example.FExample.Result");
         contains(result, "Nested type declared in [Example](FExample); not a separate global library.");
         contains(result, "## Constructors");
+        contains(result, "**Since:** 1.9.0");
+        contains(result, "Since:</strong> member-release");
+        if (count(result, "1.9.0") != 1) throw new AssertionError("Class @since rendered more than once: " + result);
         contains(result, "[Original's $source](https://example.org/source)");
         excludes(result, "Accessible in scripts via the global");
+        String unversioned = Files.readString(out.resolve("classes/example/Other.md"));
+        excludes(unversioned, "Since:");
+        excludes(unversioned, "**Since:**");
+        String nested = Files.readString(out.resolve("classes/example/Versioned.md"));
+        contains(nested, "**Since:** 1.9.0");
         excludes(result, "&lt;a");
         String sidebar = Files.readString(out.resolve("sidebar-data.json"));
         contains(sidebar, "\"name\": \"Example\"");
@@ -71,5 +85,9 @@ public final class MarkdownWriterTest {
 
     private static void excludes(String text, String unexpected) {
         if (text.contains(unexpected)) throw new AssertionError("Unexpected: " + unexpected);
+    }
+
+    private static int count(String text, String value) {
+        return (text.length() - text.replace(value, "").length()) / value.length();
     }
 }
