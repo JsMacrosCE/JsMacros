@@ -89,11 +89,15 @@ public class PythonWriter {
         StringBuilder body = new StringBuilder();
 
         body.append(renderClassLine(clz, ctx));
-        appendDocstring(body, 1, clz.docComment(), List.of(), false);
+        appendDocstring(body, 1, clz.docComment(), List.of(), false, clz.typeParams());
 
         for (MemberDoc member : clz.members()) {
             if (member.kind() == MemberKind.FIELD) {
                 String type = ctx.formatType(member.returnType(), false);
+                if (member.returnType() != null && member.returnType().nullable()
+                    && !type.matches("(?s).*(?:\\bNone\\b|\\bOptional\\s*\\[).*")) {
+                    type += " | None";
+                }
                 if (member.isReadOnly()) {
                     ctx.importFinal = true;
                     type = "Final[" + type + "]";
@@ -103,7 +107,7 @@ public class PythonWriter {
                     .append(": ")
                     .append(type)
                     .append("\n");
-                appendDocstring(body, 1, member.docComment(), List.of(), false);
+                appendDocstring(body, 1, member.docComment(), List.of(), false, List.of());
             }
         }
 
@@ -130,7 +134,7 @@ public class PythonWriter {
         builder.append("    def __init__(self");
         appendParams(builder, member.params(), ctx);
         builder.append(") -> None:\n");
-        appendDocstring(builder, 2, member.docComment(), member.params(), false);
+        appendDocstring(builder, 2, member.docComment(), member.params(), false, member.typeParams());
         builder.append("        pass\n\n");
         return builder.toString();
     }
@@ -141,16 +145,26 @@ public class PythonWriter {
         builder.append("    @overload\n");
         builder.append("    def ").append(getVarName(member.name())).append("(self");
         appendParams(builder, member.params(), ctx);
-        builder.append(") -> ").append(ctx.formatType(member.returnType(), false)).append(":\n");
-        appendDocstring(builder, 2, member.docComment(), member.params(), true);
+        String returnType = ctx.formatType(member.returnType(), false);
+        if (member.returnType() != null && member.returnType().nullable()
+            && !returnType.matches("(?s).*(?:\\bNone\\b|\\bOptional\\s*\\[).*")) {
+            returnType += " | None";
+        }
+        builder.append(") -> ").append(returnType).append(":\n");
+        appendDocstring(builder, 2, member.docComment(), member.params(), true, member.typeParams());
         builder.append("        pass\n\n");
         return builder.toString();
     }
 
     private void appendParams(StringBuilder builder, List<ParamDoc> params, PythonTypeContext ctx) {
         for (ParamDoc param : params) {
+            String type = ctx.formatType(param.type(), false);
+            if (param.type() != null && param.type().nullable()
+                && !type.matches("(?s).*(?:\\bNone\\b|\\bOptional\\s*\\[).*")) {
+                type += " | None";
+            }
             builder.append(", ").append(getVarName(param.name())).append(": ")
-                .append(ctx.formatType(param.type(), false));
+                .append(type);
         }
     }
 
@@ -159,10 +173,12 @@ public class PythonWriter {
         int indent,
         DocComment comment,
         List<ParamDoc> params,
-        boolean includeReturn
+        boolean includeReturn,
+        List<TypeRef> typeParams
     ) {
         String desc = formatDescription(comment);
         String since = getTagText(comment, DocTagKind.SINCE);
+        String deprecated = getTagText(comment, DocTagKind.DEPRECATED);
         Map<String, String> tagDocs = new LinkedHashMap<>();
         if (comment != null) {
             comment.tags().stream()
@@ -177,9 +193,26 @@ public class PythonWriter {
                 }
             }
         }
+        Map<String, String> typeParamDocs = new LinkedHashMap<>();
+        if (comment != null && typeParams != null && !typeParams.isEmpty()) {
+            Map<String, String> descriptions = new LinkedHashMap<>();
+            comment.tags().stream()
+                .filter(tag -> tag.kind() == DocTagKind.TEMPLATE && tag.name() != null)
+                .forEach(tag -> {
+                    String description = DocBodyRenderer.toPlainText(tag.body(), link -> link.label() != null ? link.label() : link.signature());
+                    if (!description.isEmpty()) {
+                        descriptions.put(tag.name(), description);
+                    }
+                });
+            for (TypeRef typeParam : typeParams) {
+                if (descriptions.containsKey(typeParam.name())) {
+                    typeParamDocs.put(typeParam.name(), descriptions.get(typeParam.name()));
+                }
+            }
+        }
         String ret = includeReturn ? getTagText(comment, DocTagKind.RETURN) : "";
 
-        if (desc.isEmpty() && since.isEmpty() && paramDocs.isEmpty() && ret.isEmpty()) {
+        if (desc.isEmpty() && since.isEmpty() && deprecated.isEmpty() && paramDocs.isEmpty() && typeParamDocs.isEmpty() && ret.isEmpty()) {
             return;
         }
 
@@ -194,6 +227,11 @@ public class PythonWriter {
             }
             builder.append("Since: ").append(escape(since));
         }
+        if (!deprecated.isEmpty()) {
+            if (!desc.isEmpty() || !since.isEmpty()) builder.append("\n\n");
+            builder.append("Deprecated:\n").append(pad).append("    ")
+                .append(escape(deprecated).replaceAll("\\n[ \\t]*", "\n" + pad + "    "));
+        }
         if (!paramDocs.isEmpty()) {
             builder.append("\n\n").append(pad).append("Args:\n");
             for (Map.Entry<String, String> entry : paramDocs.entrySet()) {
@@ -205,9 +243,17 @@ public class PythonWriter {
             }
             builder.setLength(builder.length() - 1);
         }
+        if (!typeParamDocs.isEmpty()) {
+            builder.append("\n\n").append(pad).append("Type Parameters:\n");
+            for (Map.Entry<String, String> entry : typeParamDocs.entrySet()) {
+                builder.append(pad).append("    ").append(escape(entry.getKey())).append(": ")
+                    .append(escape(entry.getValue()).replaceAll("\\n[ \\t]*", "\n" + pad + "        ")).append("\n");
+            }
+            builder.setLength(builder.length() - 1);
+        }
         if (!ret.isEmpty()) {
             builder.append("\n\n").append(pad).append("Returns:\n");
-            builder.append(pad).append("    ").append(escape(ret));
+            builder.append(pad).append("    ").append(escape(ret).replaceAll("\\n[ \\t]*", "\n" + pad + "    "));
         }
         builder.append("\n").append(pad).append("\"\"\"\n");
     }
@@ -412,7 +458,7 @@ public class PythonWriter {
         private static final Map<String, String> WITH_ARG = Map.of(
             "java.util.Set", "Set",
             "java.util.List", "List",
-            "java.util.Map", "Mapping",
+            "java.util.Map", "MutableMapping",
             "java.util.Collection", "List"
         );
         private static final List<String> EXTERNAL_PREFIXES = List.of(
@@ -428,7 +474,7 @@ public class PythonWriter {
         private boolean importList;
         private boolean importTypeVar;
         private boolean importAny;
-        private boolean importMapping;
+        private boolean importMutableMapping;
         private boolean importSet;
         private boolean importGeneric;
         private boolean importFinal;
@@ -448,7 +494,8 @@ public class PythonWriter {
                     case "boolean" -> "bool";
                     case "int" -> "int";
                     case "char" -> "str";
-                    case "byte", "short", "long", "float", "double" -> "float";
+                    case "byte", "short" -> "int";
+                    case "long", "float", "double" -> "float";
                     default -> "int";
                 };
                 case VOID -> "None";
@@ -477,20 +524,25 @@ public class PythonWriter {
                 return "";
             }
             if (TYPE_ALIASES.containsKey(qualified)) {
-                return TYPE_ALIASES.get(qualified);
+                String alias = TYPE_ALIASES.get(qualified);
+                if (alias.isEmpty() && !classContext) {
+                    importAny = true;
+                    return "Any";
+                }
+                return alias;
             }
             if (WITH_ARG.containsKey(qualified)) {
                 String base = WITH_ARG.get(qualified);
                 if ("List".equals(base)) {
                     importList = true;
-                } else if ("Mapping".equals(base)) {
-                    importMapping = true;
+                } else if ("MutableMapping".equals(base)) {
+                    importMutableMapping = true;
                 } else if ("Set".equals(base)) {
                     importSet = true;
                 }
                 if (type.typeArgs().isEmpty()) {
                     importAny = true;
-                    return base + "[Any]";
+                    return "MutableMapping".equals(base) ? base + "[Any, Any]" : base + "[Any]";
                 }
                 StringBuilder builder = new StringBuilder(base);
                 builder.append("[");
@@ -574,8 +626,8 @@ public class PythonWriter {
             if (importAny) {
                 builder.append("from typing import Any\n");
             }
-            if (importMapping) {
-                builder.append("from typing import Mapping\n");
+            if (importMutableMapping) {
+                builder.append("from typing import MutableMapping\n");
             }
             if (importSet) {
                 builder.append("from typing import Set\n");
