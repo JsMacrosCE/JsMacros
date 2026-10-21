@@ -162,7 +162,7 @@ public class TsRenderer implements Renderer {
     private void renderEventInterface(StringBuilder out, ClassDoc event, int indent) {
         appendDocComment(out, event.docComment(), List.of(), false, null, event, indent);
         indent(out, indent).append("interface ").append(event.alias());
-        appendTypeParams(out, event.typeParams(), null, true);
+        appendTypeParams(out, typeParams(event), null, true);
         out.append(" extends BaseEvent");
         if (event.eventCancellable()) {
             out.append(", Cancellable");
@@ -279,14 +279,14 @@ public class TsRenderer implements Renderer {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
             appendShapeIgnore(out, clz, indent);
             indent(out, indent).append("export abstract class ").append(tsSafeName(clz.name()));
-            appendTypeParams(out, clz.typeParams(), null, true);
+            appendTypeParams(out, typeParams(clz), null, true);
             indent(out, indent).append(" extends java.lang.Interface {\n");
             appendClassHeader(out, clz, indent + 1);
             renderStaticMembers(out, clz, indent + 1, clz, merged);
             indent(out, indent).append("}\n");
 
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
-            appendTypeParams(out, clz.typeParams(), null, true);
+            appendTypeParams(out, typeParams(clz), null, true);
             appendImplements(out, clz);
             out.append(" {\n");
             renderInstanceMembers(out, clz, indent + 1, clz, merged);
@@ -298,7 +298,7 @@ public class TsRenderer implements Renderer {
         if (!clz.implementsTypes().isEmpty() && clz.group() != ClassGroup.Library) {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
-            appendTypeParams(out, clz.typeParams(), null, true);
+            appendTypeParams(out, typeParams(clz), null, true);
             appendImplements(out, clz);
             out.append(" {}\n");
         } else {
@@ -309,7 +309,7 @@ public class TsRenderer implements Renderer {
         appendShapeIgnore(out, clz, indent);
         indent(out, indent).append("export ").append(hasConstructor ? "class " : "abstract class ")
             .append(tsSafeName(clz.name()));
-        appendTypeParams(out, clz.typeParams(), null, true);
+        appendTypeParams(out, typeParams(clz), null, true);
         appendExtends(out, clz);
         out.append(" {\n");
         appendClassHeader(out, clz, indent + 1);
@@ -328,7 +328,7 @@ public class TsRenderer implements Renderer {
         appendShapeIgnore(out, clz, indent);
         if (clz.kind() == ClassKind.INTERFACE) {
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
-            appendTypeParams(out, clz.typeParams(), null, true);
+            appendTypeParams(out, typeParams(clz), null, true);
             appendImplements(out, clz);
             out.append(" {\n");
             renderInstanceMembers(out, clz, indent + 1, clz, merged);
@@ -336,7 +336,7 @@ public class TsRenderer implements Renderer {
             return;
         }
         indent(out, indent).append("export class ").append(tsSafeName(clz.name()));
-        appendTypeParams(out, clz.typeParams(), null, true);
+        appendTypeParams(out, typeParams(clz), null, true);
         appendExtends(out, clz);
         out.append(" {\n");
         renderStaticMembers(out, clz, indent + 1, clz, merged);
@@ -641,10 +641,11 @@ public class TsRenderer implements Renderer {
 
     private String buildAliasName(ClassDoc clz, boolean defaultToAny) {
         StringBuilder out = new StringBuilder(clz.name().replace(".", "$"));
-        if (clz.typeParams() != null && !clz.typeParams().isEmpty()) {
+        List<TypeRef> params = typeParams(clz);
+        if (!params.isEmpty()) {
             out.append("<");
             boolean first = true;
-            for (TypeRef param : clz.typeParams()) {
+            for (TypeRef param : params) {
                 if (!first) {
                     out.append(", ");
                 }
@@ -661,13 +662,29 @@ public class TsRenderer implements Renderer {
             TypeKind.DECLARED,
             clz.name(),
             clz.qualifiedName(),
-            clz.typeParams(),
+            typeParams(clz),
             false,
             false,
             null,
             false
         );
         return typeResolver.format(classType, TargetLanguage.TYPESCRIPT, false);
+    }
+
+    /**
+     * The type parameters a class is written with: the ones it carries from the class it is
+     * written inside, and the ones it declares itself. The ones it carries come first, the way
+     * the class they come from is written inside the ones above it.
+     */
+    private List<TypeRef> typeParams(ClassDoc clz) {
+        List<TypeRef> params = new ArrayList<>();
+        if (clz.capturedTypeParams() != null) {
+            params.addAll(clz.capturedTypeParams());
+        }
+        if (clz.typeParams() != null) {
+            params.addAll(clz.typeParams());
+        }
+        return params;
     }
 
     private void appendEnumTypes(StringBuilder out, List<DeclaredTypeDoc> declaredTypes) {
@@ -778,7 +795,7 @@ public class TsRenderer implements Renderer {
 
     private String buildClassHeaderType(ClassDoc clz) {
         StringBuilder builder = new StringBuilder(tsSafeName(clz.name()));
-        int params = clz.typeParams().size();
+        int params = typeParams(clz).size();
         if (params > 0) {
             builder.append("<");
             builder.append("any, ".repeat(params));

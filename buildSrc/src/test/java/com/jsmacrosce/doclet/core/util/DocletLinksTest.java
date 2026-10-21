@@ -320,6 +320,31 @@ public final class DocletLinksTest {
                 }
             }
             """);
+        Path genericOuterFixture = write(root.resolve("source/example/GenericOuter.java"), """
+            package example;
+            /** A class with a type parameter of its own. */
+            public class GenericOuter<T> {
+                /** A class inside the generic one, which carries the type parameter. */
+                public class Inner {
+                    /** Hands back the class around it. */
+                    public GenericOuter<T> outer() { return null; }
+                    /** Builds the inner instance. */
+                    public Inner() {}
+                }
+                /** A class inside the generic one that declares a type parameter of the same name. */
+                public class Shadowed<T> {
+                    /** Hands back the class around it. */
+                    public GenericOuter<T> outer() { return null; }
+                }
+                /** A class inside the generic one that stands on its own. */
+                public static class Detached {
+                    /** A name of its own. */
+                    public String name() { return null; }
+                }
+                /** Hands back the class inside it, which carries the type parameter. */
+                public Inner inner() { return null; }
+            }
+            """);
 
         // Do not put Gradle/Kotlin compiler jars on the doclet path. Their service
         // providers can initialize javac before Javadoc has finished parsing options.
@@ -353,6 +378,7 @@ public final class DocletLinksTest {
                 command.add(eventFixture.toString());
                 command.add(overrideFixture.toString());
                 command.add(innerFixture.toString());
+                command.add(genericOuterFixture.toString());
                 Path log = root.resolve(version + "-" + kind + ".log");
                 int result = new ProcessBuilder(command).redirectErrorStream(true)
                     .redirectOutput(log.toFile()).start().waitFor();
@@ -375,6 +401,7 @@ public final class DocletLinksTest {
              String innerPy = Files.readString(root.resolve(version + "/pydoclet/Outer_Inner.py"));
              String nestedPy = Files.readString(root.resolve(version + "/pydoclet/Outer_Nested.py"));
              assertInnerClassConstructor(innerMd, nestedMd, innerPy, nestedPy, ts);
+             assertNestedTypeParams(ts);
              String wildcardMd = markdownMember(md, "example.Api_wildcardDirections-Function-List-List-List-");
             String angleMd = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/classes/example/AngleFixture.md"));
             String angleHtml = Files.readString(root.resolve(version + "/webdoclet/fixture/example/AngleFixture.html"));
@@ -953,6 +980,22 @@ public final class DocletLinksTest {
         excludes(nestedMd, "outer");
         excludes(nestedPy, "outer");
         contains(nestedPy, "def __init__(self, value: int) -> None:");
+    }
+
+    /**
+     * A class written inside another one sees the type parameters of the class it is written
+     * inside, so the definitions write them with it and hand them on where it is used.
+     */
+    private static void assertNestedTypeParams(String ts) {
+        contains(ts, "export class GenericOuter$Inner<T = any> extends java.lang.Object {");
+        contains(ts, "outer(): Packages.example.GenericOuter<T>;");
+        contains(ts, "inner(): Packages.example.GenericOuter$Inner<T>;");
+        // A class that declares a type parameter of the same name hides the one it would
+        // otherwise carry, so it carries the one it declares.
+        contains(ts, "export class GenericOuter$Shadowed<T = any> extends java.lang.Object {");
+        contains(ts, "outer(): Packages.example.GenericOuter<T>;");
+        // A class that stands on its own sees none of them.
+        contains(ts, "export class GenericOuter$Detached extends java.lang.Object {");
     }
 
     private static void assertMinecraftOverrides(String md, String py, String ts) {

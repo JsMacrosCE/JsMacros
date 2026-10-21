@@ -3,6 +3,7 @@ package com.jsmacrosce.doclet.core;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.core.model.TypeKind;
 import com.jsmacrosce.doclet.core.model.TypeRef;
+import com.jsmacrosce.doclet.core.util.NestedTypeParams;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -87,6 +88,17 @@ public class BasicTypeResolver implements TypeResolver {
         this.undeclaredTypes = undeclaredTypes == null ? Set.of() : undeclaredTypes;
     }
 
+    private boolean nestedTypeParams = false;
+
+    /**
+     * Whether a reference to a class written inside another one carries the type parameters
+     * that class takes from the one it is written inside. The definitions write such a class
+     * under a name of its own, so the parameters have to be written down with it.
+     */
+    public void setNestedTypeParamsEnabled(boolean enabled) {
+        this.nestedTypeParams = enabled;
+    }
+
     public void setPythonAliasEnabled(boolean pythonAliasEnabled) {
         this.pythonAliasEnabled = pythonAliasEnabled;
     }
@@ -136,10 +148,48 @@ public class BasicTypeResolver implements TypeResolver {
             referencedTypes.put(qualifiedName, typeElement);
         }
         List<TypeRef> params = new ArrayList<>();
+        if (nestedTypeParams && el instanceof TypeElement typeElement) {
+            params.addAll(capturedArgs(type, typeElement));
+        }
         for (TypeMirror arg : type.getTypeArguments()) {
             params.add(resolve(arg));
         }
         return new TypeRef(TypeKind.DECLARED, displayName, qualifiedName, params, false, false, null, false);
+    }
+
+    /**
+     * The values of the type parameters a class written inside another one carries from the
+     * class it is written inside, as they are given where the class is used. A use that does
+     * not say what the parameters are is given nothing but any.
+     */
+    private List<TypeRef> capturedArgs(DeclaredType type, TypeElement typeElement) {
+        List<NestedTypeParams.Captured> captured = NestedTypeParams.capturedParams(typeElement);
+        if (captured.isEmpty()) {
+            return List.of();
+        }
+        List<DeclaredType> enclosing = new ArrayList<>();
+        TypeMirror current = type.getEnclosingType();
+        while (current != null && current.getKind() == javax.lang.model.type.TypeKind.DECLARED) {
+            DeclaredType declared = (DeclaredType) current;
+            enclosing.add(declared);
+            current = declared.getEnclosingType();
+        }
+        List<TypeRef> args = new ArrayList<>();
+        for (NestedTypeParams.Captured param : captured) {
+            TypeMirror value = null;
+            if (param.level() < enclosing.size()) {
+                List<? extends TypeMirror> typeArgs = enclosing.get(param.level()).getTypeArguments();
+                if (param.index() < typeArgs.size()) {
+                    value = typeArgs.get(param.index());
+                }
+            }
+            args.add(value == null ? anyType() : resolve(value));
+        }
+        return args;
+    }
+
+    private TypeRef anyType() {
+        return new TypeRef(TypeKind.UNKNOWN, "any", "any", List.of(), false, false, null, false);
     }
 
     private TypeRef resolveTypeVar(TypeVariable type) {

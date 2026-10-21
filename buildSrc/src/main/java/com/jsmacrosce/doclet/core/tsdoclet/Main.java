@@ -68,6 +68,9 @@ public class Main implements Doclet {
 
         FileHandler outputTS = new FileHandler(new File(outDir, "JsMacros-" + Version.version + ".d.ts"));
         BasicTypeResolver typeResolver = new BasicTypeResolver();
+        // The definitions write a class written inside another one under a name of its own, so
+        // the type parameters it takes from the class it is written inside are written with it.
+        typeResolver.setNestedTypeParamsEnabled(true);
         DocletModelBuilder builder = new DocletModelBuilder(typeResolver, new BasicDocCommentParser(treeUtils));
         var model = builder.build(environment);
         TsRenderer renderer = new TsRenderer(typeResolver);

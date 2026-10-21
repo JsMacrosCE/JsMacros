@@ -21,6 +21,7 @@ import com.jsmacrosce.doclet.core.model.ParamDoc;
 import com.jsmacrosce.doclet.core.model.TypeRef;
 import com.jsmacrosce.doclet.core.util.DocBodyRenderer;
 import com.jsmacrosce.doclet.core.util.ElementNameUtils;
+import com.jsmacrosce.doclet.core.util.NestedTypeParams;
 
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.util.DocTrees;
@@ -171,6 +172,11 @@ public class DocletModelBuilder {
                 typeParams.add(typeResolver.resolve(param.asType()));
             }
 
+            List<TypeRef> capturedTypeParams = new ArrayList<>();
+            for (NestedTypeParams.Captured captured : NestedTypeParams.capturedParams(type)) {
+                capturedTypeParams.add(typeResolver.resolve(captured.element().asType()));
+            }
+
             List<TypeRef> extendsTypes = new ArrayList<>();
             if (type.getSuperclass() != null && type.getSuperclass().getKind() != javax.lang.model.type.TypeKind.NONE) {
                 String sup = type.getSuperclass().toString();
@@ -314,7 +320,8 @@ public class DocletModelBuilder {
                 implementsTypes,
                 modifiers,
                 classComment,
-                members
+                members,
+                capturedTypeParams
             );
 
             packages.computeIfAbsent(packageName, key -> new ArrayList<>()).add(classDoc);
@@ -534,6 +541,11 @@ public class DocletModelBuilder {
             typeParams.add(typeResolver.resolve(param.asType()));
         }
 
+        List<TypeRef> capturedTypeParams = new ArrayList<>();
+        for (NestedTypeParams.Captured captured : NestedTypeParams.capturedParams(type)) {
+            capturedTypeParams.add(typeResolver.resolve(captured.element().asType()));
+        }
+
         List<TypeRef> extendsTypes = new ArrayList<>();
         if (type.getSuperclass() != null && type.getSuperclass().getKind() != javax.lang.model.type.TypeKind.NONE) {
             String sup = type.getSuperclass().toString();
@@ -590,7 +602,8 @@ public class DocletModelBuilder {
             implementsTypes,
             modifiers,
             docCommentParser.parse(type),
-            members
+            members,
+            capturedTypeParams
         );
     }
 
