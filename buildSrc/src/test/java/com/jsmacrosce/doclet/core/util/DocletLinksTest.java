@@ -567,6 +567,10 @@ public final class DocletLinksTest {
             excludes(ts, "initialized: string | null;");
             assertStaticPythonMethod(py, "staticHelper", "def staticHelper(value: int) -> int:");
             assertStaticPythonMethod(py, "staticNoArgs", "def staticNoArgs() -> str:");
+            // The Markdown reference marks static members the way the legacy HTML does.
+            contains(md, "<span class=\"syntax-token-keyword\">static</span> <span class=\"syntax-token-method\">staticHelper</span>");
+            contains(md, "<span class=\"syntax-token-keyword\">static</span> <span class=\"syntax-token-method\">staticNoArgs</span>");
+            contains(html, "class=\"flag staticFlag\">Static");
             contains(py, "LIMIT: Final[int]");
             contains(py, "writable: float");
             contains(py, "def nullableResult(self) -> str | None:");

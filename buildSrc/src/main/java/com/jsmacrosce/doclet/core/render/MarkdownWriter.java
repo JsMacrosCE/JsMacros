@@ -687,13 +687,23 @@ public class MarkdownWriter {
      * (no link resolution is attempted for opaque overrides).
      */
     private String renderSignatureAsHtml(MemberDoc member, ClassDoc context) {
+        boolean isStatic = member.modifiers().contains("static");
         if (member.kind() == MemberKind.FIELD) {
-            return member.name() + ": " + renderTypeAsHtml(member.returnType(), context);
+            StringBuilder field = new StringBuilder();
+            if (isStatic) {
+                field.append(Syntax.keyword("static")).append(Syntax.raw(" "));
+            }
+            return field.append(member.name()).append(": ")
+                .append(renderTypeAsHtml(member.returnType(), context))
+                .toString();
         }
 
         StringBuilder sb = new StringBuilder();
         if (member.kind() == MemberKind.CONSTRUCTOR) {
             sb.append(Syntax.keyword("new"));
+            sb.append(Syntax.raw(" "));
+        } else if (isStatic) {
+            sb.append(Syntax.keyword("static"));
             sb.append(Syntax.raw(" "));
         }
         sb.append(Syntax.method(member.name()));
