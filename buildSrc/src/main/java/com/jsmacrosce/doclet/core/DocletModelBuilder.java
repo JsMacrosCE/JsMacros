@@ -382,6 +382,12 @@ public class DocletModelBuilder {
         return pkg != null && pkg.startsWith("net.minecraft.");
     }
 
+    /**
+     * An override of a Minecraft method keeps that method's name, so the name decides whether the
+     * override is worth documenting. A mapped name such as {@code getSelectedEntities()} is a real
+     * call a script can make and belongs in the reference; only an intermediary-style name
+     * ({@code method_1234}) carries no meaning outside the obfuscated game and is dropped.
+     */
     private boolean isObfuscated(ExecutableElement method, TypeElement owner, Set<TypeElement> superMcTypes) {
         if (method.getAnnotation(Override.class) == null) {
             return false;
@@ -392,11 +398,16 @@ public class DocletModelBuilder {
                     continue;
                 }
                 if (elementUtils.overrides(method, (ExecutableElement) element, owner)) {
-                    return true;
+                    return isObfuscatedName(method.getSimpleName().toString());
                 }
             }
         }
         return false;
+    }
+
+    /** Matches the intermediary names Mojang's official mappings and Fabric's intermediary use. */
+    private static boolean isObfuscatedName(String name) {
+        return name.matches("(?:method|field|comp|lambda|class|record)_\\d+");
     }
 
     private void addSuperMethods(

@@ -24,6 +24,18 @@ public final class DocletLinksTest {
             "package com.mojang.brigadier.exceptions; public class CommandSyntaxException extends Exception {}");
         Path record = write(root.resolve("source/net/minecraft/fixture/RecordType.java"),
             "package net.minecraft.fixture; public record RecordType(int value) {}");
+        Path commandSource = write(root.resolve("source/net/minecraft/commands/CommandSourceStack.java"),
+            """
+            package net.minecraft.commands;
+            import java.util.Collection;
+            /** A stand-in for the game's own command source. */
+            public class CommandSourceStack {
+                /** The entities the source has selected. */
+                public Collection<String> getSelectedEntities() { return null; }
+                /** An intermediary-style name with no meaning outside the obfuscated game. */
+                public void method_1234() {}
+            }
+            """);
         Path libraryAnnotation = write(root.resolve("source/example/Library.java"),
             "package example; public @interface Library { String value(); }");
          Path eventAnnotation = write(root.resolve("source/example/Event.java"),
@@ -35,7 +47,7 @@ public final class DocletLinksTest {
         Path ignoreAnnotation = write(root.resolve("source/com/jsmacrosce/doclet/DocletIgnore.java"),
             "package com.jsmacrosce.doclet; import java.lang.annotation.*; @Retention(RetentionPolicy.SOURCE) @Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD, ElementType.CONSTRUCTOR}) public @interface DocletIgnore {}");
         int compile = ToolProvider.getSystemJavaCompiler().run(null, null, null,
-            "-d", stubs.toString(), player.toString(), hit.toString(), profile.toString(), syntaxException.toString(), record.toString(), libraryAnnotation.toString(), eventAnnotation.toString(), nullableAnnotation.toString(), replaceReturnAnnotation.toString(), ignoreAnnotation.toString());
+            "-d", stubs.toString(), player.toString(), hit.toString(), profile.toString(), syntaxException.toString(), record.toString(), commandSource.toString(), libraryAnnotation.toString(), eventAnnotation.toString(), nullableAnnotation.toString(), replaceReturnAnnotation.toString(), ignoreAnnotation.toString());
         if (compile != 0) throw new AssertionError("Fixture compilation failed: " + compile);
         String fixtureSource = """
             package example;
@@ -254,6 +266,20 @@ public final class DocletLinksTest {
                  public static class Cancelled {}
              }
              """);
+        Path overrideFixture = write(root.resolve("source/example/OverridingSource.java"), """
+            package example;
+            import java.util.Collection;
+            import net.minecraft.commands.CommandSourceStack;
+            /** A source that overrides Minecraft calls with answers the client already has. */
+            public class OverridingSource extends CommandSourceStack {
+                /** The entity under the crosshair, as its id. */
+                @Override
+                public Collection<String> getSelectedEntities() { return null; }
+                /** An intermediary-style name with no meaning outside the obfuscated game. */
+                @Override
+                public void method_1234() {}
+            }
+            """);
 
         // Do not put Gradle/Kotlin compiler jars on the doclet path. Their service
         // providers can initialize javac before Javadoc has finished parsing options.
@@ -285,6 +311,7 @@ public final class DocletLinksTest {
                 command.add(api.toString());
                 command.add(angleFixture.toString());
                 command.add(eventFixture.toString());
+                command.add(overrideFixture.toString());
                 Path log = root.resolve(version + "-" + kind + ".log");
                 int result = new ProcessBuilder(command).redirectErrorStream(true)
                     .redirectOutput(log.toFile()).start().waitFor();
@@ -299,6 +326,9 @@ public final class DocletLinksTest {
               String eventMd = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/events/example/SyntheticEvents.WrappedScript.md"));
              String eventHtml = Files.readString(root.resolve(version + "/webdoclet/fixture/example/SyntheticEvents.WrappedScript.html"));
              assertEventAlias(eventTs, eventPy, eventMd, eventHtml);
+             String overrideMd = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/classes/example/OverridingSource.md"));
+             String overridePy = Files.readString(root.resolve(version + "/pydoclet/OverridingSource.py"));
+             assertMinecraftOverrides(overrideMd, overridePy, ts);
              String wildcardMd = markdownMember(md, "example.Api_wildcardDirections-Function-List-List-List-");
             String angleMd = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/classes/example/AngleFixture.md"));
             String angleHtml = Files.readString(root.resolve(version + "/webdoclet/fixture/example/AngleFixture.html"));
@@ -813,6 +843,17 @@ public final class DocletLinksTest {
 
     private static void assertNoTypeParameters(String member) {
         if (member.contains("Type Parameters") || member.contains("## Type Parameters")) throw new AssertionError("Unexpected type-parameter section:\n" + member);
+    }
+
+    private static void assertMinecraftOverrides(String md, String py, String ts) {
+        // A mapped Minecraft override is a real call a script can make and belongs in the reference.
+        contains(md, "getSelectedEntities");
+        contains(py, "def getSelectedEntities(");
+        contains(ts, "getSelectedEntities(");
+        // An intermediary-style name carries no meaning outside the obfuscated game.
+        excludes(md, "method_1234");
+        excludes(py, "method_1234");
+        excludes(ts, "method_1234");
     }
 
     private static void assertEventAlias(String ts, String py, String md, String html) {
