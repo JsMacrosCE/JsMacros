@@ -23,8 +23,13 @@ public final class MarkdownWriterTest {
             new DocTag(DocTagKind.SINCE, null, List.of(new DocBodyNode.Text("1.9.0")))));
         var constructor = new MemberDoc(MemberKind.CONSTRUCTOR, "Result", "Result_constructor", List.of(), List.of(),
             null, null, null, null, List.of("public"), false, memberSince);
+        var stringType = new TypeRef(TypeKind.DECLARED, "String", "java.lang.String", List.of(), false, false, null, false);
+        var stringArray = new TypeRef(TypeKind.ARRAY, "String", "java.lang.String", List.of(stringType), true, false, null, false);
+        var variadic = new MemberDoc(MemberKind.METHOD, "select", "select-String[]-",
+            List.of(new ParamDoc("types", stringArray, true, "")), List.of(), stringType,
+            null, null, null, List.of("public"), false, memberSince);
         var classes = List.of(
-            clz("FExample", ClassGroup.Library, "Example", null, empty, List.of()),
+            clz("FExample", ClassGroup.Library, "Example", null, empty, List.of(variadic)),
             clz("FExample.Result", ClassGroup.Library, null, null,
                 new DocComment(List.of(), links.body(), classSince.tags()), List.of(constructor)),
             clz("FExample.Result.Details", ClassGroup.Library, null, null, empty, List.of()),
@@ -48,6 +53,10 @@ public final class MarkdownWriterTest {
         contains(library, "Accessible in scripts via the global `Example` variable.");
         contains(library, "## Nested types");
         contains(library, "[Result](FExample.Result)");
+        // A parameter that takes a number of arguments is written with an ellipsis, so that
+        // the signature reads as the call that it is.
+        contains(plain(library), "select(String... types): String");
+        excludes(plain(library), "select(String[] types)");
         String result = Files.readString(out.resolve("libraries/example/FExample.Result.md"));
         contains(result, "example.FExample.Result");
         contains(result, "Nested type declared in [Example](FExample); not a separate global library.");
@@ -89,5 +98,13 @@ public final class MarkdownWriterTest {
 
     private static int count(String text, String value) {
         return (text.length() - text.replace(value, "").length()) / value.length();
+    }
+
+    /** The text of a document without the markup that carries the presentation. */
+    private static String plain(String text) {
+        return text.replaceAll("<[^>]*>", "")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&amp;", "&");
     }
 }

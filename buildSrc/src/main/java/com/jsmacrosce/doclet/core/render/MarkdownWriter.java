@@ -715,9 +715,18 @@ public class MarkdownWriter {
             }
 
             ParamDoc param = params.get(i);
-            sb.append(renderTypeAsHtml(param.type(), context))
-                .append(Syntax.raw(" "))
-                .append(Syntax.parameter(param.name()));
+            if (param.varArgs() && param.type() != null && param.type().kind() == TypeKind.ARRAY) {
+                // A parameter that takes a number of arguments is written with the type of one
+                // of them and an ellipsis, so that it reads as the call that it is.
+                sb.append(renderTypeAsHtml(param.type().typeArgs().get(0), context))
+                    .append(Syntax.punctuation("..."))
+                    .append(Syntax.raw(" "))
+                    .append(Syntax.parameter(param.name()));
+            } else {
+                sb.append(renderTypeAsHtml(param.type(), context))
+                    .append(Syntax.raw(" "))
+                    .append(Syntax.parameter(param.name()));
+            }
         }
         sb.append(Syntax.punctuation(")"));
         if (member.kind() != MemberKind.CONSTRUCTOR) {
