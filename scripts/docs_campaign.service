@@ -1,0 +1,20 @@
+[Unit]
+Description=JsMacrosCE unattended full documentation campaign
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/src/java/JsMacros/JsMacrosCE
+ExecStart=/usr/bin/python3 -u scripts/docs_campaign.py run
+Environment=OPENCODE_BIN=%h/.local/share/npm/bin/opencode
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Restart=on-abnormal
+RestartSec=10
+KillMode=process
+TimeoutStopSec=15
+StandardOutput=append:%h/src/java/JsMacros/JsMacrosCE/doc-prune-work/campaign/autonomous/service.log
+StandardError=append:%h/src/java/JsMacros/JsMacrosCE/doc-prune-work/campaign/autonomous/service.log
+
+[Install]
+WantedBy=default.target

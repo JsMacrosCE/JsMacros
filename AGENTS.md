@@ -3,9 +3,6 @@
 When writing or revising Javadoc, doclet annotations, or generated-documentation
 code, read `docs/STYLE.md` and `docs/README.md` first.
 
-For a bounded prose-pruning batch, use the `/docs-prune` command; it coordinates
-the `docs-editor`, `docs-reviewer`, and `docs-validator` agents.
-
 - Write concise API contracts, not a tutorial for every member. Keep verified
   caveats; remove filler and unsupported claims.
 - Keep a compact class-level example. Member examples are optional and should
