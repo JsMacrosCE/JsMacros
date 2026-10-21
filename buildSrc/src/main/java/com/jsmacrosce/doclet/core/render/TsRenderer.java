@@ -325,6 +325,7 @@ public class TsRenderer implements Renderer {
      * classes are given do not fit a type that is only there to be referred to.
      */
     private void renderReferencedClass(StringBuilder out, ClassDoc clz, int indent, Set<String> merged) {
+        appendInternalNotice(out, clz, indent);
         appendShapeIgnore(out, clz, indent);
         if (clz.kind() == ClassKind.INTERFACE) {
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
@@ -342,6 +343,21 @@ public class TsRenderer implements Renderer {
         renderStaticMembers(out, clz, indent + 1, clz, merged);
         renderInstanceMembers(out, clz, indent + 1, clz, merged);
         indent(out, indent).append("}\n");
+    }
+
+    /**
+     * Marks a type that is not part of the API a script is given. It is declared only because
+     * a class of the API builds on it, and the marker keeps it out of the API of a script.
+     */
+    private void appendInternalNotice(StringBuilder out, ClassDoc clz, int indent) {
+        if (!clz.internal()) {
+            return;
+        }
+        indent(out, indent).append("/**\n");
+        indent(out, indent).append(" * Not part of the API a script is given. It is here because a class of\n");
+        indent(out, indent).append(" * the API builds on it, and that class cannot be written without it.\n");
+        indent(out, indent).append(" * @internal\n");
+        indent(out, indent).append(" */\n");
     }
 
     private boolean isReferencedType(ClassDoc clz) {

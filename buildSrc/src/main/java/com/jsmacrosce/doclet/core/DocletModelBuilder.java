@@ -192,6 +192,9 @@ public class DocletModelBuilder {
                     implementsTypes.add(resolved);
                 }
             }
+            for (TypeRef supertype : extendsTypes) {
+                heritageTypes.add(supertype.qualifiedName());
+            }
 
             Set<TypeElement> superMcTypes = new LinkedHashSet<>();
             Set<TypeElement> superTypes = new LinkedHashSet<>();
@@ -224,6 +227,9 @@ public class DocletModelBuilder {
                         }
                     }
                 }
+            }
+            for (TypeRef supertype : implementsTypes) {
+                heritageTypes.add(supertype.qualifiedName());
             }
 
             List<String> modifiers = new ArrayList<>();
@@ -321,7 +327,8 @@ public class DocletModelBuilder {
                 modifiers,
                 classComment,
                 members,
-                capturedTypeParams
+                capturedTypeParams,
+                false
             );
 
             packages.computeIfAbsent(packageName, key -> new ArrayList<>()).add(classDoc);
@@ -346,6 +353,12 @@ public class DocletModelBuilder {
      */
     private final Set<String> undeclaredTypes = new HashSet<>();
 
+    /**
+     * The types the documented classes build on. A type of these that is not part of the API
+     * still has to be declared, or the class that builds on it cannot be written.
+     */
+    private final Set<String> heritageTypes = new HashSet<>();
+
     private List<ClassDoc> buildReferencedTypes(Set<String> documented) {
         List<ClassDoc> referenced = new ArrayList<>();
         if (!(typeResolver instanceof BasicTypeResolver resolver)) {
@@ -367,12 +380,18 @@ public class DocletModelBuilder {
                     continue;
                 }
                 if (hasDocletIgnore(element)) {
-                    // The type is not part of the documented API, so it is not declared, and a
-                    // reference to it has to say that rather than point at nothing.
-                    undeclaredTypes.add(qualified);
+                    if (!heritageTypes.contains(qualified)) {
+                        // The type is not part of the documented API, so it is not declared, and
+                        // a reference to it has to say that rather than point at nothing.
+                        undeclaredTypes.add(qualified);
+                        continue;
+                    }
+                    // The type is not part of the API, but a class of the API builds on it, so
+                    // it is declared all the same, and marked as what it is.
+                    referenced.add(buildReferencedClass(element, true));
                     continue;
                 }
-                referenced.add(buildReferencedClass(element));
+                referenced.add(buildReferencedClass(element, false));
             }
         }
         referenced.sort(Comparator.comparing(ClassDoc::qualifiedName, String.CASE_INSENSITIVE_ORDER));
@@ -528,7 +547,7 @@ public class DocletModelBuilder {
         return inherited;
     }
 
-    private ClassDoc buildReferencedClass(TypeElement type) {
+    private ClassDoc buildReferencedClass(TypeElement type, boolean internal) {
         ClassKind kind = switch (type.getKind()) {
             case INTERFACE -> ClassKind.INTERFACE;
             case ENUM -> ClassKind.ENUM;
@@ -603,7 +622,8 @@ public class DocletModelBuilder {
             modifiers,
             docCommentParser.parse(type),
             members,
-            capturedTypeParams
+            capturedTypeParams,
+            internal
         );
     }
 

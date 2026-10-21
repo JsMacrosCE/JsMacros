@@ -26,7 +26,12 @@ public record ClassDoc(
      * The type parameters the class carries from the class it is written inside, which are in
      * scope in it. A class that is not written inside another one carries none.
      */
-    List<TypeRef> capturedTypeParams
+    List<TypeRef> capturedTypeParams,
+    /**
+     * Whether the class is not part of the API a script is given. Such a class is declared
+     * only because a class of the API builds on it, and it is marked as what it is.
+     */
+    boolean internal
 ) {
     public ClassDoc(
         String name,
@@ -47,6 +52,6 @@ public record ClassDoc(
     ) {
         this(name, qualifiedName, packageName, kind, group, alias, category, eventCancellable,
             eventFilterer, typeParams, extendsTypes, implementsTypes, modifiers, docComment, members,
-            List.of());
+            List.of(), false);
     }
 }
