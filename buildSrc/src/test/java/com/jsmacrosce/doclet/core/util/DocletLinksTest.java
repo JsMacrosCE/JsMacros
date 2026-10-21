@@ -458,7 +458,7 @@ public final class DocletLinksTest {
                  "Markdown wildcard signature");
              String typeVariableMd = markdownMember(md, "example.Api_typeVariableBound-T-");
              assertEquals(normalizedSignature(typeVariableMd), "typeVariableBound(TextendsNumbervalue):void", "Markdown type-variable signature");
-             contains(ts, "wildcardDirections<R, V>(lowerUpper: MethodWrapper<any, any, any>, upper: JavaList<any>, unbounded: JavaList<any>, nested: JavaList<JavaList<any>>): void;");
+             contains(ts, "wildcardDirections<R, V>(lowerUpper: MethodWrapper<any, any, any, any>, upper: JavaList<any>, unbounded: JavaList<any>, nested: JavaList<JavaList<any>>): void;");
              contains(py, "def wildcardDirections(self, lowerUpper: Function, upper: List[Any], unbounded: List[Any], nested: List[List[Any]]) -> None:");
              String wildcardHtml = htmlMember(html, "wildcardDirections-Function-List-List-List-");
              assertEquals(htmlParameterType(wildcardHtml, "lowerUpper"), "Function<?,?>", "Legacy HTML lowerUpper type");
@@ -476,7 +476,7 @@ public final class DocletLinksTest {
             excludes(ts, "readonly writable:");
             contains(ts, "constructor(optionalName: string | null);");
             contains(ts, "nullableResult(): string | null;");
-            contains(ts, "optionalValues(callback: MethodWrapper | null, shortValue: short, byteValue: byte): void;");
+            contains(ts, "optionalValues(callback: MethodWrapper<any, any, any, any> | null, shortValue: short, byteValue: byte): void;");
             contains(ts, "optionalShort(shortValue: short | null): void;");
             contains(ts, "nullableOverriddenResult(): 'Int' | 'String' | 'Double' | 'Boolean' | 'Object' | null;");
             contains(py, "from typing import Final");
@@ -979,8 +979,8 @@ public final class DocletLinksTest {
         contains(ts, "interface Plain extends BaseEvent {");
         excludes(scoped(ts, "interface Plain", "\n    }"), "<");
         contains(ts, "interface Cancelled extends BaseEvent, Cancellable {");
-        String qualifiedClass = scoped(ts, "export class SyntheticEvents$WrappedScript<T extends number, U extends T, R extends U>", "\n    }");
-        contains(qualifiedClass, "export class SyntheticEvents$WrappedScript<T extends number, U extends T, R extends U>");
+        String qualifiedClass = scoped(ts, "export class SyntheticEvents$WrappedScript<T extends number = any, U extends T = any, R extends U = any>", "\n    }");
+        contains(qualifiedClass, "export class SyntheticEvents$WrappedScript<T extends number = any, U extends T = any, R extends U = any>");
         contains(qualifiedClass, "readonly arg1: T;");
         contains(qualifiedClass, "readonly arg2: U;");
         contains(qualifiedClass, "result: R;");

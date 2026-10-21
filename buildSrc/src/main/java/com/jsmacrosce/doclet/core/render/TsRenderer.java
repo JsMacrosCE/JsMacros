@@ -39,6 +39,8 @@ public class TsRenderer implements Renderer {
     private final TypeResolver typeResolver;
 
     private Set<String> referencedTypes = Set.of();
+    /** The types the definitions write as interfaces, which a class implements rather than extends. */
+    private Set<String> interfaceTypes = Set.of();
 
     public TsRenderer(TypeResolver typeResolver) {
         this.typeResolver = typeResolver;
@@ -55,6 +57,16 @@ public class TsRenderer implements Renderer {
 
         List<ClassDoc> events = collectByGroup(model, ClassGroup.Event);
         List<ClassDoc> libraries = collectByGroup(model, ClassGroup.Library);
+
+        interfaceTypes = new HashSet<>();
+        for (ClassDoc clz : events) {
+            interfaceTypes.add(clz.qualifiedName());
+        }
+        for (ClassDoc clz : model.referencedTypes()) {
+            if (clz.kind() == ClassKind.INTERFACE) {
+                interfaceTypes.add(clz.qualifiedName());
+            }
+        }
 
         StringBuilder out = new StringBuilder();
         appendGlobalDeclarations(out);
@@ -90,7 +102,9 @@ public class TsRenderer implements Renderer {
 
     private void appendEvents(StringBuilder out, List<ClassDoc> events) {
         out.append("declare namespace Events {\n\n");
-        indent(out, 1).append("interface BaseEvent extends JavaObject {\n\n");
+        // The type every event builds on is written as a class, because the event classes
+        // build on it and inherit what it carries.
+        indent(out, 1).append("class BaseEvent extends Packages.java.lang.Object {\n\n");
         indent(out, 2).append("getEventName(): string;\n\n");
         indent(out, 1).append("}\n\n");
         indent(out, 1).append("interface Cancellable {\n\n");
@@ -263,14 +277,15 @@ public class TsRenderer implements Renderer {
         }
         if (clz.kind() == ClassKind.INTERFACE) {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
-            indent(out, indent).append("export abstract class ").append(tsSafeName(clz.name()))
-                .append(" extends java.lang.Interface {\n");
+            indent(out, indent).append("export abstract class ").append(tsSafeName(clz.name()));
+            appendTypeParams(out, clz.typeParams(), null, true);
+            indent(out, indent).append(" extends java.lang.Interface {\n");
             appendClassHeader(out, clz, indent + 1);
             renderStaticMembers(out, clz, indent + 1, clz, merged);
             indent(out, indent).append("}\n");
 
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
-            appendTypeParams(out, clz.typeParams(), null, false);
+            appendTypeParams(out, clz.typeParams(), null, true);
             appendImplements(out, clz);
             out.append(" {\n");
             renderInstanceMembers(out, clz, indent + 1, clz, merged);
@@ -282,7 +297,7 @@ public class TsRenderer implements Renderer {
         if (!clz.implementsTypes().isEmpty() && clz.group() != ClassGroup.Library) {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
-            appendTypeParams(out, clz.typeParams(), null, false);
+            appendTypeParams(out, clz.typeParams(), null, true);
             appendImplements(out, clz);
             out.append(" {}\n");
         } else {
@@ -292,7 +307,7 @@ public class TsRenderer implements Renderer {
         boolean hasConstructor = clz.members().stream().anyMatch(member -> member.kind() == MemberKind.CONSTRUCTOR);
         indent(out, indent).append("export ").append(hasConstructor ? "class " : "abstract class ")
             .append(tsSafeName(clz.name()));
-        appendTypeParams(out, clz.typeParams(), null, false);
+        appendTypeParams(out, clz.typeParams(), null, true);
         appendExtends(out, clz);
         out.append(" {\n");
         appendClassHeader(out, clz, indent + 1);
@@ -313,7 +328,7 @@ public class TsRenderer implements Renderer {
         }
         if (clz.kind() == ClassKind.INTERFACE) {
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
-            appendTypeParams(out, clz.typeParams(), null, false);
+            appendTypeParams(out, clz.typeParams(), null, true);
             appendImplements(out, clz);
             out.append(" {\n");
             renderInstanceMembers(out, clz, indent + 1, clz, merged);
@@ -321,7 +336,7 @@ public class TsRenderer implements Renderer {
             return;
         }
         indent(out, indent).append("export class ").append(tsSafeName(clz.name()));
-        appendTypeParams(out, clz.typeParams(), null, false);
+        appendTypeParams(out, clz.typeParams(), null, true);
         appendExtends(out, clz);
         out.append(" {\n");
         renderStaticMembers(out, clz, indent + 1, clz, merged);
@@ -765,12 +780,15 @@ public class TsRenderer implements Renderer {
 
     private void appendExtends(StringBuilder out, ClassDoc clz) {
         String extendsType;
+        boolean isInterface = false;
         if (clz.extendsTypes().isEmpty()) {
             extendsType = "java.lang.Object";
         } else {
-            extendsType = formatHeritageType(clz.extendsTypes().getFirst(), true);
+            TypeRef supertype = clz.extendsTypes().getFirst();
+            extendsType = formatHeritageType(supertype, true);
+            isInterface = interfaceTypes.contains(supertype.qualifiedName());
         }
-        out.append(" extends ").append(extendsType);
+        out.append(isInterface ? " implements " : " extends ").append(extendsType);
     }
 
     private void appendImplements(StringBuilder out, ClassDoc clz) {

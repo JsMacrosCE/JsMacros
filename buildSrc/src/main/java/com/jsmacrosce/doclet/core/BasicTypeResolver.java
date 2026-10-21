@@ -45,16 +45,21 @@ public class BasicTypeResolver implements TypeResolver {
         "java.lang.Double", "double",
         "java.lang.Number", "number"
     );
+    /**
+     * The Java functional interfaces a script meets, and the wrapper they are handed as. The
+     * wrapper takes the accepted types, the returned type and the context it belongs to, in
+     * that order.
+     */
     private static final Map<String, String> FUNCTIONAL_INTERFACES = Map.of(
-        "java.util.function.Consumer", "MethodWrapper<$0>",
-        "java.util.function.BiConsumer", "MethodWrapper<$0, $1>",
-        "java.util.function.Function", "MethodWrapper<$0, any, $1>",
-        "java.util.function.BiFunction", "MethodWrapper<$0, $1, $2>",
-        "java.util.function.Predicate", "MethodWrapper<$0, any, boolean>",
-        "java.util.function.BiPredicate", "MethodWrapper<$0, $1, boolean>",
-        "java.util.function.Supplier", "MethodWrapper<any, any, $0>",
-        "java.util.Comparator", "MethodWrapper<$0, $0, int>",
-        "java.lang.Runnable", "MethodWrapper"
+        "java.util.function.Consumer", "MethodWrapper<$0, any, any, any>",
+        "java.util.function.BiConsumer", "MethodWrapper<$0, $1, any, any>",
+        "java.util.function.Function", "MethodWrapper<$0, any, $1, any>",
+        "java.util.function.BiFunction", "MethodWrapper<$0, $1, $2, any>",
+        "java.util.function.Predicate", "MethodWrapper<$0, any, boolean, any>",
+        "java.util.function.BiPredicate", "MethodWrapper<$0, $1, boolean, any>",
+        "java.util.function.Supplier", "MethodWrapper<any, any, $0, any>",
+        "java.util.Comparator", "MethodWrapper<$0, $0, int, any>",
+        "java.lang.Runnable", "MethodWrapper<any, any, any, any>"
     );
 
     private Map<String, String> typeScriptAliases = Map.of();
