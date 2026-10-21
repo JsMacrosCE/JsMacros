@@ -138,7 +138,9 @@ public class TsRenderer implements Renderer {
 
     private void renderEventInterface(StringBuilder out, ClassDoc event, int indent) {
         appendDocComment(out, event.docComment(), List.of(), false, null, event, indent);
-        indent(out, indent).append("interface ").append(event.alias()).append(" extends BaseEvent");
+        indent(out, indent).append("interface ").append(event.alias());
+        appendTypeParams(out, event.typeParams(), null, true);
+        out.append(" extends BaseEvent");
         if (event.eventCancellable()) {
             out.append(", Cancellable");
         }
@@ -693,6 +695,22 @@ public class TsRenderer implements Renderer {
             lines.add(desc);
         }
 
+        Set<DocTag> mismatchedTemplateTags = new HashSet<>();
+        for (DocTag tag : comment.tags()) {
+            if (tag.kind() == DocTagKind.TEMPLATE && tag.name() != null) {
+                String replacementName = simpleReplacementTypeParamName(
+                    member == null ? null : member.replaceTypeParams()
+                );
+                if (replacementName != null && !replacementName.equals(tag.name())) {
+                    String text = DocBodyRenderer.toPlainText(tag.body(), this::resolveLinkForJsDoc);
+                    if (!text.isBlank()) {
+                        lines.add("Java type parameter " + tag.name() + ": " + text);
+                        mismatchedTemplateTags.add(tag);
+                    }
+                }
+            }
+        }
+
         Map<String, String> paramDocs = new HashMap<>();
         for (DocTag tag : comment.tags()) {
             if (tag.kind() == DocTagKind.PARAM && tag.name() != null) {
@@ -735,7 +753,7 @@ public class TsRenderer implements Renderer {
             }
         }
         for (DocTag tag : comment.tags()) {
-            if (tag.kind() == DocTagKind.TEMPLATE && tag.name() != null) {
+            if (tag.kind() == DocTagKind.TEMPLATE && tag.name() != null && !mismatchedTemplateTags.contains(tag)) {
                 String text = DocBodyRenderer.toPlainText(tag.body(), this::resolveLinkForJsDoc);
                 if (!text.isBlank()) {
                     lines.add("@template " + tag.name() + " " + text);
@@ -763,6 +781,19 @@ public class TsRenderer implements Renderer {
             }
         }
         indent(out, indent).append(" */\n");
+    }
+
+    private String simpleReplacementTypeParamName(String replacement) {
+        if (replacement == null || replacement.isBlank()) {
+            return null;
+        }
+        // Limit reconciliation to one identifier and an optional simple qualified-identifier bound.
+        String identifier = "[A-Za-z_$][A-Za-z0-9_$]*";
+        String qualifiedIdentifier = identifier + "(?:\\." + identifier + ")*";
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(
+            "\\s*(" + identifier + ")(?:\\s+extends\\s+" + qualifiedIdentifier + ")?\\s*"
+        ).matcher(replacement);
+        return matcher.matches() ? matcher.group(1) : null;
     }
 
     /**
