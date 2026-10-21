@@ -309,6 +309,7 @@ public class DocletModelBuilder {
             }
 
             markShapeConflicts(type, members);
+            markSelfReturns(type, members);
             members.sort(Comparator.comparing(MemberDoc::name, String.CASE_INSENSITIVE_ORDER));
 
             ClassDoc classDoc = new ClassDoc(
@@ -456,8 +457,105 @@ public class DocletModelBuilder {
             member.modifiers(),
             member.scriptReadOnly(),
             member.docComment(),
+            true,
+            member.selfReturn()
+        );
+    }
+
+    /**
+     * Marks the members that hand back the type they belong to, the way the member they build
+     * on does. A member that returns the type of the class it is declared in is written as
+     * returning that type, so a class that builds on it has to be written the same way.
+     */
+    private void markSelfReturns(TypeElement type, List<MemberDoc> members) {
+        Map<String, List<Element>> inherited = inheritedMembers(type);
+        if (inherited.isEmpty()) {
+            return;
+        }
+        for (int index = 0; index < members.size(); index++) {
+            MemberDoc member = members.get(index);
+            if (member.kind() != MemberKind.METHOD) {
+                continue;
+            }
+            List<Element> candidates = inherited.get(member.name());
+            if (candidates == null) {
+                continue;
+            }
+            for (Element candidate : candidates) {
+                if (returnsItself(candidate) && returnsSameType(member, candidate)) {
+                    members.set(index, withSelfReturn(member));
+                    break;
+                }
+            }
+        }
+    }
+
+    private MemberDoc withSelfReturn(MemberDoc member) {
+        return new MemberDoc(
+            member.kind(),
+            member.name(),
+            member.anchorId(),
+            member.params(),
+            member.typeParams(),
+            member.returnType(),
+            member.replaceParams(),
+            member.replaceReturn(),
+            member.replaceTypeParams(),
+            member.modifiers(),
+            member.scriptReadOnly(),
+            member.docComment(),
+            member.shapeConflict(),
             true
         );
+    }
+
+    /**
+     * Whether the member hands back the type it is declared in, and says so. The definitions
+     * write such a member as returning the type it belongs to.
+     */
+    private boolean returnsItself(Element candidate) {
+        if (candidate.getKind() != ElementKind.METHOD) {
+            return false;
+        }
+        ExecutableElement method = (ExecutableElement) candidate;
+        String owner = ElementNameUtils.getQualifiedName((TypeElement) method.getEnclosingElement());
+        String returned = declaredTypeName(method.getReturnType());
+        if (owner == null || !owner.equals(returned)) {
+            return false;
+        }
+        DocComment comment = docCommentParser.parse(method);
+        for (DocTag tag : comment.tags()) {
+            if (tag.kind() != DocTagKind.RETURN) {
+                continue;
+            }
+            String text = DocBodyRenderer.toPlainText(
+                tag.body(),
+                link -> link.label() != null ? link.label() : link.signature()
+            ).trim();
+            return text.equals("self") || text.startsWith("self ");
+        }
+        return false;
+    }
+
+    /** Whether the member returns the same type as the member it builds on. */
+    private boolean returnsSameType(MemberDoc member, Element candidate) {
+        TypeRef returnType = member.returnType();
+        if (returnType == null || returnType.kind() != com.jsmacrosce.doclet.core.model.TypeKind.DECLARED) {
+            return false;
+        }
+        String returned = declaredTypeName(((ExecutableElement) candidate).getReturnType());
+        return returned != null && returned.equals(returnType.qualifiedName());
+    }
+
+    private String declaredTypeName(TypeMirror type) {
+        if (type == null || type.getKind() != TypeKind.DECLARED) {
+            return null;
+        }
+        Element element = ((DeclaredType) type).asElement();
+        if (!(element instanceof TypeElement typeElement)) {
+            return null;
+        }
+        return ElementNameUtils.getQualifiedName(typeElement);
     }
 
     private boolean shapesConflict(MemberDoc member, Element candidate) {
@@ -605,6 +703,7 @@ public class DocletModelBuilder {
         }
 
         markShapeConflicts(type, members);
+        markSelfReturns(type, members);
 
         return new ClassDoc(
             ElementNameUtils.getDisplayClassName(type),

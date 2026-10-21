@@ -868,7 +868,14 @@ public class TsRenderer implements Renderer {
     }
 
     private boolean shouldReturnThis(MemberDoc member, ClassDoc owner) {
-        if (owner == null || member.docComment() == null || member.kind() != MemberKind.METHOD) {
+        if (owner == null || member.kind() != MemberKind.METHOD) {
+            return false;
+        }
+        if (member.selfReturn()) {
+            // The member it builds on hands the type back, so this one does too.
+            return true;
+        }
+        if (member.docComment() == null) {
             return false;
         }
         String returnText = getTagText(member.docComment(), DocTagKind.RETURN);
