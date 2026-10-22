@@ -6,13 +6,13 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+@DocletIgnore
 @Documented
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
-@DocletIgnore
 public @interface DocletCategory {
     /**
-     * Category used for grouping doclet-generated pages.
+     * The category name used for organizing classes or events.
      */
     String value();
 }
