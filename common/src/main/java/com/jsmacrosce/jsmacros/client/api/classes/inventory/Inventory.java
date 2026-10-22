@@ -43,26 +43,9 @@ import net.minecraft.world.inventory.ClickType;
 //? }
 
 /**
- * the handle on an open container screen, and the base every other inventory type in this
- * package extends.
- * <p>
- * The class itself is what an unrecognised container falls back to. The type a script actually
- * gets depends on the screen that is open, because {@link #create(Screen)} looks at the screen
- * and picks the matching subclass: a chest is a {@code ContainerInventory}, a furnace a
- * {@code FurnaceInventory}, a crafting table a {@code CraftingInventory}, and so on. Which one
- * arrived is worth checking rather than assuming, either with {@link #is(String...)} or by
- * reading {@link #getType()}, because a script that assumes a chest and is handed a furnace
- * will misread the slot numbers.
- * <p>
- * Nothing here is a copy of the container. Every click, drop and swap is a real action sent to
- * the game, and the slot numbers are the menu's own, counted across the whole open menu rather
- * than per section. That is what makes {@link #getMap()} worth reading once: it names the
- * sections of the menu and which slot numbers belong to each, so a script can ask for
- * {@code "hotbar"} instead of hard coding a number that changes with the screen.
- * <p>
- * The sections a map carries are only the ones that apply to what is open, so any given screen
- * has a subset of the full set of names.
- * example:
+ * Wraps a container screen's menu; specialized subclasses represent recognized screen types.
+ * Slot indices refer to the menu's full slot list. {@link #getMap()} groups applicable indices
+ * by section name; available sections depend on the screen.
  * <pre>
  * const inv = Player.openInventory();
  * // which kind of container is this?
@@ -76,6 +59,7 @@ import net.minecraft.world.inventory.ClickType;
  *   Chat.log(`${id} x ${counts.get(id)}`);
  * }
  * </pre>
+ * @param <T> concrete container screen type wrapped by this inventory
  *
  * @author Wagyourtail
  * @since 1.0.8
@@ -102,25 +86,11 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     protected static Minecraft mc = Minecraft.getInstance();
 
     /**
-     * the handle for whatever container is open right now, falling back to the player's own
-     * inventory when nothing is.
-     * <p>
-     * This is the same call {@code Player.openInventory()} makes, and it is the one to reach for
-     * when a script does not care which container it gets. When a container screen is open the
-     * result is the subclass for that screen; when none is, there is no container to describe,
-     * so this builds a handler over a player inventory instead and a creative player gets the
-     * creative one.
-     * <p>
-     * That fallback is a screen that was never opened, so the parts of the handler that need one
-     * open are not usable on the result: {@link #getSlotUnderMouse()} throws when the screen is
-     * not the current one, and it never is in this case.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * Chat.log(`${inv.getType()} has ${inv.getTotalSlots()} slots`);
-     * </pre>
+     * Wraps the current container screen, or the player's inventory if no container screen is open.
+     * The fallback is a synthetic screen wrapper, so {@link #getSlotUnderMouse()} cannot be used
+     * until its screen is current.
      *
-     * @return a handler for the open container, or for the player's own inventory if none is
+     * @return a wrapper for the open container or the player's inventory
      * @since 1.0.8
      */
     public static Inventory<?> create() {
@@ -137,25 +107,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * the handle for a container screen, or nothing at all if the screen is not a container.
-     * <p>
-     * This is the form to reach for when a script has its own screen in hand and wants the
-     * container behind it, because unlike {@link #create()} it does not fall back to anything.
-     * A screen that is not a container at all, including no screen, comes back as {@code null},
-     * so the result has to be checked before it is used.
-     * <p>
-     * The subclasses are chosen by the screen type, and a screen this does not recognise still
-     * comes back as a plain handler rather than as {@code null}, since it is a container all
-     * the same.
-     * example:
-     * <pre>
-     * const screen = Hud.getOpenScreen();
-     * const inv = Java.type("com.jsmacrosce.jsmacros.client.api.classes.inventory.Inventory")
-     * .create(screen);
-     * if (inv !== null) {
-     *   Chat.log(`${inv.getType()} has ${inv.getTotalSlots()} slots`);
-     * }
-     * </pre>
+     * Wraps a container screen without falling back to another inventory. Recognized screen types
+     * receive specialized wrappers; other container screens receive a base wrapper.
      *
      * @param s the screen to describe
      * @return a handler for the container behind it, or {@code null} if it is not a container
@@ -237,8 +190,9 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param slot
-     * @return
+     * Performs a primary-button pickup click on a menu slot.
+     * @param slot index in the menu's full slot list
+     * @return this inventory for chaining
      * @since 1.5.0
      */
     public Inventory<T> click(int slot) {
@@ -247,12 +201,11 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * Clicks a slot with a mouse button.~~if the slot is a container, it will click the first slot in the container
+     * Performs a pickup click, except button {@code 2} clones the stack.
      *
-     * @param slot the slot to click, counted across the whole open menu
-     * @param mouseButton 0 to pick the stack up, 2 to clone it. Any other value is treated the
-     *        same as 0, so only those two are worth passing.
-     * @return self for chaining.
+     * @param slot index in the menu's full slot list
+     * @param mouseButton {@code 2} to clone; all other values perform a pickup click
+     * @return this inventory wrapper
      * @since 1.0.8
      */
     @DocletReplaceParams("slot: int, mouseButton: Trit")
@@ -262,12 +215,11 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * Does a drag-click with a mouse button. (the slots don't have to be in order or even adjacent, but when vanilla minecraft calls the underlying function they're always sorted...)
+     * Distributes the carried stack across the specified menu slots using quick-craft.
      *
      * @param slots the slots to spread across, which do not have to be adjacent or in order
-     * @param mouseButton 0 to spread evenly, anything else to spread greedily. Only whether it
-     *        is 0 is looked at, so any other value means the same thing.
-     * @return self for chaining.
+     * @param mouseButton {@code 0} selects even distribution; any other value selects greedy distribution
+     * @return this inventory wrapper
      */
     @DocletReplaceParams("slots: int[], mouseButton: Bit")
     public Inventory<T> dragClick(int[] slots, int mouseButton) {
@@ -285,7 +237,9 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param slot
+     * Drops one item from a menu slot.
+     * @param slot index in the menu's full slot list
+     * @return this inventory wrapper, for chaining
      * @since 1.5.0
      */
     public Inventory<T> dropSlot(int slot) {
@@ -294,9 +248,10 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param slot  the slot to drop
-     * @param stack decide whether to drop the whole stack or just a single item
-     * @return self for chaining.
+     * Drops one item or the whole stack from a menu slot.
+     * @param slot index in the menu's full slot list
+     * @param stack {@code true} to drop the whole stack; {@code false} to drop one item
+     * @return this inventory wrapper
      * @since 1.8.4
      */
     public Inventory<T> dropSlot(int slot, boolean stack) {
@@ -305,9 +260,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param item the item to check for
-     * @return {@code true} if the item is contined anywhere in the inventory, {@code false}
-     * otherwise.
+     * @param item stack to compare against
+     * @return {@code true} if any inventory stack equals {@code item}
      * @since 1.8.4
      */
     public boolean contains(ItemStackHelper item) {
@@ -315,9 +269,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param item the item to check for
-     * @return {@code true} if the item is contined anywhere in the inventory, {@code false}
-     * otherwise.
+     * @param item item ID to search for
+     * @return {@code true} if any inventory stack has this item ID
      * @since 1.8.4
      */
     @DocletReplaceParams("item: ItemId")
@@ -326,8 +279,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @return the first empty slot in the main inventory or {@code -1} if there are no empty
-     * slots.
+     * @return the first empty slot in the {@code main} or {@code hotbar} sections, or {@code -1}
+     * if neither section has an empty slot.
      * @since 1.8.4
      */
     public int findFreeInventorySlot() {
@@ -335,7 +288,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @return the first empty hotbar slot or {@code -1} if there are no empty slots.
+     * @return the first empty slot in the {@code hotbar} section, or {@code -1} if it has no empty
+     * slot.
      * @since 1.8.4
      */
     public int findFreeHotbarSlot() {
@@ -343,9 +297,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param mapIdentifiers the identifier of the inventory sections to check
-     * @return the first empty slot in the given inventory sections, or {@code -1} if there are no
-     * empty slots.
+     * @param mapIdentifiers names of the inventory sections to check; unknown names are ignored
+     * @return the first empty slot in the specified sections, or {@code -1} if none is empty
      * @since 1.8.4
      */
     @DocletReplaceParams("...mapIdentifiers: JavaVarArgs<InvMapId>")
@@ -359,7 +312,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @return a map of all item ids and their total count inside the inventory.
+     * @return item IDs mapped to the sum of their stack counts across non-empty slots
      * @since 1.8.4
      */
     @DocletReplaceReturn("JavaMap<ItemId, number>")
@@ -370,7 +323,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @return a list of all items in the inventory.
+     * @return non-empty stacks from the menu's full slot list
      * @since 1.8.4
      */
     public List<ItemStackHelper> getItems() {
@@ -378,8 +331,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param mapIdentifiers the inventory sections
-     * @return a list of all items in the given inventory sections.
+     * @param mapIdentifiers names of the inventory sections to include; unknown names are ignored
+     * @return non-empty stacks from the specified sections
      * @since 1.8.4
      */
     @DocletReplaceParams("...mapIdentifiers: JavaVarArgs<InvMapId>")
@@ -388,8 +341,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param item the item to search for
-     * @return all slots containing the given item.
+     * @param item stack to compare with each slot
+     * @return indices of slots whose stacks equal {@code item}
      * @since 1.8.4
      */
     public int[] findItem(ItemStackHelper item) {
@@ -403,8 +356,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param item the item to search for
-     * @return all slots containing the given item.
+     * @param item item ID to match
+     * @return indices of slots whose item ID equals {@code item}
      * @since 1.8.4
      */
     @DocletReplaceParams("item: ItemId")
@@ -419,8 +372,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param mapIdentifiers the inventory sections
-     * @return all slots indexes in the given inventory sections.
+     * @param mapIdentifiers names of the inventory sections to include; unknown names are ignored
+     * @return menu slot indices in the specified sections, in section order
      * @since 1.8.4
      */
     @DocletReplaceParams("...mapIdentifiers: JavaVarArgs<InvMapId>")
@@ -436,7 +389,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @return the index of the selected hotbar slot.
+     * @return the selected hotbar slot index
      * @since 1.2.5
      */
     public int getSelectedHotbarSlotIndex() {
@@ -444,7 +397,9 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param index
+     * Sets the selected hotbar slot; indices outside {@code 0}–{@code 8} are ignored.
+     *
+     * @param index hotbar slot index
      * @since 1.2.5
      */
     public void setSelectedHotbarSlotIndex(int index) {
@@ -454,9 +409,9 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * closes the inventory, (if the inventory/container is visible it will close the gui). also drops any "held on mouse" items.
+     * Drops the entire carried stack outside the menu, then closes the inventory.
      *
-     * @return
+     * @return this wrapper, which now refers to the closed inventory
      */
     public Inventory<T> closeAndDrop() {
         ItemStack held = handler.getCarried();
@@ -468,7 +423,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * Closes the inventory, and open gui if applicable.
+     * Requests closure of the player's current container on the client thread and immediately clears this wrapper's screen and menu references.
      */
     public void close() {
         mc.execute(player::closeContainer);
@@ -477,11 +432,10 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * simulates a shift-click on a slot.
-     * It should be safe to chain these without {@link FClient#waitTick()} at least for a bunch of the same item.
+     * Performs a quick-move click on a menu slot (the usual shift-click action).
      *
-     * @param slot
-     * @return
+     * @param slot index in the menu's full slot list
+     * @return this inventory wrapper, for chaining
      */
     public Inventory<T> quick(int slot) {
         clickContainer(slot, 0, InventoryAction.QUICK_MOVE);
@@ -489,8 +443,10 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param slot
-     * @return
+     * Quick-moves items matching the selected slot's stack from its backing container.
+     *
+     * @param slot menu slot index whose stack and backing container determine the matches
+     * @return the total stack count in matching slots considered for quick-move
      * @since 1.7.0
      */
     public int quickAll(int slot) {
@@ -498,11 +454,11 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * quicks all that match the slot
+     * Quick-moves matching stacks from the selected slot's backing container.
      *
-     * @param slot   a slot from the section you want to move items from
-     * @param button
-     * @return number of items that matched
+     * @param slot menu slot index whose stack and backing container determine the matches
+     * @param button mouse button value passed with each quick-move click
+     * @return the total stack count in matching slots considered for quick-move
      * @since 1.7.0
      */
     @DocletReplaceParams("slot: int, button: Bit")
@@ -524,34 +480,34 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @return the held (by the mouse) item.
+     * @return the item stack currently carried by the menu
      */
     public ItemStackHelper getHeld() {
         return new ItemStackHelper(handler.getCarried());
     }
 
     /**
-     * @param slot
-     * @return the item in the slot.
+     * @param slot menu slot index
+     * @return the stack in that menu slot
      */
     public ItemStackHelper getSlot(int slot) {
         return new ItemStackHelper(this.handler.getSlot(slot).getItem());
     }
 
     /**
-     * @return the size of the container/inventory.
+     * @return the number of slots in the menu's full slot list
      */
     public int getTotalSlots() {
         return this.handler.slots.size();
     }
 
     /**
-     * Splits the held stack into two slots. can be alternatively done with {@link Inventory#dragClick(int[], int)} if this one has issues on some servers.
+     * Performs a secondary-button pickup click on {@code slot1}, then a primary-button pickup click on {@code slot2}.
+     * The slots must be distinct and empty, or this method throws an exception. For quick-craft distribution, use {@link Inventory#dragClick(int[], int)}.
      *
-     * @param slot1
-     * @param slot2
-     * @return
-     * @throws Exception
+     * @param slot1 first empty menu slot
+     * @param slot2 second, distinct empty menu slot
+     * @return this inventory wrapper
      */
     public Inventory<T> split(int slot1, int slot2) throws Exception {
         if (slot1 == slot2) {
@@ -566,10 +522,10 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * Does that double click thingy to turn a incomplete stack pickup into a complete stack pickup if you have more in your inventory.
+     * Picks up the selected slot's stack, then attempts to collect matching items from other menu slots into the carried stack.
      *
-     * @param slot
-     * @return
+     * @param slot slot whose stack to pick up
+     * @return this inventory
      */
     public Inventory<T> grabAll(int slot) {
         clickContainer(slot, 0, InventoryAction.PICKUP);
@@ -578,14 +534,15 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * swaps the items in two slots.
+     * Attempts to swap two slots using successive pickup clicks; this sequence may be unreliable on servers.
      *
-     * @param slot1
-     * @param slot2
-     * @return
-     * @deprecated use {@link Inventory#swapHotbar(int, int)} or write it yourself instead. This method is not reliable on servers due to timing issues.
+     * @param slot1 first slot
+     * @param slot2 second slot
+     * @return this inventory
+     * @deprecated Use {@link Inventory#swapHotbar(int, int)} for hotbar swaps; this method may be unreliable on servers.
      */
     @Deprecated
+    @DocletIgnore
     public Inventory<T> swap(int slot1, int slot2) {
         boolean is1 = getSlot(slot1).isEmpty();
         boolean is2 = getSlot(slot2).isEmpty();
@@ -603,12 +560,11 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
+     * Swaps a menu slot with a hotbar slot or the offhand slot.
      *
-     * equivalent to hitting the numbers or f for swapping slots to hotbar
-     *
-     * @param slot
-     * @param hotbarSlot 0-8 or 40 for offhand
-     * @return
+     * @param slot menu slot to swap
+     * @param hotbarSlot hotbar index from {@code 0} to {@code 8}, or {@code 40} for offhand
+     * @return this inventory
      * @since 1.6.4
      */
     @DocletReplaceParams("slot: int, hotbarSlot: HotbarSwapSlot")
@@ -623,6 +579,8 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
+     * Opens this inventory's screen on the Minecraft client thread.
+     *
      * @since 1.2.8
      */
     public void openGui() {
@@ -630,7 +588,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @return the id of the slot under the mouse.
+     * @return the menu slot index under the mouse, or {@code -999} if the pointer is outside all slots; throws if this inventory's screen is not open
      * @since 1.1.3
      */
     public int getSlotUnderMouse() {
@@ -648,7 +606,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @return the part of the mapping the slot is in.
+     * @return the screen name used to identify this inventory type
      * @since 1.1.3
      */
     @DocletReplaceReturn("ScreenName")
@@ -657,7 +615,10 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * checks if this inventory type equals to any of the specified types<br>
+     * Checks whether this inventory's screen name matches any supplied name.
+     *
+     * @param types screen names to test
+     * @return {@code true} if the screen name matches one of the supplied names
      * @since 1.9.0
      */
     @SuppressWarnings("SpellCheckingInspection")
@@ -704,7 +665,9 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @return the inventory mappings different depending on the type of open container/inventory.
+     * Returns this inventory's menu slot indices grouped by region name.
+     *
+     * @return slot indices grouped by region name
      * @since 1.1.3
      */
     @SuppressWarnings("SpellCheckingInspection")
@@ -762,8 +725,10 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @param slotNum
-     * @return returns the part of the mapping the slot is in.
+     * Returns the region name mapped to a menu slot index.
+     *
+     * @param slotNum menu slot index
+     * @return the region name containing the slot, or {@code null} if it is not mapped
      * @since 1.1.3
      */
     @DocletReplaceReturn("InvMapId | null")
@@ -783,7 +748,10 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @return the x/y position of the specified slot index
+     * Returns the inventory screen's top-left position, not the position of the specified slot.
+     *
+     * @param slot menu slot index; accessing it validates the index and fails if it is out of range
+     * @return the screen's top-left position
      * @since 1.8.4
      */
     public Pos2D getSlotPos(int slot) {
@@ -865,7 +833,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @return {@code true} if the inventory is a container, {@code false} otherwise.
+     * @return {@code true} for container, dispenser, hopper, or shulker-box screens; {@code false} otherwise
      * @since 1.8.4
      */
     public boolean isContainer() {
@@ -873,7 +841,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * @return
+     * @return the screen title as plain text
      * @since 1.2.3
      */
     public String getContainerTitle() {
@@ -881,37 +849,31 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     }
 
     /**
-     * the screen behind this handler, as a script sees it.
-     * <p>
-     * This is the same screen object the handler was built from, not a copy of it, so it is the
-     * way to get at the screen's own API when a script needs something this class does not wrap.
-     * It is {@code null} once {@link #close()} has been called, because that clears it.
+     * Returns the screen wrapped by this inventory, or {@code null} after {@link #close()}.
      * <p>
      * Unlike the methods around it this one carries no {@code @since}: the version it arrived in
-     * is not recorded anywhere, so it is left unstated rather than guessed.
-     * example:
-     * <pre>
-     * const inv = Player.openInventory();
-     * const screen = inv.getRawContainer();
-     * if (screen !== null) {
-     *   Chat.log(`the screen object is a ${screen.getClass().getName()}`);
-     * }
-     * </pre>
+     * is not recorded anywhere, so it is left unstated rather than guessed. [citation needed]
      *
-     * @return the screen this handler was built from
+     * @return the wrapped screen
      */
     @DocletReplaceReturn("IScreen")
     public T getRawContainer() {
         return this.inventory;
     }
 
+    /**
+     * Returns a diagnostic label containing this inventory's current screen name from {@link #getType()}.
+     * The result is not JSON serialization; the screen name is inserted without JSON escaping.
+     *
+     * @return a label in the form {@code Inventory:{"Type": "screen name"}}
+     */
     @Override
     public String toString() {
         return String.format("Inventory:{\"Type\": \"%s\"}", this.getType());
     }
 
     /**
-     * @return
+     * @return the menu's synchronization ID
      * @since 1.6.0
      */
     public int getCurrentSyncId() {

@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Final;
@@ -11,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.jsmacrosce.jsmacros.client.api.event.impl.EventResourcePackLoaded;
 
 @Mixin(LoadingOverlay.class)
+@DocletIgnore
 public class MixinSplashOverlay {
     @Shadow
     @Final

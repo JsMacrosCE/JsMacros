@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletIgnore;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -16,24 +17,13 @@ import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 /**
- * one request, built up and then sent, which is what {@code Request.create} hands back.<br>
- * The {@code Request} library's own one call forms are enough for most things, and this is the
- * form to reach for when a request needs more than they cover: several headers, a body on a
- * method other than POST, or one of the {@code send} overloads for a method that has no shortcut.
- * Every call on it returns the same object, so the setup and the send chain.<br>
- * The four public fields can be written directly as well, and the two setters do nothing but
- * assign to two of them, so a header can go on either way. The timeouts are applied whenever a
- * send opens a new connection; they do not impose an overall wall-clock request deadline.
- * <br>
- * The call blocks. A script waits for the server rather than for a callback, and that is true of
- * every form here, so pointing one at an unreachable host from inside a listener leaves the
- * event it is handling waiting as well. What comes back is a {@link Response}, and a status of
- * four hundred or more is not a failure: the body is the error page rather than the answer, and
- * the status is there to be checked. A connection that never gets that far is an
- * {@link IOException} instead.
- * example:
+ * A request configured with headers and timeouts, then sent synchronously to obtain a
+ * {@link Response}. Use the {@code send} overloads for methods or bodies not covered by the
+ * convenience methods; repeated sends open new connections using the current fields.
+ * Responses for status codes 400 and above are returned normally with the error stream as their
+ * body; connection or I/O failures throw {@link IOException}.
  * <pre>
- * // built once and then sent, with the setup chained onto the front
+ * // Configure once, then send.
  * const request = Request.create("https://example.com/api/echo")
  *   .addHeader("Content-Type", "application/json")
  *   .addHeader("User-Agent", "JsMacrosCE");
@@ -42,14 +32,12 @@ import java.util.stream.Collectors;
  * print(`status ${response.responseCode}`);
  * print(response.text());
  *
- * // a four hundred or more is a response rather than a failure, so the status
- * // is what gets checked and the body is the server's own
+ * // HTTP error statuses are responses too.
  * if (response.responseCode === 400) {
  *   print(`the server refused it: ${response.text()}`);
  * }
  *
- * // the same object can be sent again with a different method, and the byte
- * // array form of the body is the same call without the encoding step
+ * // The same request can be sent again with another method.
  * const second = request.send("PUT", "replacement");
  * print(`that one came back with ${second.responseCode} and ${second.text().length} characters`);
  * </pre>
@@ -60,48 +48,37 @@ import java.util.stream.Collectors;
 public class HTTPRequest {
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     /**
-     * the headers to put on the request, keyed by name, as a plain Java {@link Map} rather than a
-     * script object.<br>
-     * A new one is made for every request, so it can be written to directly and is not shared
-     * with anything. {@link #addHeader(String, String) addHeader} is the usual way to fill it in,
-     * and putting the same name twice replaces the earlier value rather than sending it twice.
+     * Headers to add to each request, keyed by name. This map is created per instance;
+     * {@link #addHeader(String, String)} updates it, replacing an existing entry with the same key.
      */
     public Map<String, String> headers = new HashMap<>();
     /**
-     * the address this request goes to, as a {@link URL}, which is what it was built from. It is
-     * never rewritten, so a request that is sent more than once always goes to the same place
-     * even if the fields around it are changed in between.
+     * URL opened for each send. The field is public and may be reassigned between sends.
      */
     public URL conn;
     /**
-     * the value handed to {@link #setConnectTimeout(int) setConnectTimeout}, in milliseconds,
-     * zero if it was never set.<br>
-     * Applied to each connection opened by this request. Zero means no connection timeout.
+     * Connection timeout in milliseconds, applied to each newly opened connection. Zero means no
+     * timeout.
      */
     public int connectTimeout;
     /**
-     * the value handed to {@link #setReadTimeout(int) setReadTimeout}, in milliseconds, zero if
-     * it was never set.<br>
-     * Applied to each connection opened by this request. Zero means no read timeout.
+     * Read timeout in milliseconds, applied to each newly opened connection. Zero means no
+     * timeout.
      */
     public int readTimeout;
 
+    /**
+     * Parses and stores a URL for later requests; this does not open a connection or send a request.
+     * An invalid URL string causes {@link java.net.MalformedURLException}.
+     *
+     * @param url the URL string to parse
+     */
     public HTTPRequest(String url) throws IOException {
         this.conn = new URL(url);
     }
 
     /**
-     * puts a header on the request, and is the same as putting the name and the value into
-     * {@link #headers}.<br>
-     * A name that is already there is replaced rather than added to, so a request cannot end up
-     * carrying the same header twice from this side.
-     * example:
-     * <pre>
-     * const request = Request.create("https://example.com/api/echo")
-     *   .addHeader("Content-Type", "application/json")
-     *   .addHeader("Authorization", "Bearer not-a-real-token");
-     * print(request.headers.get("Content-Type"));
-     * </pre>
+     * Adds or replaces a header entry in {@link #headers}.
      *
      * @param key   the header name, sent as it is given
      * @param value the header value
@@ -117,13 +94,6 @@ public class HTTPRequest {
      * Sets the connection-establishment timeout in milliseconds for subsequent sends.<br>
      * Zero means no timeout. This does not change a connection that has already been opened or
      * impose an overall deadline on the complete request.
-     * example:
-     * <pre>
-     * // applied when the request opens its connection
-     * const request = Request.create("https://example.com/api/status")
-     *   .setConnectTimeout(5000);
-     * print(request.connectTimeout);
-     * </pre>
      *
      * @param timeout the connection timeout, in milliseconds
      * @return self for chaining
@@ -164,7 +134,6 @@ public class HTTPRequest {
      * the input stream, so the body is the server's own error page and
      * {@link Response#responseCode} is there to be checked. A connection that never gets that far
      * is an {@link IOException}.
-     * example:
      * <pre>
      * const response = Request.create("https://example.com/api/status")
      *   .addHeader("Accept", "application/json")
@@ -176,7 +145,8 @@ public class HTTPRequest {
      * }
      * </pre>
      *
-     * @return the response, with its body still unread
+     * @return the response, with its body still unread; for an error status, the body stream may
+     *         be {@code null} if the connection supplies no error body
      * @throws IOException if the request could not be sent or the answer could not be reached
      * @since 1.1.8
      */
@@ -199,7 +169,6 @@ public class HTTPRequest {
      * replaced by the one computed here rather than being sent twice.<br>
      * The call blocks, and a status of four hundred or more comes back as a response carrying the
      * server's error page rather than as a failure.
-     * example:
      * <pre>
      * const response = Request.create("https://example.com/api/echo")
      *   .addHeader("Content-Type", "text/plain")
@@ -232,19 +201,9 @@ public class HTTPRequest {
     }
 
     /**
-     * sends the request as a POST with a byte array body and hands back what came of it.<br>
-     * This is {@link #post(java.lang.String) post} without the encoding step, so the bytes go out
-     * exactly as given, which is what makes it the form to use for a body that is not text. The
-     * length is put on as the {@code Content-Length} just the same.
-     * example:
-     * <pre>
-     * // posting a file a script ships, without going through text on the way
-     * const body = FS.open("payload.json").readBytes();
-     * const response = Request.create("https://example.com/api/upload")
-     *   .addHeader("Content-Type", "application/json")
-     *   .post(body);
-     * print(`status ${response.responseCode}`);
-     * </pre>
+     * Sends a POST request with the given bytes as its body, without encoding or modifying them.
+     * The byte count is sent as {@code Content-Length}; status codes 400 and above are returned
+     * as responses using the error stream as the body.
      *
      * @param data the body, which is sent as it is
      * @return the response, with its body still unread
@@ -270,11 +229,8 @@ public class HTTPRequest {
     }
 
     /**
-     * sends the request as a PUT with a text body and hands back what came of it.<br>
-     * This is {@link #post(java.lang.String) post} with {@code PUT} as the method, so the body is
-     * encoded as UTF-8 and the length is put on for you. There is no stream form of this, so a
-     * body that is not text goes through {@link #send(java.lang.String, byte[]) send} with
-     * {@code "PUT"} instead.
+     * Sends a PUT request with a text body encoded as UTF-8. The byte count is sent as
+     * {@code Content-Length}; use {@link #put(byte[]) put} to send bytes without text encoding.
      *
      * @param data the body, which is encoded as UTF-8
      * @return the response, with its body still unread
@@ -301,9 +257,8 @@ public class HTTPRequest {
     }
 
     /**
-     * sends the request as a PUT with a byte array body and hands back what came of it.<br>
-     * This is {@link #put(java.lang.String) put} without the encoding step, so the bytes go out
-     * exactly as given, and the length is put on as the {@code Content-Length} just the same.
+     * Sends a PUT request with the given bytes as its body, without encoding or modifying them.
+     * The byte count is sent as {@code Content-Length}.
      *
      * @param data the body, which is sent as it is
      * @return the response, with its body still unread
@@ -329,13 +284,9 @@ public class HTTPRequest {
     }
 
     /**
-     * sends the request with the method given and no body, and hands back what came of it.<br>
-     * This is the form for the verbs the other calls do not cover, such as {@code DELETE} or
-     * {@code HEAD}. The method is passed to the connection as it is, so one the platform does not
-     * know is refused there rather than being checked first.<br>
-     * Nothing is written to the connection, so this cannot carry a body; for one that can, use
-     * {@link #send(java.lang.String, java.lang.String) send} with the method and the data.
-     * example:
+     * Sends a request with the given method and no body. The method is passed to the connection
+     * unchanged; a method unsupported by the platform is rejected there. Use a body-taking
+     * {@link #send(java.lang.String, java.lang.String) overload} to send a body.
      * <pre>
      * const response = Request.create("https://example.com/api/session/1")
      *   .addHeader("Authorization", "Bearer not-a-real-token")
@@ -361,12 +312,8 @@ public class HTTPRequest {
     }
 
     /**
-     * sends the request with the method given and a text body, and hands back what came of it.<br>
-     * This is the general form of the calls that send a body: the method is passed to the
-     * connection as it is, the text is encoded as UTF-8, and the length is put on as the
-     * {@code Content-Length}. It is what the {@code post} and {@code put} calls are, with the
-     * method spelled out, and it is the one to reach for a verb that has no shortcut and does
-     * want a body.
+     * Sends a request with the given method and a text body encoded as UTF-8. The byte count is
+     * sent as {@code Content-Length}; the method is passed to the connection unchanged.
      *
      * @param method the HTTP method to use, which must be one the platform knows
      * @param data   the body, which is encoded as UTF-8
@@ -395,11 +342,9 @@ public class HTTPRequest {
     }
 
     /**
-     * sends the request with the method given and a byte array body, and hands back what came of
-     * it.<br>
-     * This is {@link #send(java.lang.String, java.lang.String) send} without the encoding step, so
-     * the bytes go out exactly as given, which is what makes it the form to use for a body that is
-     * not text. The length is put on as the {@code Content-Length} just the same.
+     * Sends a request with the given method and the given bytes as its body, without encoding or
+     * modifying them. The byte count is sent as {@code Content-Length}; the method is passed to
+     * the connection unchanged.
      *
      * @param method the HTTP method to use, which must be one the platform knows
      * @param data   the body, which is sent as it is
@@ -427,31 +372,9 @@ public class HTTPRequest {
     }
 
     /**
-     * what came back: the status, the headers, and a body that has not been read yet.<br>
-     * A script gets one of these from any of the sending calls on {@link HTTPRequest}, and never
-     * makes one, so the three fields are all there is to look at. A status of four hundred or more
-     * is not a special case: the body has already been taken from the connection's error stream
-     * in that case, so {@link #text()} gives the server's error page and
-     * {@link #responseCode} is the thing to branch on.<br>
-     * The body is read out of the stream the first time {@link #text()} or
-     * {@link #byteArray()} asks for it, and only once, so asking a second time gives the same
-     * answer rather than an empty one. The two forms do not read independently, though: whichever
-     * comes first reads the stream to its end, so a {@link #text()} followed by a
-     * {@link #byteArray()} gives an empty array rather than the body.
-     * example:
-     * <pre>
-     * const response = Request.get("https://example.com/api/status");
-     * if (response.responseCode === 200) {
-     *   print(response.text());
-     * } else {
-     *   print(`status ${response.responseCode} said: ${response.text()}`);
-     * }
-     *
-     * // the response headers are a java Map of lists, since a name can come
-     * // back more than once
-     * const type = response.headers === null ? null : response.headers.get("Content-Type");
-     * print(`the server called it ${type}`);
-     * </pre>
+     * Holds a response status and headers plus its unread body stream. Sending methods return
+     * responses for HTTP error statuses as well as successful statuses. The body is consumed by
+     * {@link #text()} or {@link #byteArray()}; whichever reads first leaves no data for the other.
      * @author Wagyourtail
      * @since 1.1.8
      */
@@ -460,29 +383,20 @@ public class HTTPRequest {
         @Nullable
         private String text;
         /**
-         * the headers the server sent, as a plain Java {@link Map} from a name to every value
-         * that came back under it, which is why a name is a list rather than a single string. A
-         * name is spelled as the platform spelled it, so it can be in a different case than a
-         * header a script sent.<br>
-         * This is {@code null} when the response was made without any, which is the case for a
-         * {@code Response} built by hand rather than by one of the sending calls, so it has to be
-         * checked before use.
+         * Response headers as a map from each name to its returned values. This is {@code null}
+         * when the response was constructed with {@code null} headers.
          */
         @Nullable
         public Map<String, List<String>> headers;
         /**
-         * the status the server answered with, such as 200 or 404. This is an ordinary number
-         * rather than anything wrapped, so it is compared directly.
+         * The response status code.
          */
         public int responseCode;
 
         /**
-         * wraps a connection's stream, status and headers. A script does not call this; it is what
-         * every sending call on {@link HTTPRequest} builds once the answer has arrived, and the
-         * stream is the connection's, so the body is only there to be read once.
+         * Wraps a body stream, status code, and optional response headers.
          *
-         * @param inputStream  the body stream, taken from the error stream when the status was
-         *                     four hundred or more and from the input stream otherwise
+         * @param inputStream  the body stream
          * @param responseCode the status the server answered with
          * @param headers      the response headers, or {@code null} to leave
          *                     {@link #headers} unset
@@ -496,21 +410,10 @@ public class HTTPRequest {
         }
 
         /**
-         * the body as text, decoded as UTF-8 whatever charset the server named in its headers.<br>
-         * The stream is read to its end the first time this is called and the result is kept, so
-         * calling it again gives the same string rather than an empty one. Line endings are joined
-         * back with a single {@code \n}, so a body that arrived with other endings comes back
-         * with these.<br>
-         * A body that is not text is still handed over, with the bytes decoded, so
-         * {@link #byteArray()} is the form to use for anything binary. Whichever of the two is
-         * called first is the one that does the reading, and the other then finds nothing left.
-         * example:
-         * <pre>
-         * const response = Request.get("https://example.com/api/status");
-         * // asking twice is fine, the second one is the same string
-         * print(response.text().length);
-         * print(response.text().length);
-         * </pre>
+         * Reads the response body as UTF-8 text, ignoring any charset named in the response headers.
+         * Line terminators are removed and remaining lines are joined with {@code \n}. The result
+         * is cached for subsequent calls. Reading consumes the body stream, so calling
+         * {@link #byteArray()} afterward returns no bytes.
          *
          * @return the body, or an empty string for an empty one
          * @since 1.1.8
@@ -527,12 +430,14 @@ public class HTTPRequest {
         }
 
         /**
-         * Don't use this. Parse {@link HTTPRequest.Response#text()} in the guest language
+         * Consumes the body by calling {@link #text()}, then returns {@code null}. This method is
+         * deprecated; parse the result of {@link #text()} in the guest language instead.
          *
-         * @return
+         * @return {@code null} after consuming the response body
          * @since 1.1.8
          * @deprecated
          */
+        @DocletIgnore
         @Deprecated
         public Object json() {
             text();
@@ -540,13 +445,8 @@ public class HTTPRequest {
         }
 
         /**
-         * the body as raw bytes, with no decoding and no charset involved. This is the form to use
-         * for an image, an archive or anything else that is not text, and for a body a script wants
-         * to hand straight on to a file.<br>
-         * The stream is read to its end, so if {@link #text()} was called first there is nothing
-         * left and this gives an empty array rather than failing. The two are not interchangeable
-         * after the fact; pick one before reading.
-         * example:
+         * Reads the response body as raw bytes, without decoding. This consumes the body stream;
+         * if {@link #text()} was called first, this returns an empty array.
          * <pre>
          * // saving a download beside the script that fetched it
          * const response = Request.get("https://example.com/assets/logo.png");

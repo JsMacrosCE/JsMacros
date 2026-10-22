@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.gui.font.TextFieldHelper;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
 import net.minecraft.network.chat.Component;
@@ -11,6 +13,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import com.jsmacrosce.jsmacros.client.access.ISignEditScreen;
 
 @Mixin(AbstractSignEditScreen.class)
+@DocletIgnore
 public abstract class MixinSignEditScreen implements ISignEditScreen {
 
     @Shadow

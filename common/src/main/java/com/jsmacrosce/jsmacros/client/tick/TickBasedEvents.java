@@ -16,6 +16,16 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.player.EventHeldItemChange;
 import com.jsmacrosce.jsmacros.client.api.event.impl.world.EventTick;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FClient;
 
+/**
+ * Provides client tick bookkeeping and native {@code ItemStack} comparison helpers.
+ * <pre>
+ * const Ticks = Java.type('com.jsmacrosce.jsmacros.client.tick.TickBasedEvents');
+ * const player = Player.getPlayer();
+ * if (player !== null) {
+ *   Chat.log(Ticks.areNotEqual(player.getMainHand().getRaw(), player.getOffHand().getRaw()));
+ * }
+ * </pre>
+ */
 public class TickBasedEvents {
     private static ItemStack mainHand = ItemStack.EMPTY;
     private static ItemStack offHand = ItemStack.EMPTY;
@@ -28,14 +38,30 @@ public class TickBasedEvents {
     private static long counter = 0;
 
     /**
-     * Interact with this through {@code FClient#ping}, {@code FClient#pingAsync}, {@code FClient#cancelAllPings}
+     * Client server-status pinger used by {@link FClient#ping}, {@link FClient#pingAsync}, and {@link FClient#cancelAllPings}.
      */
     public static final ServerStatusPinger serverListPinger = new ServerStatusPinger();
 
+    /**
+     * Tests whether these stacks differ by emptiness, item identity, count, components, or damage value.
+     * Both empty stacks compare as not different.
+     * @param a the first non-null stack
+     * @param b the second non-null stack
+     * @return {@code true} if exactly one stack is empty or the nonempty stacks differ by a listed check; {@code false} otherwise
+     */
     public static boolean areNotEqual(ItemStack a, ItemStack b) {
         return (!a.isEmpty() || !b.isEmpty()) && (a.isEmpty() || b.isEmpty() || !ItemStack.isSameItem(a, b) || a.getCount() != b.getCount() || !a.getComponents().equals(b.getComponents()) || a.getDamageValue() != b.getDamageValue());
     }
 
+    /**
+     * Tests component entries from {@code a} against the raw value for each component type in {@code b}, ignoring damage.
+     * This iterates only {@code a}'s components; it does not compare item identity or count. Because each entry is compared
+     * directly with the raw value from {@code b}, this is not a symmetric or full component-value equality test.
+     * Both empty stacks pass; exactly one empty stack does not.
+     * @param a the non-null first stack whose component entries are iterated
+     * @param b the non-null second stack supplying component values
+     * @return {@code true} for two empty stacks or when both stacks are nonempty and every non-damage entry from {@code a} passes the described comparison; {@code false} otherwise
+     */
     public static boolean areTagsEqualIgnoreDamage(ItemStack a, ItemStack b) {
         if (a.isEmpty() && b.isEmpty()) {
             return true;
@@ -47,6 +73,14 @@ public class TickBasedEvents {
         }
     }
 
+    /**
+     * Tests whether stacks are both empty or are nonempty stacks with the same item and count whose components pass
+     * {@code areTagsEqualIgnoreDamage}. That helper compares first-stack entries with raw second-stack values,
+     * so this is not a general equality test excluding damage.
+     * @param a the first non-null stack
+     * @param b the second non-null stack
+     * @return {@code true} for two empty stacks, or when both nonempty stacks have the same item and count and pass the component test; {@code false} otherwise
+     */
     public static boolean areEqualIgnoreDamage(ItemStack a, ItemStack b) {
         return (a.isEmpty() && b.isEmpty()) || (!a.isEmpty() && !b.isEmpty() && ItemStack.isSameItem(a, b) && a.getCount() == b.getCount() && areTagsEqualIgnoreDamage(a, b));
     }

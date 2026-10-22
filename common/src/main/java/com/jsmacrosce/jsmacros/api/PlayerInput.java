@@ -10,38 +10,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * One tick's worth of player input, bundled up: how far the two movement axes are pushed, the two
- * view angles, and the three state keys. A script builds these, hands them to
- * {@link com.jsmacrosce.jsmacros.client.api.library.impl.FPlayer the Player library}, and the
- * movement queue plays them back one per client tick, so twenty of them is a second of scripted
- * walking. This is a plain data holder: nothing here talks to the game.<br>
- * Every field is public and writable, so an input can be built up after the fact, and the
- * constructors that leave values out just default them to {@code 0} or {@code false}. Build one
- * empty and assign the fields when the values are only known later, which is what the
- * {@code Player.moveForward} family does.<br>
- * What the queue makes of a queued input is narrower than the fields suggest, and it is worth
- * knowing before scripting against it. The playback path only ever asks each field a yes or no
- * question: the two movement axes are compared against {@code 0} to decide whether the forward,
- * back, left and right keys are faked as pressed, and whatever magnitude sits in between is
- * thrown away, so {@code 0.5} and {@code 1} walk identically and only {@code 0} differs, by
- * standing still, which is also what stops a sprint. The three booleans are handed straight
- * through as key presses. The two view angles are not applied to the player at all, so neither
- * of them turns or tilts them; {@code yaw} and {@code pitch} say what they do reach instead.<br>
- * The angles are absolute rather than offsets from wherever the player is currently looking, so
- * {@code 0} on the yaw means south and not "keep facing the same way". The
- * {@code Player.moveForward} family adds the player's current yaw for you before queueing, which
- * is the relative form of that, but since the queued yaw is not what steers the player those
- * calls are in practice a shorthand for "hold forward" in whichever direction they already face.<br>
- * An input is copied when it is queued, so changing one afterwards has no effect on what the queue
- * plays back. That is deliberate, and it means you can safely reuse the same object for a whole
- * run of ticks.
- * example:
+ * Data for one tick of queued player input. Playback uses the signs of the movement axes to select
+ * key presses and sets the player's yaw and pitch from this input; fractional magnitudes do not
+ * scale movement. Prediction also uses the axis magnitudes and angles. Inputs are copied when
+ * queued, so later changes to this object do not affect the queued copy.
  * <pre>
- * // one tick of "hold forward", level pitch, nothing else pressed.
- * // the yaw here says south, and the queue walks whichever way the player is
- * // already facing, so this only steers the prediction on the next line
+ * // one tick of "hold forward" facing south, level pitch, nothing else pressed
  * const step = Player.createPlayerInput(1, 0, 0, 0, false, false, false);
- * // where that single tick would end up, without actually taking it
+ * // where that single tick would end up, without adding it to the movement queue
  * Chat.log(`one tick of walking puts me at ${Player.predictInput(step)}`);
  *
  * // a second of walking is the same input twenty times over
@@ -56,91 +32,45 @@ import java.util.Map;
 public class PlayerInput {
     private static final Gson gson = new Gson();
     /**
-     * how hard the player is pushed forwards or backwards, in the range the game itself uses for
-     * that axis: {@code 1} is holding the forward key, {@code -1} is holding the back key and
-     * {@code 0} is neither.<br>
-     * Only the sign of this reaches the player. The playback path compares it against {@code 0}
-     * to decide whether the forward or the back key is faked as pressed, and the game then walks
-     * at its own walking speed, so a value in between walks exactly as fast as {@code 1} rather
-     * than at a fraction of it: a half speed walk is not something this field can ask for today.
-     * The magnitude is only honoured by the prediction dummy, which scales the axis by
-     * {@code 0.98} and walks with it, so a prediction of a fractional walk is not what the player
-     * would do.<br>
-     * {@code 0} is also what stops a sprint, since a sprint only survives while this axis is
-     * still pushing forwards.
+     * Forward/back movement input; positive is forward, negative is backward, and zero is neutral.
+     * Prediction passes this value through as the forward component of movement input.
      */
     public float movementForward;
     /**
-     * how hard the player is pushed left or right, in the same way as
-     * {@code movementForward}: {@code 1} is holding the left key, {@code -1} is
-     * holding the right key and {@code 0} is neither. As with that field, only the sign reaches
-     * the player, so a value in between strafes at the same speed as {@code 1} rather than at a
-     * fraction of it.
+     * Sideways movement input; positive is left, negative is right, and zero is neutral. Prediction
+     * passes this value through as the sideways component of movement input.
      */
     public float movementSideways;
     /**
-     * the absolute yaw the input's movement is resolved against, in degrees, in the game's own
-     * convention: {@code 0} is south, {@code 90} is west, {@code -90} is east and {@code 180} is
-     * north. It is absolute rather than an offset from wherever the player is looking, so a value
-     * of {@code 0} always means south and never "keep facing the same way". The relative form
-     * lives in {@code Player.moveForward} and the rest, which add the player's current yaw for
-     * you before queueing the input.<br>
-     * What it reaches today is narrower than it looks. The movement queue only takes its sign: it
-     * compares the two movement axes against {@code 0} to decide which key presses to fake, and
-     * resolves the direction of travel against the player's real, current yaw rather than this
-     * one, so setting this does not turn the player and the direction of travel does not come
-     * from it. Nothing in the playback path ever assigns this yaw to the player, so a relative
-     * yaw is not relative to anything either and those calls walk the player in whatever
-     * direction they are already facing. The one consumer of this field is the prediction dummy
-     * that {@code Player.predictInput} runs, which does set its own rotation to it, so the value
-     * is still worth filling in to keep the prediction honest, but a prediction is a guess: it
-     * will disagree with where the player actually goes whenever this does not match the player's
-     * own yaw, and the queue logs that difference in its debug output when it happens.
+     * Absolute yaw in degrees: 0 faces south, +90 west, 180 north, and -90 east. Playback sets the
+     * player's yaw from this value; prediction sets the simulated entity's yaw from it.
      */
     public float yaw;
     /**
-     * the absolute pitch the input is recorded with, in degrees, in the game's own convention:
-     * negative is up, positive is down, and {@code 0} is level.<br>
-     * The movement queue never applies it. The player keeps whatever pitch they are already at,
-     * since nothing in the playback path assigns a pitch, and so this does not change where a
-     * queued input takes them. It is still worth setting, since
-     * {@link com.jsmacrosce.jsmacros.client.api.library.impl.FPlayer#getCurrentPlayerInput()
-     * getCurrentPlayerInput()} reads it back out of the real player, and it is what a queued
-     * input's own {@code toString} and {@code fromJson} round trip preserves.
+     * Absolute pitch in degrees; positive values point down and negative values point up. Playback
+     * sets the player's pitch from this value; prediction sets the simulated entity's pitch from it.
      */
     public float pitch;
     /**
-     * whether the jump key is held for this tick. A jump only comes out of it when the player is
-     * on the ground, and after one fires there is a short cooldown during which further ticks with
-     * this set do nothing, so repeating the same input does not produce a jump every tick.
+     * Whether jump is requested for this tick. In prediction, it only jumps when grounded and
+     * its cooldown is zero; holding this value true does not reset the cooldown.
      */
     public boolean jumping;
     /**
-     * whether the sneak key is held for this tick, which the movement queue turns into a faked
-     * shift key press so that the game itself lowers the player. It is read as the state the
-     * player should be in rather than as an edge, so it applies from the first tick it is set and
-     * stays until a tick sets it back.<br>
-     * The prediction dummy also scales both movement axes down by {@code 0.3} for a crouch, and
-     * that part lags by one tick: the scale is applied against whether the dummy was already
-     * crouching when the tick began, not against this field, so a predicted crouch is not slowed
-     * on the tick it starts and still is on the tick it ends. That is a detail of the crouch
-     * state rather than of this field, which is set and read at the right time either way.
+     * Whether sneak is requested for this tick. Prediction applies crouch movement scaling based
+     * on the dummy's crouching state at the start of the tick, so the scaling lags a tick behind
+     * changes to this value.
      */
     public boolean sneaking;
     /**
-     * whether the player is sprinting for this tick. Starting a sprint needs this set, the
-     * movement forward axis actually pushing forwards, and no sneaking, and once a sprint is going
-     * it keeps going only while the forward axis is still pushing, so setting this on an input
-     * that stands still does nothing.
+     * Whether sprint is requested for this tick. Prediction starts sprinting only when this is
+     * true, sneaking is false, and the forward axis is positive; an existing sprint ends when the
+     * forward axis is not positive or a horizontal collision occurs.
      */
     public boolean sprinting;
 
     /**
-     * Creates a new {@code PlayerInput} Object with all values set either to 0 or false.
-     * <br>
-     * The other constructor that takes every value is
-     * {@code PlayerInput(movementForward, movementSideways, yaw, pitch, jumping, sneaking, sprinting)},
-     * which takes seven arguments in that order.
+     * Creates an input with all axes and angles set to zero and all key states false.
      *
      * @since 1.4.0
      */
@@ -149,7 +79,8 @@ public class PlayerInput {
     }
 
     /**
-     * Creates a new {@code PlayerInput} Object with all other values set either to 0 or false.
+     * Creates an input with the supplied forward and sideways axes and yaw; pitch and key states
+     * default to zero/false.
      *
      * @param movementForward  1 = forward input (W); 0 = no input; -1 = backward input (S)
      * @param movementSideways 1 = left input (A); 0 = no input; -1 = right input (D)
@@ -161,11 +92,9 @@ public class PlayerInput {
     }
 
     /**
-     * Creates a new {@code PlayerInput} Object with all other values set either to 0 or false.<br>
-     * Note that the second argument here is the yaw, not the sideways axis, so the sideways axis
-     * of the result is {@code 0}. Use
-     * {@code PlayerInput(movementForward, movementSideways, yaw, pitch, jumping, sneaking, sprinting)}
-     * when a sideways push is wanted as well.
+     * Creates an input with the supplied forward axis, yaw and key states; sideways movement and
+     * pitch default to zero, and sneaking defaults to false. The second argument is yaw, not the
+     * sideways axis; use the seven-argument constructor to supply sideways movement.
      *
      * @param movementForward  1 = forward input (W); 0 = no input; -1 = backward input (S)
      * @param yaw             absolute yaw of the player, in degrees
@@ -178,10 +107,7 @@ public class PlayerInput {
     }
 
     /**
-     * Creates a new {@code PlayerInput} Object with all double values converted to floats.<br>
-     * This is the same shape as the seven argument {@code float} constructor, with the four
-     * numbers taken as {@code double}s so that a value computed in script does not have to be
-     * narrowed first.
+     * Creates an input from double-precision axis and angle values, narrowing them to floats.
      *
      * @param movementForward  1 = forward input (W); 0 = no input; -1 = backward input (S)
      * @param movementSideways 1 = left input (A); 0 = no input; -1 = right input (D)
@@ -197,9 +123,7 @@ public class PlayerInput {
     }
 
     /**
-     * Creates a new {@code PlayerInput} Object, taking every value.<br>
-     * This is the one to reach for when every field is known up front; the shorter constructors
-     * exist to leave the fields a script does not care about at their defaults.
+     * Creates an input with every field explicitly supplied.
      *
      * @param movementForward  1 = forward input (W); 0 = no input; -1 = backward input (S)
      * @param movementSideways 1 = left input (A); 0 = no input; -1 = right input (D)
@@ -221,10 +145,7 @@ public class PlayerInput {
     }
 
     /**
-     * Creates a clone {@code PlayerInput} Object, field for field.<br>
-     * The result is an ordinary object, so writing to it afterwards does not touch {@code input}.
-     * This is what the movement queue uses when an input is queued, which is why a queued input
-     * cannot be changed by editing the object that was handed over.
+     * Copies all fields from {@code input} into an independent object.
      *
      * @param input the {@code PlayerInput} object to be cloned
      * @since 1.4.0
@@ -240,33 +161,18 @@ public class PlayerInput {
     }
 
     /**
-     * Parses each row of CSV string into a {@code PlayerInput}.
-     * The capitalization of the header matters.<br>
-     * About the columns:
-     * <ul>
-     *   <li> {@code movementForward} and {@code movementSideways} as a number</li>
-     *   <li>{@code yaw} and {@code pitch} as an absolute number</li>
-     *   <li>{@code jumping}, {@code sneaking} and {@code sprinting} have to be boolean</li>
-     * </ul>
-     * <p>
-     * The separation must be a "," it's a csv...(but spaces don't matter)<br>
-     * Quoted values don't work
-     * <br>
-     * The first line is always read as the header, so it names the columns rather than
-     * describing an input of its own, and every later line has to have exactly as many commas as
-     * that header does. A line that does not is quietly skipped rather than reported, so a
-     * malformed row disappears from the result instead of raising anything.<br>
-     * The values are read by looking up a field of this class by the header's name, so the header
-     * has to spell a field exactly and a name that does not is an error rather than a skipped
-     * column. A number that is not one is a runtime error too, while a boolean that is not one
-     * reads as {@code false}, since only the text {@code true} counts as true. A column left out of
-     * the header entirely simply keeps its default on every input that comes back.
-     * example:
+     * Parses CSV rows into inputs. The first line supplies case-sensitive field-name headers;
+     * subsequent rows must have the same number of columns or are skipped. Fields omitted from
+     * the header retain their defaults. Values are comma-separated, spaces are removed, and
+     * quoted CSV values are not supported. For parsed rows, unknown field names throw
+     * {@link NoSuchFieldException}, private field names throw {@link IllegalAccessException},
+     * and invalid numeric values throw {@link NumberFormatException}. Boolean values are parsed
+     * with {@link Boolean#valueOf(String)}.
      * <pre>
      * const csv = `movementForward,movementSideways,yaw,pitch,jumping,sneaking,sprinting
      * 1,0,90,0,false,false,true
      * 1,0,90,0,false,false,true`;
-     * // two ticks of sprinting to the west
+     * // queue two input ticks
      * const steps = Player.createPlayerInputsFromCsv(csv);
      * let i = 0;
      * while (i !== steps.size()) {
@@ -276,11 +182,7 @@ public class PlayerInput {
      * </pre>
      *
      * @param csv CSV string to be parsed
-     * @return {@code List<PlayerInput>} Each row parsed as a {@code PlayerInput}
-     * @throws NoSuchFieldException if a header names something on this class that is not a field
-     *                              at all
-     * @throws IllegalAccessException if a header names a private field, which is the one field on
-     *                                this class a script may not set
+     * @return Inputs parsed from rows with the expected number of columns
      * @since 1.4.0
      */
     public static List<PlayerInput> fromCsv(String csv) throws NoSuchFieldException, IllegalAccessException {
@@ -303,22 +205,17 @@ public class PlayerInput {
     }
 
     /**
-     * Parses a JSON string into a {@code PlayerInput} Object<br>
-     * Capitalization of the keys matters.
-     * <br>
-     * The names are the field names of this class, and a key that names nothing is ignored rather
-     * than reported, so a document with a field left out simply comes back with that field at its
-     * default. This reads a whole JSON object, so the text has to include the enclosing braces,
-     * which the {@link #toString(boolean) varNames} form of {@code toString} does not.
-     * example:
+     * Parses a JSON value into a {@code PlayerInput}. Keys use the field names; keys not matching
+     * fields are ignored, and omitted fields retain their defaults. The JSON must be a complete
+     * object, including braces.
      * <pre>
-     * // the Player library's name is plural but it hands back a single input
+     * // Parse one input from JSON
      * const step = Player.createPlayerInputsFromJson('{"movementForward": 1, "yaw": 90, "sprinting": true}');
      * Player.addInput(step);
      * </pre>
      *
      * @param json JSON string to be parsed
-     * @return The JSON parsed into a {@code PlayerInput}
+     * @return The parsed input
      * @since 1.4.0
      */
     public static PlayerInput fromJson(String json) {
@@ -326,13 +223,11 @@ public class PlayerInput {
     }
 
     /**
-     * Converts a Map keyed by this class's field names into a {@code PlayerInput}, starting from
-     * an all default input so that any field the map leaves out keeps its default.
-     * Reads the same field names {@link #fromCsv(String) fromCsv()} does, one parsed row at a
-     * time, so this is where a CSV's header and commas turn into the map this takes.
+     * Converts a map of field names and string values into an input; omitted fields retain their
+     * defaults. Unknown or private field names throw, and numeric values must parse as floats.
      *
      * @param input Map to be converted
-     * @return The map converted into a {@code PlayerInput}
+     * @return The converted input
      * @since 1.4.0
      */
     private static PlayerInput fromMap(Map<String, String> input) throws NoSuchFieldException, IllegalAccessException {
@@ -352,38 +247,13 @@ public class PlayerInput {
     }
 
     /**
-     * Converts the current object into a string, as a run of {@code name: value} pairs separated
-     * by {@code ", "} over all seven fields, in the order the JVM reports them, which is normally
-     * the order they are declared.<br>
-     * With {@code varNames} set the field names are included, and the result is the body of a JSON
-     * object rather than a whole one: it has no braces around it, so it has to be wrapped in
-     * {@code { }} before {@link #fromJson(String) fromJson()} will read it. With {@code varNames}
-     * clear the names are left out and the result is a single CSV row with no header, which
-     * {@link #fromCsv(String) fromCsv()} also cannot read on its own since it always treats the
-     * first line as the header.<br>
-     * In both cases the floats are written as plain numbers, so the text reads back fine; the
-     * booleans come out as the words {@code true} and {@code false}.<br>
-     * This is the way to save an input taken from
-     * {@link com.jsmacrosce.jsmacros.client.api.library.impl.FPlayer#getCurrentPlayerInput()
-     * getCurrentPlayerInput()} and feed it back in later, in either of those two forms. That call
-     * reads straight off the local player behind a plain assert, so it throws outside a world
-     * rather than handing back an empty input, and the guard belongs on the caller.
-     * example:
-     * <pre>
-     * // getCurrentPlayerInput() dereferences the local player, so there is
-     * // nothing to save outside a world
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   const saved = Player.getCurrentPlayerInput();
-     *   // the pairs, ready to drop between a pair of braces
-     *   print(`{${saved.toString(true)}}`);
-     *   // one CSV row, ready to go under a header
-     *   print(`movementForward,movementSideways,yaw,pitch,jumping,sneaking,sprinting\n${saved.toString(false)}`);
-     * }
-     * </pre>
-     *
-     * @param varNames whether to include variable Names(=JSON) or not(=CSV)
-     * @return The {@code PlayerInput} object as a string
+     * Returns the fields as comma-separated text. With {@code varNames} true, it returns quoted
+     * field names and values (a JSON object body without braces); otherwise, it returns values
+     * only (a CSV row without a header). Neither result alone is accepted by the corresponding
+     * parser: wrap the named form in braces for {@link #fromJson(String)}, or provide a header for
+     * {@link #fromCsv(String)}.
+     * @param varNames whether to include field names in the output
+     * @return The field representation described above
      * @since 1.4.0
      */
     public String toString(boolean varNames) {
@@ -416,6 +286,11 @@ public class PlayerInput {
         return stringBuilder.toString();
     }
 
+    /**
+     * Returns the public fields declared by {@code PlayerInput} as {@code PlayerInput{name=value, ...}}.
+     * Field order is not guaranteed.
+     * @return A representation of this input's declared public fields
+     */
     @Override
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder();
@@ -441,6 +316,11 @@ public class PlayerInput {
         return stringBuilder.toString();
     }
 
+    /**
+     * Copies the seven movement, rotation, and action fields into a new base {@code PlayerInput};
+     * fields added by a subclass are not retained.
+     * @return An independent base {@code PlayerInput} copy
+     */
     @Override
     public PlayerInput clone() {
         return new PlayerInput(this);

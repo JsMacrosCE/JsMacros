@@ -11,15 +11,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.UUID;
 
 /**
- * Fired when the {@code ClientboundPlayerInfoRemovePacket} packet is received and a known player
- * uuid is removed from the playerInfoMap map.
- * <br>
- * Note: This event may not be fired on all servers.
- * <br>
- * The event is raised once per entry the packet removes, as each one is taken back out of the
- * player list, so one packet carrying several uuids raises it several times. It is not
- * cancellable, and there is nothing to stop: the entry leaves the player list either way.
- * example:
+ * Fired when a matching player-list entry is removed from the client player list. The event is
+ * not cancellable.
  * <pre>
  * JsMacros.on("PlayerLeave", JavaWrapper.methodToJava(function (event) {
  *   const name = event.player.getName();
@@ -33,33 +26,41 @@ import java.util.UUID;
 @Event(value = "PlayerLeave", oldName = "PLAYER_LEAVE")
 public class EventPlayerLeave extends BaseEvent {
     /**
-     * The UUID of the player that was removed.
-     * <br>
-     * For example, {@code "069a79f4-44e9-4726-a5be-fca90e38aaf5"} is the value for Notch.
-     * <br>
-     * This is the uuid the packet addressed, so it is also the key the entry was stored under,
-     * and it is what {@link #player} would report through
-     * {@link PlayerListEntryHelper#getUUID() getUUID()}.
+     * UUID of the entry being removed, in the standard dashed string form.
      */
     @NotNull
     public final String UUID;
 
     /**
-     * A helper for the removed player list entry.
-     * <br>
-     * It wraps the entry that is going away rather than a live tab list entry, so read what you
-     * need while the event is running. {@link PlayerListEntryHelper#getName() getName()} can be
-     * {@code null} for a profile the server has not given a name for.
+     * The removed player-list entry.
      */
     @NotNull
     public final PlayerListEntryHelper player;
 
+    /**
+     * Captures the UUID string and wraps the removed player-list entry for this event payload.
+     * A {@code null} UUID throws {@link NullPointerException} before the entry is wrapped. The
+     * arguments are required to be non-null; a null {@code player} violates that precondition and
+     * is retained as a null entry inside the helper. This constructor does not itself remove an
+     * entry, disconnect a player, or dispatch the event.
+     *
+     * @param uuid the required identifier whose string form is captured independently of the entry
+     * @param player the required player-list entry to wrap
+     */
     public EventPlayerLeave(@NotNull UUID uuid, @NotNull PlayerInfo player) {
         super(JsMacrosClient.clientCore);
         this.UUID = uuid.toString();
         this.player = new PlayerListEntryHelper(player);
     }
 
+    /**
+     * Returns a diagnostic representation containing the event name and the current helper
+     * representation of {@link #player}; it is not a JSON serialization or a rendering of the
+     * separately captured {@link #UUID} field. If the helper wraps a null entry, its representation
+     * throws {@link NullPointerException} while accessing that entry.
+     *
+     * @return the event name and helper representation in the form {@code %s:{"player": %s}}
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"player\": %s}", this.getEventName(), player);

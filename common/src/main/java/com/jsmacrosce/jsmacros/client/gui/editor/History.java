@@ -8,9 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-/**
- *
- */
+/** Records editor text edits and updates the current text and selection cursor when edits are applied or replayed. */
 @DocletIgnore
 public class History {
     protected int MAX_UNDO = JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).editorHistorySize;
@@ -26,15 +24,20 @@ public class History {
         this.cursor = cursor;
     }
 
-    /**
-     * @param position
-     * @param content
-     * @return is new step.
+    /** Inserts a character at a UTF-16 index; a tab becomes four spaces, and adjacent additions may share an undo step.
+     * @param position UTF-16 index at which to insert
+     * @param content character to insert
+     * @return {@code true} if a new undo step is recorded; {@code false} if the addition is grouped with the previous one
      */
     public synchronized boolean addChar(int position, char content) {
         return add(position, content == '\t' ? "    " : String.valueOf(content));
     }
 
+    /** Inserts text at a UTF-16 index and records it for undo; adjacent additions may be grouped unless the new text starts with a newline.
+     * @param position UTF-16 index at which to insert
+     * @param content text to insert
+     * @return {@code true} if a new undo step is recorded; {@code false} if the addition is grouped with the previous one
+     */
     public synchronized boolean add(int position, String content) {
         Add step = new Add(position, content, cursor);
         current = step.applyStep(current);
@@ -62,9 +65,10 @@ public class History {
 
     }
 
-    /**
-     * @param position
-     * @return is new step.
+    /** Deletes text starting at a UTF-16 index and records it for undo; deletions at the same start may be grouped.
+     * @param position UTF-16 index at which deletion starts
+     * @param length number of UTF-16 code units to delete
+     * @return {@code true} if a new undo step is recorded; {@code false} if the position equals the text length or the deletion is grouped
      */
     public synchronized boolean deletePos(int position, int length) {
         if (position == current.length()) {
@@ -94,9 +98,10 @@ public class History {
         return true;
     }
 
-    /**
-     * @param position
-     * @return is new step
+    /** Deletes text immediately before a UTF-16 index and records it for undo; adjacent backspaces may be grouped.
+     * @param position UTF-16 index immediately after the deletion range
+     * @param length number of UTF-16 code units to delete
+     * @return {@code true} if a new undo step is recorded; {@code false} if the position is negative or the deletion is grouped
      */
     public synchronized boolean bkspacePos(int position, int length) {
         if (position < 0) {
@@ -194,8 +199,8 @@ public class History {
         }
     }
 
-    /**
-     * @return position of step. -1 if nothing to undo.
+    /** Reverts the most recent recorded change, if any, and updates the text and cursor.
+     * @return the step's recorded position, or {@code -1} if no step is available
      */
     public synchronized int undo() {
         if (undo.size() > 0) {
@@ -213,8 +218,8 @@ public class History {
         return -1;
     }
 
-    /**
-     * @return position of step. -1 if nothing to redo.
+    /** Reapplies the most recently undone change, if any, and updates the text and cursor.
+     * @return the step's recorded position, or {@code -1} if no step is available
      */
     public synchronized int redo() {
         if (redo.size() > 0) {

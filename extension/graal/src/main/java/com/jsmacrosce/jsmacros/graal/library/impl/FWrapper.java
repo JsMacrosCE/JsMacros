@@ -14,28 +14,10 @@ import com.jsmacrosce.jsmacros.graal.language.impl.GraalScriptContext;
 import com.jsmacrosce.jsmacros.graal.language.impl.WrappedThread;
 
 /**
- * {@link FunctionalInterface} implementation for wrapping methods to match the language spec.
+ * Wraps script callbacks for use as Java {@link MethodWrapper}s through the {@code JavaWrapper} library.
  * <p>
- * An instance of this class is passed to scripts as the {@code JavaWrapper} variable.
- * <p>
- * GraalJS:
- * language spec requires that only one thread can hold an instance of the language at a time,
- * so this implementation uses a non-preemptive priority queue for the threads that call the resulting {@link MethodWrapper
- * MethodWrappers}.
- * <p>
- * JEP:
- * language spec requires everything to be on the same thread, on the java end, so all calls to {@link MethodWrapper
- * MethodWrappers}
- * call back to JEP's starting thread and wait for the call to complete. This means that JEP can sometimes have trouble
- * closing properly, so if you use any {@link MethodWrapper MethodWrappers}, be sure to call FConsumer#stop(), to close
- * the process,
- * otherwise it's a memory leak.
- * <p>
- * Jython:
- * no limitations
- * <p>
- * LUA:
- * no limitations
+ * Graal contexts are entered by one thread at a time. Calls through these wrappers are coordinated
+ * by a priority queue; asynchronous wrappers execute callbacks on the script thread pool.
  *
  * @author Wagyourtail
  * @since 1.2.5, re-named from {@code consumer} in 1.4.0
@@ -44,13 +26,26 @@ import com.jsmacrosce.jsmacros.graal.language.impl.WrappedThread;
 @SuppressWarnings("unused")
 public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext> implements IFWrapper<Value> {
 
+    /**
+     * Initializes this per-execution Java wrapper library for a Graal script context and language.
+     * The supplied context, language class, and the context's runner are retained by the library;
+     * construction does not create a language instance or start callback execution.
+     *
+     * @param ctx non-null script context associated with this library
+     * @param language language implementation class associated with the context
+     */
     public FWrapper(GraalScriptContext ctx, Class<? extends BaseLanguage<Context, GraalScriptContext>> language) {
         super(ctx, language);
     }
 
     /**
-     * @param c
-     * @return a new {@link MethodWrapper MethodWrapper}
+     * Wraps a callable for Java use; each wrapper call executes the script function synchronously and returns its result.
+     *
+     * @param c executable script function
+     * @param <A> type of the first callback argument
+     * @param <B> type of the second callback argument
+     * @param <R> callback result type
+     * @return wrapper that invokes {@code c} and returns its result
      * @since 1.3.2
      */
     @Override
@@ -60,8 +55,13 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
     }
 
     /**
-     * @param c
-     * @return a new {@link MethodWrapper MethodWrapper}
+     * Wraps a callable for Java use; each wrapper call schedules the script function on the script thread pool.
+     *
+     * @param c executable script function
+     * @param <A> type of the first callback argument
+     * @param <B> type of the second callback argument
+     * @param <R> callback result type
+     * @return wrapper that schedules {@code c}; callback failures are logged, not returned to the caller
      * @since 1.3.2
      */
     @Override
@@ -70,16 +70,23 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
         return new JSMethodWrapper<>(c, false, 5);
     }
 
+    /**
+     * Wraps a callable for asynchronous execution with an explicit queue priority. The other asynchronous overloads use priority 5.
+     *
+     * @param priority queue priority used to order callback execution
+     * @param c executable script function
+     * @param <A> type of the first callback argument
+     * @param <B> type of the second callback argument
+     * @param <R> callback result type
+     * @return wrapper that schedules {@code c}; callback failures are logged, not returned to the caller
+     */
     @Override
     public <A, B, R> MethodWrapper<A, B, R, ?> methodToJavaAsync(int priority, Value c) {
         return new JSMethodWrapper<>(c, false, priority);
     }
 
-    /**
-     * JS only, puts current task at end of queue.
-     * use with caution, don't accidentally cause circular waiting.
-     *
-     * @throws InterruptedException
+    /** Yields the current script task while the supplied sleep operation runs, then rejoins the queue at its existing priority.
+     * @throws InterruptedException if the task is interrupted while waiting to resume
      */
     @Override
     public void deferCurrentTask() throws InterruptedException {
@@ -87,11 +94,9 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
         });
     }
 
-    /**
-     * JS/JEP only, puts current task at end of queue.
-     * use with caution, don't accidentally cause circular waiting.
-     *
-     * @throws InterruptedException
+    /** Yields the current script task while the supplied sleep operation runs, then rejoins the queue with an adjusted priority.
+     * @param priorityAdjust amount added to the current task priority
+     * @throws InterruptedException if the task is interrupted while waiting to resume
      */
     @Override
     public void deferCurrentTask(int priorityAdjust) throws InterruptedException {
@@ -100,9 +105,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
     }
 
     /**
-     * JS/JEP only, puts current task at end of queue.
-     *
-     * @throws InterruptedException
+     * @return the current script task's queue priority
      */
     @Override
     public int getCurrentPriority() {
@@ -110,9 +113,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
         return ctx.tasks.peek().priority;
     }
 
-    /**
-     * Close the current context, more important in JEP as they won't close themselves if you use other functions in
-     * this class
+    /** Closes the current script context, including its Graal context.
      *
      * @since 1.2.2
      */

@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.multiplayer.chat.ChatListener;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
@@ -8,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import com.jsmacrosce.jsmacros.client.api.event.impl.EventTitle;
 
 @Mixin(ChatListener.class)
+@DocletIgnore
 public class MixinMessageHandler {
 
     //? if >=26.1 {

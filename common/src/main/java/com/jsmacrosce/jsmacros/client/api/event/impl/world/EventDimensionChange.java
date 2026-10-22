@@ -7,12 +7,10 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when a new world is set on the client, which happens when joining a world and whenever
- * the player travels to another dimension.<br>
- * It does not fire when the client leaves a world entirely, use
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.world.EventDisconnect Disconnect} for that.<br>
+ * Fires when the client begins setting a non-null world, such as when joining or changing
+ * dimensions. It does not fire when leaving a world; use
+ * {@link com.jsmacrosce.jsmacros.client.api.event.impl.world.EventDisconnect Disconnect} instead.
  * This event is not cancellable.
- * example:
  * <pre>
  * JsMacros.on("DimensionChange", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`Dimension changed to ${event.dimension}`);
@@ -25,18 +23,29 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "DimensionChange", oldName = "DIMENSION_CHANGE")
 public class EventDimensionChange extends BaseEvent {
     /**
-     * the id of the dimension the client just switched to, in {@code namespace:path} form,
-     * as reported by the world itself. Script type definitions narrow this to a {@code Dimension}
-     * union.
+     * The new world's dimension ID in {@code namespace:path} form; script type definitions narrow
+     * this value to a {@code Dimension} union.
      */
     @DocletReplaceReturn("Dimension")
     public final String dimension;
 
+    /**
+     * Stores the supplied dimension label in this event without validating or normalizing it.
+     * @param dimension dimension identifier label, conventionally in {@code namespace:path} form;
+     *                  may be {@code null} or any string
+     */
     public EventDimensionChange(String dimension) {
         super(JsMacrosClient.clientCore);
         this.dimension = dimension;
     }
 
+    /**
+     * Returns a diagnostic representation containing the event name and stored dimension label.
+     * The label is quoted but not escaped, so this is not guaranteed to be valid JSON; a null
+     * label appears as the quoted text {@code "null"}.
+     * @return the event name followed by {@code :{"dimension": "label"}}, with the stored
+     *         label substituted verbatim
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"dimension\": \"%s\"}", this.getEventName(), dimension);

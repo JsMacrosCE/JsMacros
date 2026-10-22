@@ -1,11 +1,14 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.gui.screens.inventory.MerchantScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import com.jsmacrosce.jsmacros.client.access.IMerchantScreen;
 
 @Mixin(MerchantScreen.class)
+@DocletIgnore
 public abstract class MixinMerchantScreen implements IMerchantScreen {
 
     @Shadow

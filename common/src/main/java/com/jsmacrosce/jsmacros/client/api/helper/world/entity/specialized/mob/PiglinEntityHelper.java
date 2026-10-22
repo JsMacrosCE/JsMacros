@@ -5,28 +5,14 @@ import net.minecraft.world.entity.monster.piglin.PiglinArmPose;
 import com.jsmacrosce.doclet.DocletCategory;
 
 /**
- * the piglin, and the six things it can be doing.
- * <p>
- * A piglin has one arm pose and the game works all six of these off that one value, so
- * they are six readings of the same number rather than six flags:
- * {@link #isWandering() isWandering} is the fallback the game returns when nothing else
- * applies, {@link #isDancing() isDancing} is the piglin dancing, {@link #isAdmiring()
- * isAdmiring} is it holding a loved item up to look at, and the other three are the
- * crossbow and the sword.
- * <p>
- * Exactly one of the six is true at a time, and they are read in the order the game works
- * them out in — dancing first, then admiring, then the melee swing, then the two crossbow
- * stages, with wandering as the fallback. So a piglin that is both admiring an item and
- * holding a loaded crossbow reports the admiring one. The zombification flag the piglin
- * family shares is on {@code AbstractPiglinEntityHelper}, one class up.
- * example:
+ * Provides access to the piglin's current arm-pose states. The arm-pose predicates are mutually exclusive; {@link #isDancing()} reads a separate state, so check it separately from the arm-pose predicates.
  * <pre>
  * const PiglinEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.PiglinEntityHelper");
  * const piglins = World.getEntities(32, "piglin");
  * if (piglins !== null) {
  *   for (const entity of piglins) {
  *     const piglin = PiglinEntityHelper.class.cast(entity);
- *     // one pose and six readings of it, so the order has to be the game's own
+ *     // Dancing is a separate state; the arm-pose predicates below are mutually exclusive.
  *     let doing = "wander";
  *     if (piglin.isDancing()) {
  *       doing = "dance";
@@ -66,32 +52,17 @@ import com.jsmacrosce.doclet.DocletCategory;
 @SuppressWarnings("unused")
 public class PiglinEntityHelper extends AbstractPiglinEntityHelper<Piglin> {
 
+    /** Wraps the supplied piglin entity and retains its reference for this helper.
+     * @param base piglin entity to wrap
+     */
     public PiglinEntityHelper(Piglin base) {
         super(base);
     }
 
     /**
-     * Whether the piglin is doing nothing special, which is the game's fallback pose: the
-     * game returns it once none of dancing, admiring, attacking, charging a crossbow or
-     * holding a loaded one applies. So this is the "none of the other five" reading rather
-     * than a flag of its own.
-     * example:
-     * <pre>
-     * const PiglinEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.PiglinEntityHelper");
-     * const piglins = World.getEntities(32, "piglin");
-     * if (piglins !== null) {
-     *   for (const entity of piglins) {
-     *     const piglin = PiglinEntityHelper.class.cast(entity);
-     *     if (piglin.isWandering()) {
-     *       // nothing special: not dancing, not admiring, no crossbow out
-     *       Chat.log(`a wandering piglin at ${piglin.getPos()}, health ${piglin.getHealth()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Whether the piglin's arm pose is {@code DEFAULT}.
      *
-     * @return {@code true} if this piglin is doing nothing special, {@code false}
-     * otherwise.
+     * @return {@code true} if this piglin's arm pose is {@code DEFAULT}; {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean isWandering() {
@@ -99,26 +70,9 @@ public class PiglinEntityHelper extends AbstractPiglinEntityHelper<Piglin> {
     }
 
     /**
-     * Whether the piglin is dancing, which the game keeps as a flag of its own rather than
-     * working out from what the piglin is holding. The game rewrites it every step of the
-     * piglin's brain from that brain's own dancing memory, and clears it once the memory
-     * of where the dancing started is gone.
-     * example:
-     * <pre>
-     * const PiglinEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.PiglinEntityHelper");
-     * const piglins = World.getEntities(32, "piglin");
-     * if (piglins !== null) {
-     *   for (const entity of piglins) {
-     *     const piglin = PiglinEntityHelper.class.cast(entity);
-     *     if (piglin.isDancing()) {
-     *       // a dancing piglin is not also admiring or holding a crossbow out
-     *       Chat.log(`a dancing piglin at ${piglin.getPos()}, wandering: ${piglin.isWandering()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+      * Whether the piglin is dancing.
      *
-     * @return {@code true} if this piglin is dancing to music, {@code false} otherwise.
+     * @return {@code true} if the piglin's dancing state is set, {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean isDancing() {
@@ -126,23 +80,7 @@ public class PiglinEntityHelper extends AbstractPiglinEntityHelper<Piglin> {
     }
 
     /**
-     * Whether the piglin is admiring an item, which is the pose the game puts on a piglin
-     * holding one of the items it loves — gold, for instance. It is a reading of what is in
-     * the off hand rather than a flag, so it follows the item rather than an animation.
-     * example:
-     * <pre>
-     * const PiglinEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.PiglinEntityHelper");
-     * const piglins = World.getEntities(32, "piglin");
-     * if (piglins !== null) {
-     *   for (const entity of piglins) {
-     *     const piglin = PiglinEntityHelper.class.cast(entity);
-     *     if (piglin.isAdmiring()) {
-     *       // whatever it is holding up is what the game calls a loved item
-     *       Chat.log(`a piglin at ${piglin.getPos()} is holding up ${piglin.getOffHand().getName().getString()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+      * Whether the piglin's arm pose is admiring an item.
      *
      * @return {@code true} if this piglin is admiring an item, {@code false} otherwise.
      * @since 1.8.4
@@ -152,26 +90,9 @@ public class PiglinEntityHelper extends AbstractPiglinEntityHelper<Piglin> {
     }
 
     /**
-     * Whether the piglin is swinging at something, which the game decides from two things
-     * at once: that it is aggressive and that what it has in its main hand is a melee
-     * weapon. A piglin holding a crossbow is never in this pose, however angry it is.
-     * example:
-     * <pre>
-     * const PiglinEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.PiglinEntityHelper");
-     * const piglins = World.getEntities(32, "piglin");
-     * if (piglins !== null) {
-     *   for (const entity of piglins) {
-     *     const piglin = PiglinEntityHelper.class.cast(entity);
-     *     if (piglin.isMeleeAttacking()) {
-     *       // aggressive with a melee weapon, rather than with a crossbow
-     *       Chat.log(`a piglin at ${piglin.getPos()} is swinging ${piglin.getMainHand().getName().getString()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+      * Whether the piglin's arm pose is the melee-attack pose.
      *
-     * @return {@code true} if this piglin is attacking another entity, {@code false}
-     * otherwise.
+     * @return {@code true} if the piglin's arm pose is {@code ATTACKING_WITH_MELEE_WEAPON}, {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean isMeleeAttacking() {
@@ -179,27 +100,9 @@ public class PiglinEntityHelper extends AbstractPiglinEntityHelper<Piglin> {
     }
 
     /**
-     * Whether the piglin is drawing a crossbow back. This is the charging stage, and the
-     * pose it puts on is the one the game means by charged: the piglin has not finished
-     * pulling the string yet, so {@link #hasCrossbowReady() hasCrossbowReady} is
-     * {@code false} for the same piglin.
-     * example:
-     * <pre>
-     * const PiglinEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.PiglinEntityHelper");
-     * const piglins = World.getEntities(32, "piglin");
-     * if (piglins !== null) {
-     *   for (const entity of piglins) {
-     *     const piglin = PiglinEntityHelper.class.cast(entity);
-     *     if (piglin.isChargingCrossbow()) {
-     *       // still pulling the string, so the crossbow is not ready yet
-     *       Chat.log(`a piglin at ${piglin.getPos()} is mid-draw`);
-     *     }
-     *   }
-     * }
-     * </pre>
+      * Whether the piglin's arm pose is the crossbow-charging pose; this is distinct from {@link #hasCrossbowReady()}.
      *
-     * @return {@code true} if this piglin is currently charging its crossbow, {@code false}
-     * otherwise.
+     * @return {@code true} if the piglin's arm pose is {@code CROSSBOW_CHARGE}, {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean isChargingCrossbow() {
@@ -207,27 +110,9 @@ public class PiglinEntityHelper extends AbstractPiglinEntityHelper<Piglin> {
     }
 
     /**
-     * Whether the piglin is holding a crossbow that is already loaded, which is the stage
-     * after {@link #isChargingCrossbow() isChargingCrossbow}. The game works this one out
-     * from the crossbow itself rather than from a flag, so it tracks the weapon the piglin
-     * actually has in its hand.
-     * example:
-     * <pre>
-     * const PiglinEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.PiglinEntityHelper");
-     * const piglins = World.getEntities(32, "piglin");
-     * if (piglins !== null) {
-     *   for (const entity of piglins) {
-     *     const piglin = PiglinEntityHelper.class.cast(entity);
-     *     if (piglin.hasCrossbowReady()) {
-     *       // the other half of the crossbow pair: loaded rather than loading
-     *       Chat.log(`a piglin at ${piglin.getPos()} has a loaded crossbow, charging: ${piglin.isChargingCrossbow()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+      * Whether the piglin's arm pose is the crossbow-hold pose.
      *
-     * @return {@code true} if this piglin has its crossbow fully charged, {@code false}
-     * otherwise.
+     * @return {@code true} if the piglin's arm pose is {@code CROSSBOW_HOLD}, {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean hasCrossbowReady() {

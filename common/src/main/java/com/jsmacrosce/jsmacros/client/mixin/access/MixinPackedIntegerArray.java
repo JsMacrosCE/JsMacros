@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.util.SimpleBitStorage;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -7,6 +9,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import com.jsmacrosce.jsmacros.client.access.IPackedIntegerArray;
 
 @Mixin(SimpleBitStorage.class)
+@DocletIgnore
 public class MixinPackedIntegerArray implements IPackedIntegerArray {
     @Shadow
     @Final

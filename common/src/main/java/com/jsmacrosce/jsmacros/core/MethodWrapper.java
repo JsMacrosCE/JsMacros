@@ -2,28 +2,28 @@ package com.jsmacrosce.jsmacros.core;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.core.language.BaseScriptContext;
 
 import java.util.Comparator;
 import java.util.function.*;
 
 /**
- * Wraps most of the important functional interfaces.
+ * Implements several Java functional interfaces in one callback wrapper, optionally associated with a script context.
+ * Script functions are commonly exposed through {@link com.jsmacrosce.jsmacros.core.library.IFWrapper}.
  *
- * @param <T>
- * @param <U>
- * @param <R>
- * @author Wagyourtail
- * @see com.jsmacrosce.jsmacros.core.library.IFWrapper
+ * @param <T> the first input type
+ * @param <U> the second input type
+ * @param <R> the result type
+ * @param <C> the associated script-context type
  */
 public abstract class MethodWrapper<T, U, R, C extends BaseScriptContext<?>> implements Consumer<T>, BiConsumer<T, U>, Function<T, R>, BiFunction<T, U, R>, Predicate<T>, BiPredicate<T, U>, Runnable, Supplier<R>, Comparator<T> {
 
     private final Object syncObject;
 
     /**
-     * This reference will keep the context from getting garbage-collected
-     * until there are no more registered method-wrappers. since the only other location
-     * is at {@link Core#getContexts()} and that's a weak set.
+     * The associated script context, or {@code null} when this wrapper was created without one. A non-null reference
+     * keeps that context reachable for as long as this wrapper remains reachable.
      */
     protected final C ctx;
 
@@ -32,56 +32,95 @@ public abstract class MethodWrapper<T, U, R, C extends BaseScriptContext<?>> imp
         syncObject = null;
     }
 
+    /**
+     * Associates this wrapper with a script context, marks it as having had a method wrapper invoked, and captures its synchronization object.
+     * @param containingContext the context associated with this wrapper; must not be {@code null}
+     */
     public MethodWrapper(C containingContext) {
         ctx = containingContext;
         ctx.hasMethodWrapperBeenInvoked = true;
         syncObject = ctx.getSyncObject();
     }
 
+    /** Returns the script context associated with this wrapper, or {@code null} for a contextless wrapper.
+     * @return the associated context, or {@code null} if none was set
+     */
     @Nullable
     public C getCtx() {
         return ctx;
     }
 
+    /** Accepts one input value.
+     * @param t the input value
+     */
     @Override
     public abstract void accept(T t);
 
+    /** Accepts two input values.
+     * @param t the first input value
+     * @param u the second input value
+     */
     @Override
     public abstract void accept(T t, U u);
 
+    /** Applies this callback to one input value and returns its result.
+     * @param t the input value
+     * @return the callback result, which may be {@code null}
+     */
     @Override
     public abstract R apply(T t);
 
+    /** Applies this callback to two input values and returns its result.
+     * @param t the first input value
+     * @param u the second input value
+     * @return the callback result, which may be {@code null}
+     */
     @Override
     public abstract R apply(T t, U u);
 
+    /** Tests one input value and returns the callback's boolean result.
+     * @param t the input value
+     * @return the callback's boolean result
+     */
     @Override
     public abstract boolean test(T t);
 
+    /** Tests two input values and returns the callback's boolean result.
+     * @param t the first input value
+     * @param u the second input value
+     * @return the callback's boolean result
+     */
     @Override
     public abstract boolean test(T t, U u);
 
     /**
-     * override to return true if the method can't join to the context it was wrapped/created in, ie for languages that don't allow multithreading.
+     * Returns whether callbacks in this wrapper must not join their creating script context.
+     * Override for script languages that do not support joining.
      */
+    @DocletIgnore
     @Deprecated
     public boolean preventSameScriptJoin() {
         return !ctx.isMultiThreaded();
     }
 
     /**
-     * make return something to override the thread set in {@link com.jsmacrosce.jsmacros.core.library.impl.FJsMacros#on(String, MethodWrapper)}
-     * (hi jep)
+     * Returns the thread to use for an event callback instead of the thread captured at registration, or {@code null} to use the captured thread.
+     * @return the alternative callback thread, or {@code null} to use the captured thread
      */
     public Thread overrideThread() {
         return null;
     }
 
     /**
-     * Makes {@link Function} and {@link BiFunction} work together.
-     * Extended so it's called on every type not just those 2.
+     * Composes this wrapper with {@code after}. Function and supplier calls pass this wrapper's result
+     * to {@code after}; consumer and runnable calls invoke this wrapper and then run {@code after} if it
+     * is a {@code MethodWrapper}. Predicate calls pass their boolean result to {@code after} if it is a
+     * {@code MethodWrapper}; otherwise they return this wrapper's predicate result unchanged. Comparator
+     * calls retain this wrapper's comparison result and run {@code after} only if it is a {@code MethodWrapper}.
      *
-     * @param after put a {@link MethodWrapper} here when using in scripts.
+     * @param after function applied to results, or a {@link MethodWrapper} for callback-style calls
+     * @param <V> the result type produced by {@code after}
+     * @return a wrapper that composes this wrapper with {@code after}
      */
     @NotNull
     @Override
@@ -90,7 +129,8 @@ public abstract class MethodWrapper<T, U, R, C extends BaseScriptContext<?>> imp
     }
 
     /**
-     * Makes {@link Predicate} and {@link BiPredicate} work together
+     * Returns a wrapper with inverted predicate results and negated comparator results; other operations are delegated unchanged.
+     * @return the negated wrapper
      */
     @NotNull
     @Override

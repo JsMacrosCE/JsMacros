@@ -6,17 +6,11 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires once per client tick, at a fixed point in the tick after the key macro check, the tick
- * synchronizer and the server list pinger have run.<br>
- * It fires no matter what the client is doing, so a {@code null} player, a loaded world and the
- * title screen all produce ticks. Nothing in the world is guaranteed to have changed since the
- * previous tick, check the helpers you use for that.<br>
- * This event is not cancellable, and it is cheap to fire but not cheap to receive, so avoid
- * doing heavy work in the listener.
- * example:
+ * Fires after the key-macro check, tick synchronizer, and server-list pinger on each client tick.
+ * It fires without a player or loaded world and cannot be cancelled.
  * <pre>
  * const listener = JsMacros.on("Tick", JavaWrapper.methodToJava(function () {
- *   // runs 20 times a second while the client is running
+ *   // runs on each client tick
  * }));
  * // later
  * JsMacros.off(listener);
@@ -27,10 +21,14 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @DocletCategory("World")
 @Event(value = "Tick", oldName = "TICK")
 public class EventTick extends BaseEvent {
+    /** Initializes this event with the client core; it does not fire the event. */
     public EventTick() {
         super(JsMacrosClient.clientCore);
     }
 
+    /** Returns the event name followed by {@code :{}}.
+     * @return the event name followed by {@code :{}}
+     */
     @Override
     public String toString() {
         return String.format("%s:{}", this.getEventName());

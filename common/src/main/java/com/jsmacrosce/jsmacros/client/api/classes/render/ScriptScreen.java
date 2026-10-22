@@ -14,29 +14,11 @@ import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import com.jsmacrosce.wagyourgui.BaseScreen;
 
 /**
- * just go look at {@link IScreen IScreen}
- * since all the methods are done through a mixin...
+ * The screen implementation returned by {@code Hud.createScreen}, exposed through {@link IScreen}.
  * <p>
- * That is the interface a script actually uses: this class is what
- * {@code Hud.createScreen(String, boolean)} hands back, and almost everything on it
- * comes from the mixin that makes any screen an {@code IScreen}. Read that for the
- * widgets, the element methods, the input callbacks and the builders, and read this for
- * the handful of things a screen has that an overlay does not.
- * <p>
- * What a screen has and a 2D overlay does not is that it is <em>opened</em> rather than
- * registered, and that it is the game's own screen class, so opening one pauses the game
- * in singleplayer and takes the mouse. Its elements and widgets are in the same screen
- * space as an overlay's and mean the same thing.
- * <p>
- * The three public fields here are the settings a script screen has of its own. The
- * {@code dirt} argument to the constructor decides the background rather than being a
- * field of its own: {@code true} asks for the game's own background and {@code false}
- * leaves it transparent, so the world shows straight through. The fields are read by the
- * game on each frame, so changing one takes effect on the next one.
- * example:
  * <pre>
  * const screen = Hud.createScreen("my screen", true);
- * // a screen with no title bar drawn on it
+ * // Hide the rendered title text without changing the screen's title.
  * screen.drawTitle = false;
  * Hud.openScreen(screen);
  * </pre>
@@ -48,24 +30,19 @@ import com.jsmacrosce.wagyourgui.BaseScreen;
 @DocletCategory("Screen and UI Elements")
 public class ScriptScreen extends BaseScreen {
     /**
-     * whether the screen's title is drawn at the top.
-     * <p>
-     * On, the title is drawn centred near the top of the screen in white. Turning it off
-     * hides it without changing the title itself, so
-     * {@link IScreen#getTitleText()} still reports it and a script can still put it
-     * somewhere else as an ordinary text element.
-     * <p>
-     * This is a field rather than a setter, and it is {@code true} on a new screen.
+     * Whether the screen title is drawn. Changing this field affects subsequent renders;
+     * it does not change the title returned by {@link IScreen#getTitleText()}.
      *
      * @since 1.0.5
      */
     public boolean drawTitle;
     /**
-     * WARNING: this can break the game if you set it false and don't have a way to close the screen.
+     * Whether this screen permits closing with Escape; an open overlay can still prevent
+     * closing.
      * @since 1.8.4
      */
     public boolean shouldCloseOnEsc = true;
-    /**
+    /** Whether the game pauses while this screen is open.
      * @since 1.8.4
      */
     public boolean shouldPause = true;
@@ -73,6 +50,14 @@ public class ScriptScreen extends BaseScreen {
     @Nullable
     private MethodWrapper<Pos3D, GuiGraphics, Object, ?> onRender;
 
+    /**
+     * Sets up a screen with the supplied literal title and optional menu-background rendering.
+     * The title must be non-null; an empty title is allowed. This constructor does not open the screen.
+     * Passing {@code null} for {@code title} causes a {@code NullPointerException}.
+     *
+     * @param title non-null literal screen title, not a translation key
+     * @param dirt whether to request the screen's menu-background rendering step
+     */
     public ScriptScreen(String title, boolean dirt) {
         super(Component.literal(title), null);
         this.bgStyle = dirt ? 0 : 1;
@@ -87,24 +72,10 @@ public class ScriptScreen extends BaseScreen {
     }
 
     /**
-     * Closing this screen opens that one instead of whatever was open before, which is
-     * what a chain of screens is built from: a settings screen leading back to a menu
-     * screen, say. With no parent set the screen goes back to the game itself, which is
-     * the same as opening nothing.
-     * <p>
-     * This replaces the parent rather than adding one, so a screen has exactly one place
-     * to return to. It is read when the screen closes, so changing it while the screen is
-     * up is enough.
-     * example:
-     * <pre>
-     * const menu = Hud.createScreen("menu", true);
-     * const settings = Hud.createScreen("settings", true);
-     * // closing settings goes back to the menu, not to the game
-     * settings.setParent(menu);
-     * Hud.openScreen(settings);
-     * </pre>
+     * Sets the screen opened when this screen closes; without a parent, close behavior
+     * returns to the game if a world is loaded, or to no screen otherwise.
      *
-     * @param parent parent screen to go to when this one exits.
+     * @param parent screen to open on close
      * @since 1.4.0
      */
     public void setParent(IScreen parent) {
@@ -112,29 +83,14 @@ public class ScriptScreen extends BaseScreen {
     }
 
     /**
-     * add custom stuff to the render function on the main thread.
+     * Sets a callback that draws after the screen's widgets and overlay elements.
      * <p>
-     * The function runs at the end of every frame the screen is drawn, after the
-     * screen's own elements have been rendered, so anything it adds sits over them. It is
-     * given the mouse position and the current tick delta as a three component position,
-     * and the game's own graphics object for drawing with.
+     * It runs on the render path with mouse coordinates and tick delta in a
+     * {@link Pos3D}, plus the graphics object.
      * <p>
-     * A function that throws is called once more and then discarded: the failure is
-     * logged to the current profile and the callback is dropped, so the screen keeps
-     * rendering and the rest of the game is unaffected. That is a one-shot rather than a
-     * per-frame log, which is worth knowing before relying on it.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * screen.setOnRender(JavaWrapper.methodToJava(function (mouse, graphics) {
-     *   // mouse is a Pos3D: the x and y are the mouse and the z is the tick delta
-     *   const where = `at ${mouse.getX()}, ${mouse.getY()}`;
-     *   screen.addText(where, 0, 0, 0xFFFFFFFF, true);
-     * }));
-     * Hud.openScreen(screen);
-     * </pre>
+     * If the callback throws, the error is logged and the callback is cleared.
      *
-     * @param onRender pos3d elements are mousex, mousey, tickDelta
+     * @param onRender callback receiving mouse x, mouse y, and tick delta in a {@link Pos3D}, then the graphics object
      * @since 1.4.0
      */
     public void setOnRender(@Nullable MethodWrapper<Pos3D, GuiGraphics, Object, ?> onRender) {
@@ -142,8 +98,7 @@ public class ScriptScreen extends BaseScreen {
     }
 
     /**
-     * draws the screen: its background, its title, its widgets, its elements, and then
-     * whatever the render callback wants to add.
+     * Renders this screen.
      * <p>
      * The order is the background first if the screen asked for one, then the title if
      * {@code drawTitle} is on, then the widgets the game put on it, then the elements
@@ -160,7 +115,7 @@ public class ScriptScreen extends BaseScreen {
      *               elements
      * @param mouseY the current mouse position, in the same space as the screen's
      *               elements
-     * @param delta how far into the current tick this frame is, from 0 to 1
+     * @param delta frame delta in game ticks; not limited to 0–1
      * @author Wagyourtail
      * @since 1.0.5
      */
@@ -218,15 +173,7 @@ public class ScriptScreen extends BaseScreen {
     }
 
     /**
-     * closes this screen and goes back to whatever it was opened from.
-     * <p>
-     * This is the same as the player closing it, and it is what
-     * {@link IScreen#close()} ends up calling. It opens the parent screen rather than
-     * closing to the game directly, so a screen with no parent set goes back to the
-     * game itself; see {@link #setParent(IScreen)} for changing that.
-     * <p>
-     * With a parent set this opens that parent; otherwise it follows the superclass's normal
-     * close behavior. A parentless screen does not require a custom close action to leave it.
+     * Closes this screen, opening its parent if set; otherwise uses the superclass close behavior.
      *
      * @author Wagyourtail
      * @since 1.0.5
@@ -241,16 +188,9 @@ public class ScriptScreen extends BaseScreen {
     }
 
     /**
-     * whether the game is paused while this screen is open.
-     * <p>
-     * This is the field {@code shouldPause} read at the moment the game asks, so
-     * changing that field takes effect the next time a frame goes by. In singleplayer
-     * {@code true} is what stops the world moving behind the screen.
-     * <p>
-     * A screen that pauses cannot be closed by the world going on, so anything that has
-     * to keep running while one is open has to come from somewhere else.
+     * Whether the game pauses while this screen is open.
      *
-     * @return the value of the {@code shouldPause} field
+     * @return whether the game pauses
      * @author Wagyourtail
      * @since 1.0.5
      */
@@ -260,18 +200,10 @@ public class ScriptScreen extends BaseScreen {
     }
 
     /**
-     * whether escape closes this screen.
-     * <p>
-     * Two things have to agree: the {@code shouldCloseOnEsc} field on this screen, and
-     * whatever the underlying screen says, which is false while an overlay is open on
-     * top of it. Both being true is what lets escape through, so setting the field
-     * {@code false} is enough to keep the screen up no matter what else is going on.
-     * <p>
-     * The game reads this as the key is handled, so a screen that sets it
-     * {@code false} needs its own way out, such as a close button.
+     * Whether Escape closes this screen. The result also depends on the superclass,
+     * which prevents closing while an overlay is open.
      *
-     * @return the {@code shouldCloseOnEsc} field, anded with what the underlying screen
-     *         says
+     * @return whether this screen and its superclass permit Escape closing
      * @author Wagyourtail
      * @since 1.0.5
      */

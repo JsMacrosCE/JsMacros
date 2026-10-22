@@ -7,55 +7,13 @@ import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilte
 import java.util.Locale;
 
 /**
- * a filter that compares a number against a fixed one with an ordering operator.
- * <p>
- * This is the comparison behind a numeric builder step: the step supplies an operator and a
- * number, and each value the named method returns is tested against that number. The six
- * operators are {@code ">="}, {@code ">"}, {@code "<="}, {@code "<"}, {@code "=="} and
- * {@code "!="}.
- * <p>
- * The operator itself is not checked when the filter is built. The constructor stores it as
- * it was given and reads only the class of the number, so a name outside that set is first
- * met when a value is compared, and it is that comparison, during a scan, which throws.
- * This is the other way round from the string comparisons, which resolve a comparison name
- * in their constructor and refuse a name that is not one of their five there and then.
- * <p>
- * Two things about the comparison are worth knowing before relying on an equality test. The
- * first is that the width used comes from the <i>number the filter was given</i>, not from
- * the method being filtered. A number given as a decimal decides an equality test with a
- * small tolerance, so two values that differ only by rounding still count as equal; a number
- * given as a whole number is compared exactly, and a value of the same magnitude but a
- * different width is truncated to that width before the comparison, so a whole number target
- * truncates the candidate as well.
- * <p>
- * The second is that this is decided once, when the filter is built, from the class of the
- * number supplied. A number of some other numeric class, one that is not one of the six
- * widths above or their boxed forms, is accepted by the constructor and then has no
- * comparison to run, and testing such a filter throws.
- * <br>
- * <b>This class is not in the shipped TypeScript definitions and a script never names it.</b>
- * The builder constructs it whenever a named method returns one of the number types, and
- * supplies both arguments from the {@code is} step.
- * example:
- * <pre>
- * // getHardness is a declared public method of the block helper taking no
- * // parameters and returning a float, so the step takes an operator and a
- * // number. The ordering operators are exact at every width, so this is an
- * // exact greater-or-equal test whichever class the 10 arrives as
- * const hard = World.getWorldScanner()
- *   .withBlockFilter("getHardness").is(">=", 10)
- *   .build();
- * Chat.log(`${hard.scanAroundPlayer(2).size()} blocks with a hardness of 10 or more`);
- *
- * // getBlastResistance returns a float and the target 1200.5 is a decimal,
- * // so this runs as a comparison of doubles. The ordering operators are
- * // exact even so: only == and != get the tolerance, so the > here is a
- * // plain greater-than on the two values as they are
- * const strong = World.getWorldScanner()
- *   .withBlockFilter("getBlastResistance").is(">", 1200.5)
- *   .build();
- * Chat.log(`${strong.scanAroundPlayer(2).size()} very blast resistant blocks`);
- * </pre>
+ * Compares numeric candidates with a fixed target using {@code >=}, {@code >}, {@code <=},
+ * {@code <}, {@code ==} or {@code !=}. The target's runtime class selects the comparison
+ * width: byte, short, int and long comparisons narrow both operands to that width, while float
+ * and double comparisons use those respective conversions. Floating-point equality uses a
+ * tolerance of {@code 0.000001}; ordering comparisons are exact. An unsupported {@link Number}
+ * subclass is accepted at construction but causes an {@link IllegalArgumentException} when
+ * tested. An unsupported operator likewise causes that exception when a candidate is tested.
  *
  * @author Etheradon
  * @since 1.6.5
@@ -70,12 +28,8 @@ public class NumberCompareFilter implements IFilter<Number> {
     private final String numberType;
 
     /**
-     * fixes the operator and the number candidates are compared against.
-     * <p>
-     * The class of {@code compareTo} is inspected here, once, and decides which comparison
-     * runs later — including whether an equality test is exact or tolerant, and how wide a
-     * candidate is truncated to before the comparison. Passing a number as a string does not
-     * work: it is the class of the object, not its text, that is inspected.
+     * Sets the operator and comparison target. The target's runtime class selects the
+     * comparison width; the operator is not validated until a candidate is tested.
      *
      * @param operation the comparison to run, one of {@code ">="}, {@code ">"},
      *                  {@code "<="}, {@code "<"}, {@code "=="} or {@code "!="}
@@ -93,12 +47,7 @@ public class NumberCompareFilter implements IFilter<Number> {
     }
 
     /**
-     * names the width of a number, from its class.
-     * <p>
-     * A primitive and its boxed form give the same name, so the width does not depend on
-     * whether the value arrived boxed. A number of some other numeric class gives an empty
-     * name, which is not a width anything can be compared with, and the constructor does not
-     * object to it — the failure comes later, when the filter is tested.
+     * Returns the supported comparison width for the target's runtime class.
      *
      * @param compareTo the number to classify
      * @return the name of the width, one of {@code int}, {@code long}, {@code byte},
@@ -126,23 +75,7 @@ public class NumberCompareFilter implements IFilter<Number> {
     }
 
     /**
-     * tests a number against the fixed one.
-     * <p>
-     * This is a plain dispatch to whichever comparison matches the width of the fixed number,
-     * and it adds nothing of its own.
-     * <p>
-     * A script does not call this. It is what a builder step naming a method with a numeric
-     * return type ends up testing each value with.
-     * example:
-     * <pre>
-     * // getLuminance is a declared public method of the state helper taking
-     * // no parameters and returning an int, so the step takes an operator and
-     * // a number
-     * const bright = World.getWorldScanner()
-     *   .withStateFilter("getLuminance").is("==", 15)
-     *   .build();
-     * Chat.log(`${bright.scanAroundPlayer(2).size()} states emitting full light`);
-     * </pre>
+     * Tests a numeric candidate using the comparison width selected by the target.
      *
      * @param t the number to test
      * @return whether the comparison holds for {@code t}
@@ -157,14 +90,7 @@ public class NumberCompareFilter implements IFilter<Number> {
 
     // I know this is not ideal, but there is no easy way to compare dynamic numbers during runtime
     /**
-     * runs the comparison that matches the width of the fixed number.
-     * <p>
-     * The name decided in the constructor selects one of six private comparisons, but the
-     * name is switched on again on every test, and the comparison it picks switches on the
-     * operator in turn, so an operator outside the six is refused by the first test rather
-     * than when the filter is built. An empty name, which is what a number of an
-     * unrecognised numeric class gives, matches none of the six cases here and is refused
-     * instead.
+     * Dispatches to the comparison selected by the fixed target's width.
      *
      * @param num the number to test
      * @return whether the comparison holds for {@code num}
@@ -192,12 +118,8 @@ public class NumberCompareFilter implements IFilter<Number> {
     }
 
     /**
-     * compares as doubles, with a tolerance on an equality test.
-     * <p>
-     * The ordering comparisons are exact. The equality comparison is not: the two values are
-     * considered equal when the absolute difference between them is at most
-     * {@code 0.000001}, which is what lets a rounded decimal stand in for the value it was
-     * rounded from.
+     * Compares {@link Number#doubleValue()} values; ordering is exact, while equality and
+     * inequality use a tolerance of {@code 0.000001}.
      *
      * @param num the number to test
      * @param compareTo the fixed number
@@ -225,10 +147,8 @@ public class NumberCompareFilter implements IFilter<Number> {
     }
 
     /**
-     * compares as floats, with a tolerance on an equality test.
-     * <p>
-     * The ordering comparisons are exact. The equality comparison treats the two values as
-     * equal when the absolute difference between them is at most {@code 0.000001}.
+     * Compares {@link Number#floatValue()} values; ordering is exact, while equality and
+     * inequality use a tolerance of {@code 0.000001}.
      *
      * @param num the number to test
      * @param compareTo the fixed number
@@ -256,10 +176,7 @@ public class NumberCompareFilter implements IFilter<Number> {
     }
 
     /**
-     * compares as longs, exactly.
-     * <p>
-     * Both values are narrowed to a long before the comparison, so a value of a wider type
-     * than the fixed number is truncated. An equality test here is exact, with no tolerance.
+     * Compares {@link Number#longValue()} values using exact ordering and equality.
      *
      * @param num the number to test
      * @param compareTo the fixed number
@@ -287,11 +204,7 @@ public class NumberCompareFilter implements IFilter<Number> {
     }
 
     /**
-     * compares as ints, exactly.
-     * <p>
-     * Both values are narrowed to an int before the comparison, so a value of a wider type
-     * than the fixed number is truncated — a whole number that does not fit in an int wraps
-     * rather than saturating. An equality test here is exact, with no tolerance.
+     * Compares {@link Number#intValue()} values using exact ordering and equality.
      *
      * @param num the number to test
      * @param compareTo the fixed number
@@ -319,11 +232,7 @@ public class NumberCompareFilter implements IFilter<Number> {
     }
 
     /**
-     * compares as shorts, exactly.
-     * <p>
-     * Both values are narrowed to a short before the comparison, so a value of a wider type
-     * than the fixed number is truncated and may wrap. An equality test here is exact, with
-     * no tolerance.
+     * Compares {@link Number#shortValue()} values using exact ordering and equality.
      *
      * @param num the number to test
      * @param compareTo the fixed number
@@ -351,12 +260,8 @@ public class NumberCompareFilter implements IFilter<Number> {
     }
 
     /**
-     * compares as bytes, exactly.
-     * <p>
-     * Both values are narrowed to a byte before the comparison, so a value of a wider type
-     * than the fixed number is truncated and very likely wraps, since a byte holds a much
-     * smaller range than any of the others. An equality test here is exact, with no
-     * tolerance.
+     * Compares the operands' {@link Number#byteValue()} values using exact ordering and
+     * equality. Values outside the byte range are narrowed before comparison.
      *
      * @param num the number to test
      * @param compareTo the fixed number

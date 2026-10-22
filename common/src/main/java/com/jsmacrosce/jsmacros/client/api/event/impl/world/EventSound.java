@@ -8,16 +8,8 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires for every sound the client is about to play, right before it is handed to the sound
- * engine.<br>
- * This includes ambient and music sounds, block and entity sounds, and UI sounds, so the
- * {@link #position} is whatever coordinates the sound instance itself reports, which is not
- * necessarily a world position.<br>
- * This event is cancellable. Calling {@code cancel()} stops that one sound instance from playing,
- * the client keeps running and later sounds still fire normally.<br>
- * Note: {@link #sound} is {@code null} when the sound instance did not report an id, so check it
- * before comparing.
- * example:
+ * Fires when the sound engine receives a sound instance, before it attempts playback. The reported
+ * position may be relative rather than world coordinates. Cancelling prevents the playback attempt.
  * <pre>
  * JsMacros.on("Sound", JavaWrapper.methodToJava(function (event) {
  *   if (event.sound === null) {
@@ -36,28 +28,36 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "Sound", oldName = "SOUND", cancellable = true)
 public class EventSound extends BaseEvent {
     /**
-     * the id of the sound being played, as the sound instance reported it. Script type
-     * definitions narrow this to a {@code SoundId} union.<br>
-     * Note: {@code null} when the sound instance did not report an id.
+     * Sound id reported by the instance, or {@code null} if it reported none.
      */
     @DocletReplaceReturn("SoundId")
     public final String sound;
     /**
-     * the volume of this sound instance. {@code 1.0} is the unmodified volume.
+     * Volume reported by the sound instance; {@code 1.0} is the unmodified value. If reading the
+     * volume throws a {@code NullPointerException}, this is {@code 1.0}.
      */
     public final float volume;
     /**
-     * the pitch of this sound instance. {@code 1.0} is the unmodified pitch, higher values make
-     * the sound play faster and lower values slower.
+     * Pitch reported by the sound instance; {@code 1.0} is the unmodified value. If reading the
+     * pitch throws a {@code NullPointerException}, this is {@code 1.0}.
      */
     public final float pitch;
     /**
-     * the position the sound instance reported for this sound. For most sounds this is a world
-     * position, but sounds without a world position, such as UI sounds, report their own local
-     * coordinates.
+     * Coordinates reported by the sound instance; they may be relative rather than world coordinates.
      */
     public final Pos3D position;
 
+    /**
+     * Initializes this event with the supplied sound label, multipliers, and coordinates; it does
+     * not play a sound. The nullable label is stored as provided, and the coordinates are reported
+     * as supplied without conversion; they may be relative rather than world coordinates.
+     * @param sound nullable sound label; it is stored as provided, not looked up or validated
+     * @param volume supplied volume multiplier, stored unchanged
+     * @param pitch supplied pitch multiplier, stored unchanged
+     * @param x supplied x coordinate, stored unchanged
+     * @param y supplied y coordinate, stored unchanged
+     * @param z supplied z coordinate, stored unchanged
+     */
     public EventSound(String sound, float volume, float pitch, double x, double y, double z) {
         super(JsMacrosClient.clientCore);
         this.sound = sound;
@@ -66,6 +66,13 @@ public class EventSound extends BaseEvent {
         this.position = new Pos3D(x, y, z);
     }
 
+    /**
+     * Returns a diagnostic string containing the event name and quoted sound label. The label is
+     * not escaped; a null label appears as the quoted text {@code "null"}. Volume, pitch, and
+     * position are omitted.
+     * @return event name followed by {@code :{"sound": "..."}}; this is not a complete JSON
+     *         representation of the event
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"sound\": \"%s\"}", this.getEventName(), sound);

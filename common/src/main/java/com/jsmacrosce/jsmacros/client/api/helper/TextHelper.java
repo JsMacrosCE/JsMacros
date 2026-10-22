@@ -6,6 +6,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FChat;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
@@ -15,41 +16,29 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
- * a piece of rich text: some text, plus the colours, decorations and click or hover behaviour
- * that go with it.
+ * Wraps a Minecraft text component, which can contain text with different styles and click or
+ * hover behavior.
  * <p>
- * This is the game's own text object wrapped, which means it is not a flat string. One helper
- * can hold several runs with different formatting inside it, and
- * {@link #visit(com.jsmacrosce.jsmacros.core.MethodWrapper)} is how a script gets at them one at
- * a time, handing each run's {@link StyleHelper} alongside the run's own text;
- * {@link #getString()} flattens the whole thing to text and throws the formatting away.
+ * {@link #visit(com.jsmacrosce.jsmacros.core.MethodWrapper)} visits each text run with its
+ * {@link StyleHelper}; {@link #getString()} returns the flattened text without styling.
  * <p>
- * A helper is not something a script builds from nothing. It arrives as the return value of
- * something — a name tag, an item name, a menu label, a chat line — and the three
- * {@code Chat} calls that do take text build one from a plain string, a translation key or JSON:
- * {@code Chat.createTextHelperFromString}, {@code Chat.createTextHelperFromTranslationKey} and
- * {@code Chat.createTextHelperFromJSON}. The display calls, such as {@code Chat.log} and
- * {@code Chat.actionbar}, take one of those directly, or any other value and use its
- * {@code toString()}.
- * <br>
- * Two things follow from wrapping the game's object rather than copying it. Reading
- * {@link #getWidth()} asks the client's font, so it is only meaningful once that font is
- * loaded, and writing through {@link #replaceFromString(String)} replaces the text this helper
- * was built around rather than changing anything the game is showing.
- * example:
+ * Create helpers from strings, translation keys, or component JSON with the corresponding
+ * {@code Chat.createTextHelperFrom...} methods. {@link #replaceFromString(String)} replaces this
+ * helper's component; it does not update text already displayed elsewhere.
+ * <p>
  * <pre>
- * // build one, then read it back as flat text
+ * // Read the component's flattened text
  * const line = Chat.createTextHelperFromString("some styled line");
  * Chat.log(`flattened: ${line.getString()}`);
  *
- * // the formatting is per run, so visit walks the text
+ * // Inspect each formatted run
  * line.visit(JavaWrapper.methodToJava(function (style, run) {
  *   if (style.bold()) {
  *     Chat.log(`bold run: ${run}`);
  *   }
  * }));
  *
- * // a translation key is built the same way and handed straight to a display call
+ * // Build translated text for display
  * Chat.actionbar(Chat.createTextHelperFromTranslationKey("block.minecraft.stone"));
  * </pre>
  *
@@ -62,25 +51,9 @@ public class TextHelper extends BaseHelper<Component> {
     private static final Minecraft mc = Minecraft.getInstance();
 
     /**
-     * the pattern matching the old section-symbol formatting codes in a plain string.
-     * <p>
-     * This is what {@link #getStringStripFormatting()} and {@link #withoutFormatting()} use to
-     * strip the formatting out of a message some server sent as plain text with the codes typed
-     * into it, which is still how a few of them do it. It matches a section symbol followed by
-     * one of the code characters and nothing else, so a lone section symbol, or a section
-     * symbol followed by something that is not a code, is left alone. The characters it matches
-     * are twenty-two: the sixteen colour characters, {@code 0} to {@code 9} and {@code A} to
-     * {@code F}, and six modifier characters, {@code K} to {@code O} plus {@code R}. Note that
-     * {@code P} and {@code Q} are not codes and are not matched, so the modifiers are not a
-     * single unbroken run up to {@code R}. The pattern is case-insensitive, so a lower case
-     * code is matched too.
-     * <p>
-     * A script that wants the same thing on a string of its own can use this directly, which is
-     * the easy way to ask whether a message carries any formatting at all. Note that the
-     * generated TypeScript types {@code CharSequence} as a Java interface a JavaScript string
-     * does not satisfy, so calling {@code matcher} on a plain string from a typed script is
-     * reported as a type error even though it works at runtime; a script that only needs
-     * {@link #withoutFormatting()} should use that instead.
+     * Matches a section sign followed by a legacy formatting code ({@code 0-9}, {@code A-F},
+     * {@code K-O}, or {@code R}), case-insensitively. Used by
+     * {@link #getStringStripFormatting()} and {@link #withoutFormatting()}.
      * @since 1.0.8
      */
     public static final Pattern STRIP_FORMATTING_PATTERN = Pattern.compile("\u00a7[0-9A-FK-OR]", Pattern.CASE_INSENSITIVE);
@@ -89,6 +62,12 @@ public class TextHelper extends BaseHelper<Component> {
         super(t);
     }
 
+    /**
+     * Wraps a component in a helper, retaining the supplied component as-is.
+     *
+     * @param t the component to wrap, or {@code null}
+     * @return a new helper retaining {@code t}, or {@code null} when {@code t} is {@code null}
+     */
     public static TextHelper wrap(Component t) {
         if (t != null) {
             return new TextHelper(t);
@@ -98,26 +77,30 @@ public class TextHelper extends BaseHelper<Component> {
     }
 
     /**
-     * replace the text in this class with JSON data.
+     * This deprecated method is unsupported and always throws; use
+     * {@link FChat#createTextHelperFromJSON(String)} to create a helper from component JSON.
      *
-     * @param json
-     * @return
+     * @param json ignored
+     * @return never returns
      * @since 1.0.8
      * @deprecated use {@link FChat#createTextHelperFromJSON(String)} instead.
      */
+    @DocletIgnore
     @Deprecated
     public String replaceFromJson(String json) {
         throw new UnsupportedOperationException("replaceFromJson is deprecated, use FChat.createTextHelperFromJSON instead.");
     }
 
     /**
-     * replace the text in this class with {@link String} data.
+     * Replaces this helper's component with a literal string; this does not update text already
+     * displayed elsewhere.
      *
-     * @param content
-     * @return
+     * @param content literal text for the replacement component
+     * @return this helper
      * @since 1.0.8
      * @deprecated use {@link FChat#createTextHelperFromString(String)} instead.
      */
+    @DocletIgnore
     @Deprecated
     public TextHelper replaceFromString(String content) {
         base = Component.literal(content);
@@ -125,7 +108,7 @@ public class TextHelper extends BaseHelper<Component> {
     }
 
     /**
-     * @return JSON data representation.
+     * @return the component serialized as JSON using the current player's registry access
      * @since 1.2.7
      */
     public String getJson() {
@@ -134,7 +117,7 @@ public class TextHelper extends BaseHelper<Component> {
     }
 
     /**
-     * @return the text content.
+     * @return the component's flattened text, without style information
      * @since 1.2.7
      */
     public String getString() {
@@ -142,7 +125,7 @@ public class TextHelper extends BaseHelper<Component> {
     }
 
     /**
-     * @return the text content. stripped formatting when servers send it the (super) old way due to shitty coders.
+     * @return the flattened text with legacy section-sign formatting codes removed
      * @since 1.6.5
      */
     public String getStringStripFormatting() {
@@ -150,7 +133,7 @@ public class TextHelper extends BaseHelper<Component> {
     }
 
     /**
-     * @return the text helper without the formatting applied.
+     * @return a new helper containing the flattened text with legacy section-sign formatting codes removed
      * @since 1.8.4
      */
     public TextHelper withoutFormatting() {
@@ -158,7 +141,10 @@ public class TextHelper extends BaseHelper<Component> {
     }
 
     /**
-     * @param visitor function with 2 args, no return.
+     * Visits each text run with its style and text, then returns this helper.
+     *
+     * @param visitor callback receiving a {@link StyleHelper} and the run's text
+     * @return self for chaining
      * @since 1.6.5
      */
     public TextHelper visit(MethodWrapper<StyleHelper, String, Object, ?> visitor) {
@@ -170,7 +156,7 @@ public class TextHelper extends BaseHelper<Component> {
     }
 
     /**
-     * @return the width of this text.
+     * @return the rendered width of the component in client font units
      * @since 1.8.4
      */
     public int getWidth() {
@@ -178,17 +164,18 @@ public class TextHelper extends BaseHelper<Component> {
     }
 
     /**
-     * @return
+     * @return the component serialized as JSON using the current player's registry access
      * @since 1.0.8
      * @deprecated confusing name, use {@link #getJson()} instead.
      */
+    @DocletIgnore
     @Deprecated
     public String toJson() {
         return getJson();
     }
 
     /**
-     * @return String representation of text helper.
+     * @return a {@code TextHelper:{"text": "..."}} representation containing the flattened text
      * @since 1.0.8, this used to do the same as {@link #getString}
      */
     @Override

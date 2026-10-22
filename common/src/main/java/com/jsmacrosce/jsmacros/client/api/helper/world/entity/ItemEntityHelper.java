@@ -5,16 +5,9 @@ import net.minecraft.world.entity.item.ItemEntity;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
 /**
- * a dropped stack of items lying in the world, which the game calls an item entity.
- * <p>
- * An entity of this kind is one stack, not a container, so there is a single thing to
- * read off it and no inventory to walk. It is a snapshot wrapper like the other entity
- * helpers: {@code World.getEntities("item")} hands these back, and the stack a
- * particular one holds can change if a player picks it up and drops a different one in
- * the same spot.
- * example:
+ * A dropped stack of items in the world.
  * <pre>
- * // every dropped stack within ten blocks, as item entities
+ * // Log dropped stacks within ten blocks.
  * for (const entity of World.getEntities(10, "item")) {
  *   const stack = entity.asItem().getContainedItemStack();
  *   Chat.log(`${stack.getCount()} ${stack.getItemId()} at ${entity.getPos()}`);
@@ -24,35 +17,28 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 @SuppressWarnings("unused")
 @DocletCategory("Entity Helpers")
 public class ItemEntityHelper extends EntityHelper<ItemEntity> {
+    /**
+     * Wraps the supplied item entity.
+     * @param e raw item entity to wrap
+     */
     public ItemEntityHelper(ItemEntity e) {
         super(e);
     }
 
     /**
-     * the stack this entity is holding right now, which is the whole of what an item
-     * entity has. It can be an empty stack, which is what {@code isEmpty()} on the
-     * result is there to answer.
-     * <p>
-     * A dropped stack is not picked up by reading it. Nothing on this class changes the
-     * world, so a script that wants the items has to be the one that picks them up.
-     * example:
-     * <pre>
-     * for (const entity of World.getEntities(10, "item")) {
-     *   const stack = entity.asItem().getContainedItemStack();
-     *   if (stack.isEmpty()) {
-     *     continue;
-     *   }
-     *   // a count of zero and an empty stack are not the same thing
-     *   Chat.log(`${stack.getCount()} of ${stack.getItemId()}, named ${stack.getName()}`);
-     * }
-     * </pre>
+     * Returns the stack currently represented by this entity. The result may be empty;
+     * reading it does not pick up the items.
      *
-     * @return the stack this item entity is holding.
+     * @return the entity's current stack, possibly empty
      */
     public ItemStackHelper getContainedItemStack() {
         return new ItemStackHelper(base.getItem());
     }
 
+    /**
+     * Returns a diagnostic representation of this item entity and its contained stack.
+     * @return diagnostic representation of the item entity and its contained stack
+     */
     @Override
     public String toString() {
         return String.format("ItemEntityHelper:{\"containedStack\": %s}", getContainedItemStack().toString());

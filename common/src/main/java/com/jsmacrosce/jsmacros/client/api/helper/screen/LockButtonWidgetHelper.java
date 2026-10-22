@@ -10,16 +10,11 @@ import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * the padlock a real screen uses to hold a setting still: a small button that is either
- * locked or unlocked, and that the player clicks to change which.
+ * A lock button toggles between locked and unlocked when pressed. Its Minecraft widget
+ * is fixed at 20 by 20 pixels; its builder's size settings do not change that.
  * <p>
- * The padlock is drawn at a fixed size of its own, so a script building one only sets
- * where it goes. The size on the shared builder is not what decides how big the padlock
- * looks.
- * <p>
- * A script makes one through {@code IScreen.lockButtonBuilder()}, which starts unlocked,
- * or the form of that taking a boolean, which starts in the state given.
- * example:
+ * {@code IScreen.lockButtonBuilder()} starts unlocked; its boolean overload sets the
+ * initial state.
  * <pre>
  * const screen = Hud.createScreen("a screen", true);
  * const lock = screen.lockButtonBuilder()
@@ -42,26 +37,25 @@ import java.util.concurrent.atomic.AtomicReference;
 @SuppressWarnings("unused")
 public class LockButtonWidgetHelper extends ClickableWidgetHelper<LockButtonWidgetHelper, LockIconButton> {
 
+    /** Wraps the supplied lock button with the default z-index of zero.
+     *
+     * @param btn the lock button to wrap
+     */
     public LockButtonWidgetHelper(LockIconButton btn) {
         super(btn);
     }
 
+    /** Wraps the supplied lock button with the given drawing-order z-index.
+     *
+     * @param btn the lock button to wrap
+     * @param zIndex the helper's z-index for screen drawing order
+     */
     public LockButtonWidgetHelper(LockIconButton btn, int zIndex) {
         super(btn, zIndex);
     }
 
     /**
-     * whether the padlock is currently locked, read at the moment of the call. A lock
-     * the player has just clicked does not agree with what a script last set, so this is
-     * the one to read.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * const lock = screen.lockButtonBuilder().pos(10, 20).build();
-     * Hud.openScreen(screen);
-     * // a player can have clicked it, so read the lock rather than a value kept aside
-     * Chat.log(lock.isLocked() ? "locked" : "unlocked");
-     * </pre>
+     * Returns the button's current locked state.
      *
      * @return {@code true} if the button is locked, {@code false} otherwise.
      * @since 1.8.4
@@ -71,21 +65,8 @@ public class LockButtonWidgetHelper extends ClickableWidgetHelper<LockButtonWidg
     }
 
     /**
-     * locks or unlocks the padlock outright. This writes the state rather than pressing
-     * the button, so the action given to the builder does not run; a script that wants
-     * the action to see the change has to press the button instead.
-     * <p>
-     * The new state takes on the next draw rather than immediately, and it is the state
-     * {@link #isLocked()} reads back.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * const lock = screen.lockButtonBuilder().pos(10, 20).build();
-     * Hud.openScreen(screen);
-     * // written straight to the widget, so no action runs
-     * lock.setLocked(true);
-     * Chat.log(`locked: ${lock.isLocked()}`);
-     * </pre>
+     * Sets the locked state directly without pressing the button or invoking its action.
+     * The visual state is used on the next render.
      *
      * @param locked whether to lock the button or not
      * @return self for chaining.
@@ -96,30 +77,19 @@ public class LockButtonWidgetHelper extends ClickableWidgetHelper<LockButtonWidg
         return this;
     }
 
+    /** Returns a diagnostic string containing the current message and locked state.
+     * The message text is inserted without JSON escaping.
+     *
+     * @return a formatted diagnostic in the form {@code LockButtonWidgetHelper:{"message": "%s", "locked": %b}}
+     */
     @Override
     public String toString() {
         return String.format("LockButtonWidgetHelper:{\"message\": \"%s\", \"locked\": %b}", base.getMessage().getString(), isLocked());
     }
 
     /**
-     * the builder for a padlock, handed back by {@code IScreen.lockButtonBuilder()} and
-     * already bound to that screen. It starts unlocked, and the form of that taking a
-     * boolean starts in the state given.
-     * <p>
-     * The padlock is drawn at a size of its own, so a builder for one usually only sets
-     * where it goes. The state set here is the starting state, and a lock on screen can
-     * be changed afterwards through the helper.
-     * example:
-     * <pre>
-     * const screen = Hud.createScreen("a screen", true);
-     * const builder = screen.lockButtonBuilder(true)
-     *    .pos(10, 20);
-     * // the starting state is readable on the builder before anything is built
-     * Chat.log(`starts locked: ${builder.isLocked()}`);
-     * const lock = builder.build();
-     * Hud.openScreen(screen);
-     * Chat.log(`built locked: ${lock.isLocked()}`);
-     * </pre>
+     * Builder for a lock button bound to its screen. It starts unlocked unless the
+     * boolean overload of {@code IScreen.lockButtonBuilder()} specifies otherwise.
      *
      * @author Etheradon
      * @since 1.8.4
@@ -131,21 +101,17 @@ public class LockButtonWidgetHelper extends ClickableWidgetHelper<LockButtonWidg
         @Nullable
         private MethodWrapper<LockButtonWidgetHelper, IScreen, Object, ?> action;
 
+        /** Stores the screen to which {@code build()} will add the created widget.
+         *
+         * @param screen the screen associated with this builder
+         */
         public LockButtonBuilder(IScreen screen) {
             super(screen);
         }
 
         /**
-         * whether the padlock will be built locked, which is only the starting state and
-         * says nothing about the lock after it has been on screen. It starts unlocked.
-         * example:
-         * <pre>
-         * const screen = Hud.createScreen("a screen", true);
-         * const builder = screen.lockButtonBuilder();
-         * Chat.log(`starts locked: ${builder.isLocked()}`);
-         * builder.locked(true);
-         * Chat.log(`now: ${builder.isLocked()}`);
-         * </pre>
+         * Returns the initial locked state configured for this builder. The default is
+         * unlocked; this does not track the button after it is built.
          *
          * @return the initial state of the lock button.
          * @since 1.8.4
@@ -155,18 +121,7 @@ public class LockButtonWidgetHelper extends ClickableWidgetHelper<LockButtonWidg
         }
 
         /**
-         * sets the state the padlock is built locked in. This is only where it starts:
-         * the lock can be changed afterwards through the helper, and a player can click
-         * it, so this number is not what it will go on being.
-         * example:
-         * <pre>
-         * const screen = Hud.createScreen("a screen", true);
-         * screen.lockButtonBuilder()
-         *    .pos(10, 20)
-         *    .locked(true)
-         *    .build();
-         * Hud.openScreen(screen);
-         * </pre>
+         * Sets the button's initial locked state; it does not constrain later changes.
          *
          * @param locked whether to initially lock the button or not
          * @return self for chaining.
@@ -178,7 +133,7 @@ public class LockButtonWidgetHelper extends ClickableWidgetHelper<LockButtonWidg
         }
 
         /**
-         * @return the action to run when the button is pressed.
+         * @return the configured callback, or {@code null} if none is set.
          * @since 1.8.4
          */
         @Nullable
@@ -187,7 +142,7 @@ public class LockButtonWidgetHelper extends ClickableWidgetHelper<LockButtonWidg
         }
 
         /**
-         * @param action the action to run when the button is pressed
+         * @param action callback invoked when the button is pressed; {@code null} disables it
          * @return self for chaining.
          * @since 1.8.4
          */
@@ -196,6 +151,15 @@ public class LockButtonWidgetHelper extends ClickableWidgetHelper<LockButtonWidg
             return this;
         }
 
+        /** Creates the lock-button helper using the configured position, z-index, and initial locked state.
+         * If an action is configured, it receives this helper and the associated screen; exceptions are logged.
+         * The callback then marks the next release to be skipped only for container screens.
+         * This method does not add the widget to the screen or apply the builder's label, size, alpha,
+         * active, or visible settings; {@code build()} performs the addition and applies alpha, active,
+         * and visible settings.
+         *
+         * @return the helper for the newly created lock button
+         */
         @Override
         public LockButtonWidgetHelper createWidget() {
             AtomicReference<LockButtonWidgetHelper> b = new AtomicReference<>(null);

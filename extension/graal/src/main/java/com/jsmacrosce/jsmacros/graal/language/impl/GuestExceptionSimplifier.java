@@ -14,10 +14,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * @author Etheradon
- * @since 1.8.4
- */
+/** Simplifies selected Graal guest arity and overload errors into diagnostic messages. */
 public final class GuestExceptionSimplifier {
 
     private static final String QUALIFIER = "[\\w.$]+";
@@ -27,11 +24,12 @@ public final class GuestExceptionSimplifier {
     }
 
     /**
-     * The exceptions are all stringified when created, so we have to parse the message rather than
-     * the exception itself.
+     * Simplifies guest arity and overload errors when their Graal exception details and message
+     * format are recognized. Other exceptions and failures during simplification return the
+     * original exception message.
      *
      * @param ex the exception to simplify
-     * @return the simplified exception if it is a known type, otherwise the original exception
+     * @return the simplified diagnostic when recognized, or the original message otherwise
      */
     public static String simplifyException(Throwable ex) {
         try {

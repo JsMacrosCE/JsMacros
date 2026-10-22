@@ -25,33 +25,16 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import java.util.Objects;
 
 /**
- * a line from the crosshair to a point in the world.
+ * A line from the camera toward a script-selected world-space target. The renderer
+ * updates its camera-side endpoint each frame; {@link #getPos()} and {@link #setPos(double, double, double)}
+ * refer to the target endpoint.
  * <p>
- * The start of it is never set by a script. Every frame the line is drawn, the end
- * nearest the camera is moved to just in front of the camera, along the direction the
- * screen centre points in, and the other end stays where the script put it. That makes
- * this a reticle: it reads as a ray out of the player's view rather than as a fixed
- * segment, and it follows the camera as the player looks around without anything
- * having to update it.
- * <p>
- * Because the start is rewritten every frame, the line's own first position is a
- * derived value rather than something to set or read. {@link #getPos()} is the target,
- * which is the part that is the script's.
- * <p>
- * The crosshair direction is worked out from the camera's angles, and when view bob is
- * on the bobbing transform is undone as well, so the line stays on the crosshair while
- * the player walks. That is done in camera space, so the result is a world direction
- * and the line runs to whatever the crosshair is over rather than to a point a block
- * in front of the camera.
- * <p>
- * Lines made by the constructors that do not take an {@code alwaysOnTop} argument come
- * out drawn on top of everything, terrain included. The ones that do take the argument
- * are the only way to get a depth tested line from a constructor;
- * {@link #setAlwaysOnTop(boolean)} changes an existing line either way.
- * example:
+ * Constructors without an {@code alwaysOnTop} argument default to drawing over
+ * terrain. Use an overload with that argument or {@link #setAlwaysOnTop(boolean)} to
+ * control depth testing.
  * <pre>
  * const draw = Hud.createDraw3D();
- * // a red line from the crosshair to a block, hidden by terrain in front of it
+ * // A red line from the camera toward this target.
  * draw.addTraceLine(0, 64, 0, 0xFFFF0000).setAlwaysOnTop(false);
  * draw.register();
  * </pre>
@@ -64,44 +47,93 @@ import java.util.Objects;
 public class TraceLine implements RenderElement3D<TraceLine> {
     private final Line3D render;
 
+    /**
+     * Initializes a detached trace toward the target in world-space block coordinates.
+     * The packed color uses {@link ColorUtil#fixAlpha(int)}: nonzero RGB with zero alpha
+     * becomes opaque, while zero-alpha black remains transparent. Depth testing is disabled.
+     *
+     * @param x target x coordinate in blocks
+     * @param y target y coordinate in blocks
+     * @param z target z coordinate in blocks
+     * @param color packed color; zero-alpha handling is described above
+     */
     public TraceLine(double x, double y, double z, int color) {
         render = new Line3D(0, 0, 0, x, y, z, color, false);
     }
 
+    /**
+     * Initializes a detached trace toward the target in world-space block coordinates.
+     * Alpha is shifted into the color's top byte without clamping or range validation;
+     * depth testing is disabled.
+     *
+     * @param x target x coordinate in blocks
+     * @param y target y coordinate in blocks
+     * @param z target z coordinate in blocks
+     * @param color RGB source; only its low 24 bits are used
+     * @param alpha value shifted into the top byte
+     */
     public TraceLine(double x, double y, double z, int color, int alpha) {
         render = new Line3D(0,0,0, x, y, z, color, alpha, false);
     }
 
+    /**
+     * Initializes a detached trace toward the target in world-space block coordinates.
+     * Alpha is shifted into the top byte without clamping or range validation; {@code alwaysOnTop}
+     * controls the inverse internal depth-test setting and does not ensure visibility.
+     *
+     * @param x target x coordinate in blocks
+     * @param y target y coordinate in blocks
+     * @param z target z coordinate in blocks
+     * @param color RGB source; only its low 24 bits are used
+     * @param alpha value shifted into the top byte
+     * @param alwaysOnTop whether to disable depth testing
+     */
     public TraceLine(double x, double y, double z, int color, int alpha, boolean alwaysOnTop) {
         render = new Line3D(0, 0, 0, x, y, z, color, alpha, !alwaysOnTop);
     }
 
+    /**
+     * Initializes a detached trace toward a copy of {@code pos}'s coordinates in world-space blocks.
+     * A null position fails with {@link NullPointerException}; zero-alpha packed-color handling
+     * follows {@link ColorUtil#fixAlpha(int)}. Depth testing is disabled.
+     *
+     * @param pos target position; its coordinates are copied
+     * @param color packed color; nonzero RGB with zero alpha becomes opaque, while zero-alpha black remains transparent
+     */
     public TraceLine(Pos3D pos, int color) {
         render = new Line3D(0, 0, 0, pos.getX(), pos.getY(), pos.getZ(), color, false);
     }
 
+    /**
+     * Initializes a detached trace toward a copy of {@code pos}'s coordinates in world-space blocks.
+     * A null position fails with {@link NullPointerException}. Alpha is shifted into the top byte
+     * without clamping or range validation; depth testing is disabled.
+     *
+     * @param pos target position; its coordinates are copied
+     * @param color RGB source; only its low 24 bits are used
+     * @param alpha value shifted into the top byte
+     */
     public TraceLine(Pos3D pos, int color, int alpha) {
         render = new Line3D(0, 0, 0, pos.getX(), pos.getY(), pos.getZ(), color, alpha, false);
     }
 
+    /**
+     * Initializes a detached trace toward a copy of {@code pos}'s coordinates in world-space blocks.
+     * A null position fails with {@link NullPointerException}. Alpha is shifted into the top byte
+     * without clamping or range validation; {@code alwaysOnTop} controls the inverse internal
+     * depth-test setting and does not ensure visibility.
+     *
+     * @param pos target position; its coordinates are copied
+     * @param color RGB source; only its low 24 bits are used
+     * @param alpha value shifted into the top byte
+     * @param alwaysOnTop whether to disable depth testing
+     */
     public TraceLine(Pos3D pos, int color, int alpha, boolean alwaysOnTop) {
         render = new Line3D(0, 0, 0, pos.getX(), pos.getY(), pos.getZ(), color, alpha, !alwaysOnTop);
     }
 
     /**
-     * moves the target this line points at.
-     * <p>
-     * Only the far end moves. The near end is put back in front of the camera on the
-     * next frame whatever this is set to, so there is no way to pin a trace line to a
-     * fixed start; use a {@link Line3D} for that.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * // move where the crosshair ray lands, as the player moves
-     * line.setPos(10, 70, -4);
-     * draw.register();
-     * </pre>
+     * Sets the target endpoint; the camera-side endpoint is recalculated during rendering.
      *
      * @param x the x coordinate of the target
      * @param y the y coordinate of the target
@@ -115,17 +147,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * moves the target this line points at.
-     * <p>
-     * The same as the three number form. The position is read straight off, so a
-     * position that is changed afterwards does not move the line with it.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * line.setPos(PositionCommon.createPos(10, 70, -4));
-     * draw.register();
-     * </pre>
+     * Sets the target endpoint from the coordinates in {@code pos}; later changes to {@code pos} do not move the line.
      *
      * @param pos the position of the target
      * @return self for chaining
@@ -137,14 +159,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * This is the end away from the camera, which is the end a script sets. It comes
-     * back as a new position, so changing it does not move the line.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * Chat.log(`line points at ${line.getPos()}`);
-     * </pre>
+     * Returns a new position containing the target endpoint; modifying it does not move the line.
      *
      * @return the position of the line's target.
      * @since 2.0.0
@@ -154,20 +169,9 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * the colour of this line, taken on its own.
+     * Sets the line colour, making non-black RGB opaque when its alpha byte is zero.
      * <p>
-     * A colour with no alpha of its own is given one: if the alpha byte is zero and
-     * there is some red, green or blue, it becomes {@code 0xFF}. A colour that is
-     * {@code 0x00000000} is left alone, since there is nothing to make visible, and
-     * so is a colour that already carries a non-zero alpha.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * // no alpha in this one, so it comes out fully opaque
-     * line.setColor(0x00FF00);
-     * draw.register();
-     * </pre>
+     * An all-zero colour stays transparent; use {@link #setColor(int, int)} to set alpha explicitly.
      *
      * @param color the color of the line
      * @return self for chaining
@@ -179,17 +183,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * the colour of this line, with the alpha given separately.
-     * <p>
-     * Nothing is filled in here, so an alpha of {@code 0} really does make the line
-     * invisible rather than being treated as a missing one.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * line.setColor(0x00FF00, 128);
-     * draw.register();
-     * </pre>
+     * Sets the RGB colour and alpha separately; the alpha is packed into the top byte and is not clamped.
      *
      * @param color the color of the line
      * @param alpha the alpha value of the line's color
@@ -202,16 +196,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * The alpha is not part of this; it is masked out, so a line drawn fully opaque
-     * and a line drawn at half alpha with the same colour read back the same. Use
-     * {@link #getAlpha()} for the other half.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * // no alpha byte in the result, whatever the line is drawn at
-     * Chat.log(`colour 0x${line.getColor().toString(16)}, alpha ${line.getAlpha()}`);
-     * </pre>
+     * Returns the RGB colour without its alpha byte; use {@link #getAlpha()} to read alpha.
      *
      * @return the color of the line.
      * @since 2.0.0
@@ -221,19 +206,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * how transparent this line is drawn, from 0 to 255.
-     * <p>
-     * This only replaces the alpha byte and leaves the colour alone, so it can be
-     * used on its own to fade a line that already has a colour. A value of {@code 0}
-     * makes the line invisible, and nothing fills it in the way {@link #setColor(int)}
-     * fills in a missing alpha.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * line.setAlpha(64);
-     * draw.register();
-     * </pre>
+     * Replaces the alpha byte without changing RGB. Values are not clamped; zero makes the line transparent.
      *
      * @param alpha the alpha value for the line's color
      * @return self for chaining
@@ -244,15 +217,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * From 0 to 255, where 255 is fully opaque. This is the half that
-     * {@link #getColor()} leaves out, so the two together are the whole colour.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * // whatever alpha the colour carried is what comes back here
-     * Chat.log(`drawn at alpha ${line.getAlpha()}`);
-     * </pre>
+     * Returns the alpha byte of the packed colour, from {@code 0} (transparent) to {@code 255} (opaque).
      *
      * @return the alpha value of the line's color.
      * @since 2.0.0
@@ -262,17 +227,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * This is the opposite of the underlying line's {@code cull} flag, so turning this
-     * on is the same as turning that off. A line that is on top draws over terrain as
-     * well as over other lines, which is what a crosshair ray usually wants.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * // on top by default from addTraceLine; make this one depth tested instead
-     * line.setAlwaysOnTop(false);
-     * draw.register();
-     * </pre>
+     * Sets whether depth testing is disabled ({@code true}, draws over terrain) or enabled ({@code false}).
      *
      * @param alwaysOnTop whether the line should render on top of everything else.
      * @since 2.0.0
@@ -282,15 +237,8 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * The inverse of the underlying line's {@code cull} flag, and the default a line
-     * gets from the constructors that take no {@code alwaysOnTop} argument is
-     * {@code true}.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const line = draw.addTraceLine(0, 64, 0, 0xFFFF0000);
-     * Chat.log(`draws over terrain: ${line.isAlwaysOnTop()}`);
-     * </pre>
+     * Returns whether depth testing is disabled, so the line draws over terrain.
+     * Constructors without an {@code alwaysOnTop} argument default to {@code true}.
      *
      * @return whether the line renders on top of everything else.
      * @since 2.0.0
@@ -299,6 +247,14 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         return render.isAlwaysOnTop();
     }
 
+    /**
+     * Compares traces by target endpoint value only; the camera-side endpoint, color, and depth
+     * setting are ignored. Only the same runtime class compares equal.
+     *
+     * @param o object to compare with
+     * @return {@code true} for this object or a {@code TraceLine} of the exact same runtime class
+     *         with an equal target endpoint; {@code false} for null or any other value
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -307,28 +263,19 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         return Objects.equals(render.pos.getEnd(), traceLine.render.pos.getEnd());
     }
 
+    /**
+     * Computes a hash from the current target endpoint only; changing the target can change the result.
+     *
+     * @return hash derived from the current target endpoint
+     */
     @Override
     public int hashCode() {
         return Objects.hash(render.pos.getEnd());
     }
 
     /**
-     * orders this trace line against another one, on where they point.
-     * <p>
-     * Only ever reached for two trace lines, since the sort compares class names first
-     * and only ties get here. What it looks at is the target, the end away from the
-     * camera, and not the end that is recomputed from the view every frame. Two lines
-     * pointing at the same place therefore compare equal whatever their colours are.
-     * <p>
-     * A line that has not been drawn yet has its target at the origin until its first
-     * frame, so two freshly built lines compare equal until they have pointed somewhere.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const a = draw.traceLineBuilder().pos(0, 64, 0).color(0xFFFF0000).build();
-     * const b = draw.traceLineBuilder().pos(10, 64, 0).color(0xFF00FF00).build();
-     * Chat.log(`a sorts before b: ${a.compareToSame(b) < 0}`);
-     * </pre>
+     * Compares trace lines by their target endpoint's coordinates. Colour is not
+     * considered; lines with the same target compare equal.
      *
      * @param other another trace line to order this one against
      * @return a negative number, zero, or a positive number as this line is before, the
@@ -342,19 +289,8 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * aims the line at where the crosshair is pointing and draws it.
-     * <p>
-     * The start is put one unit along the crosshair direction from the camera, so the
-     * line does not begin inside the player's own head, and the end is left where the
-     * script put it. The crosshair direction accounts for the camera's angles and, when
-     * the player is walking with view bob on, for the bobbing transform as well, so
-     * the line stays under the crosshair rather than drifting off it.
-     * <p>
-     * This also rewrites the line's own first position, which is why reading that back
-     * after a frame gives a point in front of the camera rather than the origin.
-     * <p>
-     * This is called by the renderer once a frame. There is no reason for a script to
-     * call it.
+     * Updates the camera-side endpoint to the screen-centre crosshair direction, then
+     * renders the line. Called by the renderer, not by scripts.
      *
      * @param matrixStack the world transform, already translated so the camera is at the origin
      * @param consumers the buffer source the geometry goes into
@@ -375,19 +311,9 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * Returns the world-space direction from the camera that corresponds to the screen-centre
-     * crosshair, accounting for the view-bob projection transform applied by GameRenderer.
-     * <p>
-     * bobView() bakes a translation, Z-roll, and X-pitch into the projection matrix
-     * (in camera space). The full bob transform is:
-     * <ol>
-     *   <li>translate(sin(dist*pi)*bob*0.5, -|cos(dist*pi)*bob|, 0)</li>
-     *   <li>Axis.ZP.rotationDegrees(sin(dist*pi)*bob*3)</li>
-     *   <li>Axis.XP.rotationDegrees(|cos(dist*pi-0.2)*bob|*5)</li>
-     * </ol>
-     * Both the rotation and the translation must be compensated: the rotation changes
-     * which camera-space direction maps to screen centre, and the translation shifts
-     * the effective viewpoint so the perspective origin is offset.
+     * Returns the world-space direction from the camera that maps to the screen-centre
+     * crosshair, compensating for the view-bob translation and rotations used by
+     * {@code GameRenderer.bobView()} on Minecraft 1.21.8.
      */
     private static Vec3 getCrosshairDirection(Camera camera, float tickDelta) {
         // Replicate the bob parameters from GameRenderer.bobView()
@@ -437,26 +363,9 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * collects the values for a {@link TraceLine}, then builds it.
-     * <p>
-     * The chain of setters, then {@link #build()} for a line that is not put anywhere
-     * or {@link #buildAndAdd()} for one that is added to the overlay it was made
-     * from. The defaults are a white line, fully opaque, always on top, pointing at
-     * {@code 0, 0, 0}.
-     * <p>
-     * The colour setters keep the colour and the alpha apart internally, which is why
-     * there is a separate {@link #alpha(int)}: {@link #color(int)} on its own picks
-     * the alpha up out of the colour it is given.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * draw.traceLineBuilder()
-     *    .pos(0, 64, 0)
-     *    .color(0xFF00FF00, 128)
-     *    .alwaysOnTop(false)
-     *    .buildAndAdd();
-     * draw.register();
-     * </pre>
+     * Configures a trace line before building it. Defaults are a white, fully opaque
+     * line targeting the origin and drawn over terrain. {@link #build()} returns a
+     * detached line; {@link #buildAndAdd()} adds it to this builder's overlay.
      *
      * @author aMelonRind
      * @since 1.9.0
@@ -470,20 +379,21 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         private int alpha = 0xFF;
         private boolean alwaysOnTop = true;
 
+        /**
+         * Creates a builder with an origin target, opaque white color, and {@code alwaysOnTop} enabled.
+         * The parent is stored without validation and is used only by {@link #buildAndAdd()}; it may
+         * be null for detached {@link #build()} calls, but {@code buildAndAdd()} then fails with
+         * {@link NullPointerException}.
+         *
+         * @param parent overlay for {@code buildAndAdd()}, or null when only building detached lines
+         */
         public Builder(Draw3D parent) {
             this.parent = parent;
         }
 
         /**
-         * This is the end away from the camera. The end at the camera is worked out
-         * every frame from where the player is looking, so it is not something this
-         * builder sets.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * draw.traceLineBuilder().pos(PositionCommon.createPos(0, 64, 0)).buildAndAdd();
-         * draw.register();
-         * </pre>
+         * Sets the world-space target endpoint; the camera-side endpoint is computed
+         * each render frame.
          *
          * @param pos the position of the target
          * @return self for chaining
@@ -495,17 +405,8 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * The block's own position, without its offset, so this points at the corner
-         * of the block rather than at the middle of it.
-         * example:
-         * <pre>
-         * const player = Player.getPlayer();
-         * if (player !== null) {
-         *   const draw = Hud.createDraw3D();
-         *   draw.traceLineBuilder().pos(player.getBlockPos()).buildAndAdd();
-         *   draw.register();
-         * }
-         * </pre>
+         * Sets the target to the block position's integer coordinates (the block
+         * corner, with no half-block offset).
          *
          * @param pos the position of the target
          * @return self for chaining
@@ -517,14 +418,8 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * A whole number here is a block corner, not the middle of the block, so a
-         * line to {@code 0, 64, 0} stops at the base of the block rather than inside it.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * draw.traceLineBuilder().pos(0, 64, 0).buildAndAdd();
-         * draw.register();
-         * </pre>
+         * Sets the target using block coordinates; integer coordinates identify block
+         * corners, not centers.
          *
          * @param x the x coordinate of the target
          * @param y the y coordinate of the target
@@ -538,15 +433,8 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * This is the builder's own value, taken straight off, so it is
-         * {@code 0, 0, 0} until something is set and does not move when a position
-         * handed to {@link #pos(Pos3D)} is changed afterwards.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().traceLineBuilder();
-         * builder.pos(0, 64, 0);
-         * Chat.log(`points at ${builder.getPos()}`);
-         * </pre>
+         * Returns the target position held by the builder. It defaults to the origin;
+         * a position passed to {@link #pos(Pos3D)} is retained by reference.
          *
          * @return the position of the target
          * @since 1.9.0
@@ -556,16 +444,8 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * The alpha is read out of this colour rather than being left alone, so a
-         * colour written with a zero alpha byte comes out opaque unless something set
-         * the alpha separately afterwards.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().traceLineBuilder();
-         * // half a red line: the alpha comes out of the colour
-         * builder.color(0x80FF0000);
-         * Chat.log(`colour 0x${builder.getColor().toString(16)}, alpha ${builder.getAlpha()}`);
-         * </pre>
+         * Sets the packed colour and derives alpha from its top byte after
+         * {@link ColorUtil#fixAlpha(int)}; non-black RGB with a zero alpha becomes opaque.
          *
          * @param color the color of the line
          * @return self for chaining
@@ -578,15 +458,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * The two are kept apart on the builder, so the colour is stored exactly as
-         * given here and whatever alpha it happened to carry is not what the built
-         * line ends up drawn at.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().traceLineBuilder();
-         * builder.color(0xFF0000, 128);
-         * Chat.log(`colour 0x${builder.getColor().toString(16)}, alpha ${builder.getAlpha()}`);
-         * </pre>
+         * Stores the colour integer unchanged and sets alpha separately; neither value is clamped.
          *
          * @param color the color of the line
          * @param alpha the alpha value of the line's color
@@ -600,15 +472,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * Nothing is clamped, so a component over 255 carries into the one above it
-         * rather than being cut off, and the alpha is left as the last colour or
-         * {@link #alpha(int)} call set it.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().traceLineBuilder();
-         * builder.color(255, 128, 0);
-         * Chat.log(`colour 0x${builder.getColor().toString(16)}, alpha ${builder.getAlpha()}`);
-         * </pre>
+         * Sets packed RGB using {@code (r << 16) | (g << 8) | b}; values are not clamped and alpha is unchanged.
          *
          * @param r the red component of the color
          * @param g the green component of the color
@@ -622,15 +486,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * The same packing as the three argument form with the alpha kept apart. The
-         * defaults are a colour of {@code 0xFFFFFF} and an alpha of {@code 0xFF}, so a
-         * builder with nothing set on it builds a fully opaque white line.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().traceLineBuilder();
-         * builder.color(0, 128, 255, 255);
-         * Chat.log(`colour 0x${builder.getColor().toString(16)}, alpha ${builder.getAlpha()}`);
-         * </pre>
+         * Sets packed RGB as in {@link #color(int, int, int)} and sets alpha separately; values are not clamped.
          *
          * @param r the red component of the color
          * @param g the green component of the color
@@ -646,15 +502,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * The builder's own field, not anything read back off a built line. The two
-         * differ: a built line's {@code getColor()} masks the alpha out, while this
-         * returns whatever was stored, alpha byte included.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().traceLineBuilder();
-         * // the default is plain white with no alpha in the number
-         * Chat.log(`default colour 0x${builder.getColor().toString(16)}`);
-         * </pre>
+         * Returns the colour integer stored by the builder unchanged.
          *
          * @return the color of the line
          * @since 1.9.0
@@ -664,14 +512,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * From 0 to 255, and independent of the colour: setting this does not touch
-         * the colour and setting the colour afterwards does not touch this.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().traceLineBuilder();
-         * builder.alpha(64);
-         * Chat.log(`drawn at alpha ${builder.getAlpha()}`);
-         * </pre>
+         * Sets alpha independently of the stored colour integer; the value is not clamped.
          *
          * @param alpha the alpha value for the line's color
          * @return self for chaining
@@ -683,18 +524,15 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * The default is {@code true}, which is the same as what a line gets from the
-         * constructors that take no {@code alwaysOnTop} argument. Turning it off lets
-         * terrain hide the line.
-         * example:
+         * Sets whether the line is drawn over terrain; the default is {@code true}.
          * <pre>
          * const draw = Hud.createDraw3D();
          * draw.traceLineBuilder().pos(0, 64, 0).alwaysOnTop(false).buildAndAdd();
          * draw.register();
          * </pre>
          *
-         * @param alwaysOnTop whether the line should render on top of everything else.
-         * @return self for chaining.
+         * @param alwaysOnTop whether terrain depth should be ignored when drawing the line
+         * @return self for chaining
          * @since 2.0.0
          */
         public Builder alwaysOnTop(boolean alwaysOnTop) {
@@ -703,15 +541,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * From 0 to 255, and {@code 255} until a {@code color} or {@code alpha} call
-         * changes it.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().traceLineBuilder();
-         * builder.color(0x80FF0000);
-         * // the alpha came out of the colour, so this is 128
-         * Chat.log(`alpha ${builder.getAlpha()}`);
-         * </pre>
+         * Returns the alpha value stored by the builder, initially {@code 255}. {@link #color(int)} derives it from the supplied packed colour.
          *
          * @return the alpha value of the line's color
          * @since 1.9.0
@@ -721,17 +551,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * Creates the trace line for the given values and adds it to the draw3D
-         * <p>
-         * The line goes into the same list any other trace line does, so
-         * {@code Draw3D.getTraceLines()} reports it and {@code removeTraceLine} takes
-         * it off again. It draws nothing until the overlay itself is registered.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * draw.traceLineBuilder().pos(0, 64, 0).color(0xFFFF0000).buildAndAdd();
-         * draw.register();
-         * </pre>
+         * Builds the line and adds it to this builder's overlay. It renders only while the overlay is registered.
          *
          * @return the build line
          * @since 1.9.0
@@ -743,19 +563,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * Builds the line from the given values
-         * <p>
-         * The line is not put anywhere, so it draws nothing until it is added to an
-         * overlay. Its near end is the origin until the first frame, which puts it in
-         * front of the camera.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * const line = draw.traceLineBuilder().pos(0, 64, 0).build();
-         * // built but not added, so it is not in the overlay yet
-         * draw.addTraceLine(line);
-         * draw.register();
-         * </pre>
+         * Builds a detached line; add it to an overlay before it can render.
          *
          * @return the build line
          * @since 1.9.0

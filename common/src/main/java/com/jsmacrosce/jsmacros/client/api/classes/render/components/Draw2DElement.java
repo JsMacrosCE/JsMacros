@@ -13,23 +13,12 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import java.util.function.IntSupplier;
 
  /**
- * one 2D overlay nested inside another.
+  * Draws a {@link Draw2D} as a positioned, scaled, and rotated element of another overlay.
  * <p>
- * This is what a script gets for a panel: a {@link Draw2D} of its own, with a position,
- * a size and a transform of its own, drawn as one piece inside whatever overlay it was
- * added to. Anything drawn into the nested overlay is drawn in the <em>outer</em>
- * overlay's coordinates and then moved by this element's position, so a line of text at
- * {@code (5, 5)} inside a nested overlay at {@code (20, 20)} lands at {@code (25, 25)}.
+  * Its nested overlay is transformed as one element; content outside its width or height
+  * is not clipped. Dimensions default to suppliers that follow the builder's parent.
  * <p>
- * Nesting moves the content and does not clip it, which is what makes it a grouping and
- * a transform rather than a container. Something drawn outside the nested overlay's own
- * width and height is still drawn, on the outer overlay.
- * <p>
- * The size is held as a supplier rather than a number, and a builder hands in one that
- * reads the overlay it came from, so a nested overlay built without a size of its own
- * follows that overlay if it is ever resized.
- * example:
- * <pre>
+  * <pre>
  * const outer = Hud.createDraw2D();
  * const panel = Hud.createDraw2D();
  * panel.addText("inside the panel", 5, 5, 0xFFFFFFFF, true);
@@ -46,95 +35,62 @@ import java.util.function.IntSupplier;
 public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
 
     /**
-    * the overlay being nested, which is what gets drawn.
-    * <p>
-    * Final, so there is no setter and no way to swap it: a different nested overlay
-    * means a different element. {@link #getDraw2D()} reads this.
+    * The overlay rendered by this element.
     */
     public final Draw2D draw2D;
     /**
-    * the overlay this element was added to, and {@code null} when it has not been put
-    * on one.
-    * <p>
-    * This is what the parent width and height are read from, and they fall back to the
-    * window when it is null. A builder sets it as it builds, so an element that was
-    * only built and never added still has it.
+    * The parent overlay used for parent-size queries, or {@code null} to use the
+    * window's GUI-scaled dimensions. Builders set this when creating the element.
     */
     @Nullable
     public IDraw2D<?> parent;
     /**
-    * the x position of this element, which is its left edge.
-    * <p>
-    * This is the position before the scale is taken into account: it is where the
-    * element is put, not where a scaled piece of it lands.
+    * The element's x position; scaling is applied after translation.
     */
     public int x;
     /**
-    * the y position of this element, which is its top edge.
-    * <p>
-    * The counterpart of {@code x}, and read the same way.
+    * The element's y position; scaling is applied after translation.
     */
     public int y;
     /**
-    * where the width comes from, asked again each time rather than cached.
-    * <p>
-    * A builder starts this off reading the overlay it came from, so an element with no
-    * size of its own follows that overlay. {@link #setWidth(int)} replaces it with a
-    * fixed number rather than changing this object, so anything else holding the old
-    * one keeps reading the old value.
+    * Supplies the element's width. The builder's default supplier follows its parent;
+    * {@link #setWidth(int)} replaces the supplier with a fixed value.
     */
     public IntSupplier width;
     /**
-    * where the height comes from, asked again each time rather than cached.
-    * <p>
-    * The counterpart of {@code width}, and replaced the same way.
+    * Supplies the element's height; its default and replacement behavior matches {@link #width}.
     */
     public IntSupplier height;
     /**
-    * the scale applied to this element and everything drawn into it.
-    * <p>
-    * One is what an element comes with from a builder, and it is what the width and
-    * height are multiplied by to get the scaled size. Made through the constructor
-    * there is no default at all, since the scale is one of its arguments.
+    * The scale applied to the element and nested content. Builders default it to {@code 1}.
     */
     public float scale;
     /**
-    * the rotation in degrees, read by the transform that draws this element.
-    * <p>
-    * Constructors and {@link #setRotation(double)} normalize finite angles to
+    * The rotation in degrees. Constructors and {@link #setRotation(double)} normalize angles to
     * {@code [-180, 180)}. Assigning directly to this field bypasses normalization.
     */
     public float rotation;
     /**
-    * whether the rotation is about the middle of this element rather than about the
-    * corner it is positioned by.
-    * <p>
-    * False on an element made directly and true on one made by a builder, so the same
-    * rotation turns the two differently. There is no default written here; the builder
-    * is what sets it to true.
+    * Whether rotation is about the element's center rather than its positioned corner.
+    * Direct construction defaults to {@code false}; builders default to {@code true}.
     */
     public boolean rotateCenter;
     /**
-    * the number this element is ordered against the others on its overlay, lower drawn
-    * first.
+    * This element's ordering value on its overlay; lower values are drawn first.
     */
     public int zIndex;
 
     /**
-    * makes a nested overlay element directly, rather than through a builder.
-    * <p>
-    * The width and height are suppliers rather than numbers, which is how a builder
-    * ties a nested overlay's size to the overlay it came from. The rotation about the
-    * middle is left off, so an element made this way rotates about its top left corner
-    * unless {@link #setRotateCenter(boolean)} is called afterwards.
+    * Creates an element nesting the specified overlay. Rotation is about the positioned
+    * corner by default; use {@link #setRotateCenter(boolean)} to rotate about its center.
     *
-    * @param draw2D  the overlay to nest
-    * @param x       the x position of the element
-    * @param y       the y position of the element
-    * @param width   where the width comes from
-    * @param height  where the height comes from
-    * @param zIndex  the z-index against the other elements on the overlay
-    * @param scale   the scale to apply
+    * @param draw2D the overlay to nest
+    * @param x the x position
+    * @param y the y position
+    * @param width the width supplier
+    * @param height the height supplier
+    * @param zIndex the ordering value on the parent overlay
+    * @param scale the scale to apply
     * @param rotation the rotation in degrees
     */
     public Draw2DElement(Draw2D draw2D, int x, int y, IntSupplier width, IntSupplier height, int zIndex, float scale, float rotation) {
@@ -151,21 +107,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the overlay this element is nesting, which is the one it was built around.
-    * <p>
-    * This is the object the element is holding rather than the element's own size or
-    * position, and it is the same for the whole life of the element because there is no
-    * way to swap it.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(20, 20).size(100, 50).buildAndAdd();
-    * Chat.log(`nesting the overlay named ${element.getDraw2D() === panel}`);
-    * outer.register();
-    * </pre>
+    * Returns the overlay nested by this element.
     *
-    * @return the internal draw2D this draw2D element is wrapping.
+    * @return the nested overlay
     * @since 1.8.4
     */
     public Draw2D getDraw2D() {
@@ -173,18 +117,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * moves this element along the x axis and leaves the y axis alone.
-    * <p>
-    * The size is untouched, and so is the nested overlay, so anything drawn into it
-    * moves with the element.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(100, 50).buildAndAdd();
-    * element.setX(40);
-    * outer.register();
-    * </pre>
+    * Sets the x position without changing the y position or dimensions.
     *
     * @param x the x position
     * @return self for chaining.
@@ -196,20 +129,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the x position this element is drawn at, which is its left edge.
-    * <p>
-    * The position before the scale, so this is where the element goes rather than how
-    * wide what lands there is.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(40, 20).size(100, 50).buildAndAdd();
-    * Chat.log(`drawn at x ${element.getX()}`);
-    * outer.register();
-    * </pre>
+    * Returns the element's x position, which scaling does not change.
     *
-    * @return the x position of this draw2D.
+    * @return the x position
     * @since 1.8.4
     */
     public int getX() {
@@ -217,17 +139,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * moves this element along the y axis and leaves the x axis alone.
-    * <p>
-    * The counterpart of {@link #setX(int)}, and the size is untouched here as well.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(100, 50).buildAndAdd();
-    * element.setY(40);
-    * outer.register();
-    * </pre>
+    * Sets the y position without changing the x position or dimensions.
     *
     * @param y the y position
     * @return self for chaining.
@@ -239,19 +151,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the y position this element is drawn at, which is its top edge.
-    * <p>
-    * The counterpart of {@link #getX()}, and read the same way.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(40, 20).size(100, 50).buildAndAdd();
-    * Chat.log(`drawn at y ${element.getY()}`);
-    * outer.register();
-    * </pre>
+    * Returns the element's y position, which scaling does not change.
     *
-    * @return the y position of this draw2D.
+    * @return the y position
     * @since 1.8.4
     */
     public int getY() {
@@ -259,20 +161,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * puts this element at a position, leaving the size alone.
-    * <p>
-    * Unlike a rectangle, which keeps its size by working the second corner out, this
-    * only writes the two positions, so the size is whatever the suppliers say and is
-    * not changed by moving the element.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(100, 50).buildAndAdd();
-    * element.setPos(40, 20);
-    * outer.register();
-    * Chat.log(`${element.getWidth()} by ${element.getHeight()}, still`);
-    * </pre>
+    * Sets the element's position without changing its dimensions.
     *
     * @param x the x position
     * @param y the y position
@@ -286,20 +175,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * gives this element a fixed width, and stops it following anything else.
-    * <p>
-    * The width is held as a supplier and this replaces that supplier with one that
-    * always gives this number, so an element that was following the overlay it came
-    * from stops doing so. Zero is allowed and only a negative width is refused.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(100, 50).buildAndAdd();
-    * element.setWidth(200);
-    * outer.register();
-    * Chat.log(`the element is ${element.getWidth()} wide`);
-    * </pre>
+    * Sets a fixed width, replacing any supplier that tracks another overlay. Zero is
+    * allowed; negative values throw {@link IllegalArgumentException}.
     *
     * @param width the width
     * @return self for chaining.
@@ -315,21 +192,10 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the width of this element, asked from the supplier rather than from a stored
-    * number.
-    * <p>
-    * This is the width before the scale. On an element whose supplier reads the overlay
-    * it came from, this changes when that overlay does.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(100, 50).buildAndAdd();
-    * outer.register();
-    * Chat.log(`${element.getWidth()} by ${element.getHeight()}`);
-    * </pre>
+    * Returns the current width from its supplier, before scaling. A supplier tied to
+    * another overlay reflects that overlay's current width.
     *
-    * @return the width of this draw2D.
+    * @return the current width
     * @since 1.8.4
     */
     public int getWidth() {
@@ -337,19 +203,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * gives this element a fixed height, and stops it following anything else.
-    * <p>
-    * The counterpart of {@link #setWidth(int)}, and replaced the same way: the height
-    * supplier is swapped for one that always gives this number.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(100, 50).buildAndAdd();
-    * element.setHeight(20);
-    * outer.register();
-    * Chat.log(`the element is ${element.getHeight()} tall`);
-    * </pre>
+    * Sets a fixed height, replacing any supplier that tracks another overlay.
+    * Zero is allowed; negative values throw {@link IllegalArgumentException}.
     *
     * @param height the height
     * @return self for chaining.
@@ -365,18 +220,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the height of this element, asked from the supplier rather than from a stored
-    * number.
-    * <p>
-    * The counterpart of {@link #getWidth()}, and read the same way.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(100, 50).buildAndAdd();
-    * outer.register();
-    * Chat.log(`the element is ${element.getWidth()} by ${element.getHeight()}`);
-    * </pre>
+    * Returns the current height from this element's height supplier.
     *
     * @return the height of this draw2D.
     * @since 1.8.4
@@ -386,18 +230,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * gives this element a fixed width and a fixed height in one call.
-    * <p>
-    * The width is set first, so a negative height is refused with the width already
-    * changed. Zero is allowed on both axes and only a negative number is refused.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).buildAndAdd();
-    * element.setSize(120, 60);
-    * outer.register();
-    * </pre>
+    * Sets fixed width and height. Zero is allowed; negative dimensions throw
+    * {@link IllegalArgumentException}. Width is set before height, so a negative
+    * height leaves the width changed.
     *
     * @param width  the width
     * @param height the height
@@ -410,20 +245,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * scales this element and everything drawn into it.
-    * <p>
-    * A scale of one is what an element comes with, and the number is kept as a float
-    * even though it is given as a double, so a scale that is not exactly
-    * representable is rounded to the nearest one rather than kept.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(50, 50).buildAndAdd();
-    * element.setScale(2);
-    * outer.register();
-    * Chat.log(`drawn at twice the size, ${element.getScaledWidth()} wide`);
-    * </pre>
+    * Sets the scale applied to this element and its nested overlay. The value is
+    * narrowed to {@code float}; zero and negative values throw
+    * {@link IllegalArgumentException}.
     *
     * @param scale the scale
     * @return self for chaining.
@@ -439,18 +263,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the scale on this element, which is what the scaled size is worked out from.
-    * <p>
-    * One is what an element comes with, and the builder's own default as well.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(50, 50).buildAndAdd();
-    * element.setScale(1.5);
-    * outer.register();
-    * Chat.log(`scale ${element.getScale()}, drawn ${element.getScaledWidth()} wide`);
-    * </pre>
+    * Returns the scale used to calculate the element's scaled dimensions.
     *
     * @return the scale of this draw2D.
     * @since 1.8.4
@@ -460,17 +273,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * turns this element, and everything drawn into it, by an angle in degrees.
-    * <p>
-    * Finite angles are normalized to {@code [-180, 180)}, so setting 450 stores 90.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(20, 20).size(50, 50).buildAndAdd();
-    * element.setRotateCenter(true).setRotation(45);
-    * outer.register();
-    * </pre>
+    * Sets the rotation in degrees; the value is narrowed to {@code float} and
+    * normalized to {@code [-180, 180)}.
     *
     * @param rotation the rotation
     * @return self for chaining.
@@ -482,19 +286,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the rotation on this element, in degrees, as it was last set.
-    * <p>
-    * Constructors and setters normalize finite angles to {@code [-180, 180)}, so setting
-    * 450 reads back as 90. Direct writes to the public field bypass that normalization.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(20, 20).size(50, 50).buildAndAdd();
-    * element.setRotation(450);
-    * outer.register();
-    * Chat.log(`reads back as ${element.getRotation()}`);
-    * </pre>
+    * Returns the rotation in degrees. Constructors and setters normalize the value;
+    * direct writes to the public field do not.
     *
     * @return the rotation of this draw2D.
     * @since 1.8.4
@@ -504,21 +297,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * chooses whether the rotation is about the middle of this element or about the
-    * corner it is positioned by.
-    * <p>
-    * A builder turns this on by default and an element made directly has it off, so the
-    * two kinds of element turn differently at the same angle. Turning it on moves the
-    * element half its size before the rotation and half back after, which is why the
-    * position reads back the same either way.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(20, 20).size(50, 50).buildAndAdd();
-    * element.setRotation(90).setRotateCenter(true);
-    * outer.register();
-    * </pre>
+    * Sets whether rotation is about the element's center rather than its positioned
+    * corner. Builders enable this by default; directly constructed elements do not.
     *
     * @param rotateCenter whether this draw2D should be rotated around its center
     * @return self for chaining.
@@ -530,19 +310,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * whether the rotation on this element is about its middle rather than about its
-    * top left corner.
-    * <p>
-    * True on an element from a builder and false on one made directly, since only the
-    * builder sets it.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(20, 20).size(50, 50).buildAndAdd();
-    * outer.register();
-    * Chat.log(`built to turn about the middle: ${element.isRotatingCenter()}`);
-    * </pre>
+    * Returns whether rotation is about the element's center. Builders enable this
+    * by default; directly constructed elements do not.
     *
     * @return {@code true} if this draw2D should be rotated around its center, {@code false}
     * otherwise.
@@ -553,19 +322,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * sets the number this element is ordered against the other elements on its
-    * overlay, lower drawn first.
-    * <p>
-    * A nested overlay is ordered as one piece, so this moves the whole of it rather
-    * than anything drawn inside it.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(100, 50).buildAndAdd();
-    * element.setZIndex(5);
-    * outer.register();
-    * </pre>
+    * Sets this element's ordering value relative to other elements on its overlay;
+    * lower values are drawn first. A nested overlay is ordered as a single element.
     *
     * @param zIndex the z-index of this draw2D
     * @return self for chaining.
@@ -577,19 +335,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the number this element is ordered against the others on its overlay.
-    * <p>
-    * Zero is what an element comes with. The overlay sorts by this lowest first and a
-    * tie keeps the order the elements were added in.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(100, 50).buildAndAdd();
-    * element.setZIndex(5);
-    * outer.register();
-    * Chat.log(`z-index ${element.getZIndex()}`);
-    * </pre>
+    * Returns this element's ordering value on its overlay. Lower values draw first;
+    * newly constructed elements default to zero.
     *
     * @return the z-index of this element
     */
@@ -599,23 +346,10 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * draws the nested overlay with this element's own transform on it, and is called by
-    * the overlay rather than by a script.
-    * <p>
-    * The element is moved to its position and scaled, turned about either its middle or
-    * its top left corner, and then the nested overlay draws all of its own elements
-    * into that. The mouse arguments are ignored, as they are on every element in this
-    * package, and the nested overlay inside it keeps drawing its own children at the
-    * outer overlay's coordinates.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * panel.addText("inside", 5, 5, 0xFFFFFFFF, true);
-    * // the overlay calls render on the element, and it on the nested overlay
-    * outer.draw2DBuilder(panel).pos(20, 20).size(100, 50).buildAndAdd();
-    * outer.register();
-    * </pre>
+    * Renders the nested overlay under this element's position, scale, and rotation
+    * transform. Rotation is about the element's center when {@code rotateCenter} is
+    * enabled, and otherwise about its positioned corner. Mouse coordinates and frame
+    * delta are unused.
     *
     * @param drawContext the graphics context to draw into
     * @param mouseX      the mouse x, not used by this element
@@ -658,23 +392,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * binds this element to the overlay it belongs to, which is what the parent width
-    * and height are then read from.
-    * <p>
-    * The element builders call this as they build, so an element that has been built
-    * is already bound. Binding is what makes the parent-relative align methods measure
-    * against that overlay rather than against the window; {@code null} puts it back to
-    * the window.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(100, 50).build();
-    * // a built element is already bound, and can be bound again by hand
-    * element.setParent(outer);
-    * outer.reAddElement(element);
-    * outer.register();
-    * </pre>
+    * Sets the overlay used as this element's parent for parent-size queries. Builders
+    * set it when constructing the element; passing {@code null} makes those queries
+    * use the window's GUI-scaled dimensions.
     *
     * @param parent the overlay this element is on, or {@code null} for the window
     * @return self for chaining.
@@ -685,23 +405,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the width of this element once the scale is applied, which is the width it is
-    * drawn at.
-    * <p>
-    * The plain width multiplied by the scale and then cut to a whole number of pixels,
-    * and the cut is toward zero, so a positive scale rounds down and a negative one
-    * rounds up. A negative one is reachable here even though {@code setScale} refuses
-    * anything at or below zero, because {@code scale} is a public field and the
-    * constructor takes one. This is what the align methods measure.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(50, 50).buildAndAdd();
-    * element.setScale(1.5);
-    * outer.register();
-    * Chat.log(`drawn ${element.getScaledWidth()} wide, set at ${element.getWidth()}`);
-    * </pre>
+    * Returns the element width multiplied by its scale and cast to an integer (truncated
+    * toward zero). Alignment calculations use this scaled width.
     *
     * @return the scaled width of this element
     */
@@ -711,19 +416,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the width of the overlay this element is on, or the window's width if it has not
-    * been put on one.
-    * <p>
-    * This is what the parent-relative align methods measure against, so an element that
-    * has not been added still aligns against the screen.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(50, 50).buildAndAdd();
-    * outer.register();
-    * Chat.log(`measured against ${element.getParentWidth()} by ${element.getParentHeight()}`);
-    * </pre>
+    * Returns the parent overlay's width, or the window's GUI-scaled width when no parent
+    * is set.
     *
     * @return the width of the parent
     */
@@ -733,20 +427,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the height of this element once the scale is applied, which is the height it is
-    * drawn at.
-    * <p>
-    * The plain height multiplied by the scale and then cut to a whole number of pixels,
-    * the same way as the width.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(50, 50).buildAndAdd();
-    * element.setScale(1.5);
-    * outer.register();
-    * Chat.log(`drawn ${element.getScaledHeight()} tall, set at ${element.getHeight()}`);
-    * </pre>
+    * Returns the element height multiplied by its scale and cast to an integer
+    * (truncated toward zero).
     *
     * @return the scaled height of this element
     */
@@ -756,18 +438,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the height of the overlay this element is on, or the window's height if it has
-    * not been put on one.
-    * <p>
-    * The counterpart of {@link #getParentWidth()}, and read the same way.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(50, 50).buildAndAdd();
-    * outer.register();
-    * Chat.log(`measured against ${element.getParentWidth()} by ${element.getParentHeight()}`);
-    * </pre>
+    * Returns the parent overlay's height, or the window's GUI-scaled height when no
+    * parent is set.
     *
     * @return the height of the parent
     */
@@ -777,18 +449,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the left edge of this element, which is its x position.
-    * <p>
-    * The scale does not move the element, only makes what is drawn inside it bigger, so
-    * this is the same as {@link #getX()}.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(40, 20).size(50, 50).buildAndAdd();
-    * outer.register();
-    * Chat.log(`left edge ${element.getScaledLeft()}, right edge ${element.getScaledRight()}`);
-    * </pre>
+    * Returns this element's x position; scaling does not change the left edge.
     *
     * @return the position of the scaled element's left side
     */
@@ -798,17 +459,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the top edge of this element, which is its y position.
-    * <p>
-    * The counterpart of {@link #getScaledLeft()}, and the same as {@link #getY()}.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(40, 20).size(50, 50).buildAndAdd();
-    * outer.register();
-    * Chat.log(`top edge ${element.getScaledTop()}, bottom edge ${element.getScaledBottom()}`);
-    * </pre>
+    * Returns this element's y position; scaling does not change the top edge.
     *
     * @return the position of the scaled element's top side
     */
@@ -818,19 +469,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * puts this element at a position, which is the same as {@link #setPos(int, int)}.
-    * <p>
-    * Unlike a rectangle, nothing is worked out from the size, so the size survives
-    * being moved.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const element = outer.draw2DBuilder(panel).pos(0, 0).size(100, 50).buildAndAdd();
-    * element.moveTo(40, 20);
-    * outer.register();
-    * Chat.log(`moved to ${element.getX()}, ${element.getY()} and still ${element.getWidth()} wide`);
-    * </pre>
+    * Sets this element's position without changing its size.
     *
     * @param x the new x position
     * @param y the new y position
@@ -842,33 +481,13 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
     }
 
     /**
-    * the builder for a nested overlay element.
+    * Builds a nested overlay element with configurable position, dimensions, scale, rotation, and draw order.
     * <p>
-    * A script makes one through the overlay's own {@code draw2DBuilder} method, which
-    * is what fills in the two arguments here. Every method on it is named after the
-    * thing being set and hands the builder back, so a whole element is one chain that
-    * ends in {@code build()} or {@code buildAndAdd()}.
-    * <p>
-    * The width and height start off reading the overlay this builder was made from, so
-    * a builder given no size of its own produces an element the same size as the
-    * overlay it is going on. Zero is the starting position and one is the starting
-    * scale, the rotation starts at zero, and the rotation is about the middle of the
-    * element until {@code rotateCenter} says otherwise.
-    * <p>
-    * Before building, the nested overlay reads this builder's current dimension suppliers.
-    * Building installs suppliers that read the built element's current width and height, so
-    * subsequent element resizing also changes the size reported by the child. Use a separate
-    * child Draw2D for each independently sized wrapper: a child owns only one pair of suppliers.
-    * example:
-    * <pre>
-    * const outer = Hud.createDraw2D();
-    * const panel = Hud.createDraw2D();
-    * const builder = outer.draw2DBuilder(panel);
-    * Chat.log(`starting at ${builder.getWidth()} by ${builder.getHeight()}, the outer size`);
-    * builder.pos(20, 20).size(100, 50);
-    * builder.buildAndAdd();
-    * outer.register();
-    * </pre>
+    * Dimensions initially follow the parent overlay; position defaults to {@code (0, 0)},
+    * scale to {@code 1}, rotation to {@code 0}, and rotation center to the element center.
+    * The nested overlay reads the builder's dimension suppliers, then follows the built
+    * element's dimensions after construction. A child overlay has only one pair of dimension
+    * suppliers, so do not use it for multiple independently sized wrappers.
     *
     * @author Etheradon
     * @since 1.8.4
@@ -885,11 +504,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         private int zIndex = 0;
 
         /**
-        * makes a builder bound to one overlay, nesting another inside it.
-        * <p>
-        * The size is started off reading the overlay this was made from and the nested
-        * overlay follows the builder's current readers, including later {@code width} or
-        * {@code size} calls. After building, the child follows the built element's dimensions.
+        * Creates a builder that nests {@code draw2D} in {@code parent}. Dimensions initially
+        * follow the parent; the child overlay follows the builder's dimensions and then the
+        * built element's dimensions.
         *
         * @param parent the overlay this element is going on
         * @param draw2D the overlay to nest
@@ -904,7 +521,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @param x the x position of the draw2D
+        * Sets the horizontal position.
+        *
+        * @param x the x position
         * @return self for chaining.
         * @since 1.8.4
         */
@@ -914,7 +533,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @return the x position of the draw2D.
+        * @return the horizontal position
         * @since 1.8.4
         */
         public int getX() {
@@ -922,7 +541,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @param y the y position of the draw2D
+        * Sets the vertical position.
+        *
+        * @param y the y position
         * @return self for chaining.
         * @since 1.8.4
         */
@@ -932,7 +553,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @return the y position of the draw2D.
+        * @return the vertical position
         * @since 1.8.4
         */
         public int getY() {
@@ -940,8 +561,10 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @param x the x position of the draw2D
-        * @param y the y position of the draw2D
+        * Sets both position coordinates.
+        *
+        * @param x the x position
+        * @param y the y position
         * @return self for chaining.
         * @since 1.8.4
         */
@@ -952,7 +575,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @param width the width of the draw2D
+        * Sets the width; negative values are rejected.
+        *
+        * @param width the width
         * @return self for chaining.
         * @since 1.8.4
         */
@@ -965,7 +590,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @return the width of the draw2D.
+        * @return the current width from the dimension supplier
         * @since 1.8.4
         */
         public int getWidth() {
@@ -973,7 +598,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @param height the height of the draw2D
+        * Sets the height; negative values are rejected.
+        *
+        * @param height the height
         * @return self for chaining.
         * @since 1.8.4
         */
@@ -986,7 +613,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @return the height of the draw2D.
+        * Returns the builder's current height, read from its dimension supplier.
+        *
+        * @return the current height
         * @since 1.8.4
         */
         public int getHeight() {
@@ -994,9 +623,11 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @param width  the width of the draw2D
-        * @param height the height of the draw2D
-        * @return self for chaining.
+        * Sets both dimensions; negative values are rejected by the corresponding setters.
+        *
+        * @param width the width
+        * @param height the height
+        * @return this builder
         * @since 1.8.4
         */
         public Builder size(int width, int height) {
@@ -1004,8 +635,10 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @param scale the scale of the draw2D
-        * @return self for chaining.
+        * Sets the scale applied to the nested overlay. The value is narrowed to {@code float}.
+        *
+        * @param scale the scale
+        * @return this builder
         * @since 1.8.4
         */
         public Builder scale(double scale) {
@@ -1014,7 +647,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @return the scale of the draw2D.
+        * Returns the scale applied to the nested overlay.
+        *
+        * @return the current scale
         * @since 1.8.4
         */
         public float getScale() {
@@ -1022,8 +657,10 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @param rotation the rotation (clockwise) of the draw2D in degrees
-        * @return self for chaining.
+        * Sets the rotation in degrees. The value is narrowed to {@code float} without normalization.
+        *
+        * @param rotation the rotation in degrees
+        * @return this builder
         * @since 1.8.4
         */
         public Builder rotation(double rotation) {
@@ -1032,7 +669,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @return the rotation (clockwise) of the draw2D in degrees.
+        * Returns the configured rotation in degrees; builder values are not normalized.
+        *
+        * @return the current rotation
         * @since 1.8.4
         */
         public float getRotation() {
@@ -1040,8 +679,10 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @param rotateCenter whether this draw2D should be rotated around its center
-        * @return self for chaining.
+        * Sets whether rotation is about the element's center rather than its positioned corner.
+        *
+        * @param rotateCenter {@code true} to rotate about the center
+        * @return this builder
         * @since 1.8.4
         */
         public Builder rotateCenter(boolean rotateCenter) {
@@ -1050,8 +691,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @return {@code true} if this draw2D should be rotated around its center,
-        * {@code false} otherwise.
+        * Returns whether rotation is about the element's center.
+        *
+        * @return {@code true} if rotation is about the center
         * @since 1.8.4
         */
         public boolean isRotatingCenter() {
@@ -1059,7 +701,10 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @return the z-index of the draw2D.
+        * Sets the ordering value used relative to other elements; lower values draw first.
+        *
+        * @param zIndex the ordering value
+        * @return this builder
         * @since 1.8.4
         */
         public Builder zIndex(int zIndex) {
@@ -1068,7 +713,9 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * @return the z-index of the draw2D.
+        * Returns the configured ordering value; lower values draw first.
+        *
+        * @return the ordering value
         * @since 1.8.4
         */
         public int getZIndex() {
@@ -1076,11 +723,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * makes the element out of everything set on this builder, and binds it to the
-        * overlay this builder was made from.
-        * <p>
-        * A new element each time, so the same builder can build more than one and each
-        * one is separate. This is what {@code build} and {@code buildAndAdd} call.
+        * Creates an element from this builder's settings and associates it with the
+        * overlay used to create the builder. Each call creates a distinct element.
         *
         * @return the new element.
         */
@@ -1091,19 +735,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * the width the element will be drawn at, which is the width put through the
-        * scale.
-        * <p>
-        * Cut to a whole number of pixels, and the cut is toward zero, so a positive
-        * scale rounds down and a negative one rounds up. A negative one can reach here
-        * because this builder's {@code scale} takes any number, where the builders on
-        * {@link Text} and {@link Item} refuse anything at or below zero.
-        * example:
-        * <pre>
-        * const outer = Hud.createDraw2D();
-        * const builder = outer.draw2DBuilder(Hud.createDraw2D()).size(50, 50).scale(1.5);
-        * Chat.log(`will be drawn ${builder.getScaledWidth()} wide`);
-        * </pre>
+        * Returns the width multiplied by the builder's scale and converted to an
+        * integer by Java's cast (truncation toward zero).
         *
         * @return the scaled width
         */
@@ -1113,17 +746,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * the width of the overlay this builder was made from, which is what the
-        * parent-relative align methods measure against.
-        * <p>
-        * There is no window fallback here: a builder always has an overlay, which is
-        * what the overlay's own builder methods pass in.
-        * example:
-        * <pre>
-        * const outer = Hud.createDraw2D();
-        * const builder = outer.draw2DBuilder(Hud.createDraw2D());
-        * Chat.log(`measuring against ${builder.getParentWidth()} by ${builder.getParentHeight()}`);
-        * </pre>
+        * Returns the width of the overlay used to create this builder, which
+        * parent-relative alignment uses as its reference.
         *
         * @return the width of the parent
         */
@@ -1133,17 +757,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * the height the element will be drawn at, which is the height put through the
-        * scale.
-        * <p>
-        * The counterpart of {@code getScaledWidth}, and cut to a whole number of pixels
-        * the same way.
-        * example:
-        * <pre>
-        * const outer = Hud.createDraw2D();
-        * const builder = outer.draw2DBuilder(Hud.createDraw2D()).size(50, 50).scale(1.5);
-        * Chat.log(`will be drawn ${builder.getScaledHeight()} tall`);
-        * </pre>
+        * Returns the height multiplied by the builder's scale and converted to an
+        * integer by Java's cast (truncation toward zero).
         *
         * @return the scaled height
         */
@@ -1153,16 +768,8 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * the height of the overlay this builder was made from, which is what the
-        * parent-relative align methods measure against.
-        * <p>
-        * The counterpart of {@code getParentWidth}, and with no window fallback either.
-        * example:
-        * <pre>
-        * const outer = Hud.createDraw2D();
-        * const builder = outer.draw2DBuilder(Hud.createDraw2D());
-        * Chat.log(`measuring against ${builder.getParentWidth()} by ${builder.getParentHeight()}`);
-        * </pre>
+        * Returns the height of the overlay used to create this builder, which
+        * parent-relative alignment uses as its reference.
         *
         * @return the height of the parent
         */
@@ -1172,16 +779,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * the left edge the element will be at, which is its x position.
-        * <p>
-        * The scale makes what is inside the element bigger rather than moving it, so
-        * this is the same as {@code getX}.
-        * example:
-        * <pre>
-        * const outer = Hud.createDraw2D();
-        * const builder = outer.draw2DBuilder(Hud.createDraw2D()).pos(40, 20);
-        * Chat.log(`will be at ${builder.getScaledLeft()}, ${builder.getScaledTop()}`);
-        * </pre>
+        * Returns the element's x position; scaling does not change this position.
         *
         * @return the position of the scaled element's left side
         */
@@ -1191,15 +789,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * the top edge the element will be at, which is its y position.
-        * <p>
-        * The counterpart of {@code getScaledLeft}, and the same as {@code getY}.
-        * example:
-        * <pre>
-        * const outer = Hud.createDraw2D();
-        * const builder = outer.draw2DBuilder(Hud.createDraw2D()).pos(40, 20);
-        * Chat.log(`will be at ${builder.getScaledLeft()}, ${builder.getScaledTop()}`);
-        * </pre>
+        * Returns the element's y position; scaling does not change this position.
         *
         * @return the position of the scaled element's top side
         */
@@ -1209,18 +799,7 @@ public class Draw2DElement implements RenderElement, Alignable<Draw2DElement> {
         }
 
         /**
-        * puts the element at a position, which is the same as {@code pos}.
-        * <p>
-        * Nothing is worked out from the size, so the size survives being moved.
-        * example:
-        * <pre>
-        * const outer = Hud.createDraw2D();
-        * const panel = Hud.createDraw2D();
-        * const builder = outer.draw2DBuilder(panel).size(100, 50);
-        * builder.moveTo(40, 20);
-        * builder.buildAndAdd();
-        * outer.register();
-        * </pre>
+        * Sets the element's position without changing its size.
         *
         * @param x the new x position
         * @param y the new y position

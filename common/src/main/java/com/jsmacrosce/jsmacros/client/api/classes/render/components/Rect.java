@@ -22,28 +22,12 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRen
 //? }
 
  /**
- * a filled rectangle, given as two corners.
- * <p>
- * The two corners are there because they are the two things that are easy to compute,
- * rather than a position and a size: a frame is two edges, a bar is two edges, and a
- * piece of a list is a row and a column. They do not have to be in order, so a
- * rectangle whose second corner is up and to the left of its first is a perfectly
- * ordinary one, and the size is the distance between them whichever way round they are.
- * <p>
- * The width and height are not numbers stored in their own right. {@code x2} is a
- * position rather than {@code x1} plus a width, and a width is set by moving whichever
- * of the two corners is further along. That is also why a negative width turns the
- * rectangle round rather than being refused: nothing here checks it.
- * <p>
- * There is no scale on a rectangle, so its size is the same drawn and undrawn and there
- * is nothing between {@code getWidth} and the size the align methods measure. The
- * colour is packed with the alpha in the top byte the same way the rest of the API
- * packs one, and a colour that carries no alpha of its own is made opaque rather than
- * invisible.
- * example:
+ * A filled rectangle defined by two corner positions. Corners may be given in either
+ * order; width and height are their absolute coordinate differences. Colors use
+ * packed ARGB, and a zero-alpha color with nonzero RGB is treated as opaque.
  * <pre>
  * const draw = Hud.createDraw2D();
- * // the corners the other way round is fine
+ * // Corners may be specified in either order.
  * const rect = draw.addRect(110, 60, 10, 10, 0x80000000);
  * draw.register();
  * Chat.log(`${rect.getWidth()} by ${rect.getHeight()}, from ${rect.getX1()}, ${rect.getY1()}`);
@@ -57,74 +41,49 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRen
 public class Rect implements RenderElement, Alignable<Rect> {
 
     /**
-    * the overlay this rectangle was added to, and {@code null} when it has not been put
-    * on one.
-    * <p>
-    * This is what the parent width and height are read from, and they fall back to the
-    * window when it is null.
+    * The overlay this rectangle belongs to, or {@code null} to use the window dimensions
+    * for parent-relative alignment.
     */
     @Nullable
     public IDraw2D<?> parent;
     /**
-    * the rotation in degrees, wrapped into a single turn.
-    * <p>
-    * Both the constructor and {@link #setRotation(double)} fold the angle down, so this
-    * is between -180 and 180 rather than whatever was given.
+    * Rotation in degrees, normalized by the constructor and {@link #setRotation(double)}.
     */
     public float rotation;
     /**
-    * whether the rotation is about the middle of this rectangle rather than about the
-    * corner it is given by.
-    * <p>
-    * False on a rectangle made directly and true on one from a builder, so the two turn
-    * differently at the same angle.
+    * Whether rotation is about the rectangle's center rather than its first corner.
+    * Directly constructed rectangles default to {@code false}; builders default to {@code true}.
     */
     public boolean rotateCenter;
     /**
-    * the first x position, which is one of the two corners.
-    * <p>
-    * Not necessarily the left one: the smaller of the two is what the align methods use
-    * as the left edge.
+    * The x coordinate of the first corner; it is not necessarily the left edge.
     */
     public int x1;
     /**
-    * the first y position, which is one of the two corners.
-    * <p>
-    * Not necessarily the top one, for the same reason as {@code x1}.
+    * The y coordinate of the first corner; it is not necessarily the top edge.
     */
     public int y1;
     /**
-    * the second x position, which is the other corner.
-    * <p>
-    * A width is set by writing {@code x1} plus that width here, or the other way round
-    * when {@code x1} is the larger of the two.
+    * The x coordinate of the second corner.
     */
     public int x2;
     /**
-    * the second y position, which is the other corner.
-    * <p>
-    * The counterpart of {@code x2}, and set the same way.
+    * The y coordinate of the second corner.
     */
     public int y2;
     /**
-    * the colour, packed with the alpha in the top byte.
-    * <p>
-    * A colour set through the one-argument form is made opaque if it had no alpha and
-    * was not pure black, so {@code 0xFF0000} reads back as {@code 0xFFFF0000}.
+    * The packed ARGB color. A zero-alpha value with nonzero RGB is made opaque by the
+    * one-argument color setter; pure black remains transparent.
     */
     public int color;
     /**
-    * the number this rectangle is ordered against the other elements on its overlay,
-    * lower drawn first.
+    * Draw-order value relative to other elements on the overlay; lower values draw first.
     */
     public int zIndex;
 
     /**
-    * makes a rectangle with an opaque colour, from two corners.
-    * <p>
-    * The colour given is put through the same fix-up as {@link #setColor(int)}, so a
-    * colour with no alpha of its own comes out opaque rather than invisible. The
-    * rotation is folded into a single turn.
+    * Constructs a rectangle from two corners, applying {@link #setColor(int)}'s alpha
+    * fix-up and normalizing the rotation with {@link Mth#wrapDegrees(float)}.
     *
     * @param x1       the first x position of this rectangle
     * @param y1       the first y position of this rectangle
@@ -140,18 +99,16 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * makes a rectangle from two corners, with the alpha given separately.
-    * <p>
-    * The alpha replaces the top byte of the colour outright, so it is the whole of the
-    * transparency: the colour's own top byte is thrown away rather than combined.
+    * Constructs a rectangle from two corners, replacing the color's top byte with the
+    * separately supplied alpha and normalizing rotation with {@link Mth#wrapDegrees(float)}.
     *
     * @param x1       the first x position of this rectangle
     * @param y1       the first y position of this rectangle
     * @param x2       the second x position of this rectangle
     * @param y2       the second y position of this rectangle
     * @param color    the colour, whose top byte is replaced by the alpha
-    * @param alpha    the alpha, in the top byte
-    * @param rotation the rotation in degrees, folded into a single turn
+    * @param alpha    the value shifted into the top byte
+    * @param rotation the rotation in degrees
     * @param zIndex   the z-index against the other elements on the overlay
     */
     public Rect(int x1, int y1, int x2, int y2, int color, int alpha, float rotation, int zIndex) {
@@ -162,18 +119,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * moves the first x position, and leaves the other three corners alone.
-    * <p>
-    * The width follows from wherever this corner ends up, so a rectangle whose corners
-    * are the other way round still reports a size and still draws.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * rect.setX1(20);
-    * draw.register();
-    * Chat.log(`now ${rect.getWidth()} wide, from ${rect.getX1()}`);
-    * </pre>
+    * Sets the first corner's x coordinate without changing any other coordinate.
     *
     * @param x1 the first x position of this rectangle
     * @return self for chaining.
@@ -185,17 +131,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the first x position of this rectangle, which is one of its two corners.
-    * <p>
-    * The one that was given rather than an edge: the corners can be in either order, so
-    * on a rectangle drawn right to left this is the larger of the two x positions.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 20, 110, 70, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`corners ${rect.getX1()},${rect.getY1()} and ${rect.getX2()},${rect.getY2()}`);
-    * </pre>
+    * Returns the x coordinate of the first corner; it is not necessarily the left edge.
     *
     * @return the first x position of this rectangle.
     * @since 1.8.4
@@ -205,18 +141,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * moves the first y position, and leaves the other three corners alone.
-    * <p>
-    * The height follows from wherever this corner ends up, the same way the width does
-    * for the x positions.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * rect.setY1(20);
-    * draw.register();
-    * Chat.log(`now ${rect.getHeight()} tall, from ${rect.getY1()}`);
-    * </pre>
+    * Sets the first corner's y coordinate without changing any other coordinate.
     *
     * @param y1 the first y position of this rectangle
     * @return self for chaining.
@@ -228,17 +153,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the first y position of this rectangle, which is one of its two corners.
-    * <p>
-    * The one that was given rather than an edge, the same way {@code getX1} is rather
-    * than a left edge.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 20, 110, 70, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`corners ${rect.getX1()},${rect.getY1()} and ${rect.getX2()},${rect.getY2()}`);
-    * </pre>
+    * Returns the y coordinate of the first corner; it is not necessarily the top edge.
     *
     * @return the first y position of this rectangle.
     * @since 1.8.4
@@ -248,18 +163,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * moves the first corner, and leaves the second one alone.
-    * <p>
-    * Both coordinates of the same corner, so the two axes are set together and the
-    * width and height follow from where the corner lands.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * rect.setPos1(20, 30);
-    * draw.register();
-    * Chat.log(`now ${rect.getWidth()} by ${rect.getHeight()}`);
-    * </pre>
+    * Sets both coordinates of the first corner, leaving the second corner unchanged.
     *
     * @param x1 the first x position of this rectangle
     * @param y1 the first y position of this rectangle
@@ -273,18 +177,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * moves the second x position, and leaves the other three corners alone.
-    * <p>
-    * A width is often easier to think of as a change to this corner than as a change to
-    * the size, which is what this is for.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * rect.setX2(160);
-    * draw.register();
-    * Chat.log(`now ${rect.getWidth()} wide`);
-    * </pre>
+    * Sets the second corner's x coordinate without changing any other coordinate.
     *
     * @param x2 the second x position of this rectangle
     * @return self for chaining.
@@ -296,16 +189,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the second x position of this rectangle, which is its other corner.
-    * <p>
-    * The one that was given rather than an edge, the same way {@code getX1} is.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 20, 110, 70, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`corners ${rect.getX1()},${rect.getY1()} and ${rect.getX2()},${rect.getY2()}`);
-    * </pre>
+    * Returns the x coordinate of the second corner; it is not necessarily the right edge.
     *
     * @return the second x position of this rectangle.
     * @since 1.8.4
@@ -315,18 +199,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * moves the second y position, and leaves the other three corners alone.
-    * <p>
-    * The counterpart of {@code setX2}, and the reason a bar is two edges rather than a
-    * position and a height.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * rect.setY2(90);
-    * draw.register();
-    * Chat.log(`now ${rect.getHeight()} tall`);
-    * </pre>
+    * Sets the second corner's y coordinate without changing any other coordinate.
     *
     * @param y2 the second y position of this rectangle
     * @return self for chaining.
@@ -338,16 +211,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the second y position of this rectangle, which is its other corner.
-    * <p>
-    * The one that was given rather than an edge, the same way {@code getY1} is.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 20, 110, 70, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`corners ${rect.getX1()},${rect.getY1()} and ${rect.getX2()},${rect.getY2()}`);
-    * </pre>
+    * the second y position of this rectangle, its other corner rather than an edge.
     *
     * @return the second y position of the rectangle.
     * @since 1.8.4
@@ -357,19 +221,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * moves the second corner, and leaves the first one alone.
-    * <p>
-    * The counterpart of {@code setPos1}, and useful for resizing from the far side:
-    * moving this corner left and up shrinks the rectangle without touching where it
-    * starts.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * rect.setPos2(60, 30);
-    * draw.register();
-    * Chat.log(`now ${rect.getWidth()} by ${rect.getHeight()}`);
-    * </pre>
+    * sets the second corner, leaving the first corner unchanged.
     *
     * @param x2 the second x position of this rectangle
     * @param y2 the second y position of this rectangle
@@ -383,19 +235,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * puts both corners at once, which is how a rectangle is made from a frame or a
-    * pair of edges.
-    * <p>
-    * Both corners are written rather than one of them being worked out, so this is the
-    * one setter here that can change the size and the position in a single call.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(0, 0, 10, 10, 0xFFFF0000);
-    * rect.setPos(10, 10, 110, 60);
-    * draw.register();
-    * Chat.log(`now ${rect.getWidth()} by ${rect.getHeight()}`);
-    * </pre>
+    * sets both corners of this rectangle.
     *
     * @param x1 the first x position of this rectangle
     * @param y1 the first y position of this rectangle
@@ -413,27 +253,13 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * resizes this rectangle, keeping the corner it was built around.
-    * <p>
-    * A width is not a number stored in its own right, so this moves whichever of the
-    * two x positions is further along: when {@code x1} is the smaller the second one is
-    * moved to {@code x1} plus the width, and when it is the larger the first one is
-    * moved instead. A rectangle whose corners are the other way round therefore keeps
-    * its left edge when it is widened, which is usually what is wanted.
-    * <p>
-    * Nothing is checked, so a negative width is not refused: it moves the corner past
-    * the other one and the rectangle turns round, still reporting the size it now has.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * rect.setWidth(200);
-    * draw.register();
-    * Chat.log(`from ${rect.getX1()} to ${rect.getX2()}, so ${rect.getWidth()} wide`);
-    * </pre>
+    * Resizes along the x axis, anchoring the currently smaller x coordinate. If
+    * {@code x1 <= x2}, sets {@code x2 = x1 + width}; otherwise sets {@code x1 = x2 + width}.
+    * Negative widths are accepted and can reverse the corner order; {@link #getWidth()}
+    * reports the absolute coordinate difference, subject to integer overflow.
     *
-    * @param width the new width of this rectangle
-    * @return self for chaining.
+    * @param width the signed x-coordinate offset in GUI-scaled pixels
+    * @return self for chaining
     * @since 1.8.4
     */
     public Rect setWidth(int width) {
@@ -446,18 +272,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * how far apart the two x positions are, which is this rectangle's width.
-    * <p>
-    * The distance and not a stored size, so it is the same whichever way round the
-    * corners are, and it follows any corner being moved. There is no scale on a
-    * rectangle, so this is also what is drawn and what the align methods measure.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(110, 60, 10, 10, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`${rect.getWidth()} wide, corners the other way round`);
-    * </pre>
+    * returns the absolute distance between the two x positions.
     *
     * @return the width of this rectangle.
     * @since 1.8.4
@@ -467,22 +282,13 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * resizes this rectangle, keeping the corner it was built around.
-    * <p>
-    * The counterpart of {@code setWidth}, and moved along the y axis the same way:
-    * whichever y position is further down is the one that moves. A negative height is
-    * not refused and turns the rectangle round.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * rect.setHeight(20);
-    * draw.register();
-    * Chat.log(`from ${rect.getY1()} to ${rect.getY2()}, so ${rect.getHeight()} tall`);
-    * </pre>
+    * Resizes along the y axis, anchoring the currently smaller y coordinate. If
+    * {@code y1 <= y2}, sets {@code y2 = y1 + height}; otherwise sets {@code y1 = y2 + height}.
+    * Negative heights are accepted and can reverse the corner order; {@link #getHeight()}
+    * reports the absolute coordinate difference, subject to integer overflow.
     *
-    * @param height the new height of this rectangle
-    * @return self for chaining.
+    * @param height the signed y-coordinate offset in GUI-scaled pixels
+    * @return self for chaining
     * @since 1.8.4
     */
     public Rect setHeight(int height) {
@@ -495,17 +301,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * how far apart the two y positions are, which is this rectangle's height.
-    * <p>
-    * The distance rather than a stored size, the same way {@code getWidth} is, and
-    * this is also what is drawn because there is no scale.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`${rect.getHeight()} tall, and ${rect.getWidth()} wide`);
-    * </pre>
+    * returns the absolute distance between the two y positions.
     *
     * @return the height of this rectangle.
     * @since 1.8.4
@@ -515,23 +311,13 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * resizes this rectangle on both axes, keeping the corners it was built around.
-    * <p>
-    * The width is set first, so a height that turns the rectangle round leaves the
-    * width already applied. Neither is checked, so negative numbers are allowed and
-    * turn the rectangle round.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * rect.setSize(40, 20);
-    * draw.register();
-    * Chat.log(`now ${rect.getWidth()} by ${rect.getHeight()}`);
-    * </pre>
+    * Resizes both axes by applying {@link #setWidth(int)} then {@link #setHeight(int)}.
+    * Each axis anchors its currently smaller coordinate; negative offsets are accepted
+    * and can reverse the corresponding corner order.
     *
-    * @param width  the new width of this rectangle
-    * @param height the new height of this rectangle
-    * @return self for chaining.
+    * @param width  the signed x-coordinate offset in GUI-scaled pixels
+    * @param height the signed y-coordinate offset in GUI-scaled pixels
+    * @return self for chaining
     * @since 1.8.4
     */
     public Rect setSize(int width, int height) {
@@ -541,21 +327,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * sets the colour, alpha and all, from one packed number.
-    * <p>
-    * A colour that arrives with no alpha of its own is made opaque rather than
-    * invisible, so {@code 0xFF0000} is stored as {@code 0xFFFF0000}. Pure black is the
-    * one thing that is left alone, because there is no colour there to make opaque and
-    * {@code 0x000000} stays fully transparent. A colour that does carry an alpha is
-    * stored exactly as given.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFFFFFF);
-    * rect.setColor(0xFF0000);
-    * draw.register();
-    * Chat.log(`stored as 0x${rect.getColor().toString(16)}, alpha ${rect.getAlpha()}`);
-    * </pre>
+    * Sets the packed ARGB color, making zero-alpha colors with nonzero RGB opaque; zero-alpha black stays transparent, and explicit alpha is preserved.
     *
     * @param color the packed colour, with the alpha in the top byte
     * @return self for chaining.
@@ -567,20 +339,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * sets the colour and the transparency separately.
-    * <p>
-    * The alpha replaces the top byte of the colour rather than being blended with it,
-    * so a colour that came with an alpha of its own loses it. Anything outside 0 to 255
-    * is not clamped: a value over 255 shifts into the colour channels and a value of
-    * exactly 256 wraps round to no alpha at all.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFFFFFF);
-    * rect.setColor(0x123456, 128);
-    * draw.register();
-    * Chat.log(`alpha ${rect.getAlpha()}, colour 0x${rect.getColor().toString(16)}`);
-    * </pre>
+    * sets the packed color and replaces its top byte with {@code alpha}; the value is
+    * shifted directly and is not clamped to 0–255.
     *
     * @param color the colour, whose top byte is replaced
     * @param alpha the alpha, in the top byte
@@ -593,19 +353,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * sets only the transparency, leaving the colour alone.
-    * <p>
-    * The counterpart of the two-argument colour setter, and it is usually the one to
-    * reach for: a rectangle is made opaque and then faded rather than built at a
-    * particular alpha. As there, a value outside 0 to 255 is not clamped.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFFFFFF);
-    * rect.setAlpha(128);
-    * draw.register();
-    * Chat.log(`alpha ${rect.getAlpha()}, colour 0x${rect.getColor().toString(16)}`);
-    * </pre>
+    * Replaces the alpha byte of this rectangle's packed color; values outside 0–255 are
+    * not clamped.
     *
     * @param alpha the alpha to put in the top byte
     * @return self for chaining.
@@ -617,19 +366,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the colour, packed with the alpha in the top byte.
-    * <p>
-    * What the element actually holds, which is not always what was last handed to a
-    * setter: a colour given with no alpha comes back opaque. The colour can also be
-    * read as a plain number, so shifting out the pieces is how a script gets at the
-    * red, green, blue and alpha separately.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`0x${rect.getColor().toString(16)}, alpha ${rect.getAlpha()}`);
-    * </pre>
+    * Returns this rectangle's packed ARGB color. Colors set without an alpha byte are
+    * made opaque by the one-argument color setter, except pure black.
     *
     * @return the color value of this rectangle.
     * @since 1.8.4
@@ -639,18 +377,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the transparency of this rectangle, which is the top byte of the colour.
-    * <p>
-    * From 0 for invisible to 255 for opaque. A colour set without an alpha reads back
-    * as 255 rather than 0, unless it was pure black.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * rect.setAlpha(64);
-    * draw.register();
-    * Chat.log(`alpha ${rect.getAlpha()}`);
-    * </pre>
+    * Returns the alpha byte of this rectangle's packed color, from 0 (transparent) to
+    * 255 (opaque).
     *
     * @return the alpha value of this rectangle.
     * @since 1.8.4
@@ -660,19 +388,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * turns this rectangle by an angle in degrees.
-    * <p>
-    * The angle is folded into a single turn, so 450 reads back as 90 and -270 reads back
-    * as 90 too. Whether the turn is about the middle or about a corner is
-    * {@code rotateCenter}, and off on a rectangle made directly.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(40, 40, 140, 90, 0xFFFF0000);
-    * rect.setRotateCenter(true).setRotation(450);
-    * draw.register();
-    * Chat.log(`reads back as ${rect.getRotation()}`);
-    * </pre>
+    * Sets the rotation in degrees, normalized by {@link Mth#wrapDegrees(float)}.
     *
     * @param rotation the angle in degrees
     * @return self for chaining.
@@ -684,19 +400,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the rotation on this rectangle in degrees, folded into a single turn.
-    * <p>
-    * Between -180 and 180, because both the constructor and the setter fold the angle
-    * down. The line in this package is the odd one out: its constructor folds the angle
-    * but its setter does not, so a line reads back whatever was last set.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * rect.setRotation(-270);
-    * draw.register();
-    * Chat.log(`reads back as ${rect.getRotation()}`);
-    * </pre>
+    * Returns this rectangle's rotation in degrees, normalized by its constructor and
+    * {@link #setRotation(double)}.
     *
     * @return the rotation of this rectangle.
     * @since 1.8.4
@@ -706,20 +411,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * chooses whether the rotation is about the middle of this rectangle or about one of
-    * its corners.
-    * <p>
-    * A rectangle made directly turns about its first corner, and a builder turns about
-    * the middle, so this is what makes the two agree. Turning about the middle moves the
-    * rectangle half its size across before the turn and half back after, so the corners
-    * read back the same either way.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(40, 40, 140, 90, 0xFFFF0000);
-    * rect.setRotateCenter(true).setRotation(45);
-    * draw.register();
-    * </pre>
+    * Sets whether rotation is about the rectangle's center rather than its first corner.
     *
     * @param rotateCenter whether this rectangle should be rotated around its center
     * @return self for chaining.
@@ -731,17 +423,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * whether the rotation on this rectangle is about its middle.
-    * <p>
-    * False on a rectangle made directly and true on one from a builder, since only the
-    * builder sets it.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(40, 40, 140, 90, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`turns about the middle: ${rect.isRotatingCenter()}`);
-    * </pre>
+    * Returns whether rotation is about the rectangle's center.
     *
     * @return {@code true} if this rectangle should be rotated around its center, {@code false}
     * otherwise.
@@ -752,20 +434,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * sets the number this rectangle is ordered against the other elements on its
-    * overlay, lower drawn first.
-    * <p>
-    * Two rectangles drawn in the same place are ordered by this and by nothing else, and
-    * a tie keeps the order they were added in.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const back = draw.addRect(0, 0, 100, 100, 0xFF000000);
-    * const front = draw.addRect(0, 0, 100, 100, 0x80FFFFFF);
-    * back.setZIndex(2);
-    * front.setZIndex(1);
-    * draw.register();
-    * </pre>
+    * Sets this rectangle's overlay draw-order value; lower values draw first.
     *
     * @param zIndex the new z-index for this rectangle
     * @return self for chaining.
@@ -777,17 +446,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the number this rectangle is ordered against the other elements on its overlay.
-    * <p>
-    * Zero is what a rectangle comes with, and the overlay sorts by this lowest first.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(0, 0, 100, 100, 0xFF000000);
-    * rect.setZIndex(3);
-    * draw.register();
-    * Chat.log(`z-index ${rect.getZIndex()}`);
-    * </pre>
+    * Returns this rectangle's overlay draw-order value; lower values draw first.
     *
     * @return the z-index of this element
     */
@@ -797,22 +456,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * draws this rectangle, and is called by the overlay rather than by a script.
-    * <p>
-    * The corners are handed to the game's own fill as they stand, so a rectangle whose
-    * corners are the other way round draws in the same place, and the rotation is put on
-    * the matrix first. There is no scale on a rectangle, so that transform is only ever
-    * a position and a turn.
-    * <p>
-    * The mouse arguments are not used. On a screen they are the real mouse and on a
-    * plain overlay they are zero, and either way this rectangle does not look at them.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * draw.addRect(10, 10, 110, 60, 0x80000000);
-    * // the overlay calls render on it; a script does not
-    * draw.register();
-    * </pre>
+    * Draws this rectangle through the overlay's graphics context. The mouse coordinates
+    * and frame delta are unused.
     *
     * @param drawContext the graphics context to draw into
     * @param mouseX      the mouse x, not used by this element
@@ -869,22 +514,9 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * binds this rectangle to the overlay it belongs to, which is what the parent width
-    * and height are then read from.
-    * <p>
-    * The element builders call this as they build, so a rectangle that has been built
-    * is already bound. Binding is what makes the parent-relative align methods measure
-    * against that overlay rather than against the window, and {@code null} puts it back
-    * to the window.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.rectBuilder().pos(10, 10, 110, 60).build();
-    * // a built rectangle is already bound, and can be bound again by hand
-    * rect.setParent(draw);
-    * draw.reAddElement(rect);
-    * draw.register();
-    * </pre>
+    * Sets the overlay used for parent-relative dimensions and alignment; {@code null}
+    * makes those dimensions fall back to the window. Builders assign their overlay when
+    * creating the rectangle.
     *
     * @param parent the overlay this element is on, or {@code null} for the window
     * @return self for chaining.
@@ -895,17 +527,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the width as it is drawn, which for a rectangle is the same as the width.
-    * <p>
-    * There is no scale on a rectangle, so this is exactly {@code getWidth} and it is
-    * here because the align methods measure against it.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`${rect.getScaledWidth()} scaled, ${rect.getWidth()} plain`);
-    * </pre>
+    * Returns this rectangle's width; rectangles have no additional scale.
     *
     * @return the scaled width of this element
     */
@@ -915,18 +537,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the width of the overlay this rectangle is on, or the window's width if it has not
-    * been put on one.
-    * <p>
-    * This is what the parent-relative align methods measure against, so a rectangle
-    * that has not been added still aligns against the screen.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`measured against ${rect.getParentWidth()}`);
-    * </pre>
+    * Returns the assigned overlay's width, or the window's GUI-scaled width when no
+    * overlay is assigned.
     *
     * @return the width of the parent
     */
@@ -936,17 +548,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the height as it is drawn, which for a rectangle is the same as the height.
-    * <p>
-    * The counterpart of {@code getScaledWidth}, and for the same reason: there is no
-    * scale on a rectangle.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`${rect.getScaledHeight()} scaled, ${rect.getHeight()} plain`);
-    * </pre>
+    * Returns this rectangle's height; rectangles have no additional scale.
     *
     * @return the scaled height of this element
     */
@@ -956,17 +558,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the height of the overlay this rectangle is on, or the window's height if it has
-    * not been put on one.
-    * <p>
-    * The counterpart of {@code getParentWidth}, and read the same way.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 10, 110, 60, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`measured against ${rect.getParentHeight()}`);
-    * </pre>
+    * Returns the assigned overlay's height, or the window's GUI-scaled height when no
+    * overlay is assigned.
     *
     * @return the height of the parent
     */
@@ -976,18 +569,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the left edge of this rectangle, which is the smaller of its two x positions.
-    * <p>
-    * The corners can be in either order, and this is whichever is further left, so it is
-    * the same for a rectangle drawn in either direction. That is what the align methods
-    * move.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(110, 60, 10, 10, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`left ${rect.getScaledLeft()}, right ${rect.getScaledRight()}`);
-    * </pre>
+    * Returns the smaller of the two x coordinates, independent of corner order.
     *
     * @return the position of the scaled element's left side
     */
@@ -997,17 +579,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the top edge of this rectangle, which is the smaller of its two y positions.
-    * <p>
-    * The counterpart of {@code getScaledLeft}, and whichever of the two y positions is
-    * further up.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(10, 60, 110, 10, 0xFFFF0000);
-    * draw.register();
-    * Chat.log(`top ${rect.getScaledTop()}, bottom ${rect.getScaledBottom()}`);
-    * </pre>
+    * Returns the smaller of the two y coordinates, independent of corner order.
     *
     * @return the position of the scaled element's top side
     */
@@ -1017,19 +589,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * puts this rectangle at a position and keeps the size it has.
-    * <p>
-    * The new position becomes the top left corner and the far corner is worked out from
-    * the size, so moving a rectangle does not resize it. This is what the align methods
-    * call, and what makes them leave the size alone.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * const rect = draw.addRect(0, 0, 100, 50, 0xFFFF0000);
-    * rect.moveTo(20, 30);
-    * draw.register();
-    * Chat.log(`at ${rect.getX1()}, ${rect.getY1()} and still ${rect.getWidth()} wide`);
-    * </pre>
+    * Moves the rectangle so {@code (x, y)} is its first corner, preserving its current
+    * width and height.
     *
     * @param x the new x position
     * @param y the new y position
@@ -1041,26 +602,10 @@ public class Rect implements RenderElement, Alignable<Rect> {
     }
 
     /**
-    * the builder for a rectangle, made by the overlay's own {@code rectBuilder}
-    * method.
-    * <p>
-    * A rectangle here is a corner and a size rather than two corners, because that is
-    * what a frame or a panel is: give the corner and the extent and the far corner is
-    * worked out. Everything is named after the thing being set and hands the builder
-    * back, so a whole rectangle is one chain that ends in {@code build()} or
-    * {@code buildAndAdd()}.
-    * <p>
-    * Both corners start at zero, the colour starts opaque white and is kept apart from
-    * the alpha so either can be set on its own, the rotation starts at zero and is not
-    * folded down into a single turn, and the rotation is about the middle of the
-    * rectangle until {@code rotateCenter} says otherwise. That last one is the opposite
-    * of a rectangle made directly, so the two turn differently at the same angle.
-    * example:
-    * <pre>
-    * const draw = Hud.createDraw2D();
-    * draw.rectBuilder().pos1(20, 20).size(100, 50).color(0x80000000).buildAndAdd();
-    * draw.register();
-    * </pre>
+    * Builder for a rectangle on an overlay. Coordinates can be supplied as two corners
+    * or as a first corner and a size. Defaults are zero coordinates, opaque white,
+    * zero rotation, and rotation about the center; unlike directly constructed
+    * rectangles, builders rotate about the center by default.
     *
     * @author Etheradon
     * @since 1.8.4
@@ -1078,10 +623,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         private int zIndex = 0;
 
         /**
-        * makes a builder for rectangles on one overlay.
-        * <p>
-        * A script does not call this directly: the overlay's own {@code rectBuilder}
-        * method is what fills in the overlay.
+        * Creates a rectangle builder associated with the given overlay.
         *
         * @param draw2D the overlay the rectangles will be added to
         */
@@ -1090,17 +632,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * puts the first x position, which is the corner the size is measured from.
-        * <p>
-        * Zero is where a rectangle starts. Setting this after a {@code width} call
-        * moves the rectangle without resizing it, because the far corner stays where it
-        * was.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().x1(20).size(100, 50).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the first x coordinate of the rectangle.
         *
         * @param x1 the first x position of the rectangle
         * @return self for chaining.
@@ -1112,16 +644,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the x position of the corner the size is measured from.
-        * <p>
-        * Zero until an {@code x1} or a {@code pos1} call says otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const rect = draw.rectBuilder().pos1(20, 20).size(100, 50).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * Chat.log(`corner at ${rect.getX1()}, ${rect.getY1()}`);
-        * </pre>
+        * Returns the first x coordinate; it starts at zero.
         *
         * @return the first x position of the rectangle.
         * @since 1.8.4
@@ -1131,15 +654,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * puts the first y position, which is the corner the size is measured from.
-        * <p>
-        * The counterpart of {@code x1}, and set the same way.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().y1(20).size(100, 50).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the first y coordinate of the rectangle.
         *
         * @param y1 the first y position of the rectangle
         * @return self for chaining.
@@ -1151,16 +666,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the y position of the corner the size is measured from.
-        * <p>
-        * Zero until a {@code y1} or a {@code pos1} call says otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const rect = draw.rectBuilder().pos1(20, 20).size(100, 50).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * Chat.log(`corner at ${rect.getX1()}, ${rect.getY1()}`);
-        * </pre>
+        * Returns the first y coordinate; it starts at zero.
         *
         * @return the first y position of the rectangle.
         * @since 1.8.4
@@ -1170,16 +676,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * puts the corner the size is measured from, in one call.
-        * <p>
-        * The counterpart of {@code pos2}, and the one to reach for when the rectangle
-        * is positioned and sized: this corner plus the size is the whole rectangle.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().pos1(20, 20).size(100, 50).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the first corner coordinates.
         *
         * @param x1 the first x position of the rectangle
         * @param y1 the first y position of the rectangle
@@ -1193,16 +690,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * puts the second x position, which is the far corner.
-        * <p>
-        * On a builder the far corner is usually worked out from the size rather than
-        * given, so this is for the cases where it is not.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().pos1(20, 20).x2(160).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the second x coordinate of the rectangle.
         *
         * @param x2 the second x position of the rectangle
         * @return self for chaining.
@@ -1214,16 +702,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the x position of the far corner.
-        * <p>
-        * Worked out from the corner and the size when the size is the one that was set.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const rect = draw.rectBuilder().pos1(20, 20).size(100, 50).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * Chat.log(`far corner at ${rect.getX2()}, ${rect.getY2()}`);
-        * </pre>
+        * Returns the second x coordinate; size setters calculate it from the first x coordinate.
         *
         * @return the second x position of the rectangle.
         * @since 1.8.4
@@ -1233,16 +712,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * puts the second y position, which is the far corner.
-        * <p>
-        * The counterpart of {@code x2}, and for the same reason usually worked out from
-        * the size instead.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().pos1(20, 20).y2(90).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the second y coordinate of the rectangle.
         *
         * @param y2 the second y position of the rectangle
         * @return self for chaining.
@@ -1254,16 +724,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the y position of the far corner.
-        * <p>
-        * Worked out from the corner and the size when the size is the one that was set.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const rect = draw.rectBuilder().pos1(20, 20).size(100, 50).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * Chat.log(`far corner at ${rect.getX2()}, ${rect.getY2()}`);
-        * </pre>
+        * Returns the second y coordinate; size setters calculate it from the first y coordinate.
         *
         * @return the second y position of the rectangle.
         * @since 1.8.4
@@ -1273,17 +734,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * puts the far corner, leaving the first one alone.
-        * <p>
-        * Useful for resizing from the far side: this corner and the first one are the
-        * whole rectangle, so moving this one left and up shrinks it without touching
-        * where it starts.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().pos1(20, 20).pos2(160, 90).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the second corner coordinates.
         *
         * @param x2 the second x position of the rectangle
         * @param y2 the second y position of the rectangle
@@ -1297,16 +748,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * puts both corners, which is the same thing the rectangle itself takes.
-        * <p>
-        * The builder's other route is a corner and a size; this is the two-corner form
-        * for when both are already known, as they are for the two edges of a frame.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().pos(20, 20, 160, 90).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets both rectangle corners.
         *
         * @param x1 the first x position of the rectangle
         * @param y1 the first y position of the rectangle
@@ -1324,19 +766,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * The width will just set the x2 position to {@code x1 + width}.
-        * <p>
-        * Which means it is always measured from {@code x1}, whichever way round the two
-        * corners are, so setting this after the corners have been given the other way
-        * round flips the rectangle. That is the one thing here that differs from the
-        * same method on the rectangle itself, which moves whichever corner is further
-        * along.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().pos1(20, 20).width(100).height(50).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the second x coordinate to {@code x1 + width}; the value is measured from
+        * the first corner, regardless of the existing second corner.
         *
         * @param width the width of the rectangle
         * @return self for chaining.
@@ -1348,17 +779,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the width this builder will build the rectangle at.
-        * <p>
-        * The distance between the two corners, so it is zero until one of
-        * {@code pos}, {@code pos1} with a {@code size}, or {@code width} says
-        * otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder().pos1(20, 20).size(100, 50);
-        * Chat.log(`${builder.getWidth()} by ${builder.getHeight()}`);
-        * </pre>
+        * Returns the absolute distance between the two x coordinates.
         *
         * @return the width of the rectangle.
         * @since 1.8.4
@@ -1368,20 +789,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * The width will just set the y2 position to {@code y1 + height}.
-        * <p>
-        * Which means it is always measured from {@code y1}, so setting this after the
-        * corners have been given the other way round flips the rectangle vertically,
-        * where the rectangle itself moves whichever y position is further down and so
-        * can disagree. The wording above is the source comment, kept as it was written:
-        * the word it used was width rather than height, which the sentence itself shows
-        * is the wrong word for a method called height.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().pos1(20, 20).width(100).height(50).color(0xFFFF0000).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the second y coordinate to {@code y1 + height}; the value is measured from
+        * the first corner, regardless of the existing second corner.
         *
         * @param height the height of the rectangle
         * @return self for chaining.
@@ -1393,15 +802,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the height this builder will build the rectangle at.
-        * <p>
-        * The distance between the two corners, the counterpart of {@code getWidth}.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder().pos1(20, 20).size(100, 50);
-        * Chat.log(`${builder.getWidth()} by ${builder.getHeight()}`);
-        * </pre>
+        * Returns the absolute distance between the two y coordinates.
         *
         * @return the height of the rectangle.
         * @since 1.8.4
@@ -1411,17 +812,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * gives the rectangle a width and a height, which are the two edges from the
-        * corner.
-        * <p>
-        * The usual way to finish a builder: a corner with {@code pos1} and an extent with
-        * this is the whole rectangle.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().pos1(20, 20).size(100, 50).color(0x80000000).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the rectangle's width and height, measured from its first corner.
         *
         * @param width  the width of the rectangle
         * @param height the height of the rectangle
@@ -1433,18 +824,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * sets the colour from one packed number, and takes its alpha from it as well.
-        * <p>
-        * The alpha is read out of the number and kept separately, so a later {@code
-        * alpha} call changes the transparency without touching the colour. A colour
-        * with no alpha of its own comes out opaque unless it was pure black, the same
-        * fix-up the rectangle itself does.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().pos1(20, 20).size(100, 50).color(0x80FF0000).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets a packed color and stores its fixed-up alpha separately; a later
+        * {@code alpha} call replaces that alpha.
         *
         * @param color the color of the rectangle
         * @return self for chaining.
@@ -1457,21 +838,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * sets the colour from three components, each from 0 to 255.
-        * <p>
-        * The three are packed into the low 24 bits and the separate alpha is left as it
-        * was, which is opaque unless something has changed it. That means the number
-        * this builder reports from {@code getColor} is not quite the number the built
-        * rectangle has: read straight back it is {@code 0x00RRGGBB}, and on the
-        * rectangle it is {@code 0xFFRRGGBB} because the alpha is put back on when the
-        * element is made.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const rect = draw.rectBuilder().pos1(20, 20).size(100, 50).color(255, 128, 0).buildAndAdd();
-        * draw.register();
-        * Chat.log(`built at 0x${rect.getColor().toString(16)}, alpha ${rect.getAlpha()}`);
-        * </pre>
+        * Packs the components into the low 24 bits; the separately stored alpha is
+        * unchanged. Component values are packed without range validation.
         *
         * @param r the red component of the color
         * @param g the green component of the color
@@ -1485,18 +853,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * sets the colour from four components, each from 0 to 255.
-        * <p>
-        * The same three-argument packing as the shorter form, with the fourth going
-        * into the separate alpha. As there, the number this builder reports is the low
-        * 24 bits on their own and the built rectangle has the alpha put back on.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const rect = draw.rectBuilder().pos1(20, 20).size(100, 50).color(255, 128, 0, 128).buildAndAdd();
-        * draw.register();
-        * Chat.log(`built at alpha ${rect.getAlpha()}`);
-        * </pre>
+        * Packs the RGB components into the low 24 bits and stores {@code a} separately;
+        * component values are packed without range validation.
         *
         * @param r the red component of the color
         * @param g the green component of the color
@@ -1512,17 +870,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * sets the colour and the alpha as two separate numbers.
-        * <p>
-        * Both are stored as given with no fix-up, so this is the form that will hold
-        * a colour with a zero alpha byte, which the one-argument form would make
-        * opaque. The two are combined when the element is built.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().pos1(20, 20).size(100, 50).color(0xFF0000, 128).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Stores the color and alpha separately, without applying the packed-color
+        * overload's alpha fix-up.
         *
         * @param color the color of the rectangle
         * @param alpha the alpha value of the color
@@ -1536,23 +885,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the colour this builder will build the rectangle at, as it is stored here.
-        * <p>
-        * Worth knowing which number this is. After {@code color(int)} or
-        * {@code color(int, int)} it is the full packed number, because the alpha was
-        * pulled out of it. After the three- or four-component forms it is the low 24
-        * bits on their own, so it reads as {@code 0x00RRGGBB} and not as the
-        * {@code 0xFFRRGGBB} the built rectangle ends up with. The built rectangle's own
-        * {@code getColor} is the honest one.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder().color(255, 0, 0);
-        * Chat.log(`builder says 0x${builder.getColor().toString(16)}`);
-        * const rect = builder.pos1(20, 20).size(100, 50).buildAndAdd();
-        * draw.register();
-        * Chat.log(`the rectangle says 0x${rect.getColor().toString(16)}`);
-        * </pre>
+        * Returns the stored color value. Component-based {@code color} overloads store
+        * only the low 24 RGB bits; packed-color overloads retain the supplied value.
         *
         * @return the color of the rectangle.
         * @since 1.8.4
@@ -1562,18 +896,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * sets only the transparency, leaving the colour alone.
-        * <p>
-        * This is the one to reach for when a rectangle is made opaque and then faded.
-        * The number is not clamped, so a value over 255 is a shift into the colour
-        * channels and 256 is no alpha at all.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const rect = draw.rectBuilder().pos1(20, 20).size(100, 50).color(0xFF0000).alpha(128).buildAndAdd();
-        * draw.register();
-        * Chat.log(`built at alpha ${rect.getAlpha()}`);
-        * </pre>
+        * Sets the alpha value independently of the stored color. The value is not
+        * clamped; when built, its shifted bits may also affect the color channels.
         *
         * @param alpha the alpha value of the color
         * @return self for chaining.
@@ -1585,17 +909,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the transparency this builder will build the rectangle at, from 0 to 255.
-        * <p>
-        * Opaque is what it starts at, and it is a number of its own here rather than
-        * being read out of the colour, which is why {@code alpha} and {@code color(int,
-        * int)} can each change one without disturbing the other.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder().color(0xFF0000).alpha(64);
-        * Chat.log(`will be built at alpha ${builder.getAlpha()}`);
-        * </pre>
+        * Returns the separately stored alpha value, initially 255.
         *
         * @return the alpha value of the color.
         * @since 1.8.4
@@ -1605,17 +919,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * turns the rectangle by an angle in degrees.
-        * <p>
-        * Stored as given rather than folded into a single turn, so this reads back as
-        * 450 where the rectangle's own setter would report 90. The turn is about the
-        * middle until {@code rotateCenter} says otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().pos1(20, 20).size(100, 50).rotation(45).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the rotation in degrees; the builder stores the supplied value as a
+        * {@code float} without normalizing it.
         *
         * @param rotation the rotation (clockwise) of the rectangle in degrees
         * @return self for chaining.
@@ -1627,21 +932,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the rotation this builder will build the rectangle at, in degrees.
-        * <p>
-        * Zero until a {@code rotation} call says otherwise, and not folded into a
-        * single turn: the built rectangle is made through the constructor that does
-        * fold it, so a rectangle built at 450 comes out turned 90 even though this
-        * reads 450.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder().rotation(450);
-        * Chat.log(`builder says ${builder.getRotation()}`);
-        * const rect = builder.pos1(20, 20).size(100, 50).buildAndAdd();
-        * draw.register();
-        * Chat.log(`the rectangle says ${rect.getRotation()}`);
-        * </pre>
+        * Returns the stored rotation in degrees, without normalization.
         *
         * @return the rotation (clockwise) of the rectangle in degrees.
         * @since 1.8.4
@@ -1651,18 +942,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * chooses whether the rotation is about the middle of the rectangle or about a
-        * corner.
-        * <p>
-        * True is what a builder starts at, which is the opposite of a rectangle made
-        * directly, so the two turn differently until one of them is told otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const rect = draw.rectBuilder().pos1(20, 20).size(100, 50).rotateCenter(false).buildAndAdd();
-        * draw.register();
-        * Chat.log(`turns about a corner: ${!rect.isRotatingCenter()}`);
-        * </pre>
+        * Selects whether rotation is around the rectangle's center; builders default
+        * to {@code true}.
         *
         * @param rotateCenter whether this rectangle should be rotated around its center
         * @return self for chaining.
@@ -1674,15 +955,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * whether the rectangle this builder builds will turn about its middle.
-        * <p>
-        * True until a {@code rotateCenter} call says otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder();
-        * Chat.log(`builds turning about the middle: ${builder.isRotatingCenter()}`);
-        * </pre>
+        * Returns whether the built rectangle rotates around its center.
         *
         * @return {@code true} if this rectangle should be rotated around its center,
         * {@code false} otherwise.
@@ -1693,17 +966,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * sets the number the rectangle will be ordered against the other elements on
-        * its overlay, lower drawn first.
-        * <p>
-        * Zero is what a builder starts at, and a tie keeps the order the elements were
-        * added in.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * draw.rectBuilder().pos1(20, 20).size(100, 50).zIndex(5).buildAndAdd();
-        * draw.register();
-        * </pre>
+        * Sets the overlay ordering index; lower values are drawn first. Builders
+        * default to zero.
         *
         * @param zIndex the z-index of the rectangle
         * @return self for chaining.
@@ -1715,15 +979,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the z-index this builder will build the rectangle at.
-        * <p>
-        * Zero until a {@code zIndex} call says otherwise.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder().zIndex(5);
-        * Chat.log(`will be built at z-index ${builder.getZIndex()}`);
-        * </pre>
+        * Returns the overlay ordering index to be used when building the rectangle.
         *
         * @return the z-index of the rectangle.
         * @since 1.8.4
@@ -1733,15 +989,9 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * makes the rectangle out of everything set on this builder, and binds it to
-        * the overlay this builder was made from.
-        * <p>
-        * A new rectangle each time, so the same builder can build more than one. This
-        * is what {@code build} and {@code buildAndAdd} call.
-        * <p>
-        * The colour is put together here rather than at each setter: the separate
-        * alpha becomes the top byte and the low 24 bits of the stored colour are kept,
-        * which is why a builder set with the three-component form ends up opaque.
+        * Creates a new rectangle from the builder's current values and assigns the
+        * builder's overlay as its parent. The builder's alpha is combined with its
+        * stored RGB value when the rectangle is constructed.
         *
         * @return the new rectangle.
         */
@@ -1752,17 +1002,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the width this builder will build the rectangle at, which is the width as
-        * drawn.
-        * <p>
-        * There is no scale on a rectangle, so this is the same number as
-        * {@code getWidth}, and it is here because the align methods measure against it.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder().pos1(20, 20).size(100, 50);
-        * Chat.log(`${builder.getScaledWidth()} scaled, ${builder.getWidth()} plain`);
-        * </pre>
+        * Returns the builder's width; rectangles have no additional scale.
         *
         * @return the scaled width
         */
@@ -1772,16 +1012,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the width of the overlay this builder was made from, which is what the
-        * parent-relative align methods measure against.
-        * <p>
-        * There is no window fallback here, because a builder always has an overlay.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder();
-        * Chat.log(`measuring against ${builder.getParentWidth()}`);
-        * </pre>
+        * Returns the width of the builder's overlay, used by parent-relative alignment.
         *
         * @return the width of the parent
         */
@@ -1791,17 +1022,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the height this builder will build the rectangle at, which is the height as
-        * drawn.
-        * <p>
-        * The counterpart of {@code getScaledWidth}, and the same number as
-        * {@code getHeight} for the same reason.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder().pos1(20, 20).size(100, 50);
-        * Chat.log(`${builder.getScaledHeight()} scaled, ${builder.getHeight()} plain`);
-        * </pre>
+        * Returns the builder's height; rectangles have no additional scale.
         *
         * @return the scaled height
         */
@@ -1811,16 +1032,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the height of the overlay this builder was made from, which is what the
-        * parent-relative align methods measure against.
-        * <p>
-        * The counterpart of {@code getParentWidth}, and with no window fallback either.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder();
-        * Chat.log(`measuring against ${builder.getParentHeight()}`);
-        * </pre>
+        * Returns the height of the builder's overlay, used by parent-relative alignment.
         *
         * @return the height of the parent
         */
@@ -1830,17 +1042,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the left edge this builder will build the rectangle at, which is the smaller
-        * of its two x positions.
-        * <p>
-        * The corners can be in either order and this is whichever is further left, the
-        * same way the rectangle's own method reads.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder().pos1(20, 20).size(100, 50);
-        * Chat.log(`left ${builder.getScaledLeft()}, right ${builder.getScaledRight()}`);
-        * </pre>
+        * Returns the smaller of the builder's two x coordinates, regardless of corner order.
         *
         * @return the position of the scaled element's left side
         */
@@ -1850,16 +1052,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * the top edge this builder will build the rectangle at, which is the smaller of
-        * its two y positions.
-        * <p>
-        * The counterpart of {@code getScaledLeft}, and whichever y corner is further up.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder().pos1(20, 20).size(100, 50);
-        * Chat.log(`top ${builder.getScaledTop()}, bottom ${builder.getScaledBottom()}`);
-        * </pre>
+        * Returns the smaller of the builder's two y coordinates, regardless of corner order.
         *
         * @return the position of the scaled element's top side
         */
@@ -1869,20 +1062,8 @@ public class Rect implements RenderElement, Alignable<Rect> {
         }
 
         /**
-        * puts the rectangle at a position and keeps the size it has.
-        * <p>
-        * The same as {@code pos(x, y, x + getWidth(), y + getHeight())}, so the new
-        * position is the corner the size is measured from. This is what the align
-        * methods call.
-        * example:
-        * <pre>
-        * const draw = Hud.createDraw2D();
-        * const builder = draw.rectBuilder().pos1(0, 0).size(100, 50);
-        * builder.moveTo(40, 20);
-        * builder.buildAndAdd();
-        * draw.register();
-        * Chat.log(`corner ${builder.getX1()}, ${builder.getY1()}`);
-        * </pre>
+        * Moves the builder so {@code (x, y)} is its first corner, preserving its current
+        * width and height.
         *
         * @param x the new x position
         * @param y the new y position

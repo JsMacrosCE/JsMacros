@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.event.impl.player;
 
 import net.minecraft.world.damagesource.DamageSource;
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
@@ -9,24 +10,11 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the local player's health goes down.<br>
- * This is the local-player companion to
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.world.EventEntityDamaged}, which is
- * world-wide and fires for every living entity the client tracks. For the local player both fire
- * on the same health change, this one and
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventHealthChange} first and
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.world.EventEntityDamaged} after. In a
- * singleplayer world the integrated server's copy of the player is skipped, so this still fires
- * exactly once.<br>
- * The event is derived from health going down, not from a damage source, so it also fires for
- * health that a mod or a command takes away. It is not cancellable, and it fires just before
- * the new value is written, not after. The mixin injects at the head of {@code setHealth}, so
- * {@code health} already carries the incoming value while reading the player's health back
- * from the world still gives the old one.<br>
- * Note: the client is only told the new health value over the network, never what caused it, so
- * {@link #source} is always the generic damage source and {@link #attacker} is always
- * {@code null}. Both fields are deprecated for that reason.
- * example:
+ * Fires when a call decreases the local player's health, before the incoming value is applied.
+ * It dispatches before {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventHealthChange},
+ * which dispatches before {@link com.jsmacrosce.jsmacros.client.api.event.impl.world.EventEntityDamaged}.
+ * The injected event supplies a generic damage source, so {@link #source} is its generic damage
+ * type ID and {@link #attacker} is {@code null}. This event is not cancellable.
  * <pre>
  * JsMacros.on("Damage", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`Took ${event.change} damage, ${event.health} hp left`);
@@ -42,33 +30,41 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "Damage", oldName = "DAMAGE")
 public class EventDamage extends BaseEvent {
     /**
-     * the entity that dealt the damage, or {@code null} if the damage had no attacker.
+     * {@code null}; this event is constructed with a generic damage source, which has no entity.
      *
      * @deprecated may not work on servers
      */
     @Deprecated
+    @DocletIgnore
     public final EntityHelper<?> attacker;
     /**
-     * the id of the damage type that dealt the damage. The client never receives the real damage
-     * source, so this is the generic damage source on the current build.
+     * ID of the generic damage type supplied by this event; the actual damage source is not retained.
      *
      * @deprecated may not work on servers
      */
     @DocletReplaceReturn("DamageSource")
     @Deprecated
+    @DocletIgnore
     public final String source;
     /**
-     * the player's health after the loss, in half hearts as the vanilla health bar counts them.
+     * Incoming player health value, before it is applied.
      */
     public final float health;
     /**
-     * how much health the player lost, the difference between their health before and after the
-     * change. Always positive, unlike the matching
+     * Amount of health lost; positive, unlike the matching
      * {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventHealthChange#change change}
      * which is negative on the same change.
      */
     public final float change;
 
+    /**
+     * Initializes the event with the supplied damage source and health values. The source's message ID
+     * is stored as {@code source}; the causing entity is wrapped as {@code attacker}, or {@code null}
+     * when absent. A {@code null} source throws {@link NullPointerException}.
+     * @param source damage source used to obtain its message ID and causing entity
+     * @param health incoming health value
+     * @param change amount of health lost
+     */
     public EventDamage(DamageSource source, float health, float change) {
         super(JsMacrosClient.clientCore);
         if (source.getEntity() == null) {
@@ -81,6 +77,10 @@ public class EventDamage extends BaseEvent {
         this.change = change;
     }
 
+    /**
+     * Returns a diagnostic string containing this event's name, health, and change values.
+     * @return a string in the form {@code eventName:{"health": %f, "change": %f}}
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"health\": %f, \"change\": %f}", this.getEventName(), health, change);

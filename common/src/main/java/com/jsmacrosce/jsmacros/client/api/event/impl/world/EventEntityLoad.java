@@ -9,36 +9,34 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when an entity is added to the client world.<br>
- * This covers every entity the client is told about, including the local player on join and any
- * entity that enters the loaded area, not just mobs.<br>
- * This event is not cancellable, the entity is already part of the client world when it fires.
- * example:
- * <pre>
- * JsMacros.on("EntityLoad", JavaWrapper.methodToJava(function (event) {
- *   Chat.log(`${event.entity.getType()} spawned at ${event.entity.getPos()}`);
- * }))
- * </pre>
+ * Fires after an entity is added to the client world. This event is not cancellable.
  */
 @DocletCategory("World")
 @Event("EntityLoad")
 public class EventEntityLoad extends BaseEvent {
     /**
-     * the entity that was added. It is wrapped in the most specific
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper} subclass for its
-     * type, so it can be narrowed further with {@code asLiving()}, {@code asPlayer()} and the
-     * other {@code as...()} helpers. Its type is available from
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getType() getType()}
-     * and its position from
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getPos() getPos()}.
+     * Helper for the entity added to the client world.
      */
     public final EntityHelper<?> entity;
 
+    /**
+     * Wraps the supplied entity for this event. A {@code null} entity causes
+     * construction to fail with {@link NullPointerException}.
+     *
+     * @param e the raw entity to wrap; cannot be {@code null}
+     */
     public EventEntityLoad(Entity e) {
         super(JsMacrosClient.clientCore);
         entity = EntityHelper.create(e);
     }
 
+    /**
+     * Returns a diagnostic string containing the event name and the current
+     * value of {@link #entity}'s {@code toString()}.
+     *
+     * @return the string in the form {@code %s:{"entity": %s}}, with the event
+     *         name and entity-helper string substituted for the placeholders
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"entity\": %s}", this.getEventName(), entity.toString());

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.graal;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.jsmacrosce.jsmacros.core.config.Option;
@@ -8,17 +9,31 @@ import com.jsmacrosce.jsmacros.core.config.OptionType;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Settings for configuring GraalVM engine-wide and per-language options. Obtain this config through
+ * the configuration manager; the Graal extension must be registered for its options to be available.
+ * <pre>
+ * const config = JsMacros.getConfig().getOptions(Java.type("com.jsmacrosce.jsmacros.graal.GraalConfig"));
+ * const jsOptions = config.extraLangOptions.get("js");
+ * if (jsOptions != null) {
+ *   // Read or update the configured JavaScript options.
+ * }
+ * </pre>
+ */
 public class GraalConfig {
 
     // TODO: Make these language keys dynamic, ex. "Extra {language} Language Options"
     // Extra GraalVM options to pass to the engine
+    /** Engine option names mapped to their string values; applied when the shared engine is first built. */
     @Option(translationKey = "jsmacrosce.settings.languages.extraengineoptions", group = {"jsmacrosce.settings.languages", "jsmacrosce.settings.languages.graaloptions"}, type = @OptionType("string"))
     public Map<String, String> extraEngineOptions = new HashMap<>();
 
     // Extra JS options to pass to the JS engine
+    /** Language IDs mapped to option-name/string-value maps, applied when a context for that language is built. */
     @Option(translationKey = "jsmacrosce.settings.languages.extralangoptions", group = {"jsmacrosce.settings.languages", "jsmacrosce.settings.languages.graaloptions"}, type = @OptionType("string"))
     public Map<String, Map<String, String>> extraLangOptions = new HashMap<>();
 
+    @DocletIgnore
     @Deprecated
     public void fromV1(JsonObject v1) {
         // v1 used extraJsOptions specifically for js engine options
@@ -34,6 +49,7 @@ public class GraalConfig {
         v1.remove("extraJsOptions");
     }
 
+    @DocletIgnore
     @Deprecated
     public void fromV2(JsonObject v2) {
         // v2 used a shared engine, so extraGraalOptions under "js" was specifically for js engine options
@@ -53,6 +69,7 @@ public class GraalConfig {
         v2.remove("js");
     }
 
+    @DocletIgnore
     @Deprecated
     public void fromV3(JsonObject v3) {
         // v3->v4 removes extraGraalOptions and replaces it with a map of language -> options map.

@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.advancements.AdvancementRequirements;
 import net.minecraft.advancements.CriterionProgress;
@@ -14,6 +16,7 @@ import java.util.Map;
  * @since 1.8.4
  */
 @Mixin(AdvancementProgress.class)
+@DocletIgnore
 public interface MixinAdvancementProgress {
 
     @Accessor

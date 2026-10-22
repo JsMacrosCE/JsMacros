@@ -5,8 +5,8 @@ import com.jsmacrosce.doclet.DocletIgnore;
 import java.util.PriorityQueue;
 
 /**
- * @author Wagyourtail
- * Ignore this xd
+ * Coordinates threads waiting for client ticks. {@link #tick()} advances the shared counter and
+ * notifies threads waiting in {@link #waitTick()} or on queued tick targets.
  */
 @DocletIgnore
 public class TickSync {

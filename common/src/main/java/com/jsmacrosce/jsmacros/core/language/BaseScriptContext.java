@@ -16,25 +16,28 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * @param <T>
+/** Holds a language runtime context and tracks threads and event containers associated with its execution.
+ * Closing releases bound event locks, interrupts bound threads, and removes this context from its runner.
+ * @param <T> language-specific runtime context type
  * @since 1.4.0
  */
 public abstract class BaseScriptContext<T> {
+    /** The {@code Core} that owns this context; the reference is fixed, but the runner itself is not immutable. */
     public final Core<?, ?> runner;
     protected boolean preventLog = false;
     protected boolean closed = false;
+    /** Construction timestamp in milliseconds since the Unix epoch, not the language-execution start time. */
     public final long startTime = System.currentTimeMillis();
 
     private Object syncObjectPrivate = new Object();
+    /** Weak reference to this context's synchronization object; clearing its private strong reference permits collection. */
     public final WeakReference<Object> syncObject = new WeakReference<>(this.syncObjectPrivate);
 
+    /** Event supplied when this context was triggered, or {@code null} when none was supplied. */
     public final BaseEvent triggeringEvent;
     protected final File mainFile;
 
-    /**
-     * the actual "context", for whatever the language impl is...
-     */
+    /** The language-specific runtime context, or {@code null} before it is set. */
     protected T context = null;
     protected Thread mainThread = null;
 
@@ -43,52 +46,63 @@ public abstract class BaseScriptContext<T> {
     protected final Map<Thread, EventContainer<? extends BaseScriptContext<T>>> events = new ConcurrentHashMap<>();
 
     // <listener, event>
+    /** Live listener-to-event-name map used by event registration; its listener keys are weakly held. */
     public final WeakHashMap<IEventListener, String> eventListeners = new WeakHashMap<>();
 
+    /** Whether a context-associated {@code MethodWrapper} has been constructed; this starts {@code false} and is used by {@code shouldKeepAlive}. */
     public boolean hasMethodWrapperBeenInvoked = false;
 
+    /** Initializes a context with its runner and optional triggering event and script file.
+     * @param runner owning runner
+     * @param event triggering event, if any
+     * @param file script file, if any
+     */
     public BaseScriptContext(Core<?, ?> runner, BaseEvent event, File file) {
         this.runner = runner;
         this.triggeringEvent = event;
         this.mainFile = file;
     }
 
-    /**
-     * this object should only be weak referenced unless we want to prevent the context from closing when syncObject is cleared.
+    /** Returns the sync object while it remains strongly referenced elsewhere, or {@code null} after collection.
+     * @return sync object, or {@code null} if collected
      */
     public Object getSyncObject() {
         return syncObject.get();
     }
 
+    /** Drops the context's strong reference to its sync object. */
     public void clearSyncObject() {
         this.syncObjectPrivate = null;
     }
 
+    /** Returns whether the method-wrapper flag is set or a service requires this context to remain alive.
+     * @return {@code true} if either condition holds
+     */
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean shouldKeepAlive() {
         return this.hasMethodWrapperBeenInvoked || ServiceManager.hasKeepAlive(this);
     }
 
-    /**
-     * @return
+    /** Returns the mutable map of threads to their bound event containers.
+     * @return the backing map
      * @since 1.6.0
      */
     public synchronized Map<Thread, EventContainer<? extends BaseScriptContext<T>>> getBoundEvents() {
         return events;
     }
 
-    /**
-     * @param th
-     * @param event
+    /** Associates an event container with a thread, replacing any existing association.
+     * @param th thread to associate
+     * @param event event container to associate
      * @since 1.6.0
      */
     public synchronized void bindEvent(Thread th, EventContainer<BaseScriptContext<T>> event) {
         events.put(th, event);
     }
 
-    /**
-     * @param thread
-     * @return
+    /** Releases the event lock for the thread's bound event container, if present.
+     * @param thread thread whose event lock is released
+     * @return {@code true} if an event container was present; otherwise {@code false}
      * @since 1.6.0
      */
     public synchronized boolean releaseBoundEventIfPresent(Thread thread) {
@@ -100,21 +114,24 @@ public abstract class BaseScriptContext<T> {
         return false;
     }
 
+    /** Returns the language-specific runtime context.
+     * @return runtime context, or {@code null} if unset
+     */
     public T getContext() {
         return context;
     }
 
-    /**
-     * @return
+    /** Returns the main execution thread, or {@code null} before it is assigned.
+     * @return the main thread, or {@code null} before assignment
      * @since 1.5.0
      */
     public Thread getMainThread() {
         return mainThread;
     }
 
-    /**
-     * @param t
-     * @return is a newly bound thread
+    /** Adds a thread to this context's bound-thread set.
+     * @param t thread to bind; {@code null} and binding after closure are rejected
+     * @return {@code true} if the thread was not already bound
      * @since 1.6.0
      */
     public synchronized boolean bindThread(Thread t) {
@@ -127,8 +144,8 @@ public abstract class BaseScriptContext<T> {
         return threads.add(t);
     }
 
-    /**
-     * @param t
+    /** Removes a bound thread and releases its associated event lock, if present.
+     * @param t bound thread; throws {@link ScriptAssertionError} if it is not bound
      * @since 1.6.0
      */
     public synchronized void unbindThread(Thread t) {
@@ -139,16 +156,16 @@ public abstract class BaseScriptContext<T> {
         }
     }
 
-    /**
-     * @return
+    /** Returns the mutable backing set of threads bound to this context.
+     * @return the live set of bound threads
      * @since 1.6.0
      */
     public synchronized Set<Thread> getBoundThreads() {
         return threads;
     }
 
-    /**
-     * @param t
+    /** Assigns and binds the main thread; a second assignment is rejected.
+     * @param t thread to assign
      * @since 1.5.0
      */
     public void setMainThread(Thread t) {
@@ -159,13 +176,17 @@ public abstract class BaseScriptContext<T> {
         bindThread(t);
     }
 
-    /**
+    /** Returns the event that triggered this script, or {@code null} if none was supplied.
+     * @return triggering event, or {@code null}
      * @since 1.5.0
      */
     public BaseEvent getTriggeringEvent() {
         return triggeringEvent;
     }
 
+    /** Sets the language runtime context once; a second assignment is rejected.
+     * @param context runtime context to store
+     */
     public void setContext(T context) {
         if (this.context != null) {
             throw new ScriptAssertionError("Context already set");
@@ -173,6 +194,9 @@ public abstract class BaseScriptContext<T> {
         this.context = context;
     }
 
+    /** Returns whether the context is closed; also closes it if its weakly held sync object was cleared.
+     * @return {@code true} if closed
+     */
     public synchronized boolean isContextClosed() {
         if (syncObject.get() == null) {
             if (!closed) {
@@ -182,14 +206,15 @@ public abstract class BaseScriptContext<T> {
         return closed;
     }
 
-    /**
-     * @param preventLog Whether to prevent the "Context execution was cancelled." from being logged.
+    /** Closes this context and sets whether the execution wrapper suppresses its cancellation log.
+     * @param preventLog whether to suppress the cancellation log
      */
     public synchronized void closeContext(boolean preventLog) {
         this.preventLog = preventLog;
         closeContext();
     }
 
+    /** Closes this context, releases bound event locks, interrupts bound threads, and unregisters it from the runner. */
     public synchronized void closeContext() {
         closed = true;
         // fix concurrency issue the "fun" way
@@ -198,8 +223,8 @@ public abstract class BaseScriptContext<T> {
         runner.getContexts().remove(this);
     }
 
-    /**
-     * @return
+    /** Returns the script file supplied when this context was created, if any.
+     * @return the script file, or {@code null} if none was supplied
      * @since 1.6.0
      */
     @Nullable
@@ -207,29 +232,61 @@ public abstract class BaseScriptContext<T> {
         return mainFile;
     }
 
-    /**
-     * @return
+    /** Returns the absolute containing folder for the script file, or the absolute configured macro folder if no file was supplied.
+     * @return the absolute folder; throws {@link NullPointerException} if the script file has no parent
      * @since 1.6.0
      */
     public File getContainedFolder() {
         return mainFile == null ? runner.config.macroFolder.getAbsoluteFile() : mainFile.getParentFile().getAbsoluteFile();
     }
 
+    /** Returns whether this language context supports concurrent execution on multiple threads.
+     * @return {@code true} if concurrent execution on multiple threads is supported
+     */
     public abstract boolean isMultiThreaded();
 
+    /** Runs an operation that may block; the default implementation runs it directly.
+     * @param sleep operation to run
+     * @throws InterruptedException if the operation is interrupted
+     */
     public void wrapSleep(SleepRunnable sleep) throws InterruptedException {
         sleep.run();
     }
 
+    /**
+     * Assertion error used when a script attempts an invalid context operation.
+     * <pre>
+     * const Failure = Java.type("com.jsmacrosce.jsmacros.core.language.BaseScriptContext$ScriptAssertionError");
+     * const error = new Failure("invalid context operation");
+     * Chat.log(error.getMessage());
+     * </pre>
+     */
     public static class ScriptAssertionError extends AssertionError {
+        /** Creates an assertion error for an invalid script-context operation.
+         * @param message failure description
+         */
         public ScriptAssertionError(String message) {
             super(message);
         }
 
     }
 
+    /**
+     * Operation accepted by {@code BaseScriptContext.wrapSleep(SleepRunnable)}; its
+     * {@code run()} method may throw {@code InterruptedException}.
+     * <pre>
+     * const SleepRunnable = Java.type("com.jsmacrosce.jsmacros.core.language.BaseScriptContext$SleepRunnable");
+     * const operation = new (Java.extend(SleepRunnable))({
+     *     run() { Chat.log("operation"); }
+     * });
+     * operation.run();
+     * </pre>
+     */
     @FunctionalInterface
     public interface SleepRunnable {
+        /** Runs the blocking operation.
+         * @throws InterruptedException if interrupted
+         */
         void run() throws InterruptedException;
 
     }

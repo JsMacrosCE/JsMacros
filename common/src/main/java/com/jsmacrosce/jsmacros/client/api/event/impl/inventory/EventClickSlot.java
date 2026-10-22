@@ -22,7 +22,6 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * <br>
  * For drops on their own, see {@link EventDropSlot}. For a single slot changing because the
  * server sent an update, see {@link EventSlotUpdate}.
- * example:
  * <pre>
  * JsMacros.on("ClickSlot", JavaWrapper.methodToJava(function (event) {
  *   if (event.mode === 1) {
@@ -49,20 +48,16 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 public class EventClickSlot extends BaseEvent {
     protected final AbstractContainerScreen<?> screen;
     /**
-     * which kind of click this is, as the numeric id of the game's click action. The values are
-     * the same on every supported game version, so this number is safe to compare against.<br>
+     * Numeric id of the game's click action.<br>
      * {@code 0} is a plain pick up or place, {@code 1} is the shift-click quick move, {@code 2} is
      * a hotbar swap, {@code 3} is the creative middle-click clone, {@code 4} is a throw or drop,
      * {@code 5} is a right-click quick craft, and {@code 6} is a double-click pick up all, which
      * sweeps everything of that item type into the cursor.<br>
-     * The action used to be spelled {@code ClickType} and is called {@code ContainerInput} on
-     * newer versions, but it kept both its order and its ids across the rename. The click itself
-     * goes out as the
-     * <a href="https://minecraft.wiki/w/Java_Edition_protocol/Packets" target="_blank">click window packet</a>.
+     * These ids correspond to the {@code ClickType} action ids on Minecraft 1.21.8.
      */
     public final int mode;
     /**
-     * which button or key produced the click, as a number.<br>
+     * Which button or key produced the click, as a number.<br>
      * For a pick up or a throw this is the mouse button: {@code 0} for the left button, or for
      * dropping a single item, and {@code 1} for the right button, or for dropping the whole
      * stack. For a swap it is the hotbar slot that was pressed, {@code 0} through {@code 8}, or
@@ -80,6 +75,14 @@ public class EventClickSlot extends BaseEvent {
      */
     public final int slot;
 
+    /**
+     * Stores the screen reference and click values unchanged, and initializes the event with the client core.
+     * A {@code null} screen is accepted and is not dereferenced here.
+     * @param screen source container screen; may be {@code null}
+     * @param mode numeric click-action ID; no click-type range is enforced
+     * @param button action button or key number
+     * @param slot source inventory-menu index; the out-of-window convention is not validated
+     */
     public EventClickSlot(AbstractContainerScreen<?> screen, int mode, int button, int slot) {
         super(JsMacrosClient.clientCore);
         this.screen = screen;
@@ -89,13 +92,8 @@ public class EventClickSlot extends BaseEvent {
     }
 
     /**
-     * a fresh {@link Inventory} wrapper around the menu of the screen this click happened in, so
-     * it is bound to the same container the player is looking at. A new wrapper is built on every
-     * call, but they all drive the same underlying menu, so an action taken through it, such as
-     * {@link Inventory#dropSlot(int) dropSlot()}, is a real action on the open screen.<br>
-     * The concrete type follows the screen, so a chest gives back a container inventory while the
-     * player's own inventory gives back a player inventory. There is no menu slot behind
-     * {@code -999}, so do not read that one back through this.
+     * Returns a fresh {@link Inventory} wrapper for the menu of the screen where the click
+     * occurred. The wrapper refers to that same menu; {@code -999} is not a menu slot.
      *
      * @return the inventory of the screen this click happened in
      */
@@ -103,6 +101,11 @@ public class EventClickSlot extends BaseEvent {
         return Inventory.create(screen);
     }
 
+    /**
+     * Formats a diagnostic string using the event name, stored slot, and screen name.
+     * The result has the form {@code %s:{"slot": %d, "screen": "%s"}}; a null screen name appears as the quoted text {@code "null"}.
+     * @return formatted diagnostic string; this is not JSON serialization
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"slot\": %d, \"screen\": \"%s\"}", this.getEventName(), slot, JsMacrosClient.getScreenName(screen));

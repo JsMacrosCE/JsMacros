@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * "hidden" event for script based code style compiling / linting tasks.
- * remember to {@code consumer.autoWrap()} everything.
+ * Event passed to the editor's script-based code compiler. Populate its rendered lines, autocomplete suggestions, and
+ * optional context-menu callback while handling it; the editor reads these outputs after the handler completes.
  *
  * @author Wagyourtail
  * @since 1.3.1
@@ -33,30 +33,29 @@ import java.util.Map;
 @Event("CodeRender")
 @SuppressWarnings("unused")
 public class CodeCompileEvent extends BaseEvent {
+    /** Cursor object captured from the supplied screen; its state is shared, not copied. */
     public final SelectCursor cursor;
+    /** Source text supplied for this compilation, rather than a live editor-content accessor. */
     public final String code;
+    /** Syntax-language identifier supplied for this compilation; it is not necessarily a file extension or supported grammar. */
     public final String language;
+    /** Editor screen supplied for this compilation, retained by reference. */
     public final EditorScreen screen;
 
-    /**
-     * you are expected to fill this in with text styling, if not filled, nothing will render
-     * if the code is an empty string, you are still expected to put an empty string as the first line here
-     */
+    /** Rendered lines to display after handling; each line is reset to the editor's default style. */
     public final List<TextHelper> textLines = new LinkedList<>();
 
-    /**
-     * you are expected to fill this with suggestions for autocomplete created using
-     * {@link #createSuggestion(int, String)}
-     */
+    /** Autocomplete suggestions exposed for the current code after handling. */
     public final List<AutoCompleteSuggestion> autoCompleteSuggestions = new LinkedList<>();
 
-    /**
-     * you are expected to fill this with a method to create right click actions.
-     * method should be {@code (index:number) => Map&lt;string,() => void&gt;},
-     * meaning it accepts a character index and returns a map of names to actions.
-     */
+    /** Callback supplying context-menu actions for a character index; {@code null} means there are no actions. */
     public MethodWrapper<Integer, Object, Map<String, MethodWrapper<Object, Object, Object, ?>>, ?> rightClickActions;
 
+    /** Stores compilation inputs and captures the screen's cursor; does not run the compiler or dispatch the handler.
+     * @param code source text to render
+     * @param language syntax-language identifier
+     * @param screen editor screen supplying the cursor
+     */
     public CodeCompileEvent(String code, String language, EditorScreen screen) {
         super(JsMacrosClient.clientCore);
         this.code = code;
@@ -65,42 +64,41 @@ public class CodeCompileEvent extends BaseEvent {
         this.cursor = screen.cursor;
     }
 
-    /**
-     * @return <a target="_blank" href="https://github.com/noties/Prism4j/blob/75ac3dae6f8eff5b1b0396df3b806f44ce86c484/prism4j/src/main/java/io/noties/prism4j/Prism4j.java#L54">Prism4j's
-     * node list</a> you don't have to use it but if you're not compiling your own...
-     * peek at the code of {@link TextStyleCompiler} for the default impl for walking the node tree.
+    /** Returns Prism syntax nodes for this code and language; an unsupported language causes a {@link NullPointerException}.
+     * @return the generated Prism nodes
      */
     public List<Prism4j.Node> genPrismNodes() {
         return Prism.getNodes(code, language);
     }
 
-    /**
-     * Easy access to the {@link Map} object for use with {@link #rightClickActions}
-     *
-     * @return specifically a {@link LinkedHashMap}
+    /** Creates an insertion-ordered map suitable as the result of {@link #rightClickActions}.
+     * @return an empty insertion-ordered map
      */
     public Map<?, ?> createMap() {
         return new LinkedHashMap<>();
     }
 
-    /**
-     * more convenient access to TextBuilder
-     *
-     * @return new instance for use with {@link #textLines}
+    /** Creates a text builder for constructing a rendered line in {@link #textLines}.
+     * @return a new text builder
      */
     public TextBuilder createTextBuilder() {
         return new TextBuilder();
     }
 
+    /** Creates an autocomplete suggestion using its suggestion text as the display text.
+     * @param startIndex index in the code at which the replaced portion begins
+     * @param suggestion replacement text
+     * @return the created suggestion
+     */
     public AutoCompleteSuggestion createSuggestion(int startIndex, String suggestion) {
         return createSuggestion(startIndex, suggestion, null);
     }
 
-    /**
-     * @param startIndex  index that is where the suggestion starts from before the already typed part
-     * @param suggestion  complete suggestion including the already typed part
-     * @param displayText how the text should be displayed in the dropdown, default is suggestion text
-     * @return a new suggestion object
+    /** Creates an autocomplete suggestion, optionally with separate dropdown display text.
+     * @param startIndex index in the code at which the replaced portion begins
+     * @param suggestion replacement text
+     * @param displayText dropdown text; {@code null} uses {@code suggestion}
+     * @return the created suggestion
      */
     public AutoCompleteSuggestion createSuggestion(int startIndex, String suggestion, TextHelper displayText) {
         if (displayText == null) {
@@ -109,25 +107,15 @@ public class CodeCompileEvent extends BaseEvent {
         return new AutoCompleteSuggestion(startIndex, suggestion, displayText.getRaw());
     }
 
-    /**
-     * prefix tree data structure written for you, it's a bit intensive to add things to, especially how I wrote it, but
-     * lookup times are much better at least on larger data sets,
-     * so create a single copy of this for your static autocompletes and don't be re-creating this every time, store it
-     * in {@code globalvars}, probably per language
-     * <p>
-     * or just don't use it, I'm not forcing you to.
-     *
-     * @return a new {@link StringHashTrie}
+    /** Creates an empty prefix tree for autocomplete data.
+     * @return an empty prefix tree
      */
     public StringHashTrie createPrefixTree() {
         return new StringHashTrie();
     }
 
-    /**
-     * @return {@code key -> hex integer} values for theme data points, this can be used with the prism data for
-     * coloring, just have to use {@link TextBuilder#withColor(int, int, int)}
-     * on 1.15 and older versions the integer values with be the default color's index so you can directly pass it
-     * to {@link TextBuilder#withColor(int)}
+    /** Returns syntax-theme RGB components keyed by token name; the first call initializes and saves default colors if none are configured.
+     * @return theme colors keyed by token name, with each color represented by three RGB components
      */
     public Map<String, short[]> getThemeData() {
         return JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).getThemeData();

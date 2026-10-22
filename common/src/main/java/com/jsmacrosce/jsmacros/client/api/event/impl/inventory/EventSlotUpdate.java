@@ -12,34 +12,14 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when a single slot of a container changes because the server said so, which covers the
- * item on the mouse cursor, the player's own inventory, and whatever container screen happens to
- * be open. It is the per-slot counterpart of
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventContainerUpdate}, which
- * fires when a whole container is resent at once.<br>
- * This event is not cancellable. It is raised just before the game hands the new stack to the
- * menu, so the slot still holds the old value while listeners run and only changes once they
- * return, and there is nothing to stop in any case.<br>
- * Three things are worth being careful about. The {@code type} field only says which family of
- * update this came from, so compare it against the strings in the field's own description rather
- * than against the shipped type, which lists a value the game never produces. The {@code slot} is
- * meaningless for a {@code 'HELD'} update, which is reported as {@code -999} because the item on
- * the cursor is not a slot of the menu at all. And an {@code 'UNKNOWN'} update reports a
- * throwaway player inventory screen, so {@code slot} and {@link #getInventory()} do not describe
- * the same menu; see both members for what that means in that case.
- * example:
- * <pre>
- * JsMacros.on("SlotUpdate", JavaWrapper.methodToJava(function (event) {
- *   const now = event.newStack;
- *   if (event.slot === -999) {
- *     // -999 means the item on the cursor, which is not a menu slot at all
- *     Chat.log(`cursor now holds ${now.getName().getString()} x${now.getCount()}`);
- *     return;
- *   }
- *   const before = event.oldStack;
- *   Chat.log(`slot ${event.slot} went from ${before.getItemID()} to ${now.getItemID()}`);
- * }))
- * </pre>
+ * Fires for a server update to one menu slot or the cursor stack. Unlike
+ * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventContainerUpdate}, it does
+ * not represent a whole-container update. The event is not cancellable and is dispatched at the
+ * update site before the menu receives the new stack.
+ * <p>
+ * {@code 'HELD'} uses slot {@code -999} for the cursor. For {@code 'UNKNOWN'}, the reported screen
+ * is the player inventory even though the packet addressed another menu; see the member
+ * descriptions for the implications.
  * @since 1.9.0
  */
 @DocletCategory("Inventory")
@@ -47,15 +27,10 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 public class EventSlotUpdate extends BaseEvent {
     protected final AbstractContainerScreen<?> screen;
     /**
-     * which family of update this slot change came from.<br>
-     * {@code 'HELD'} is the item on the mouse cursor, {@code 'INVENTORY'} is the player's own
-     * inventory, {@code 'CONTAINER'} is the open container screen, and {@code 'UNKNOWN'} is a
-     * container update that matched neither the player's inventory nor the screen that is
-     * currently open, so the screen it reports is a throwaway player inventory rather than the
-     * container that actually changed.<br>
-     * Note that the declared type shipped for this field lists {@code 'SCREEN'} instead of
-     * {@code 'CONTAINER'} and leaves {@code 'UNKNOWN'} out, so the field can hold a value the
-     * declared type does not allow. Match on the strings above rather than on the declared type.
+     * Identifies the update source: {@code 'HELD'} for the cursor, {@code 'INVENTORY'} for the
+     * player's inventory, {@code 'CONTAINER'} for the open container, or {@code 'UNKNOWN'} when
+     * the packet matches neither. For {@code 'UNKNOWN'}, the reported screen is the player
+     * inventory, not the menu addressed by the packet.
      */
     @DocletReplaceReturn("SlotUpdateType")
     @DocletDeclareType(name = "SlotUpdateType", type = "'HELD' | 'INVENTORY' | 'SCREEN'")
@@ -102,6 +77,16 @@ public class EventSlotUpdate extends BaseEvent {
      */
     public final ItemStackHelper newStack;
 
+    /**
+     * Stores the supplied event values and wraps both stacks without copying them; stack arguments
+     * may be {@code null}. This constructor does not validate or normalize the supplied values.
+     *
+     * @param screen screen associated with the event; may be {@code null}
+     * @param type source label, stored unchanged and not validated; may be {@code null}
+     * @param slot menu slot index, stored without validation
+     * @param oldStack previous raw stack; may be {@code null}
+     * @param newStack replacement raw stack; may be {@code null}
+     */
     public EventSlotUpdate(AbstractContainerScreen<?> screen, String type, int slot, ItemStack oldStack, ItemStack newStack) {
         super(JsMacrosClient.clientCore);
         this.screen = screen;
@@ -124,15 +109,19 @@ public class EventSlotUpdate extends BaseEvent {
      * {@link #oldStack} and {@link #newStack} directly there instead of looking {@code slot} up
      * in here.
      *
-     * @return a wrapper around the menu behind the reported screen, which is the menu
-     *         {@code slot} indexes for a {@code 'CONTAINER'} or {@code 'INVENTORY'} update but not
-     *         for an {@code 'UNKNOWN'} one, and is not what {@code slot} means at all for a
-     *         {@code 'HELD'} one
+     * @return a wrapper around the menu behind the reported screen
      */
     public Inventory<?> getInventory() {
         return Inventory.create(screen);
     }
 
+    /**
+     * Formats the event name, stored slot, and current screen name as a diagnostic string in the
+     * form {@code %s:{"slot": %d, "screen": "%s"}}. A {@code null} screen is represented by
+     * the quoted name {@code "null"}; this does not include the event type or stack values.
+     *
+     * @return diagnostic string containing the event name, slot, and screen name
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"slot\": %d, \"screen\": \"%s\"}", this.getEventName(), slot, JsMacrosClient.getScreenName(screen));

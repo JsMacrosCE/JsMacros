@@ -8,22 +8,10 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the item stack in the local player's main hand or off hand changes.<br>
- * Despite the name this is about the item in the hand, not about the selected hotbar slot.
- * Scrolling to a different hotbar slot that holds the same item does not fire this event, and
- * replacing the item in the currently held slot does.<br>
- * This is not driven by a packet. Both hands are polled once per client tick and compared against
- * the stack that was seen the last time, so the event reports the change the client noticed. A
- * hand that is empty both before and after produces no event at all.<br>
- * When the new and old stacks are the same item with the same count and the same components
- * apart from damage, and only the damage value moved, the
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventItemDamage} event fires
- * first with that item, and this event follows immediately after. A hand that only gained or
- * lost stack count does not go through that path, so no {@code ItemDamage} is raised for it and
- * this event is the only one that fires.<br>
- * This event is not cancellable, the hand contents the client tracks are the hand contents the
- * player actually has.
- * example:
+ * Fires when polling detects a change to the local player's main- or off-hand stack, at most once
+ * per client tick. It does not fire for an empty-to-empty transition. If only damage changes,
+ * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventItemDamage} fires first. This
+ * event is not cancellable.
  * <pre>
  * JsMacros.on("HeldItemChange", JavaWrapper.methodToJava(function (event) {
  *   const hand = event.offHand ? "off hand" : "main hand";
@@ -39,23 +27,30 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "HeldItemChange", oldName = "HELD_ITEM")
 public class EventHeldItemChange extends BaseEvent {
     /**
-     * {@code true} if the off hand changed, {@code false} if the main hand changed.
+     * Whether the changed stack is in the off hand; {@code false} indicates the main hand.
      */
     public final boolean offHand;
     /**
-     * the item stack that is in the hand now. An empty hand is reported as an empty
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper}, so check
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper#isEmpty() isEmpty()}
-     * before reading the id or the count.
+     * The current stack in the changed hand. An empty hand is represented by an empty
+     * {@link com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper}, not {@code null}.
      */
     public final ItemStackHelper item;
     /**
-     * the stack that was in the hand the last time this event fired for it, which is an empty
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper} if the hand was
-     * empty.
+     * The previous stack in the changed hand; an empty hand is represented by an empty
+     * {@link com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper}, not {@code null}.
      */
     public final ItemStackHelper oldItem;
 
+    /**
+     * Wraps the supplied current and previous raw stacks and records which hand they describe.
+     * This constructor does not detect or dispatch a hand change. Each argument is retained as
+     * the corresponding helper's raw value; a {@code null} stack therefore produces a non-null
+     * helper wrapping {@code null}.
+     *
+     * @param item current raw stack; may be {@code null}
+     * @param oldItem previous raw stack; may be {@code null}
+     * @param offHand {@code true} for the off hand, {@code false} for the main hand
+     */
     public EventHeldItemChange(ItemStack item, ItemStack oldItem, boolean offHand) {
         super(JsMacrosClient.clientCore);
         this.item = new ItemStackHelper(item);
@@ -63,6 +58,13 @@ public class EventHeldItemChange extends BaseEvent {
         this.offHand = offHand;
     }
 
+    /**
+     * Formats the event name and current stack helper as {@code %s:{"item": %s}}; the previous
+     * stack and hand indicator are omitted. Formatting dereferences the current raw stack, so a
+     * current stack wrapped from {@code null} causes a {@link NullPointerException}.
+     *
+     * @return the formatted event name and current stack representation
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"item\": %s}", this.getEventName(), item.toString());

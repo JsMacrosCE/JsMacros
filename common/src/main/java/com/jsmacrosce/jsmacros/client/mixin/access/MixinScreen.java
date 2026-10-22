@@ -51,6 +51,7 @@ import net.minecraft.client.gui.TextAlignment;
 import net.minecraft.client.gui.GuiGraphics;
 
 @SuppressWarnings("AddedMixinMembersNamePattern")
+@DocletIgnore
 @Mixin(Screen.class)
 @Implements(@Interface(iface = IScreen.class, prefix = "soft$"))
 public abstract class MixinScreen extends AbstractContainerEventHandler implements IScreen, IScreenInternal {
@@ -381,7 +382,6 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     }
 
     /**
-     * @see IDraw2D#addImage(int, int, int, int, int, String, int, int, int, int, int, int, double)
      * @since 1.4.0
      */
     @Override
@@ -390,7 +390,6 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     }
 
     /**
-     * @see IDraw2D#addImage(int, int, int, int, int, int, String, int, int, int, int, int, int, double)
      * @since 1.6.5
      */
     @Override
@@ -403,7 +402,6 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     }
 
     /**
-     * @see IDraw2D#addImage(int, int, int, int, int, int, int, String, int, int, int, int, int, int, double)
      * @since 1.6.5
      */
     @Override
@@ -765,6 +763,7 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     }
 
     @Override
+    @DocletIgnore
     public IScreen removeButton(ClickableWidgetHelper<?, ?> btn) {
         synchronized (elements) {
             elements.remove(btn);
@@ -800,6 +799,7 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     }
 
     @Override
+    @DocletIgnore
     public IScreen removeTextInput(TextFieldWidgetHelper inp) {
         synchronized (elements) {
             elements.remove(inp);
@@ -957,11 +957,11 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     }
 
     /**
-     * This is called from MixinMouse right before the Screen has it's `mouseClicked` called.
+     * Dispatches the registered mouse-down callback and handles clicks on clickable text.
      *
-     * @param mouseX The x coordinate of the mouse click
-     * @param mouseY The y coordinate of the mouse click
-     * @param button The mouse button that was clicked with 0 being left, 1 being right, 2 being middle among others
+     * @param mouseX The mouse click's x coordinate
+     * @param mouseY The mouse click's y coordinate
+     * @param button The clicked mouse button; 0 is left, 1 is right, and 2 is middle
      */
     @Override
     @DocletIgnore

@@ -22,38 +22,24 @@ import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 
 /**
- * A 2D overlay: a list of things to draw on the screen, and the thing that draws them.
+ * A 2D overlay that stores and draws screen elements.
  * <p>
- * It holds text, rectangles, lines, images and item icons, all in screen space: pixels
- * from the top left of the window, measured after the GUI scale has been applied. That
- * is the same space the mouse readings are in, so a mouse position can be handed
- * straight to a drawing position, and the same space {@code Hud.getWindowWidth()} and
- * {@code Hud.getWindowHeight()} report.
+ * Element coordinates use GUI-scaled pixels from the window's top-left corner.
  * <p>
- * Nothing renders until {@link #register()} is called. Building the elements is not
- * registering the overlay, so a script that fills one in and returns draws nothing.
- * The older {@code Hud.registerDraw2D} does the same thing and is deprecated, and
- * {@link #unregister()} is how it comes off again.
+ * The overlay renders only while registered with {@link #register()}; call
+ * {@link #unregister()} to stop it.
  * <p>
  * Registering also runs initialization. When an init function is installed, the overlay is
  * emptied before that function rebuilds it; without one, hand-built elements are preserved.
  * <p>
- * Coordinates are absolute rather than relative to anything, so two overlays on top of
- * each other do not stack. {@link #getZIndex()} is the exception: it orders whole
- * overlays against each other, lower drawn first, rather than ordering the elements
- * within one.
+ * Coordinates are absolute. {@link #getZIndex()} orders whole overlays (lower first),
+ * while each element's z-index orders elements within its overlay.
  * <p>
- * The elements are held in a set rather than a list, so adding an element that compares
- * equal to one already there leaves the overlay as it was. None of the flat elements in
- * this package compare equal to anything but themselves, so in practice each one is
- * distinct and it behaves like an ordered list.
+ * Elements are stored in insertion order in a set; adding an equal element does not
+ * create a duplicate.
  * <p>
- * A 2D overlay can be nested inside another with {@link #addDraw2D(Draw2D, int, int,
- * int, int)}, which is how a panel is built up out of smaller ones. Nesting is checked
- * when it is added, so a cycle is refused rather than sending the renderer round in
- * circles. A flat panel in the <em>world</em> is a different thing entirely: that is a
- * surface, and a 3D overlay holds those.
- * example:
+ * Overlays can be nested with {@link #addDraw2D(Draw2D, int, int, int, int)}; cyclic
+ * nesting is rejected. A {@link Surface} displays overlays in the world.
  * <pre>
  * // an overlay that builds itself, registered so it renders
  * const draw = Hud.createDraw2D();
@@ -75,55 +61,35 @@ import java.util.stream.Collectors;
 @SuppressWarnings("deprecation")
 public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     /**
-     * everything this overlay holds, in the order things were added.
-     * <p>
-     * A set rather than a list, so adding an element that compares equal to one already
-     * there leaves the overlay as it is. None of the flat elements in this package
-     * compare equal to anything but themselves, so in practice each one is distinct.
+     * Elements held by this overlay in insertion order; equal elements are not duplicated.
      *
      * @since 1.0.5
      */
     protected final Set<RenderElement> elements = new LinkedHashSet<>();
     /**
-     * where {@link #getWidth()} reads its number from.
-     * <p>
-     * It defaults to the window's width after the GUI scale has been applied, and
-     * anything that reads the overlay's width goes through this rather than reading the
-     * window. Replacing it is how a nested overlay is made to report the size of the
-     * panel it is drawn on instead of the window's.
+     * Supplies the value returned by {@link #getWidth()}. Defaults to the window width
+     * in GUI-scaled pixels; nested overlays replace it with their displayed width.
      *
      * @since 1.0.5
      */
     public IntSupplier widthSupplier;
     /**
-     * where {@link #getHeight()} reads its number from.
-     * <p>
-     * The counterpart of {@code widthSupplier}, and replaced the same way.
+     * Supplies the value returned by {@link #getHeight()}. Defaults to the window height
+     * in GUI-scaled pixels; nested overlays replace it with their displayed height.
      *
      * @since 1.0.5
      */
     public IntSupplier heightSupplier;
     /**
-     * where this overlay sits against the other registered overlays, lower drawn first.
-     * <p>
-     * This orders whole overlays rather than the elements within one, so it is what to
-     * reach for when two overlays would otherwise fight over the same part of the
-     * screen. The elements inside this overlay are ordered by their own z-indexes
-     * instead, and are not affected by this. {@link #setZIndex(int)} sets it.
-     * <p>
-     * The default is {@code 0}, and every overlay starts there.
+     * Orders this overlay against other registered overlays, lower values first; it does
+     * not affect element ordering. Defaults to {@code 0}; use {@link #setZIndex(int)} to set it.
      *
      * @since 1.0.5
      */
     public int zIndex;
     /**
-     * whether this overlay is drawn at all.
-     * <p>
-     * Turning it off stops the overlay drawing without unregistering it, so it can be
-     * hidden and shown again without rebuilding anything. The elements are untouched
-     * either way. This is the same thing {@link #setVisible(boolean)} does.
-     * <p>
-     * The default is {@code true}, so a new overlay draws as soon as it is registered.
+     * Whether this overlay is rendered while registered. Changing visibility does not
+     * unregister it or alter its elements; defaults to {@code true}.
      *
      * @since 1.8.4
      */
@@ -135,6 +101,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
      */
     @Deprecated
     @Nullable
+    @DocletIgnore
     public MethodWrapper<Draw2D, Object, Object, ?> onInit;
     /**
      * @since 1.1.7
@@ -142,10 +109,16 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
      */
     @Deprecated
     @Nullable
+    @DocletIgnore
     public MethodWrapper<String, Object, Object, ?> catchInit;
 
     protected final Minecraft mc;
 
+    /**
+     * Sets up an empty, unregistered overlay with width and height suppliers that read
+     * the current window's GUI-scaled dimensions when invoked. Call {@link #register()}
+     * separately to initialize and register it.
+     */
     public Draw2D() {
         this.mc = Minecraft.getInstance();
         this.widthSupplier = () -> mc.getWindow().getGuiScaledWidth();
@@ -153,26 +126,9 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * how wide this overlay thinks the screen is, in scaled pixels.
-     * <p>
-     * This is the window's width after the GUI scale has been applied, and it is the
-     * same space every element coordinate is in, so a position up to this width is on
-     * screen. It reads through {@link #widthSupplier}, which anything nesting this
-     * overlay replaces so a panel reports the size of what it is drawn on rather than
-     * the window's.
-     * <p>
-     * This says nothing about how wide the overlay's own content is. There is no such
-     * thing here: elements are placed by absolute coordinate and the overlay is as big
-     * as whatever it is drawn over.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.register();
-     * Chat.log(`screen is ${draw.getWidth()} pixels wide to this overlay`);
-     * </pre>
+     * Returns the width supplied by {@link #widthSupplier}, in GUI-scaled pixels.
      *
-     * @return screen width
-     * @see IDraw2D#getWidth()
+     * @return the supplied width
      * @since 1.0.5
      */
     @Override
@@ -181,20 +137,9 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * how tall this overlay thinks the screen is, in scaled pixels.
-     * <p>
-     * The counterpart of {@link #getWidth()}, and read through
-     * {@link #heightSupplier} in the same way. A position up to this height is on
-     * screen.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.register();
-     * Chat.log(`screen is ${draw.getHeight()} pixels tall to this overlay`);
-     * </pre>
+     * Returns the height supplied by {@link #heightSupplier}, in GUI-scaled pixels.
      *
-     * @return screen height
-     * @see IDraw2D#getHeight()
+     * @return the supplied height
      * @since 1.0.5
      */
     @Override
@@ -203,29 +148,14 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * every text element on this overlay, in the order they were added.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. Only text is in here; the other kinds of element have their own
-     * getters.
-     * <p>
-     * Nested overlays are not included, so text inside a panel added with
-     * {@link #addDraw2D(Draw2D, int, int, int, int)} does not show up here even though
-     * it is drawn.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("one", 10, 10, 0xFFFFFFFF, true);
-     * draw.addRect(0, 0, 10, 10, 0xFFFFFFFF);
-     * draw.register();
-     * // one text and one rectangle, told apart by their own getters
-     * Chat.log(`${draw.getTexts().size()} texts, ${draw.getRects().size()} rects`);
-     * </pre>
+     * Returns this overlay's text elements in insertion order. The returned list is a
+     * separate, mutable list; nested overlays' contents are not included.
      *
      * @return text elements
      * @see IDraw2D#getTexts()
      * @since 1.0.5
      */
+    @DocletIgnore
     @Override
     public List<Text> getTexts() {
         List<Text> list = new LinkedList<>();
@@ -240,23 +170,14 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * every rectangle on this overlay, in the order they were added.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. Nested overlays are not included.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addRect(0, 0, 10, 10, 0xFFFF0000);
-     * draw.addText("one", 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * Chat.log(`${draw.getRects().size()} rects, ${draw.getTexts().size()} texts`);
-     * </pre>
+     * Returns this overlay's rectangles in insertion order. The returned list is a
+     * separate, mutable list; nested overlays' contents are not included.
      *
      * @return rect elements
      * @see IDraw2D#getRects()
      * @since 1.0.5
      */
+    @DocletIgnore
     @Override
     public List<Rect> getRects() {
         List<Rect> list = new LinkedList<>();
@@ -271,19 +192,10 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * every line on this overlay, in the order they were added.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. Nested overlays are not included.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addLine(0, 0, 10, 10, 0xFFFFFFFF);
-     * draw.register();
-     * Chat.log(`${draw.getLines().size()} lines`);
-     * </pre>
+     * Returns this overlay's lines in insertion order. The returned list is a
+     * separate, mutable list; nested overlays' contents are not included.
      *
-     * @return all registered line elements.
+     * @return the line elements
      * @since 1.8.4
      */
     @Override
@@ -300,22 +212,14 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * every item icon on this overlay, in the order they were added.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. Nested overlays are not included.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addItem(10, 10, "minecraft:diamond");
-     * draw.register();
-     * Chat.log(`${draw.getItems().size()} items`);
-     * </pre>
+     * Returns this overlay's item icons in insertion order. The returned list is a
+     * separate, mutable list; nested overlays' contents are not included.
      *
      * @return item elements
      * @see IDraw2D#getItems()
      * @since 1.0.5
      */
+    @DocletIgnore
     @Override
     public List<Item> getItems() {
         List<Item> list = new LinkedList<>();
@@ -330,22 +234,14 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * every image on this overlay, in the order they were added.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. Nested overlays are not included.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addImage(10, 10, 16, 16, "minecraft:item/diamond", 0, 0, 16, 16, 16, 16);
-     * draw.register();
-     * Chat.log(`${draw.getImages().size()} images`);
-     * </pre>
+     * Returns this overlay's images in insertion order. The returned list is a
+     * separate, mutable list; nested overlays' contents are not included.
      *
      * @return image elements
      * @see IDraw2D#getImages()
      * @since 1.2.3
      */
+    @DocletIgnore
     @Override
     public List<Image> getImages() {
         List<Image> list = new LinkedList<>();
@@ -360,26 +256,11 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * every nested overlay on this one, in the order they were added.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. This is the list of wrappers rather than of the overlays
-     * themselves; each wrapper reports the position and size the nested overlay is drawn
-     * at, which is not the same as the nested overlay's own idea of its size.
-     * <p>
-     * The contents of the nested overlays are not in here, only the wrappers.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const panel = Hud.createDraw2D();
-     * panel.addText("inside", 5, 5, 0xFFFFFFFF, true);
-     * draw.addDraw2D(panel, 10, 10, 100, 50);
-     * draw.register();
-     * // one nested panel; its text is not in this overlay's own text list
-     * Chat.log(`${draw.getDraw2Ds().size()} nested, ${draw.getTexts().size()} of our own texts`);
-     * </pre>
+     * Returns the nested-overlay wrappers in insertion order, not the nested overlays
+     * or their contents. The returned list is a separate, mutable list; each wrapper
+     * carries the nested overlay's placement and displayed dimensions.
      *
-     * @return all registered draw2d elements.
+     * @return the nested-overlay wrappers
      * @since 1.8.4
      */
     @Override
@@ -396,26 +277,10 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * everything on this overlay, of every kind, in the order things were added.
-     * <p>
-     * A read-only snapshot rather than the overlay's own collection, so changing it
-     * does not change what this overlay holds and elements taken off afterwards do not
-     * disappear from a copy already taken. The types have to be told apart with their
-     * own getters; the getters are the easier route.
-     * <p>
-     * Nested overlays are wrappers in this list rather than the overlays themselves, and
-     * the contents of those nested overlays are not in here.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("one", 10, 10, 0xFFFFFFFF, true);
-     * draw.addRect(0, 0, 10, 10, 0xFFFF0000);
-     * draw.register();
-     * // both, where the per-type getters would each give one
-     * Chat.log(`${draw.getElements().size()} elements in total`);
-     * </pre>
+     * Returns an immutable snapshot of all elements on this overlay in insertion order.
+     * Nested overlays appear as wrappers; their contents are not included.
      *
-     * @return a read only copy of the list of all elements added by scripts.
+     * @return an immutable snapshot of this overlay's elements
      * @since 1.2.9
      */
     @Override
@@ -424,23 +289,10 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * takes any element off this overlay, whatever kind it is.
-     * <p>
-     * This is the one removal that does not need to know the type, which is what makes
-     * it the right one for an element read back out of {@link #getElements()}. The typed
-     * removals such as {@link #removeText(Text)} do the same thing and are deprecated.
-     * <p>
-     * The element itself is left alone, so it can be put back with
-     * {@link #reAddElement(RenderElement)} and comes back as it was. Removing something
-     * that is not on this overlay does nothing.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const text = draw.addText("temporary", 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * draw.removeElement(text);
-     * Chat.log(`${draw.getTexts().size()} texts left`);
-     * </pre>
+     * Removes an element from this overlay. If it is absent, this has no effect; the
+     * element itself is unchanged and can be added again with
+     * {@link #reAddElement(RenderElement)}. Unlike the deprecated typed removals, this
+     * accepts any render-element type.
      *
      * @param e the element to take off
      * @return self for chaining
@@ -455,31 +307,12 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * puts an element back onto this overlay.
-     * <p>
-     * For one taken off with {@link #removeElement(RenderElement)}, or built with
-     * {@code build()} rather than {@code buildAndAdd()}. Adding an element that is
-     * already on the overlay leaves it as it is, because the overlay holds a set, and
-     * still reports the element back.
-     * <p>
-     * A nested overlay is the case that can fail, and this is where that is checked. A
-     * nested overlay is refused, and {@code null} is returned, when it has no overlay
-     * behind it, when it is this overlay, or when it already contains this one further
-     * down. That last one is the cycle case: without the check the renderer would follow
-     * the nesting round and round.
-     * <p>
-     * A nested overlay added to a surface is initialised as it is added, so its own
-     * init function runs at that point rather than waiting.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const text = draw.addText("hello", 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * draw.removeElement(text);
-     * // back on, and still there
-     * draw.reAddElement(text);
-     * </pre>
+     * Adds an element to this overlay and returns it. An already-present element is not
+     * duplicated. Nested-overlay wrappers are rejected with {@code null} if they have no
+     * underlying overlay, refer to this overlay, or would create a cycle. When this
+     * overlay is a {@code Surface}, adding a nested overlay initializes it immediately.
      *
+     * @param <T> the type of element to add
      * @param e the element to put back
      * @return the element, or {@code null} if it is a nested overlay that was refused
      * @since 1.2.9
@@ -503,23 +336,10 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * whether to render this element.
-     * <p>
-     * This hides and shows the overlay without unregistering it, so it can be toggled
-     * without rebuilding anything. The elements are untouched either way, so showing it
-     * again brings back exactly what was there before. It is the same thing as writing
-     * the {@code visible} field.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("hello", 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * // hidden, but still registered and still holding its text
-     * draw.setVisible(false);
-     * Chat.log(`${draw.getTexts().size()} texts, none of them drawn`);
-     * </pre>
+     * Sets whether this overlay is rendered. Changing visibility does not unregister the
+     * overlay or alter its elements.
      *
-     * @param visible whether to render this element.
+     * @param visible whether this overlay should be rendered
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -529,13 +349,8 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * A new overlay is visible before it has been registered, so this says whether the
-     * overlay would draw rather than whether it is currently being drawn.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * Chat.log(`visible before registering: ${draw.isVisible()}`);
-     * </pre>
+     * Returns whether this overlay is set to render; this does not indicate whether it
+     * is registered.
      *
      * @return {@code true} if this draw2d is visible, {@code false} otherwise.
      * @since 1.8.4
@@ -545,28 +360,11 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws another 2D overlay inside this one, at a position and size.
-     * <p>
-     * This is how a panel is built up out of smaller overlays. The nested overlay is
-     * drawn at {@code x}, {@code y} inside this one, and reports the width and height
-     * given here as its own screen size, so its elements are placed relative to that
-     * rather than to the window.
-     * <p>
-     * What the nested overlay draws is not in this overlay's own element lists, so
-     * {@link #getTexts()} and its siblings do not show it; it appears in
-     * {@link #getDraw2Ds()} as a wrapper.
-     * <p>
-     * A cycle is refused and this returns {@code null}: an overlay cannot be put inside
-     * itself, and it cannot be put inside something it already contains.
-     * example:
-     * <pre>
-     * const outer = Hud.createDraw2D();
-     * const panel = Hud.createDraw2D();
-     * panel.addText("inside a panel", 5, 5, 0xFFFFFFFF, true);
-     * // the panel is 100 by 50 as far as its own elements are concerned
-     * outer.addDraw2D(panel, 20, 20, 100, 50);
-     * outer.register();
-     * </pre>
+     * Adds a nested overlay at the given position and displayed size. The nested overlay
+     * has that width and height for its own elements; its elements are not included in
+     * this overlay's element lists, while its wrapper appears in {@link #getDraw2Ds()}.
+     * Returns {@code null} if nesting would create a cycle, including nesting this
+     * overlay inside itself.
      *
      * @param draw2D the overlay to draw inside this one
      * @param x the x position of the nested overlay within this one
@@ -582,25 +380,10 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws another 2D overlay inside this one, with its own z-index.
-     * <p>
-     * The same as the shorter form, with the z-index of the wrapper set so this nested
-     * overlay can be ordered against the other elements on this one. The elements
-     * <em>inside</em> the nested overlay keep their own z-indexes and are ordered among
-     * themselves, not against this one.
-     * <p>
-     * A cycle is refused and this returns {@code null}, as in the shorter form.
-     * example:
-     * <pre>
-     * const outer = Hud.createDraw2D();
-     * const back = Hud.createDraw2D();
-     * back.addRect(0, 0, 100, 50, 0x80000000);
-     * const front = Hud.createDraw2D();
-     * front.addText("on top", 5, 5, 0xFFFFFFFF, true);
-     * outer.addDraw2D(back, 20, 20, 100, 50, 0);
-     * outer.addDraw2D(front, 20, 20, 100, 50, 1);
-     * outer.register();
-     * </pre>
+     * Adds a nested overlay as in {@link #addDraw2D(Draw2D, int, int, int, int)}, with
+     * the wrapper's z-index ordering it against this overlay's other elements. The
+     * nested overlay's elements are ordered within that overlay. Returns {@code null}
+     * if nesting would create a cycle.
      *
      * @param draw2D the overlay to draw inside this one
      * @param x the x position of the nested overlay within this one
@@ -619,7 +402,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
 
     /**
      * @param draw2d the draw2d to check for cyclic dependencies
-     * @return {@code true} if adding the child to the parent would result in a cyclic dependency.
+     * @return whether this overlay is reachable from the proposed child through nested overlays.
      * @since 1.8.4
      */
     private boolean hasCyclicDependencies(Draw2D draw2d) {
@@ -637,22 +420,8 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * takes a nested overlay off this one.
-     * <p>
-     * Only the wrapper comes off. The overlay that was inside it is left as it is and can
-     * be put back with {@link #addDraw2D(Draw2D, int, int, int, int)}, and whatever was
-     * drawn inside it is still on it. {@link #removeElement(RenderElement)} does the same
-     * thing without needing the wrapper type.
-     * example:
-     * <pre>
-     * const outer = Hud.createDraw2D();
-     * const panel = Hud.createDraw2D();
-     * panel.addText("inside", 5, 5, 0xFFFFFFFF, true);
-     * const wrapper = outer.addDraw2D(panel, 20, 20, 100, 50);
-     * outer.register();
-     * outer.removeDraw2D(wrapper);
-     * Chat.log(`${outer.getDraw2Ds().size()} nested overlays left`);
-     * </pre>
+     * Removes the wrapper for a nested overlay from this overlay; the nested overlay and
+     * its elements are unchanged.
      *
      * @param draw2D the wrapper to take off
      * @return self chaining.
@@ -667,21 +436,8 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a piece of text at a position, with a colour and a shadow.
-     * <p>
-     * The position is in screen pixels from the top left, the colour is packed as the
-     * game packs colours with the alpha in the top byte, and the shadow is the game's
-     * own drop shadow behind the glyphs. This is the shortest form and puts the text at
-     * z-index 0 with a scale of 1 and no rotation.
-     * <p>
-     * Coordinates are absolute, so text added at the same place twice sits on top of
-     * itself rather than stacking.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("hello", 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * </pre>
+     * Adds text at the given GUI-scaled screen position. The color is packed with alpha
+     * in the top byte; this overload uses z-index {@code 0}, scale {@code 1}, and no rotation.
      * @param text the text to display
      * @param x screen x
      * @param y screen y
@@ -698,28 +454,16 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a piece of text with a z-index.
-     * <p>
-     * The z-index orders this text against the other elements on this overlay, lower
-     * drawn first, and the two texts in the example below are at the same place for
-     * exactly that reason. It is not the overlay's own z-index, which orders whole
-     * overlays; see {@link #getZIndex()} for that.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("behind", 10, 10, 0xFFFF0000, 0, true);
-     * draw.addText("in front", 10, 10, 0xFF00FF00, 1, true);
-     * draw.register();
-     * </pre>
+     * Adds text; despite accepting {@code zIndex}, this overload currently uses
+     * z-index {@code 0}. Use the full overload to specify the element z-index.
      *
      * @param text the text to display
      * @param x screen x
      * @param y screen y
      * @param color text color
-     * @param zIndex z-index
+     * @param zIndex currently ignored; the added text uses z-index {@code 0}
      * @param shadow include shadow layer
      * @return added text
-     * @see IDraw2D#addText(String, int, int, int, boolean)
      * @since 1.0.5
      */
     @Override
@@ -728,18 +472,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a piece of text with a scale and a rotation.
-     * <p>
-     * The scale multiplies the glyph size and the rotation turns the text in degrees,
-     * both about the text's own top left corner. Neither affects the position, which is
-     * still where the top left corner goes, so a scaled and rotated text reaches
-     * further right and down from the same coordinates.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("tilted", 20, 20, 0xFFFFFFFF, true, 1.5, 15);
-     * draw.register();
-     * </pre>
+     * Adds text with the given scale and rotation in degrees, using z-index {@code 0}.
      *
      * @param text the text to display
      * @param x screen x
@@ -758,17 +491,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a piece of text with a z-index, a scale and a rotation, which is the full
-     * form of the other text helpers.
-     * <p>
-     * Every shorter form ends up here, so anything a script can express about a piece of
-     * text it can express through this.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("everything", 20, 20, 0xFFFFFFFF, 1, true, 1.5, 15);
-     * draw.register();
-     * </pre>
+     * Adds text with the specified z-index, scale, and rotation in degrees.
      *
      * @param text the text to display
      * @param x screen x
@@ -788,18 +511,8 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a piece of already-built text, keeping whatever styling it has.
-     * <p>
-     * This takes a {@link TextHelper} rather than a plain string, so the text keeps its
-     * own colours and formatting. The {@code color} argument is a tint over the top
-     * rather than a replacement, so a helper with no styling of its own draws the same
-     * as the string form.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText(Chat.createTextHelperFromString("a green line"), 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * </pre>
+     * Adds styled text from a {@link TextHelper}; {@code color} tints its existing
+     * styling. This overload uses z-index {@code 0}, scale {@code 1}, and no rotation.
      *
      * @param text the text to display
      * @param x screen x
@@ -816,16 +529,8 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a piece of already-built text with a z-index, keeping its styling.
-     * <p>
-     * The z-index orders this text against the other elements on this overlay, lower
-     * drawn first, and has nothing to do with the styling the helper carries.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText(Chat.createTextHelperFromString("a green line"), 10, 10, 0xFFFFFFFF, 1, true);
-     * draw.register();
-     * </pre>
+     * Adds styled text from a {@link TextHelper}; {@code color} tints its existing
+     * styling. This overload uses scale {@code 1} and no rotation.
      *
      * @param text the text to display
      * @param x screen x
@@ -843,17 +548,8 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a piece of already-built text with a scale and a rotation, keeping its
-     * styling.
-     * <p>
-     * The scale and the rotation turn the whole text element, so they apply on top of
-     * whatever the helper itself is styled with rather than changing it.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText(Chat.createTextHelperFromString("tilted"), 20, 20, 0xFFFFFFFF, true, 1.5, 15);
-     * draw.register();
-     * </pre>
+     * Adds styled text from a {@link TextHelper}; {@code color} tints its existing
+     * styling. This overload uses z-index {@code 0}.
      *
      * @param text the text to display
      * @param x screen x
@@ -872,17 +568,8 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a piece of already-built text with everything, keeping its styling. This is
-     * the full form of the other text helpers.
-     * <p>
-     * Every shorter form ends up here, so anything a script can express about a piece of
-     * text it can express through this.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText(Chat.createTextHelperFromString("everything"), 20, 20, 0xFFFFFFFF, 1, true, 1.5, 15);
-     * draw.register();
-     * </pre>
+     * Adds styled text from a {@link TextHelper}, applying the supplied tint, z-index,
+     * scale, and rotation.
      *
      * @param text the text to display
      * @param x screen x
@@ -902,26 +589,14 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * takes a piece of text off this overlay.
-     * <p>
-     * The text itself is left alone, so it can be put back with
-     * {@link #reAddElement(RenderElement)} and comes back as it was.
-     * {@link #removeElement(RenderElement)} does the same thing without needing the
-     * type, and is not deprecated.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const text = draw.addText("temporary", 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * draw.removeText(text);
-     * Chat.log(`${draw.getTexts().size()} texts left`);
-     * </pre>
+     * Removes the text element from this overlay; it does not otherwise modify it.
      *
      * @param t the text to take off
      * @return self for chaining
      * @see IDraw2D#removeText(Text)
      * @since 1.0.5
      */
+    @DocletIgnore
     @Override
     public Draw2D removeText(Text t) {
         synchronized (elements) {
@@ -931,25 +606,9 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws a region of a texture as an image.
-     * <p>
-     * The image is placed at {@code x}, {@code y} in screen pixels and drawn
-     * {@code width} by {@code height} on the screen, from a region of a larger texture.
-     * The two sets of coordinates are different things: the region is where in the
-     * texture the pixels come from, and the width and height are how big that region
-     * ends up on screen, so the same region can be drawn at any size.
-     * <p>
-     * A texture is named the way a texture pack names it, so
-     * {@code assets/minecraft/textures/gui/recipe_book.png} is
-     * {@code minecraft:textures/gui/recipe_book.png}. A texture made with
-     * {@code Hud.createTexture} is named by whatever was passed for its name instead.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * // one item icon, drawn 16 by 16 at its natural size
-     * draw.addImage(10, 10, 16, 16, "minecraft:item/diamond", 0, 0, 16, 16, 16, 16);
-     * draw.register();
-     * </pre>
+     * Draws a texture region at the specified screen position and size. The region
+     * coordinates and dimensions are in texture pixels; {@code width} and
+     * {@code height} are the on-screen dimensions.
      *
      * @param x screen x, top left corner
      * @param y screen y, top left corner
@@ -972,16 +631,8 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws a region of a texture as an image, with a z-index.
-     * <p>
-     * The same as the shorter form, with the z-index ordering this image against the
-     * other elements on this overlay, lower drawn first.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addImage(10, 10, 16, 16, 1, "minecraft:item/diamond", 0, 0, 16, 16, 16, 16);
-     * draw.register();
-     * </pre>
+     * Draws a texture region at the specified screen position and size, ordered by
+     * {@code zIndex} against other overlay elements.
      *
      * @param x screen x, top left corner
      * @param y screen y, top left corner
@@ -1005,17 +656,9 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws a region of a texture as an image, turned by an angle.
-     * <p>
-     * The rotation is in degrees and turns the image about its own middle. The position
-     * given is still where the image's top left corner goes, so a rotated image reaches
-     * further left and up than an unrotated one at the same coordinates.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addImage(20, 20, 16, 16, "minecraft:item/diamond", 0, 0, 16, 16, 16, 16, 15);
-     * draw.register();
-     * </pre>
+     * Draws a texture region at the specified screen position and size, rotated about
+     * its center by {@code rotation} degrees. The position remains the unrotated
+     * image's top-left corner.
      *
      * @param x screen x, top left corner
      * @param y screen y, top left corner
@@ -1043,16 +686,8 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
      * @since 1.4.0
      */
     /**
-     * draws a region of a texture as an image, with a z-index and turned by an angle.
-     * <p>
-     * The z-index orders this image against the other elements on this overlay, and the
-     * rotation turns it about its own middle in degrees.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addImage(20, 20, 16, 16, 1, "minecraft:item/diamond", 0, 0, 16, 16, 16, 16, 15);
-     * draw.register();
-     * </pre>
+     * Adds a texture region with a z-index and rotation about the image's center, in degrees.
+     * See {@link IDraw2D#addImage(int, int, int, int, int, String, int, int, int, int, int, int, double)}.
      *
      * @param x screen x, top left corner
      * @param y screen y, top left corner
@@ -1068,7 +703,6 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
      * @param textureHeight the height of the entire texture
      * @param rotation the rotation (clockwise) of the texture (as degrees)
      * @return added image
-     * @see IDraw2D#addImage(int, int, int, int, String, int, int, int, int, int, int, double)
      * @since 1.2.6
      */
     @Override
@@ -1077,19 +711,8 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws a region of a texture as a tinted image, with a z-index and a rotation.
-     * <p>
-     * The colour is a tint laid over the texture's own pixels rather than a replacement,
-     * so a fully white tint leaves the image as it is in the texture and anything else
-     * shifts it towards that colour. The shorter forms leave the tint fully white, which
-     * is why they take no colour at all.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * // the same icon, tinted red
-     * draw.addImage(20, 20, 16, 16, 0, 0xFFFF0000, "minecraft:item/diamond", 0, 0, 16, 16, 16, 16, 0);
-     * draw.register();
-     * </pre>
+     * Adds a tinted texture region with a z-index and rotation about the image's center, in degrees.
+     * A white tint leaves the texture colors unchanged; shorter overloads use a white tint.
      *
      * @param x screen x, top left corner
      * @param y screen y, top left corner
@@ -1115,21 +738,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws a tinted image with its transparency given separately, which is the full
-     * form of the image helpers.
-     * <p>
-     * The alpha is the image's own transparency and the colour is the tint over it, so
-     * the two do different jobs: the alpha decides how much of the background shows
-     * through and the tint decides what colour the pixels are drawn. Every shorter form
-     * ends up here, so anything a script can express about an image it can express
-     * through this.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * // a red tinted icon at half transparency
-     * draw.addImage(20, 20, 16, 16, 0, 128, 0xFF0000, "minecraft:item/diamond", 0, 0, 16, 16, 16, 16, 0);
-     * draw.register();
-     * </pre>
+     * Adds a tinted texture region with explicit alpha, z-index, and rotation about its center, in degrees.
      *
      * @param x screen x, top left corner
      * @param y screen y, top left corner
@@ -1156,25 +765,14 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * takes an image off this overlay.
-     * <p>
-     * The image itself is left alone, so it can be put back with
-     * {@link #reAddElement(RenderElement)} and comes back as it was.
-     * {@link #removeElement(RenderElement)} does the same thing without needing the type.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const image = draw.addImage(10, 10, 16, 16, "minecraft:item/diamond", 0, 0, 16, 16, 16, 16);
-     * draw.register();
-     * draw.removeImage(image);
-     * Chat.log(`${draw.getImages().size()} images left`);
-     * </pre>
+     * Removes the image from this overlay; the image object is not otherwise modified.
      *
      * @param i the image to take off
      * @return self for chaining
      * @see IDraw2D#removeImage(Image)
      * @since 1.2.3
      */
+    @DocletIgnore
     @Override
     public Draw2D removeImage(Image i) {
         synchronized (elements) {
@@ -1184,20 +782,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a filled rectangle between two corners.
-     * <p>
-     * The two coordinates are opposite corners rather than a minimum and a maximum, so
-     * they can be given in any order and the rectangle is the same either way. It covers
-     * the area between them, so {@code 0, 0, 10, 10} is ten by ten rather than eleven.
-     * <p>
-     * This is the shortest form and draws the rectangle fully opaque, with no z-index
-     * of its own beyond 0 and no rotation.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addRect(10, 10, 110, 60, 0x80000000);
-     * draw.register();
-     * </pre>
+     * Adds a filled rectangle between two corners, using the color's alpha channel and z-index 0.
      *
      * @param x1 the x coordinate of the first corner
      * @param y1 the y coordinate of the first corner
@@ -1214,19 +799,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a rectangle between two corners, with its transparency given separately.
-     * <p>
-     * The two coordinates are opposite corners rather than a minimum and a maximum, so
-     * they can be given in any order. Nothing is filled in here, so an alpha of
-     * {@code 0} really does make the rectangle invisible rather than being treated as
-     * a missing one.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * // the same rectangle at half transparency
-     * draw.addRect(10, 10, 110, 60, 0x000000, 128);
-     * draw.register();
-     * </pre>
+     * Adds a rectangle between two corners with a separate alpha value; rotation and z-index are zero.
      *
      * @param x1 the x coordinate of the first corner
      * @param y1 the y coordinate of the first corner
@@ -1248,17 +821,9 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
      * @since 1.2.6
      */
     /**
-     * adds a rectangle between two corners, with a rotation.
-     * <p>
-     * The rotation is in degrees and turns the rectangle about its own middle. The
-     * corners given are still the unrotated ones, so the rectangle reaches further left
-     * and up once it is turned.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addRect(60, 10, 110, 60, 0x80000000, 255, 15);
-     * draw.register();
-     * </pre>
+     * Adds a rectangle between two corners with a separate alpha value. This overload
+     * ignores {@code rotation} and uses rotation and z-index zero; use the full overload
+     * to set both.
      *
      * @param x1 the x coordinate of the first corner
      * @param y1 the y coordinate of the first corner
@@ -1266,7 +831,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
      * @param y2 the y coordinate of the second corner
      * @param color    as hex
      * @param alpha    alpha channel 0-255
-     * @param rotation as degrees
+     * @param rotation ignored; this overload always uses zero rotation
      * @return added rect
      * @see IDraw2D#addRect(int, int, int, int, int, int, double)
      * @since 1.2.6
@@ -1277,28 +842,18 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a rectangle between two corners, with a rotation and a z-index, which is the
-     * full form of the rectangle helpers.
-     * <p>
-     * The z-index orders this rectangle against the other elements on this overlay,
-     * lower drawn first, and is what two rectangles drawn in the same place are ordered
-     * by. Every shorter form ends up here.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addRect(10, 10, 110, 60, 0x80000000, 255, 0, 1);
-     * draw.register();
-     * </pre>
+     * Adds a rectangle between two corners, with rotation and a z-index. Lower z-index
+     * elements are drawn first.
      *
      * @param x1 the x coordinate of the first corner
      * @param y1 the y coordinate of the first corner
      * @param x2 the x coordinate of the second corner
      * @param y2 the y coordinate of the second corner
-     * @param color    as hex
-     * @param alpha    alpha channel 0-255
-     * @param rotation as degrees
-     * @param zIndex   z-index
-     * @return added rect
+     * @param color    rectangle color
+     * @param alpha    transparency from 0 (transparent) to 255 (opaque)
+     * @param rotation rotation in degrees
+     * @param zIndex   draw order relative to other overlay elements
+     * @return the added rectangle
      * @see IDraw2D#addRect(int, int, int, int, int, int, double)
      * @since 1.2.6
      */
@@ -1308,25 +863,15 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * takes a rectangle off this overlay.
-     * <p>
-     * The rectangle itself is left alone, so it can be put back with
-     * {@link #reAddElement(RenderElement)} and comes back as it was.
-     * {@link #removeElement(RenderElement)} does the same thing without needing the type.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const rect = draw.addRect(10, 10, 110, 60, 0x80000000);
-     * draw.register();
-     * draw.removeRect(rect);
-     * Chat.log(`${draw.getRects().size()} rects left`);
-     * </pre>
+     * Removes a rectangle from this overlay without modifying the rectangle itself.
+     * It can be added again with {@link #reAddElement(RenderElement)}.
      *
      * @param r the rectangle to take off
      * @return self for chaining
      * @see IDraw2D#removeRect(Rect)
      * @since 1.0.5
      */
+    @DocletIgnore
     @Override
     public Draw2D removeRect(Rect r) {
         synchronized (elements) {
@@ -1336,26 +881,14 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a line between two points.
-     * <p>
-     * The two coordinates are the start and the end rather than a minimum and a maximum,
-     * so a line has a direction and can be drawn either way round. The width is one
-     * pixel and it is drawn at z-index 0.
-     * <p>
-     * A line whose two ends are the same point has no direction and nothing to draw.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addLine(0, 0, 50, 50, 0xFFFFFFFF);
-     * draw.register();
-     * </pre>
+     * Adds a one-pixel-wide line between its start and end points, at z-index 0.
      *
      * @param x1 the x position of the start
      * @param y1 the y position of the start
      * @param x2 the x position of the end
      * @param y2 the y position of the end
-     * @param color the color of the line, can include alpha value
-     * @return the added line.
+     * @param color the line color, including any alpha value
+     * @return the added line
      * @see IDraw2D#addLine(int, int, int, int, int)
      * @since 1.8.4
      */
@@ -1365,26 +898,16 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a line between two points, with a z-index.
-     * <p>
-     * The z-index orders this line against the other elements on this overlay, lower
-     * drawn first, and is what two lines crossing at the same place are ordered by. The
-     * width is one pixel.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addLine(0, 0, 50, 50, 0xFFFF0000, 0);
-     * draw.addLine(0, 50, 50, 0, 0xFF00FF00, 1);
-     * draw.register();
-     * </pre>
+     * Adds a one-pixel-wide line between its start and end points. Lower z-index
+     * elements are drawn first.
      *
      * @param x1 the x position of the start
      * @param y1 the y position of the start
      * @param x2 the x position of the end
      * @param y2 the y position of the end
-     * @param color the color of the line, can include alpha value
-     * @param zIndex the z-index of the line
-     * @return the added line.
+     * @param color the line color, including any alpha value
+     * @param zIndex draw order relative to other overlay elements
+     * @return the added line
      * @see IDraw2D#addLine(int, int, int, int, int)
      * @since 1.8.4
      */
@@ -1394,25 +917,15 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a line between two points, with a width.
-     * <p>
-     * The width is in screen pixels and straddles the line rather than being all on
-     * one side of it, so a width of 4 makes a line two pixels either side of where the
-     * two points are. It is drawn at z-index 0.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addLine(0, 0, 50, 50, 0xFFFFFFFF, 4);
-     * draw.register();
-     * </pre>
+     * Adds a line with the specified width, at z-index 0.
      *
      * @param x1 the x position of the start
      * @param y1 the y position of the start
      * @param x2 the x position of the end
      * @param y2 the y position of the end
-     * @param color the color of the line, can include alpha value
-     * @param width the width of the line
-     * @return the added line.
+     * @param color the line color, including any alpha value
+     * @param width the line width in screen pixels
+     * @return the added line
      * @see IDraw2D#addLine(int, int, int, int, int)
      * @since 1.8.4
      */
@@ -1422,25 +935,17 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a line between two points, with a z-index and a width.
-     * <p>
-     * The z-index orders this line against the other elements on this overlay and the
-     * width is in screen pixels, straddling the line.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addLine(0, 0, 50, 50, 0xFFFFFFFF, 1, 4);
-     * draw.register();
-     * </pre>
+     * Adds a line with the specified z-index and width. Lower z-index elements are
+     * drawn first.
      *
      * @param x1 the x position of the start
      * @param y1 the y position of the start
      * @param x2 the x position of the end
      * @param y2 the y position of the end
-     * @param color the color of the line, can include alpha value
-     * @param zIndex the z-index of the line
-     * @param width the width of the line
-     * @return the added line.
+     * @param color the line color, including any alpha value
+     * @param zIndex draw order relative to other overlay elements
+     * @param width the line width in screen pixels
+     * @return the added line
      * @see IDraw2D#addLine(int, int, int, int, int)
      * @since 1.8.4
      */
@@ -1450,26 +955,17 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a line between two points, with a width and a rotation.
-     * <p>
-     * The rotation is in degrees and turns the whole line about its middle, so the two
-     * points given are where the line would be with no rotation. It is drawn at z-index
-     * 0.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addLine(25, 25, 75, 25, 0xFFFFFFFF, 2, 30);
-     * draw.register();
-     * </pre>
+     * Adds a line with the specified width and rotation about its first point, at
+     * z-index 0.
      *
      * @param x1 the x position of the start
      * @param y1 the y position of the start
      * @param x2 the x position of the end
      * @param y2 the y position of the end
-     * @param color the color of the line, can include alpha value
-     * @param width the width of the line
-     * @param rotation the rotation (clockwise) of the line (as degrees)
-     * @return the added line.
+     * @param color the line color, including any alpha value
+     * @param width the line width in screen pixels
+     * @param rotation rotation in degrees
+     * @return the added line
      * @see IDraw2D#addLine(int, int, int, int, int)
      * @since 1.8.4
      */
@@ -1479,28 +975,18 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * adds a line between two points, with a z-index, a width and a rotation, which is
-     * the full form of the line helpers.
-     * <p>
-     * The z-index orders this line against the other elements on this overlay, the width
-     * is in screen pixels and straddles the line, and the rotation turns it about its
-     * middle in degrees. Every shorter form ends up here.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addLine(25, 25, 75, 25, 0xFFFFFFFF, 1, 2, 30);
-     * draw.register();
-     * </pre>
+     * Adds a line with the specified z-index, width, and rotation about its first point.
+     * Lower z-index elements are drawn first.
      *
      * @param x1 the x position of the start
      * @param y1 the y position of the start
      * @param x2 the x position of the end
      * @param y2 the y position of the end
-     * @param color the color of the line, can include alpha value
-     * @param zIndex the z-index of the line
-     * @param width the width of the line
-     * @param rotation the rotation (clockwise) of the line (as degrees)
-     * @return the added line.
+     * @param color the line color, including any alpha value
+     * @param zIndex draw order relative to other overlay elements
+     * @param width the line width in screen pixels
+     * @param rotation rotation in degrees
+     * @return the added line
      * @see IDraw2D#addLine(int, int, int, int, int)
      * @since 1.8.4
      */
@@ -1514,22 +1000,11 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * takes a line off this overlay.
-     * <p>
-     * The line itself is left alone, so it can be put back with
-     * {@link #reAddElement(RenderElement)} and comes back as it was.
-     * {@link #removeElement(RenderElement)} does the same thing without needing the type.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const line = draw.addLine(0, 0, 50, 50, 0xFFFFFFFF);
-     * draw.register();
-     * draw.removeLine(line);
-     * Chat.log(`${draw.getLines().size()} lines left`);
-     * </pre>
+     * Removes a line from this overlay without modifying the line itself. It can be
+     * added again with {@link #reAddElement(RenderElement)}.
      *
      * @param l the line to remove
-     * @return self chaining.
+     * @return this overlay for chaining
      * @see IDraw2D#removeLine(Line)
      * @since 1.8.4
      */
@@ -1542,18 +1017,8 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws an item icon at a position.
-     * <p>
-     * The id names the item the way the game does, and the namespace may be left off
-     * for anything in {@code minecraft}. The position is in screen pixels from the top
-     * left and is where the icon's top left corner goes. The icon is drawn at its
-     * natural size with the durability bar and stack count showing.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addItem(10, 10, "minecraft:diamond");
-     * draw.register();
-     * </pre>
+     * Adds an item icon at the given screen position, with the game's item decorations.
+     * The item ID may omit the {@code minecraft:} namespace.
      *
      * @param x      left most corner
      * @param y      top most corner
@@ -1569,16 +1034,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws an item icon at a position, with a z-index.
-     * <p>
-     * The stack overlay is enabled, as in {@link #addItem(int, int, int, String, boolean)}
-     * with its overlay argument set to {@code true}.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const item = draw.addItem(10, 10, 0, "minecraft:diamond");
-     * draw.register();
-     * </pre>
+     * Adds an item icon at a position, using the default stack overlay.
      *
      * @param x      left most corner
      * @param y      top most corner
@@ -1594,23 +1050,12 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws an item icon at a position, with a choice of whether the stack overlay shows.
-     * <p>
-     * The overlay is the durability bar and the stack count drawn on top of the icon.
-     * Turning it off gives a clean icon, which is usually what a script wants when it is
-     * drawing one item rather than a whole inventory.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * // a clean icon, with no stack count or durability bar
-     * draw.addItem(10, 10, "minecraft:diamond", false);
-     * draw.register();
-     * </pre>
+     * Adds an item icon and selects whether its game-provided overlay is drawn.
      *
      * @param x       left most corner
      * @param y       top most corner
      * @param id      item id
-     * @param overlay should include overlay health and count
+     * @param overlay whether to draw the game's item decorations, including durability and count
      * @return added item
      * @see IDraw2D#addItem(int, int, String, boolean)
      * @since 1.2.0
@@ -1622,25 +1067,13 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws an item icon at a position, with a z-index and a choice of whether the
-     * stack overlay shows.
-     * <p>
-     * The z-index orders this icon against the other elements on this overlay, lower
-     * drawn first, and the overlay is the durability bar and stack count. This is the
-     * shortest form that actually adds anything, and the one to reach for when the
-     * z-indexed {@link #addItem(int, int, int, String)} is wanted.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addItem(10, 10, 1, "minecraft:diamond", false);
-     * draw.register();
-     * </pre>
+     * Adds an item icon with a z-index and control over its game-provided overlay.
      *
      * @param x       left most corner
      * @param y       top most corner
      * @param zIndex  z-index
      * @param id      item id
-     * @param overlay should include overlay health and count
+     * @param overlay whether to draw the game's item decorations, including durability and count
      * @return added item
      * @since 1.2.0
      */
@@ -1651,25 +1084,16 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws an item icon at a position, with a scale and a rotation.
+     * Adds a scaled and rotated item icon, without an explicit z-index.
      * <p>
-     * The scale multiplies the icon's size and the rotation turns it in degrees, both
-     * about the icon's own middle rather than its top left corner. The position given is
-     * still where the top left corner goes, so a scaled and rotated icon reaches further
-     * right and down from the same coordinates.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addItem(40, 40, "minecraft:diamond", false, 2, 15);
-     * draw.register();
-     * </pre>
+     * Scale multiplies the icon's size; rotation is in degrees about its center.
      *
      * @param x        left most corner
      * @param y        top most corner
      * @param id       item id
-     * @param overlay  should include overlay health and count
-     * @param scale    scale of item
-     * @param rotation rotation of item
+     * @param overlay  whether to draw the game's item decorations
+     * @param scale    size multiplier
+     * @param rotation rotation in degrees
      * @return added item
      * @see IDraw2D#addItem(int, int, String, boolean, double, double)
      * @since 1.2.0
@@ -1681,27 +1105,17 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws an item icon at a position, with a z-index, a scale and a rotation, which is
-     * the full form of the item helpers.
+     * Adds an item icon with a z-index, scale, and rotation.
      * <p>
-     * Every other {@code addItem} form that takes an item id ends up here, so anything a
-     * script can express about an item icon it can express through this. The z-index
-     * orders the icon against the other elements on this overlay, the scale multiplies
-     * its size and the rotation turns it about its middle in degrees.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addItem(40, 40, 1, "minecraft:diamond", false, 2, 15);
-     * draw.register();
-     * </pre>
+     * Scale multiplies the icon's size; rotation is in degrees about its center.
      *
      * @param x        left most corner
      * @param y        top most corner
      * @param zIndex   z-index
      * @param id       item id
-     * @param overlay  should include overlay health and count
-     * @param scale    scale of item
-     * @param rotation rotation of item
+     * @param overlay  whether to draw the game's item decorations
+     * @param scale    size multiplier
+     * @param rotation rotation in degrees
      * @return added item
      * @since 1.2.0
      */
@@ -1712,24 +1126,11 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws an item icon from an item stack.
-     * <p>
-     * This draws whatever the stack is rather than an item named by an id, so the count
-     * and the damage on the stack are what the icon shows. The position is in screen
-     * pixels and is where the icon's top left corner goes, and the stack overlay is on.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   const draw = Hud.createDraw2D();
-     *   draw.addItem(10, 10, player.getMainHand());
-     *   draw.register();
-     * }
-     * </pre>
+     * Adds an item icon from a stack, with the default stack overlay enabled.
      *
-     * @param x    left most corner
-     * @param y    top most corner
-     * @param item from inventory as helper
+     * @param x    screen-pixel x-coordinate of the icon's top-left corner
+     * @param y    screen-pixel y-coordinate of the icon's top-left corner
+     * @param Item item stack to draw, such as one from an inventory
      * @return added item
      * @see IDraw2D#addItem(int, int, ItemStackHelper)
      * @since 1.0.5
@@ -1740,21 +1141,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws an item icon from an item stack, with a z-index.
-     * <p>
-     * The stack overlay is enabled, as in
-     * {@link #addItem(int, int, int, ItemStackHelper, boolean)} with its overlay argument
-     * set to {@code true}.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   const draw = Hud.createDraw2D();
-     *   const stack = player.getMainHand();
-     *   const item = draw.addItem(10, 10, 0, stack);
-     *   draw.register();
-     * }
-     * </pre>
+     * Adds an item icon from a stack with a z-index and the default overlay enabled.
      *
      * @param x      left most corner
      * @param y      top most corner
@@ -1769,25 +1156,12 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws an item icon from an item stack, with a choice of whether the stack overlay
-     * shows.
-     * <p>
-     * The overlay is the durability bar and stack count drawn on top of the icon, and
-     * turning it off gives a clean icon.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   const draw = Hud.createDraw2D();
-     *   draw.addItem(10, 10, player.getMainHand(), false);
-     *   draw.register();
-     * }
-     * </pre>
+     * Adds an item icon from a stack and selects whether its game-provided overlay is drawn.
      *
      * @param x       left most corner
      * @param y       top most corner
-     * @param item    from inventory as helper
-     * @param overlay should include overlay health and count
+     * @param Item    item stack to draw, such as one from an inventory
+     * @param overlay whether to draw the game's item decorations, including durability and count
      * @return added item
      * @see IDraw2D#addItem(int, int, ItemStackHelper, boolean)
      * @since 1.2.0
@@ -1798,27 +1172,13 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws an item icon from an item stack, with a z-index and a choice of whether the
-     * stack overlay shows.
-     * <p>
-     * This is the shortest form of the item stack helpers that actually adds anything,
-     * and the one to reach for when the z-indexed
-     * {@link #addItem(int, int, int, ItemStackHelper)} is wanted.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   const draw = Hud.createDraw2D();
-     *   draw.addItem(10, 10, 1, player.getMainHand(), false);
-     *   draw.register();
-     * }
-     * </pre>
+     * Adds an item icon from a stack with a z-index and control over its overlay.
      *
      * @param x       left most corner
      * @param y       top most corner
      * @param zIndex  z-index
      * @param item    from inventory as helper
-     * @param overlay should include overlay health and count
+     * @param overlay whether to draw the game's item decorations, including durability and count
      * @return added item
      * @since 1.2.0
      */
@@ -1828,27 +1188,16 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws an item icon from an item stack, with a scale and a rotation.
+     * Adds a scaled and rotated item icon from a stack, without an explicit z-index.
      * <p>
-     * The scale multiplies the icon's size and the rotation turns it in degrees, both
-     * about the icon's own middle. The position given is still where the top left corner
-     * goes.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   const draw = Hud.createDraw2D();
-     *   draw.addItem(40, 40, player.getMainHand(), false, 2, 15);
-     *   draw.register();
-     * }
-     * </pre>
+     * Scale multiplies the icon's size; rotation is in degrees about its center.
      *
      * @param x        left most corner
      * @param y        top most corner
      * @param item     from inventory as helper
-     * @param overlay  should include overlay health and count
-     * @param scale    scale of item
-     * @param rotation rotation of item
+     * @param overlay  whether to draw the game's item decorations
+     * @param scale    size multiplier
+     * @param rotation rotation in degrees
      * @return added item
      * @see IDraw2D#addItem(int, int, ItemStackHelper, boolean, double, double)
      * @since 1.2.6
@@ -1859,29 +1208,16 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * draws an item icon from an item stack, with a z-index, a scale and a rotation,
-     * which is the full form of the item stack helpers.
-     * <p>
-     * Every other {@code addItem} form that takes an item stack ends up here, so anything
-     * a script can express about an item icon it can express through this.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   const draw = Hud.createDraw2D();
-     *   draw.addItem(40, 40, 1, player.getMainHand(), false, 2, 15);
-     *   draw.register();
-     * }
-     * </pre>
+     * Adds an item icon with the specified z-index, scale, and rotation.
      *
-     * @param x        left most corner
-     * @param y        top most corner
-     * @param zIndex   z-index
-     * @param item     from inventory as helper
-     * @param overlay  should include overlay health and count
-     * @param scale    scale of item
-     * @param rotation rotation of item
-     * @return added item
+     * @param x        left coordinate
+     * @param y        top coordinate
+     * @param zIndex   element draw order; lower values draw first
+     * @param item     item stack to draw
+     * @param overlay  whether to draw the item overlay
+     * @param scale    icon scale
+     * @param rotation rotation in degrees
+     * @return the added item element
      * @since 1.2.6
      */
     @Override
@@ -1890,25 +1226,13 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * takes an item icon off this overlay.
-     * <p>
-     * The icon itself is left alone, so it can be put back with
-     * {@link #reAddElement(RenderElement)} and comes back as it was.
-     * {@link #removeElement(RenderElement)} does the same thing without needing the type.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const item = draw.addItem(10, 10, "minecraft:diamond");
-     * draw.register();
-     * draw.removeItem(item);
-     * Chat.log(`${draw.getItems().size()} items left`);
-     * </pre>
+     * Removes an item element from this overlay without changing the element itself.
      *
      * @param i the item to remove
      * @return self for chaining
-     * @see IDraw2D#removeItem(Item)
      * @since 1.0.5
      */
+    @DocletIgnore
     @Override
     public Draw2D removeItem(Item i) {
         synchronized (elements) {
@@ -1918,26 +1242,10 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * initializes this overlay and its nested overlays.
-     * <p>
-     * When an init function is installed, existing elements are cleared before it rebuilds
-     * them. Without an init function, existing elements are preserved. In either case, the
-     * currently nested overlays are initialized afterwards.
-     * <p>
-     * Registering calls this, and the window being resized calls it, which is why an
-     * overlay built in an init function comes back after a resize. An init that throws
-     * has the failure passed to the fail function if one is set, and is logged if it is
-     * not, in either case without taking the rest of the game down.
-     * <p>
-     * Child initialization also runs after a parent callback failure has been handled.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("added by hand", 10, 10, 0xFFFFFFFF, true);
-     * // no init callback: the hand-added text is preserved
-     * draw.init();
-     * Chat.log(`${draw.getTexts().size()} texts left after init`);
-     * </pre>
+     * Initializes this overlay and its nested overlays. If an init callback is set,
+     * this overlay's elements are cleared before it runs; otherwise they are preserved.
+     * Callback failures are passed as strings to the fail callback when set, or logged
+     * when it is not. Nested overlays are initialized afterward.
      *
      * @since 1.0.5
      */
@@ -1980,29 +1288,9 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * everything on this overlay, in the order it is drawn.
-     * <p>
-     * The elements are sorted by their own z-indexes, lowest first, and elements with
-     * the same z-index keep the order they were added in. This is the order the renderer
-     * walks, so two elements drawn in the same place are ordered by this rather than by
-     * anything else.
-     * <p>
-     * A new iterator each call over a snapshot of the elements, so taking one and then
-     * adding to the overlay does not disturb it. JavaScript cannot walk this directly; the
-     * typed getters such as {@link #getTexts()} are the readable route and the z-indexes
-     * are on the elements themselves.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("behind", 10, 10, 0xFFFF0000, 0, true);
-     * draw.addText("in front", 10, 10, 0xFF00FF00, 1, true);
-     * draw.register();
-     * // the two texts come back in draw order, not the order they were added
-     * const texts = draw.getTexts();
-     * Chat.log(`first is the one with z-index ${texts.get(0).getZIndex()}`);
-     * </pre>
+     * Returns an iterator over this overlay's elements sorted by z-index, lowest first.
      *
-     * @return the elements on this overlay, in draw order
+     * @return elements in ascending z-index order
      * @since 1.8.4
      */
     public Iterator<RenderElement> getElementsByZIndex() {
@@ -2010,34 +1298,12 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * init function, called when window is resized or screen/draw2d is registered.
-     * clears all previous elements when called.
-     * <p>
-     * The overlay is emptied before this is called, so the function is what puts
-     * anything back on it and is the place to build elements. That is the reason an
-     * callback is useful for layouts that depend on the window size: a resize calls it again.
-     * Without an init callback, initialization preserves hand-built elements.
-     * <p>
-     * The function is given this overlay, so it adds to it. If it throws, the failure
-     * goes to the fail function if one is set and is logged if it is not, and neither
-     * takes the game down.
-     * <p>
-     * Nested overlays are initialized afterwards whether or not this overlay has a callback.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.setOnInit(JavaWrapper.methodToJava(function (self) {
-     *   // self is this overlay, and it has just been emptied
-     *   self.addRect(10, 10, 110, 60, 0x80000000);
-     *   self.addText("rebuilt on every init", 16, 20, 0xFFFFFFFF, true);
-     * }));
-     * // registering runs it, so the elements are there before the first frame
-     * draw.register();
-     * </pre>
+     * Sets the callback run during initialization after this overlay's elements are
+     * cleared. Initialization also initializes nested overlays; a callback failure is
+     * handled by the configured fail callback or logged.
      *
      * @param onInit calls your method as a {@link java.util.function.Consumer Consumer}&lt;{@link Draw2D}&gt;
      * @return self for chaining
-     * @see IDraw2D#setOnInit(MethodWrapper)
      * @since 1.2.7
      */
     @Override
@@ -2047,30 +1313,12 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * what to do when the init function throws.
-     * <p>
-     * The function is given the failure as a string, which is the throwable's own
-     * {@code toString} rather than just its message, so it carries the type and the
-     * message together. With no fail function set the failure is logged to the current
-     * profile instead, and either way the game carries on.
-     * <p>
-     * This only covers the init function. Nothing else on this overlay is guarded this
-     * way.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.setOnFailInit(JavaWrapper.methodToJava(function (message) {
-     *   Chat.log(`panel failed to build: ${message}`);
-     * }));
-     * draw.setOnInit(JavaWrapper.methodToJava(function (self) {
-     *   self.addText("this one is fine", 10, 10, 0xFFFFFFFF, true);
-     * }));
-     * draw.register();
-     * </pre>
+     * Sets the callback that receives the init callback's failure as its
+     * {@code toString()} value. If unset, the failure is logged. This handles failures
+     * from initialization only.
      *
      * @param catchInit calls your method as a {@link java.util.function.Consumer Consumer}&lt;{@link String String}&gt;
      * @return self for chaining
-     * @see IDraw2D#setOnFailInit(MethodWrapper)
      * @since 1.2.7
      */
     @Override
@@ -2080,23 +1328,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * register so the overlay actually renders
-     * <p>
-     * This runs the init function first and then adds the overlay to the list the HUD
-     * renderer walks, so an overlay whose elements are built in an init function is ready
-     * before its first frame. Building the elements is not registering the overlay, so
-     * one that was filled in and never registered draws nothing.
-     * <p>
-     * Registering the same overlay twice does nothing different, since the list it goes
-     * into holds each one once. The older {@code Hud.registerDraw2D} does the same thing
-     * and is deprecated.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("hello", 10, 10, 0xFFFFFFFF, true);
-     * // nothing has been drawn until this
-     * draw.register();
-     * </pre>
+     * Initializes and registers this overlay for HUD rendering.
      *
      * @return self for chaining
      * @since 1.6.5
@@ -2109,21 +1341,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * unregister so the overlay stops rendering
-     * <p>
-     * The elements are left on the overlay, so the same object can be registered again
-     * later and comes back as it was. This only affects this overlay and leaves every
-     * other registered one alone; {@code Hud.clearDraw2Ds()} is the one that takes down
-     * all of them.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("hello", 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * draw.unregister();
-     * // the text is still on the overlay, just not being drawn
-     * Chat.log(`${draw.getTexts().size()} texts, none of them visible`);
-     * </pre>
+     * Removes this overlay from HUD rendering without removing its elements.
      *
      * @return self for chaining
      * @since 1.6.5
@@ -2135,28 +1353,10 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * where this overlay sits against the other registered overlays, lower drawn first.
-     * <p>
-     * This orders whole overlays rather than the elements within one, so it is what to
-     * reach for when two overlays would otherwise fight over the same part of the
-     * screen. It is not the z-index of any element, and it does not move this overlay
-     * anywhere on screen.
-     * <p>
-     * A change takes effect on the next frame, since the list is sorted as it is
-     * walked. It is the same thing as writing the {@code zIndex} field.
-     * example:
-     * <pre>
-     * const back = Hud.createDraw2D();
-     * back.addRect(0, 0, 50, 50, 0x80000000);
-     * back.setZIndex(0);
-     * back.register();
-     * const front = Hud.createDraw2D();
-     * front.addText("in front", 10, 10, 0xFFFFFFFF, true);
-     * front.setZIndex(1);
-     * front.register();
-     * </pre>
+     * Sets this overlay's draw order relative to other overlays; lower values draw first.
+     * This does not change the order of elements within the overlay.
      *
-     * @param zIndex where this overlay sits against the other registered overlays
+     * @param zIndex this overlay's order relative to other overlays
      * @since 1.8.4
      */
     public void setZIndex(int zIndex) {
@@ -2164,21 +1364,9 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
-     * where this overlay sits against the other registered overlays, lower drawn first.
-     * <p>
-     * This is not the z-index of any element on it; those are set per element and are on
-     * the elements themselves. It is also not a screen position: nothing moves, it only
-     * changes which of two overlapping overlays is drawn over which.
-     * <p>
-     * The default is {@code 0}, and two overlays at the same value are ordered among
-     * themselves by which was registered first.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * Chat.log(`overlay z-index: ${draw.getZIndex()}`);
-     * </pre>
+     * Returns this overlay's draw order relative to other overlays; lower values draw first.
      *
-     * @return where this overlay sits against the other registered overlays
+     * @return this overlay's order relative to other overlays
      * @since 1.8.4
      */
     public int getZIndex() {

@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.gui.components.CycleButton;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,6 +15,7 @@ import java.util.function.Function;
  * @since 1.8.4
  */
 @Mixin(CycleButton.class)
+@DocletIgnore
 public interface MixinCyclingButton<T> {
 
     @Invoker("cycleValue")

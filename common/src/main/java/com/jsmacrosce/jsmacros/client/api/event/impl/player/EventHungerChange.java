@@ -6,22 +6,9 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the local player's hunger bar value changes.<br>
- * Note: on the current build this event does not actually reach listeners. The mixin that
- * detects the change builds the event object but never triggers it, so the event is constructed
- * and immediately discarded. A listener registered for {@code "HungerChange"} will simply never
- * be called until that mixin is fixed. The payload below describes what the event would report
- * once it is.
- * example:
- * <pre>
- * JsMacros.on("HungerChange", JavaWrapper.methodToJava(function (event) {
- *   if (event.foodLevel >= 20) {
- *     Chat.log("Not hungry");
- *   } else if (6 >= event.foodLevel) {
- *     Chat.log(`Starving, ${event.foodLevel} food points left`);
- *   }
- * }))
- * </pre>
+ * Fires before the local player's food level is assigned, when {@code setFoodLevel} receives a
+ * value different from the current one. The event reports the incoming value and does not cancel
+ * the assignment.
  * @author Wagyourtail
  * @since 1.2.7
  */
@@ -29,17 +16,24 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "HungerChange", oldName = "HUNGER_CHANGE")
 public class EventHungerChange extends BaseEvent {
     /**
-     * the player's new hunger value as the hunger bar counts it, from 0 for an empty bar up to 20
-     * for a full one. It can go past 20 while the saturation effect is active and below 0 once
-     * the player is starving.
+     * The incoming food-level value, conventionally 0 for an empty hunger bar through 20 for a full
+     * one. This is the value passed to {@code setFoodLevel}; the method does not clamp it.
      */
     public final int foodLevel;
 
+    /**
+     * Initializes this event with the supplied food-level value, stored unchanged in {@code foodLevel}.
+     * @param foodLevel supplied food-level value
+     */
     public EventHungerChange(int foodLevel) {
         super(JsMacrosClient.clientCore);
         this.foodLevel = foodLevel;
     }
 
+    /**
+     * Returns an event-name-prefixed diagnostic string in the form {@code %s:{"foodLevel": %d}}.
+     * @return diagnostic string containing the event name and stored food-level value
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"foodLevel\": %d}", this.getEventName(), foodLevel);

@@ -6,11 +6,7 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the server tells the client to drop a chunk, so the chunk leaves the client world.<br>
- * This usually means the chunk went outside of the client's view distance, but the server can
- * also unload a chunk that is still in range.<br>
- * This event is not cancellable, it only reports that a chunk is going away.
- * example:
+ * Fires after the client processes a server packet to forget a chunk. This event is not cancellable.
  * <pre>
  * JsMacros.on("ChunkUnload", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`Chunk ${event.x}, ${event.z} unloaded`);
@@ -23,20 +19,29 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "ChunkUnload", oldName = "CHUNK_UNLOAD")
 public class EventChunkUnload extends BaseEvent {
     /**
-     * the chunk's x coordinate, in chunk coordinates. Multiply by 16 for the block x coordinate.
+     * The chunk's x coordinate, in chunk coordinates.
      */
     public final int x;
     /**
-     * the chunk's z coordinate, in chunk coordinates. Multiply by 16 for the block z coordinate.
+     * The chunk's z coordinate, in chunk coordinates.
      */
     public final int z;
 
+    /**
+     * Stores the coordinates for this event; constructing it does not unload a chunk or modify the world.
+     * @param x x chunk coordinate
+     * @param z z chunk coordinate
+     */
     public EventChunkUnload(int x, int z) {
         super(JsMacrosClient.clientCore);
         this.x = x;
         this.z = z;
     }
 
+    /**
+     * Returns a diagnostic string containing the event name and stored coordinates in the form {@code %s:{"x": %d, "z": %d}}.
+     * @return the diagnostic string with the event name and decimal x and z values
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"x\": %d, \"z\": %d}", this.getEventName(), x, z);

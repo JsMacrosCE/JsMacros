@@ -19,6 +19,14 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Manages registered configuration-option classes and the JSON data loaded for them.
+ * Scripts can obtain the manager from {@code JsMacros.getConfig()}:
+ * <pre>
+ * const config = JsMacros.getConfig();
+ * Chat.log(config.configFile.getPath());
+ * </pre>
+ */
 @DocletCategory("Configuration/Profiles")
 public class ConfigManager {
     protected final static Gson gson = new GsonBuilder()
@@ -48,16 +56,32 @@ public class ConfigManager {
         }).setPrettyPrinting().create();
 
     private final Core<?, ?> runner;
+    /** Maps JSON root property names to registered option classes. */
     public final Map<String, Class<?>> optionClasses = new LinkedHashMap<>();
+    /** Maps registered option classes to their loaded or default option values. */
     public final Map<Class<?>, Object> options = new LinkedHashMap<>();
+    /** Absolute configuration directory retained by this manager. */
     public final File configFolder;
+    /** Absolute macro directory retained by this manager. */
     public final File macroFolder;
+    /** Configuration JSON file, named {@code options.json} under the constructor's configuration-directory argument. */
     public final File configFile;
+    /** Logger used for configuration operations. */
     public final Logger LOGGER;
+    /** Schema version written to configuration data; this is not the JsMacros release version. */
     public final static int TARGET_VERSION = 4;
     int loadedAsVers = TARGET_VERSION;
+    /** Raw JSON data most recently read or built; initially {@code null} and not automatically synchronized with {@code options}. */
     public JsonObject rawOptions = null;
 
+    /** Initializes the core option registration and loads configuration, attempting to create the supplied directories when missing.
+     * If the macro directory is initially missing, also attempts to create its {@code index.js}; directory and file creation are best-effort.
+     * Checked failures from configuration loading are wrapped in {@code RuntimeException}.
+     * @param runner runtime retained for option setup
+     * @param configFolder directory used to locate the options file
+     * @param macroFolder directory for macros
+     * @param logger logger for configuration operations
+     */
     public ConfigManager(Core<?, ?> runner, File configFolder, File macroFolder, Logger logger) {
         this.runner = runner;
         this.configFolder = configFolder.getAbsoluteFile();
@@ -88,6 +112,9 @@ public class ConfigManager {
         }
     }
 
+    /** Reads raw JSON and its schema version without rebuilding typed option values; if the file is missing, builds registered defaults.
+     * A missing version is treated as {@code 1}. Read, parse, and default-construction failures propagate.
+     */
     public synchronized void reloadRawConfigFromFile() throws IOException, InvocationTargetException, IllegalAccessException, InstantiationException, NoSuchMethodException {
         if (!configFile.exists()) {
             loadDefaults();
@@ -132,6 +159,11 @@ public class ConfigManager {
         }
     }
 
+    /** Returns the stored option value for a registered class; does not instantiate or reload it.
+     * @param <T> option value type
+     * @param optionClass class used as the option-value key
+     * @return stored value, or {@code null} if absent or stored as {@code null}
+     */
     @SuppressWarnings("unchecked")
     public <T> T getOptions(Class<T> optionClass) {
         if (!options.containsKey(optionClass)) {
@@ -140,6 +172,13 @@ public class ConfigManager {
         return (T) options.get(optionClass);
     }
 
+    /**
+     * Registers an option class and loads its value, falling back to a new default instance if loading fails.
+     * Registration occurs before loading and is retained if loading fails. Only a duplicate JSON key is rejected; the same class may be registered under another key, replacing its value in {@code options}.
+     * A declared {@code runner} field is injected when present. Default construction requires an accessible public no-argument constructor.
+     * @param key JSON root property name; must not already be registered
+     * @param optionClass option class to register and load
+     */
     public synchronized void addOptions(String key, Class<?> optionClass) throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException, IOException {
         if (optionClasses.containsKey(key)) {
             throw new IllegalStateException("Key \"" + key + "\" already in config manager!");
@@ -175,6 +214,9 @@ public class ConfigManager {
         }
     }
 
+    /**
+     * Moves the current file to {@code options.json.vN.bak}, where N is the loaded config version, then attempts to save current state. Moving can fail with IOException; saveConfig catches save failures.
+     */
     public synchronized void backupConfig() throws IOException {
         final File back = new File(configFolder, "options.json.v" + loadedAsVers + ".bak");
         if (back.exists()) {
@@ -184,6 +226,9 @@ public class ConfigManager {
         saveConfig();
     }
 
+    /**
+     * Clears existing instances and reloads them from disk, converting older data when supported. Loading failures caught per option fall back to that option's defaults; an InvocationTargetException or NoSuchMethodException escaping conversion or default construction instead resets all registered options to defaults. If no method named {@code fromV} followed by the loaded version exists, Gson loads the option instead of using the outer fallback. Backs up when the loaded version differs.
+     */
     public synchronized void loadConfig() throws IllegalAccessException, InstantiationException, IOException, InvocationTargetException, NoSuchMethodException {
         options.clear();
         reloadRawConfigFromFile();
@@ -204,6 +249,10 @@ public class ConfigManager {
 
     }
 
+    /**
+     * Instantiates defaults for registered option classes and resets raw data to an empty current-version JSON object.
+     * Does not inject runner fields or write the config file.
+     */
     public void loadDefaults() throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         for (Map.Entry<String, Class<?>> optionClass : optionClasses.entrySet()) {
             options.put(optionClass.getValue(), optionClass.getValue().getConstructor().newInstance());
@@ -212,6 +261,10 @@ public class ConfigManager {
         }
     }
 
+    /**
+     * Attempts to serialize registered options into the raw JSON data and write it to the config file.
+     * Exceptions during serialization or writing are logged and not propagated.
+     */
     public void saveConfig() {
         try {
             for (Map.Entry<String, Class<?>> optionClass : optionClasses.entrySet()) {

@@ -6,13 +6,8 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 
 /**
- * the witch, and the potion it is drinking.
- * <p>
- * A witch throws a potion, drinks a healing one, and there is a flag for the drinking: what
- * the game is doing here is a held item with a use timer behind it, so
- * {@link #isDrinkingPotion() isDrinkingPotion} is the timer running and
- * {@link #getPotion() getPotion} is what is in the hand while it runs.
- * example:
+ * Provides access to a witch's drinking state and main-hand item. While drinking,
+ * the witch holds a potion; outside that state, its main hand may be empty.
  * <pre>
  * const WitchEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.WitchEntityHelper");
  * const witches = World.getEntities(32, "witch");
@@ -20,7 +15,6 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
  *   for (const entity of witches) {
  *     const witch = WitchEntityHelper.class.cast(entity);
  *     if (witch.isDrinkingPotion()) {
- *       // the potion is the main hand, and the game empties it once the drink is done
  *       Chat.log(`a witch at ${witch.getPos()} is drinking ${witch.getPotion().getName().getString()}`);
  *     }
  *   }
@@ -34,28 +28,18 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 @SuppressWarnings("unused")
 public class WitchEntityHelper extends MobEntityHelper<Witch> {
 
+    /**
+     * Wraps the supplied witch and retains its reference for this helper.
+     *
+     * @param base witch entity to wrap
+     */
     public WitchEntityHelper(Witch base) {
         super(base);
     }
 
     /**
-     * Whether the witch is in the middle of drinking. The game raises the flag as it starts
-     * a drink and lowers it as the drink's timer runs out, at which point it empties the
-     * hand, so this is {@code false} for a witch that is only holding a potion rather than
-     * drinking one.
-     * example:
-     * <pre>
-     * const WitchEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.WitchEntityHelper");
-     * const witches = World.getEntities(32, "witch");
-     * if (witches !== null) {
-     *   for (const entity of witches) {
-     *     const witch = WitchEntityHelper.class.cast(entity);
-     *     if (witch.isDrinkingPotion()) {
-     *       Chat.log(`drinking at ${witch.getPos()}, health ${witch.getHealth()} of ${witch.getMaxHealth()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Whether the witch is currently using a potion to drink. A potion held without
+     * drinking does not make this return {@code true}.
      *
      * @return {@code true} if this witch is drinking a potion, {@code false} otherwise.
      * @since 1.8.4
@@ -65,32 +49,11 @@ public class WitchEntityHelper extends MobEntityHelper<Witch> {
     }
 
     /**
-     * The witch's main hand item, which is the potion it is drinking. The game puts the
-     * potion in the main hand as the drink starts and empties that slot when the timer runs
-     * out, so this is a live view of the hand rather than a copy of the potion.
-     * <p>
-     * That means it is worth reading alongside {@link #isDrinkingPotion()
-     * isDrinkingPotion}: a witch between drinks still has whatever its main hand holds, and
-     * that is not a potion.
-     * example:
-     * <pre>
-     * const WitchEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.WitchEntityHelper");
-     * const witches = World.getEntities(32, "witch");
-     * if (witches !== null) {
-     *   for (const entity of witches) {
-     *     const witch = WitchEntityHelper.class.cast(entity);
-     *     // the main hand, so it is only a potion while a drink is actually running
-     *     if (witch.isDrinkingPotion()) {
-     *       const potion = witch.getPotion();
-     *       if (!potion.isEmpty()) {
-     *         Chat.log(`a witch at ${witch.getPos()} has ${potion.getName().getString()} in hand`);
-     *       }
-     *     }
-     *   }
-     * }
-     * </pre>
+     * The witch's main-hand stack. It contains the drinking potion while the witch is
+     * drinking and is empty after the drink; see {@link #isDrinkingPotion()} to check
+     * whether a drink is in progress.
      *
-     * @return the held potion item.
+     * @return the main-hand item stack; empty when the hand is empty.
      * @since 1.8.4
      */
     public ItemStackHelper getPotion() {

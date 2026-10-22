@@ -6,16 +6,9 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the local player's experience values are set, which the client does whenever the
- * server sends new experience values, for example after the player levels up or loses experience
- * on death.<br>
- * The event fires before the new values are written to the player, so {@link #progress},
- * {@link #total} and {@link #level} are the values being applied and the three {@code prev}
- * fields are what the player had before. Nothing is checked for having actually changed, so the
- * same values can be reported more than once, including once when the player first joins.<br>
- * This event is not cancellable, the new experience values are applied to the player no matter
- * what a listener does.
- * example:
+ * Fires before the client writes the local player's experience values. The current fields contain
+ * the incoming values and the {@code prev} fields contain the prior values. It fires on every set,
+ * including unchanged values, and is not cancellable.
  * <pre>
  * JsMacros.on("EXPChange", JavaWrapper.methodToJava(function (event) {
  *   if (event.level !== event.prevLevel) {
@@ -36,38 +29,46 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "EXPChange", oldName = "EXP_CHANGE")
 public class EventEXPChange extends BaseEvent {
     /**
-     * the progress towards the next level that is being applied, from 0 up to 1. Compare it with
-     * {@link #prevProgress} to see how far the bar moved.
+     * Experience progress value being applied.
      */
     public final float progress;
     /**
-     * the player's total accumulated experience that is being applied. This is the number shown
-     * as green XP on the stats screen, not the level.
+     * Total experience value being applied.
      */
     public final int total;
     /**
-     * the experience level that is being applied, so level 0 means no levels yet.
+     * Experience level value being applied.
      */
     public final int level;
     /**
-     * the player's progress towards the next level from before this change.
+     * The prior experience progress value.
      *
      * @since 1.6.5
      */
     public final float prevProgress;
     /**
-     * the player's total accumulated experience from before this change.
+     * The prior total experience value.
      *
      * @since 1.6.5
      */
     public final int prevTotal;
     /**
-     * the player's experience level from before this change.
+     * The prior experience level value.
      *
      * @since 1.6.5
      */
     public final int prevLevel;
 
+    /**
+     * Stores the supplied incoming experience values and their supplied prior values.
+     *
+     * @param progress incoming experience progress value
+     * @param total incoming total experience value
+     * @param level incoming experience level value
+     * @param prevProgress supplied prior experience progress value
+     * @param prevTotal supplied prior total experience value
+     * @param prevLevel supplied prior experience level value
+     */
     public EventEXPChange(float progress, int total, int level, float prevProgress, int prevTotal, int prevLevel) {
         super(JsMacrosClient.clientCore);
         this.progress = progress;
@@ -79,6 +80,12 @@ public class EventEXPChange extends BaseEvent {
         this.prevLevel = prevLevel;
     }
 
+    /**
+     * Returns an event-name-prefixed diagnostic containing only the stored total experience value.
+     * Its exact format is {@code %s:{"total": %d}}; this is not a complete event payload or serialization.
+     *
+     * @return event name and stored total experience in the diagnostic format
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"total\": %d}", this.getEventName(), total);

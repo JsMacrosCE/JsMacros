@@ -12,17 +12,11 @@ import net.minecraft.world.entity.monster.SpellcasterIllager;
 //? }
 
 /**
- * the raiders that cast, which in the current game are the evoker and the illusioner.
+ * Provides spell-casting state and the mapped spell name for a spellcasting illager.
  * <p>
- * Everything shared with the other raiders is on {@code IllagerEntityHelper} and reached
- * through it, so the arm pose and the celebration flag are still one call away. What this
- * adds is the spell: {@link #isCastingSpell() isCastingSpell} is whether the cast is
- * running, and {@link #getCastedSpell() getCastedSpell} is which one it is.
- * <p>
- * The two agree about the cast rather than duplicating it. The game works out the arm pose
- * from the same spell it syncs, so on a spellcaster a casting one has the
- * {@code SPELLCASTING} pose, and the spell name is which one it is winding up to cast.
- * example:
+ * {@link #isCastingSpell()} reports whether it is casting; {@link #getCastedSpell()} returns
+ * the spell name, including {@code NONE} when idle and {@code ERROR} for an unmapped value.
+ * Its arm pose is {@code SPELLCASTING} while casting.
  * <pre>
  * const SpellcastingIllagerEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.SpellcastingIllagerEntityHelper");
  * const evokers = World.getEntities(32, "evoker");
@@ -37,6 +31,7 @@ import net.minecraft.world.entity.monster.SpellcasterIllager;
  * }
  * </pre>
  *
+ * @param <T> the spellcasting illager type wrapped by this helper
  * @author Etheradon
  * @since 1.8.4
  */
@@ -44,34 +39,17 @@ import net.minecraft.world.entity.monster.SpellcasterIllager;
 @SuppressWarnings("unused")
 public class SpellcastingIllagerEntityHelper<T extends SpellcasterIllager> extends IllagerEntityHelper<T> {
 
+    /** Wraps the supplied spellcasting illager and retains its reference for this helper.
+     * @param base spellcasting illager entity to wrap
+     */
     public SpellcastingIllagerEntityHelper(T base) {
         super(base);
     }
 
     /**
-     * Whether the spellcaster is in the middle of a cast. The game raises the spell as its
-     * use-spell goal starts and puts it back to {@code NONE} as that goal stops, so this
-     * answers {@code true} for the whole wind-up — before the spell takes effect as well as
-     * after — rather than only on the tick the spell lands.
-     * <p>
-     * This is the same state the game works the {@code SPELLCASTING} arm pose out of, so
-     * {@link #getState() getState} on a casting spellcaster answers
-     * {@code "SPELLCASTING"} — and {@link #getCastedSpell() getCastedSpell} is the other
-     * half of the same cast.
-     * example:
-     * <pre>
-     * const SpellcastingIllagerEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.SpellcastingIllagerEntityHelper");
-     * const evokers = World.getEntities(32, "evoker");
-     * if (evokers !== null) {
-     *   for (const entity of evokers) {
-     *     const evoker = SpellcastingIllagerEntityHelper.class.cast(entity);
-     *     if (evoker.isCastingSpell()) {
-     *       // a casting evoker is also in the SPELLCASTING pose
-     *       Chat.log(`casting ${evoker.getCastedSpell()}, pose ${evoker.getState()}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Returns whether the spellcaster is casting. This state is true during the spell's
+     * wind-up and remains true until its casting timer expires; while true, its arm pose is
+     * {@code SPELLCASTING}.
      *
      * @return {@code true} if this spell caster is currently casting a spell, {@code false}
      * otherwise.
@@ -82,33 +60,12 @@ public class SpellcastingIllagerEntityHelper<T extends SpellcasterIllager> exten
     }
 
     /**
-     * The spell the spellcaster is casting, as one of the six names the game has:
-     * {@code NONE}, {@code SUMMON_VEX}, {@code FANGS}, {@code WOLOLO}, {@code DISAPPEAR}
-     * or {@code BLINDNESS}. {@code NONE} is what an idle spellcaster holds, so this is a
-     * name to read rather than a check to make first.
-     * <p>
-     * The name is looked up out of a synced number, and a number outside the six the game
-     * has comes back as {@code ERROR}. A spellcaster that is not casting anything reads
-     * {@code NONE}, so a script wanting only real spells reads
-     * {@link #isCastingSpell() isCastingSpell} as well as this.
-     * example:
-     * <pre>
-     * const SpellcastingIllagerEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.SpellcastingIllagerEntityHelper");
-     * const evokers = World.getEntities(32, "evoker");
-     * if (evokers !== null) {
-     *   for (const entity of evokers) {
-     *     const evoker = SpellcastingIllagerEntityHelper.class.cast(entity);
-     *     // an idle evoker reads NONE, so a real spell is anything but that
-     *     if (evoker.getCastedSpell() !== "NONE") {
-     *       if (evoker.isCastingSpell()) {
-     *         Chat.log(`an evoker at ${evoker.getPos()} is on ${evoker.getCastedSpell()}`);
-     *       }
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Returns the spell name mapped from the synchronized spell ID. The game defines
+     * {@code NONE}, {@code SUMMON_VEX}, {@code FANGS}, {@code WOLOLO}, {@code DISAPPEAR},
+     * and {@code BLINDNESS}; an unmapped ID returns {@code ERROR}. Idle spellcasters return
+     * {@code NONE}, so use {@link #isCastingSpell()} to distinguish an active cast.
      *
-     * @return the spell this spell caster is currently casting.
+     * @return the mapped spell name; {@code NONE} means no spell, and {@code ERROR} means the synchronized value is unmapped.
      * @since 1.8.4
      */
     @DocletReplaceReturn("IllagerSpell")

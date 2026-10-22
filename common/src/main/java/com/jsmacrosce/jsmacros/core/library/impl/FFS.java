@@ -17,37 +17,24 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.stream.Stream;
 
 /**
- * Better File-System functions.
+ * File operations resolved against the running script's folder; the {@code FS} library is
+ * available to scripts as a global variable. Paths are not confined to that folder: absolute paths
+ * and {@code ..} components can refer elsewhere.
  * <p>
- * An instance of this class is passed to scripts as the {@code FS} variable.
- * <br>
- * Every path these take is relative to the folder of the script that is running, not to the game's
- * working directory and not to the profile's macro folder, so a script and the files it ships
- * together can be moved around as a unit. A path reaching outside that folder is not prevented,
- * since nothing here checks for it, so a script built from an untrusted source could read or write
- * anywhere the game can.
- * <br>
- * These are plain file operations with no game state behind them, so none of them are the way to
- * read or write world data. What they are for is the files a script ships with itself.
- * <br>
- * The whole-file reads and writes go through a {@link FileHandler} rather than through this
- * library, so the writing half of a round trip is {@link #open(String) open} rather than something
- * on this class.
- * example:
+ * Use {@link #open(String)} to read or write file contents; this library provides the path
+ * operations.
  * <pre>
- * // everything is relative to this script's own folder
+ * // Paths are relative to the script's folder.
  * if (!FS.exists("notes")) {
  *   FS.createFile("notes", "readme.txt", true);
  * }
  *
- * // a FileHandler does the reading and writing, and it is the same object
- * // either way round, so the file is only opened once
+ * // A FileHandler reads and writes the file.
  * const handle = FS.open("notes/readme.txt");
  * handle.write("first line\n");
  * handle.append("second line\n");
  * print(handle.read());
  *
- * // and the directory listing functions are here rather than on the handler
  * const entries = FS.list("notes");
  * if (entries !== null) {
  *   print(`notes holds ${JavaUtils.arrayToString(entries)}`);
@@ -60,15 +47,20 @@ import java.util.stream.Stream;
 @SuppressWarnings("unused")
 public class FFS extends PerExecLibrary {
 
+    /**
+     * Initializes this per-execution library with its script context and the context's core.
+     *
+     * @param context script context associated with this library
+     */
     public FFS(BaseScriptContext<?> context) {
         super(context);
     }
 
     /**
-     * List files in path.
+     * Lists the entries in a directory.
      *
      * @param path relative to the script's folder.
-     * @return An array of file names as {@link java.lang.String Strings}.
+     * @return the entry names, or {@code null} if listing fails
      * @since 1.1.8
      */
     @Nullable
@@ -77,10 +69,10 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * Check if a file exists.
+     * Checks whether a path exists.
      *
      * @param path relative to the script's folder.
-     * @return
+     * @return whether the path exists
      * @since 1.1.8
      */
     public boolean exists(String path) {
@@ -88,10 +80,10 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * Check if a file is a directory.
+     * Checks whether a path is a directory.
      *
      * @param path relative to the script's folder.
-     * @return
+     * @return whether the path is a directory
      * @since 1.1.8
      */
     public boolean isDir(String path) {
@@ -99,8 +91,10 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * @param path the path relative to the script's folder
-     * @return {@code true} if the path leads to a file, {@code false} otherwise.
+     * Checks whether the path resolves to a regular file.
+     *
+     * @param path relative to the script's folder
+     * @return whether the path is a regular file
      * @since 1.8.4
      */
     public boolean isFile(String path) {
@@ -108,10 +102,10 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * Get the last part (name) of a file.
+     * Returns the final name component of the resolved path.
      *
      * @param path relative to the script's folder.
-     * @return a {@link java.lang.String String} of the file name.
+     * @return the final name component
      * @since 1.1.8
      */
     public String getName(String path) {
@@ -119,8 +113,10 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * @param absolutePath the absolute path to the file
-     * @return a path relative to the script's folder to the given absolute path.
+     * Relativizes an absolute path against the script's folder.
+     *
+     * @param absolutePath absolute path to relativize
+     * @return the path relative to the script's folder
      * @since 1.8.4
      */
     public String toRelativePath(String absolutePath) {
@@ -143,39 +139,14 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * Creates a new file in the specified path, relative to the script's folder. Optionally parent
-     * directories can be created if they do not exist.
-     * <br>
-     * The two are joined, so {@code path} is the folder and {@code name} is the file. The parent
-     * directories are made with a call that makes every missing level, so {@code true} creates the
-     * whole chain rather than only the last folder. An empty {@code path} is not a special case
-     * that fails: the file then resolves to the script's own folder, which is already there, so
-     * the directory call does nothing and the file is created in it directly.<br>
-     * A file that is already there is not an error, but the answer is {@code false} rather than
-     * {@code true}, since nothing was created. An existing directory at that name is likewise
-     * {@code false}. The file is created empty, so anything to go in it is written afterwards
-     * through {@link #open(String) open}.
-     * example:
-     * <pre>
-     * // the whole chain is made, not just the last folder
-     * if (FS.createFile("logs/today", "session.txt", true)) {
-     *   print("created a fresh, empty file");
-     * }
-     * // running the same line again reports false rather than failing
-     * print(`the second time: ${FS.createFile("logs/today", "session.txt", true)}`);
-     *
-     * // an empty path puts the file straight into the script's own folder, and
-     * // there is nothing to make because that folder is already there
-     * print(`created at the script folder root: ${FS.createFile("", "root.txt", true)}`);
-     *
-     * // the file is empty until something is written to it
-     * FS.open("logs/today/session.txt").write("hello\n");
-     * </pre>
+     * Creates an empty file by resolving {@code name} under {@code path}. If {@code createDirs} is
+     * true, it attempts to create missing parent directories before creating the file. Existing
+     * files and directories are not replaced; creation returns {@code false} for either.
      *
      * @param path       the path relative to the script's folder
      * @param name       the name of the file
-     * @param createDirs whether to create parent directories if they do not exist or not
-     * @return {@code true} if the file was created successfully, {@code false} otherwise.
+     * @param createDirs whether to attempt to create missing parent directories
+     * @return whether a new file was created
      * @throws IOException if there occurs an error while creating the file.
      * @since 1.8.4
      */
@@ -188,31 +159,11 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * Make a directory.
-     * <br>
-     * One level only, and only if the parent is already there, so a nested path fails with a
-     * {@code false} rather than making the levels above it. Use
-     * {@link #createFile(String, String, boolean) createFile(path, name, true)}, which creates the
-     * parents, or {@link #createFile(String, String, boolean) createFile} with a name in a folder
-     * that exists. An existing directory is not an error here, since the underlying call reports
-     * {@code false} rather than throwing, and neither is an existing file, which gives the same
-     * {@code false}.
-     * example:
-     * <pre>
-     * // one level, and only when the folder above it is already there
-     * if (FS.makeDir("logs")) {
-     *   print("made logs");
-     * }
-     * // a nested path does not come for free
-     * if (!FS.makeDir("logs/today")) {
-     *   print("that needed its parent to exist first");
-     * }
-     * // creating a file with createDirs is the way to get the whole chain
-     * FS.createFile("logs/today", "session.txt", true);
-     * </pre>
+     * Creates one directory; its parent must already exist. Returns false if it already exists or
+     * creation fails.
      *
      * @param path relative to the script's folder.
-     * @return a {@link java.lang.Boolean boolean} for success.
+     * @return whether the directory was created
      * @since 1.1.8
      */
     public boolean makeDir(String path) {
@@ -220,32 +171,12 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * Move a file.
-     * <br>
-     * {@code to} is the new path of the file itself rather than the folder to put it in, so moving
-     * {@code a.txt} into an existing folder {@code logs} means passing {@code logs/a.txt}. Both
-     * paths are resolved against the script's folder, and the destination is replaced rather than
-     * refused: a rename is tried first, and a copy and a delete of the source if the rename does
-     * not work. The one thing refused outright is moving a file onto itself, with an
-     * {@link java.lang.IllegalArgumentException IllegalArgumentException}, and the check behind it
-     * compares the two paths as path strings rather than as the files they name, so a second
-     * spelling of the same file such as {@code a.txt} and {@code ./a.txt} is not caught by it. A
-     * directory is moved the same way as a file, provided the destination is not inside it.
-     * example:
-     * <pre>
-     * // the destination is the new path of the file, not the folder to put it in
-     * FS.makeDir("archive");
-     * FS.copy("notes/readme.txt", "archive/readme.txt");
-     * FS.move("notes/readme.txt", "archive/old-readme.txt");
-     * print(`left behind at the old path: ${FS.exists("notes/readme.txt")}`);
-     * print(`and present at the new one: ${FS.exists("archive/old-readme.txt")}`);
-     * </pre>
+     * Moves the path {@code from} to {@code to}; both paths are resolved against the script's
+     * folder. An existing destination is not replaced, and the move may fail if it exists.
      *
-     * @param from relative to the script's folder.
-     * @param to   relative to the script's folder, the new path of the file itself
-     * @throws IOException
-     * @throws java.lang.IllegalArgumentException if both paths are the same file as the path
-     *         strings spell it
+     * @param from source path, resolved against the script's folder
+     * @param to   destination path, resolved against the script's folder
+     * @throws IOException if the move fails
      * @since 1.1.8
      */
     public void move(String from, String to) throws IOException {
@@ -253,37 +184,12 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * Copy a file.
-     * <br>
-     * Both paths are resolved against the script's folder and the destination is truncated and
-     * written over, so an existing file at {@code to} is replaced rather than refused. The copy is
-     * not atomic: if it is interrupted the destination can be left half written, so overwriting
-     * something that matters is better done by copying aside and moving it into place. Copying a
-     * file onto itself is refused with an {@link java.lang.IllegalArgumentException
-     * IllegalArgumentException}, and the check behind it compares the two paths as path strings
-     * rather than as the files they name: {@code copy("a.txt", "./a.txt")} is not caught by it and
-     * truncates the source to nothing. Unlike a move, the source is left where it was either way.
-     * A directory is not copied, only a file, and asking for one is an error rather than a skip:
-     * the source is opened as a stream, so a directory gives a
-     * {@link java.io.FileNotFoundException FileNotFoundException}.
-     * example:
-     * <pre>
-     * // the destination is written over rather than refused
-     * FS.copy("notes/readme.txt", "archive/readme.txt");
-     * FS.copy("notes/readme.txt", "archive/readme.txt");
-     * print(`copied twice, the source is still there: ${FS.exists("notes/readme.txt")}`);
+     * Copies the path {@code from} to {@code to}; both paths are resolved against the script's
+     * folder. An existing destination is not overwritten.
      *
-     * // for something that matters, copy aside and move into place, so the
-     * // destination is never half written
-     * FS.copy("notes/readme.txt", "archive/readme.new.txt");
-     * FS.move("archive/readme.new.txt", "archive/readme.txt");
-     * </pre>
-     *
-     * @param from relative to the script's folder.
-     * @param to   relative to the script's folder, replaced if it is already there
-     * @throws IOException
-     * @throws java.lang.IllegalArgumentException if both paths are the same file as the path
-     *         strings spell it
+     * @param from source path, resolved against the script's folder
+     * @param to   destination path, resolved against the script's folder
+     * @throws IOException if the copy fails
      * @since 1.1.8
      */
     public void copy(String from, String to) throws IOException {
@@ -291,10 +197,10 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * Delete a file.
+     * Attempts to delete the path resolved against the script's folder.
      *
      * @param path relative to the script's folder.
-     * @return a {@link java.lang.Boolean boolean} for success.
+     * @return whether deletion succeeded
      * @since 1.2.9
      */
     public boolean unlink(String path) {
@@ -302,12 +208,12 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * Combine 2 paths.
+     * Combines path components using the platform's path syntax; this does not resolve them
+     * against the script's folder.
      *
-     * @param patha path is relative to the script's folder.
-     * @param pathb
-     * @return a {@link java.lang.String String} of the combined path.
-     * @throws java.nio.file.InvalidPathException
+     * @param patha first path component
+     * @param pathb second path component
+     * @return the combined path
      * @since 1.1.8
      */
     public String combine(String patha, String pathb) {
@@ -315,29 +221,11 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * Gets the directory part of a file path, or the parent directory of a folder.
-     * <br>
-     * The result is relative to the script's folder rather than absolute, so a path that points
-     * outside it comes back with {@code ..} steps in it, and the parent of a path directly in the
-     * script's folder comes back as an empty string. It is the parent of the path as given, so a
-     * trailing separator does not add a level.<br>
-     * The one failure this can report comes from asking for the parent of a path that has none,
-     * such as a file system root, and it is a {@link NullPointerException} rather than anything
-     * to do with the relativizing. In practice a script cannot reach it: the path is always
-     * resolved against the script's folder, so it is absolute and underneath it, which always has
-     * a parent of its own. The {@code @throws} below records what would happen if that were not so.
-     * example:
-     * <pre>
-     * // the parent of a file, relative to this script's folder
-     * print(`the parent is ${FS.getDir("notes/readme.txt")}`);
-     * // a path climbing out of the folder comes back with the climbs still in it
-     * print(`and that one is ${FS.getDir("../elsewhere/readme.txt")}`);
-     * </pre>
+     * Returns the parent of the path resolved against the script's folder, expressed relative to
+     * that folder.
      *
      * @param path relative to the script's folder.
-     * @return a {@link java.lang.String String} of the combined path, relative to the script's
-     *         folder.
-     * @throws NullPointerException if the resolved path has no parent
+     * @return the parent path relative to the script's folder
      * @since 1.1.8
      */
     public String getDir(String path) {
@@ -346,11 +234,11 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * Open a FileHandler for the file at the specified path.
+     * Returns a {@link FileHandler} for the path resolved against the script's folder, using the
+     * handler's default charset.
      *
      * @param path relative to the script's folder.
-     * @return a {@link FileHandler FileHandler} for the file path.
-     * @see FileHandler
+     * @return a handler for the resolved file
      * @since 1.1.8
      */
     public FileHandler open(String path) {
@@ -358,12 +246,12 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * Open a FileHandler for the file at the specified path.
+     * Returns a {@link FileHandler} for the path resolved against the script's folder, using the
+     * specified charset.
      *
      * @param path    relative to the script's folder.
-     * @param charset the charset to use for reading/writing the file (default is UTF-8)
-     * @return a {@link FileHandler FileHandler} for the file path.
-     * @see FileHandler
+     * @param charset charset name used for reading and writing
+     * @return a handler for the resolved file
      * @since 1.8.4
      */
     public FileHandler open(String path, String charset) {
@@ -371,43 +259,18 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * An advanced method to walk a directory tree and get some information about the files, as well
-     * as their paths.
-     * <br>
-     * The paths handed to the visitor are relative to the script's folder, not to the directory
-     * being walked, so a walk of a subfolder still gives paths that start at the script's folder
-     * and can be handed straight to the rest of this library. The depth counts from the directory
-     * being walked, and a depth of one is that directory itself.<br>
-     * The walk is a real directory walk, so it is not something to point at a huge tree on every
-     * tick. The visitor is called for every entry including directories, not only files, so check
-     * {@link BasicFileAttributes#isDirectory()} rather than assuming a file. An
-     * {@link java.io.IOException IOException} raised while reading one entry's attributes is
-     * printed and the walk carries on rather than ending, and a visitor that throws ends the walk
-     * by propagating out.
-     * example:
-     * <pre>
-     * // the paths come back relative to the script's folder, so they can be used
-     * // directly, and the walk includes directories as well as files
-     * FS.walkFiles(".", 3, false, JavaWrapper.methodToJava(function (path, attrs) {
-     *   if (attrs.isDirectory()) {
-     *     print(`${path} is a directory`);
-     *   } else {
-     *     print(`${path} is ${attrs.size()} bytes`);
-     *   }
-     * }));
+     * Walks a directory tree and calls {@code visitor} for each encountered path with its basic
+     * attributes. Each callback path is computed as {@code visitedPath.relativize(scriptFolder)},
+     * yielding a path from the visited entry toward the script folder. {@code maxDepth}
+     * uses {@link java.nio.file.Files#walk(Path, int, FileVisitOption...) Files.walk} semantics:
+     * the root is at depth zero. Attribute-read failures are printed and skipped; exceptions from
+     * the visitor propagate.
      *
-     * // a depth of one is the directory itself and nothing below it
-     * FS.walkFiles("notes", 1, false, JavaWrapper.methodToJava(function (path) {
-     *   print(path);
-     * }));
-     * </pre>
-     *
-     * @param path        the relative path of the directory to walk through
-     * @param maxDepth    the maximum depth to follow, can cause stack overflow if too high
+     * @param path        path to the directory, resolved against the script's folder
+     * @param maxDepth    maximum traversal depth
      * @param followLinks whether to follow symbolic links
-     * @param visitor     the visitor that is called for each file with the path of the file and its
+     * @param visitor     callback for each visited entry, with its path and
      *                    attributes
-     * @throws IOException
      * @since 1.8.4
      */
     public void walkFiles(String path, int maxDepth, boolean followLinks, MethodWrapper<String, BasicFileAttributes, ?, ?> visitor) throws IOException {
@@ -424,8 +287,10 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * @param path the relative path to get the file object for
-     * @return the file object for the specified path.
+     * Returns a {@link File} for the path resolved against the script's folder.
+     *
+     * @param path path resolved against the script's folder
+     * @return the resolved file
      * @since 1.8.4
      */
     public File toRawFile(String path) {
@@ -433,8 +298,10 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * @param path the relative path to get the path object for
-     * @return the path object for the specified path.
+     * Returns the path resolved against the script's folder.
+     *
+     * @param path path resolved against the script's folder
+     * @return the resolved path
      * @since 1.8.4
      */
     public Path toRawPath(String path) {
@@ -442,9 +309,11 @@ public class FFS extends PerExecLibrary {
     }
 
     /**
-     * @param path the path relative to the script's folder
-     * @return the attributes of the file at the specified path.
-     * @throws IOException
+     * Reads the basic attributes of the path resolved against the script's folder.
+     *
+     * @param path path to read, resolved against the script's folder
+     * @return the path's basic file attributes
+     * @throws IOException if the attributes cannot be read
      * @since 1.8.4
      */
     public BasicFileAttributes getRawAttributes(String path) throws IOException {

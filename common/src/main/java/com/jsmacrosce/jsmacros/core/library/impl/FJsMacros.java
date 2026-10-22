@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.doclet.DocletReplaceTypeParams;
@@ -33,53 +34,15 @@ import java.util.*;
 import java.util.concurrent.Semaphore;
 
 /**
- * Functions that interact directly with JsMacros or Events.
+ * Script library for event listeners, script execution, and profile services.
  * <p>
- * An instance of this class is passed to scripts as the {@code JsMacros} variable.
- * <br>
- * This is the library the rest of JsMacros is reached through. The three groups of function here
- * are subscribing to events with {@link #on(String, MethodWrapper) on},
- * {@link #once(String, MethodWrapper) once} and
- * {@link #disableScriptListeners(String) disableScriptListeners}, running other scripts with
- * {@link #runScript(String) runScript} and {@link #wrapScriptRun(String) wrapScriptRun}, and
- * blocking on a single event with {@link #waitForEvent(String) waitForEvent}. There is also a
- * handle on the profile itself through {@link #getProfile()}, {@link #getConfig()} and
- * {@link #getServiceManager()}, which is the only way a script reaches the service and macro
- * configuration the GUI edits.
- * <br>
- * A listener is a callback the event system calls, so it is a plain script function and nothing
- * runs until the event actually arrives. A script that subscribes and then returns is not a
- * problem in itself, and no extra keep-alive step is needed: registering a listener means wrapping
- * the function with {@code JavaWrapper.methodToJava}, and making that wrapper is what marks the
- * run as still wanted, so the context is left open rather than closed when the script returns.
- * What does take a listener off again is {@link #off(IEventListener) off} or one of the
- * {@code disableScriptListeners} calls.
- * example:
+ * Scripts access this library as {@code JsMacros} for event handling, script execution, and
+ * profile services.
  * <pre>
- * // a listener: nothing happens until the event fires, which for a tick is twenty
- * // times a second
  * const listener = JsMacros.on("Tick", JavaWrapper.methodToJava(function (event) {
- *   Chat.log(`tick, and the event is called ${event.getEventName()}`);
+ *   Chat.log(event.getEventName());
  * }));
- *
- * // the listener can be taken off again by the handle it returned
  * JsMacros.off(listener);
- *
- * // a one-shot listener, for a thing that only needs catching once
- * JsMacros.once("Disconnect", JavaWrapper.methodToJava(function () {
- *   Chat.log("left the server");
- * }));
- *
- * // a listener with a filterer on an event that fires far too often to handle one
- * // by one: this one only runs once every twenty ticks
- * JsMacros.on("Tick", JsMacros.createModulusEventFilterer(20),
- *   JavaWrapper.methodToJava(function () {
- *     Chat.log("about a second went by");
- *   }));
- *
- * // run a whole other script file and carry on when it finishes. the null is the
- * // event to run it with, and it has to be passed rather than left out: the two
- * // argument form reads its first argument as a language rather than as a path
  * JsMacros.runScript("helper.js", null, JavaWrapper.methodToJava(function () {
  *   Chat.log("helper.js is done");
  * }));
@@ -91,28 +54,34 @@ import java.util.concurrent.Semaphore;
 @SuppressWarnings("unused")
 public class FJsMacros extends PerExecLibrary {
 
+    /**
+     * Binds this library instance to a script context and its core.
+     * Scripts normally use the global {@code JsMacros} library rather than constructing another instance.
+     *
+     * @param context script context whose core this library uses; must not be {@code null}
+     */
     public FJsMacros(BaseScriptContext<?> context) {
         super(context);
     }
 
     /**
-     * @return the JsMacros profile class.
+     * @return this script's profile.
      */
     public BaseProfile getProfile() {
         return runner.profile;
     }
 
     /**
-     * @return the JsMacros config management class.
+     * @return this script's configuration manager.
      */
     public ConfigManager getConfig() {
         return runner.config;
     }
 
     /**
-     * services are background scripts designed to run full time and are mainly noticed by their side effects.
+     * Returns the manager for this profile's background services.
      *
-     * @return for managing services.
+     * @return the service manager
      * @since 1.6.3
      */
     public ServiceManager getServiceManager() {
@@ -120,7 +89,7 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @return list of non-garbage-collected ScriptContext's
+     * @return an immutable snapshot of currently open script contexts
      * @since 1.4.0
      */
     public List<BaseScriptContext<?>> getOpenContexts() {
@@ -128,8 +97,10 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param file
-     * @see FJsMacros#runScript(String, String, MethodWrapper)
+     * Runs a script file without supplying an event or completion callback.
+     *
+     * @param file path of the script file
+     * @return the container for the running script
      * @since 1.1.5
      */
     public EventContainer<?> runScript(String file) {
@@ -137,9 +108,11 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param file
-     * @param fakeEvent you probably actually want to pass an instance created by {@link #createCustomEvent(String)}
-     * @return
+     * Runs a script file with the supplied event as its trigger.
+     *
+     * @param file path of the script file
+     * @param fakeEvent event supplied to the script, or {@code null}
+     * @return the container for the running script
      * @since 1.6.3
      */
     public EventContainer<?> runScript(String file, @Nullable BaseEvent fakeEvent) {
@@ -147,12 +120,12 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * runs a script with a eventCustom to be able to pass args
+     * Runs a script file with an event and optional completion callback.
      *
-     * @param file
-     * @param fakeEvent
-     * @param callback
-     * @return container the script is running on.
+     * @param file path of the script file
+     * @param fakeEvent event supplied to the script, or {@code null}
+     * @param callback called when the script completes, or {@code null}
+     * @return the container for the running script
      * @since 1.6.3 (1.1.5 - 1.6.3 didn't have fakeEvent)
      */
     public EventContainer<?> runScript(String file, @Nullable BaseEvent fakeEvent, @Nullable MethodWrapper<Throwable, Object, Object, ?> callback) {
@@ -164,10 +137,11 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param language
-     * @param script
-     * @return
-     * @see FJsMacros#runScript(String, String, MethodWrapper)
+     * Runs a script string in the specified language without a completion callback.
+     *
+     * @param language script language
+     * @param script script source
+     * @return the container for the running script
      * @since 1.2.4
      */
     public EventContainer<?> runScript(String language, String script) {
@@ -175,12 +149,12 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Runs a string as a script.
+     * Runs a script string in the specified language, optionally calling back when it completes.
      *
-     * @param language
-     * @param script
-     * @param callback calls your method as a {@link java.util.function.Consumer Consumer}&lt;{@link String}&gt;
-     * @return the {@link EventContainer} the script is running on.
+     * @param language script language
+     * @param script script source
+     * @param callback completion callback, or {@code null}
+     * @return the container for the running script
      * @since 1.2.4
      */
     public EventContainer<?> runScript(String language, String script, @Nullable MethodWrapper<Throwable, Object, Object, ?> callback) {
@@ -188,11 +162,14 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param language
-     * @param script
-     * @param file
-     * @param callback
-     * @return
+     * Runs script source in the specified language, optionally using a file path as its source file and calling back on completion.
+     * The file path is resolved relative to this script's folder; {@code null} means no file path is supplied.
+     *
+     * @param language script language
+     * @param script script source
+     * @param file optional path relative to this script's folder
+     * @param callback completion callback, or {@code null}
+     * @return the container for the running script
      * @since 1.6.0
      */
     public EventContainer<?> runScript(String language, String script, @Nullable String file, @Nullable MethodWrapper<Throwable, Object, Object, ?> callback) {
@@ -200,12 +177,15 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param language
-     * @param script
-     * @param file
-     * @param event
-     * @param callback
-     * @return
+     * Runs script source in the specified language with an optional file path, event, and completion callback.
+     * The file path is resolved relative to this script's folder; {@code null} omits it. The event is supplied to the script.
+     *
+     * @param language script language
+     * @param script script source
+     * @param file optional path relative to this script's folder
+     * @param event event supplied to the script, or {@code null}
+     * @param callback completion callback, or {@code null}
+     * @return the container for the running script
      * @since 1.7.0
      */
     public EventContainer<?> runScript(String language, String script, @Nullable String file, @Nullable BaseEvent event, @Nullable MethodWrapper<Throwable, Object, Object, ?> callback) {
@@ -217,11 +197,14 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param file
-     * @param <T>
-     * @param <U>
-     * @param <R>
-     * @return
+     * Creates a callback that runs the script file for each invocation, passing the triggering event to it.
+     * The file path is resolved from the process working directory.
+     *
+     * @param file script file path
+     * @param <T> callback input type
+     * @param <U> callback context type
+     * @param <R> callback result type
+     * @return the wrapped script callback
      * @since 1.7.0
      */
     public <T, U, R> MethodWrapper<T, U, R, ?> wrapScriptRun(String file) {
@@ -229,12 +212,14 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param language
-     * @param script
-     * @param <T>
-     * @param <U>
-     * @param <R>
-     * @return
+     * Creates a callback that runs the script source for each invocation, passing the triggering event to it.
+     *
+     * @param language script language
+     * @param script script source
+     * @param <T> callback input type
+     * @param <U> callback context type
+     * @param <R> callback result type
+     * @return the wrapped script callback
      * @since 1.7.0
      */
     public <T, U, R> MethodWrapper<T, U, R, ?> wrapScriptRun(String language, String script) {
@@ -242,13 +227,16 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param language
-     * @param script
-     * @param file
-     * @param <T>
-     * @param <U>
-     * @param <R>
-     * @return
+     * Creates a callback that runs the script source for each invocation, passing the triggering event to it.
+     * The optional file path is resolved relative to this script's folder.
+     *
+     * @param language script language
+     * @param script script source
+     * @param file optional path relative to this script's folder
+     * @param <T> callback input type
+     * @param <U> callback context type
+     * @param <R> callback result type
+     * @return the wrapped script callback
      * @since 1.7.0
      */
     public <T, U, R> MethodWrapper<T, U, R, ?> wrapScriptRun(String language, String script, @Nullable String file) {
@@ -256,11 +244,14 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param file
-     * @param <T>
-     * @param <U>
-     * @param <R>
-     * @return
+     * Creates an asynchronous callback that runs the script file for each invocation, passing the triggering event to it.
+     * The file path is resolved from the process working directory.
+     *
+     * @param file script file path
+     * @param <T> callback input type
+     * @param <U> callback context type
+     * @param <R> callback result type
+     * @return the wrapped asynchronous script callback
      * @since 1.7.0
      */
     public <T, U, R> MethodWrapper<T, U, R, ?> wrapScriptRunAsync(String file) {
@@ -268,12 +259,14 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param language
-     * @param script
-     * @param <T>
-     * @param <U>
-     * @param <R>
-     * @return
+     * Creates an asynchronous callback that runs the script source for each invocation, passing the triggering event to it.
+     *
+     * @param language script language
+     * @param script script source
+     * @param <T> callback input type
+     * @param <U> callback context type
+     * @param <R> callback result type
+     * @return the wrapped asynchronous script callback
      * @since 1.7.0
      */
     public <T, U, R> MethodWrapper<T, U, R, ?> wrapScriptRunAsync(String language, String script) {
@@ -281,13 +274,16 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param language
-     * @param script
-     * @param file
-     * @param <T>
-     * @param <U>
-     * @param <R>
-     * @return
+     * Creates an asynchronous callback that runs the script source for each invocation, passing the triggering event to it.
+     * The optional file path is resolved relative to this script's folder.
+     *
+     * @param language script language
+     * @param script script source
+     * @param file optional path relative to this script's folder
+     * @param <T> callback input type
+     * @param <U> callback context type
+     * @param <R> callback result type
+     * @return the wrapped asynchronous script callback
      * @since 1.7.0
      */
     public <T, U, R> MethodWrapper<T, U, R, ?> wrapScriptRunAsync(String language, String script, @Nullable String file) {
@@ -298,19 +294,22 @@ public class FJsMacros extends PerExecLibrary {
     /**
      * Opens a file with the default system program.
      *
-     * @param path relative to the script's folder.
+     * @param path path resolved relative to the current script's folder
      * @since 1.1.8
      */
+    @DocletIgnore
     @Deprecated
     public void open(String path) throws IOException {
         openUrl(ctx.getContainedFolder().toPath().resolve(path).toUri().toURL());
     }
 
     /**
-     * @param url
-     * @throws MalformedURLException
+     * Opens the URL with the operating system's default handler.
+     *
+     * @param url URL string to open
      * @since 1.6.0
      */
+    @DocletIgnore
     @Deprecated
     public void openUrl(String url) throws IOException {
         openUrl(new URL(url));
@@ -343,11 +342,11 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Creates a listener for an event, this function can be more efficient that running a script file when used properly.
+     * Registers a listener for an event.
      *
-     * @param event
+     * @param event registered event name; script subscriptions are not remapped from old aliases
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
-     * @return
+     * @return the registered listener, or {@code null} if the callback is {@code null}
      * @see IEventListener
      * @since 1.2.7
      */
@@ -358,11 +357,12 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Creates a listener for an event, this function can be more efficient that running a script file when used properly.
+     * Registers a listener for an event; {@code joined} requests a joined callback when the event supports joining.
      *
-     * @param event
+     * @param event registered event name; script subscriptions are not remapped from old aliases
+     * @param joined whether to request joined handling for a joinable event
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
-     * @return
+     * @return the registered listener, or {@code null} if the callback is {@code null}
      * @see IEventListener
      * @since 1.9.0
      */
@@ -373,11 +373,12 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Creates a listener for an event, this function can be more efficient that running a script file when used properly.
+     * Registers a listener for an event, optionally filtering which events reach the callback.
      *
-     * @param event
+     * @param event registered event name; script subscriptions are not remapped from old aliases
+     * @param filterer filterer that must support this event; {@code null} accepts events without filtering
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
-     * @return
+     * @return the registered listener, or {@code null} if the callback is {@code null}
      * @see IEventListener
      * @since 1.9.1
      */
@@ -388,11 +389,13 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Creates a listener for an event, this function can be more efficient that running a script file when used properly.
+     * Registers a listener for an event, optionally filtering which events reach the callback; {@code joined} requests joined handling when supported.
      *
-     * @param event
+     * @param event registered event name; script subscriptions are not remapped from old aliases
+     * @param filterer filterer that must support this event; {@code null} accepts events without filtering
+     * @param joined whether to request joined handling for a joinable event
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
-     * @return
+     * @return the registered listener, or {@code null} if the callback is {@code null}
      * @see IEventListener
      * @since 1.9.1
      */
@@ -491,11 +494,11 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Creates a single-run listener for an event, this function can be more efficient that running a script file when used properly.
+     * Registers a listener that is removed when the event triggers.
      *
-     * @param event
+     * @param event registered event name; script subscriptions are not remapped from old aliases
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
-     * @return the listener.
+     * @return the registered listener, or {@code null} if the callback is {@code null}
      * @see IEventListener
      * @since 1.2.7
      */
@@ -507,11 +510,12 @@ public class FJsMacros extends PerExecLibrary {
 
 
     /**
-     * Creates a single-run listener for an event, this function can be more efficient that running a script file when used properly.
+     * Registers a listener that is removed when the event triggers; {@code joined} requests joined handling when supported.
      *
-     * @param event
+     * @param event registered event name; script subscriptions are not remapped from old aliases
+     * @param joined whether to request joined handling for a joinable event
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
-     * @return the listener.
+     * @return the registered listener, or {@code null} if the callback is {@code null}
      * @see IEventListener
      * @since 1.9.0
      */
@@ -606,8 +610,8 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param listener
-     * @return
+     * @param listener listener to remove
+     * @return {@code true} if it was removed from an event, or {@code false} if it was not registered
      * @see FJsMacros#off(String, IEventListener)
      * @since 1.2.3
      */
@@ -618,9 +622,9 @@ public class FJsMacros extends PerExecLibrary {
     /**
      * Removes a {@link IEventListener IEventListener} from an event.
      *
-     * @param event
-     * @param listener
-     * @return
+     * @param event event name under which the listener is registered
+     * @param listener listener to remove from that event
+     * @return {@code true} if it was removed from that event, or {@code false} if it was not registered there
      * @see IEventListener
      * @since 1.2.3
      */
@@ -657,34 +661,8 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Will only disable user created event listeners for the given event. This includes listeners
-     * created from {@link #on(String, MethodWrapper)}, {@link #once(String, MethodWrapper)},
-     * {@link #waitForEvent(String)}, {@link #waitForEvent(String, MethodWrapper)} and
-     * {@link #waitForEvent(String, MethodWrapper, MethodWrapper)}.
-     * <br>
-     * This is the one to reach for in a cleanup routine. It only touches listeners a script made,
-     * so the ones JsMacros itself registers, which is what makes the events fire at all, are left
-     * alone. {@link #disableAllListeners(String) disableAllListeners} has no such distinction and
-     * takes those out as well, so anything that is not a deliberate teardown of the whole event
-     * system belongs in this one.
-     * <br>
-     * The listeners are removed, not disabled, so there is no way to bring them back; a script
-     * that wants them again has to subscribe again. Nothing is returned, so
-     * {@link #listeners(String) listeners} is the way to find out what was there.
-     * example:
-     * <pre>
-     * // a cleanup routine that takes out its own listeners and nothing else
-     * JsMacros.on("Tick", JavaWrapper.methodToJava(function () {
-     *   Chat.log("ticking");
-     * }));
-     * Chat.log(`script listeners on Tick: ${JsMacros.listeners("Tick").size()}`);
-     * JsMacros.disableScriptListeners("Tick");
-     * Chat.log(`and after the cleanup: ${JsMacros.listeners("Tick").size()}`);
-     *
-     * // the no argument form does the same for every event at once, and is still
-     * // only the script's own listeners
-     * JsMacros.disableScriptListeners();
-     * </pre>
+     * Removes script-created listeners for the given event, leaving built-in listeners untouched.
+     * Use {@link #disableAllListeners(String)} to remove both kinds.
      *
      * @param event the event to remove all listeners from
      * @since 1.8.4
@@ -699,10 +677,7 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Will only disable user created event listeners.  This includes listeners created from
-     * {@link #on(String, MethodWrapper)}, {@link #once(String, MethodWrapper)},
-     * {@link #waitForEvent(String)}, {@link #waitForEvent(String, MethodWrapper)} and
-     * {@link #waitForEvent(String, MethodWrapper, MethodWrapper)}.
+     * Removes script-created listeners for all events, leaving built-in listeners untouched.
      *
      * @since 1.8.4
      */
@@ -717,7 +692,8 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param event event to wait for
+     * Waits for the next event of the given name.
+     * @param event registered event name
      * @return the event and its context. This form requests no explicit join, but cancellable
      * events still join. Release the returned context's lock promptly after processing a held event.
      * @throws InterruptedException
@@ -731,8 +707,10 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param event event to wait for
-     * @return a event and a new context if the event you're waiting for was joined, to leave it early.
+     * Waits for the next event, optionally requesting a join when the event supports it.
+     * @param event registered event name
+     * @param join whether to request joining a joinable event; cancellable events join regardless
+     * @return the event and its context; release the context lock promptly if the event is held
      * @throws InterruptedException
      * @since 1.9.0
      */
@@ -744,30 +722,12 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Waits for an event, optionally only one the filter accepts.
-     * <br>
-     * This blocks the calling thread until an event arrives that the filter returns true for, and
-     * there is no timeout, so a filter that never becomes true blocks for as long as the script
-     * lives. The filter is run on the event that arrived, so it should be quick, and a filter
-     * that throws ends the wait with a {@link RuntimeException}.<br>
-     * The listener is registered before the wait starts, so an event arriving in between is not
-     * missed, and the event lock the thread was holding is released before it blocks, since
-     * holding it would stop the event from ever arriving.
-     * example:
-     * <pre class="language-typescript">
-     * // block until the next block entity update, and only one that is an entity
-     * // rather than a plain block changing
-     * const result = JsMacros.waitForEvent("BlockUpdate",
-     *   JavaWrapper.methodToJava(function (event: Events.BlockUpdate) {
-     *     return event.updateType === "ENTITY";
-     *   }));
-     * const pos = result.event.block.getBlockPos();
-     * Chat.log(`a block entity changed at ${pos.getX()}, ${pos.getY()}, ${pos.getZ()}`);
-     * // this thread is free again from here, and any event it was bound to is released
-     * </pre>
+     * Waits until an event arrives for which the optional filter returns true. The listener is
+     * registered before waiting, and any currently bound event lock is released before blocking.
+     * There is no timeout; a filter exception ends the wait with a {@link RuntimeException}.
      *
-     * @param event event to wait for
-     * @param filter accepts the event or not, {@code null} for the first event of any kind
+     * @param event registered event name
+     * @param filter accepts an event, or {@code null} to accept the first event
      * @return the event and its context. This form requests no explicit join, but cancellable
      * events still join. Release the returned context's lock promptly after processing a held event.
      * @throws InterruptedException
@@ -782,8 +742,10 @@ public class FJsMacros extends PerExecLibrary {
 
 
     /**
-     * @param event
-     * @return
+     * @param event registered event name
+     * @param join whether to request joining a joinable event; cancellable events join regardless
+     * @param filter accepts an event, or {@code null} to accept the first event
+     * @return the event and its context; release the context lock promptly if the event is held
      * @throws InterruptedException
      * @since 1.9.0
      */
@@ -795,11 +757,12 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * waits for an event. if this thread is bound to an event already, this will release current lock.
+     * Waits until an event arrives for which the optional filter returns true. Registers its listener
+     * before running {@code runBeforeWaiting}, then releases any currently bound event lock before waiting.
      *
-     * @param event            event to wait for
-     * @param filter           filter the event until it has the proper values or whatever.
-     * @param runBeforeWaiting runs as a {@link Runnable}, run before waiting, this is a thread-safety thing to prevent "interrupts" from going in between this and things like deferCurrentTask
+     * @param event registered event name
+     * @param filter accepts an event, or {@code null} to accept the first event
+     * @param runBeforeWaiting callback run after listener registration and before waiting
      * @return the event and its context. This form requests no explicit join, but cancellable
      * events still join. Release the returned context's lock promptly after processing a held event.
      * @throws InterruptedException
@@ -815,51 +778,17 @@ public class FJsMacros extends PerExecLibrary {
 
 
     /**
-     * waits for an event. if this thread is bound to an event already, this will release current lock.
-     * <br>
-     * This is the full form of the wait and the only one of the six that takes every argument. It
-     * blocks the calling thread until an event arrives that the filter accepts, and there is no
-     * timeout, so a filter that never becomes true blocks for as long as the script lives. A filter
-     * that throws is wrapped in a {@link RuntimeException} and ends the wait.
-     * <br>
-     * The listener is registered before the wait starts rather than after, so an event that
-     * arrives in between is not missed, and the event lock the thread was holding is released
-     * before it blocks, since holding it would stop the event from ever arriving. That means
-     * anything the thread was still doing in an event handler is left unfinished until the wait
-     * returns, which is why a script that needs to do something that waits is better written as a
-     * {@link #runScript(String, BaseEvent, MethodWrapper) runScript} with a callback.
-     * <br>
-     * The {@code join} argument requests waiting for a non-cancellable joinable event.
-     * Cancellable events are joined regardless of that argument. Ordinary events permit joining
-     * through their annotation or registry entry; custom events use their own joinable flag.
-     * A held event, such as a chat message or inventory click, must be processed promptly and its
-     * lock released before the configured watchdog timeout.<br>
-     * What comes back is an {@link EventAndContext}, which holds the event itself and the context
-     * it ran on. The context is how a joined event is let go of early, by calling
-     * {@link EventContainer#releaseLock()} on it, rather than waiting for the handler to finish.
-     * example:
-     * <pre class="language-typescript">
-     * // the full form: joined, filtered, with nothing to run before the wait.
-     * // join only does anything on a joinable event, and SendMessage is a
-     * // cancellable one, so the client is held on the event until the lock is
-     * // released
-     * const result = JsMacros.waitForEvent("SendMessage", true,
-     *   JavaWrapper.methodToJava(function (event: Events.SendMessage) {
-     *     return event.message !== null;
-     *   }), null);
-     * if (result.event.message !== null) {
-     *   result.event.message = `say ${result.event.message}`;
-     * }
-     * // the chat screen is still waiting on the join, and this is what lets it
-     * // carry on and send what the event says now
-     * result.context.releaseLock();
-     * </pre>
+     * Waits until an event passes the optional filter. The listener is registered before
+     * {@code runBeforeWaiting} runs; any currently bound event lock is released before waiting.
+     * There is no timeout, and filter exceptions are wrapped in a {@link RuntimeException}.
+     * Cancellable events join regardless of {@code join}; other events join only when requested
+     * and joinable. Release the returned context's lock promptly when the event is held.
      *
-     * @param event            event to wait for
-     * @param join             whether to request joining a non-cancellable joinable event; cancellable events always join
-     * @param filter           filter the event until it has the proper values or whatever.
-     * @param runBeforeWaiting runs as a {@link Runnable}, run before waiting, this is a thread-safety thing to prevent "interrupts" from going in between this and things like deferCurrentTask
-     * @return a event and a new context if the event you're waiting for was joined, to leave it early.
+     * @param event registered event name
+     * @param join whether to request joining a joinable event; cancellable events join regardless
+     * @param filter accepts an event, or {@code null} to accept the first event
+     * @param runBeforeWaiting callback run after listener registration and before waiting
+     * @return the event and its context
      * @throws InterruptedException
      * @since 1.9.0
      */
@@ -974,8 +903,8 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * @param event
-     * @return a list of script-added listeners.
+     * @param event event name
+     * @return listeners for this event other than built-in {@code BaseListener} instances
      * @since 1.2.3
      */
     @DocletReplaceParams("event: keyof Events")
@@ -990,25 +919,11 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * create an event filterer.<br>
-     * this exists to reduce lag when listening to frequently triggered events.
-     * <br>
-     * A filterer is a separate object with its own setters, one per event, rather than a
-     * callback. The event system asks it whether an event is worth passing on before the listener
-     * is run at all, so the work of throwing an event away never reaches the script. The filterer
-     * is built once and consulted for every event, so its settings are state that a listener
-     * should not be changing from inside itself.<br>
-     * The setters return the filterer, so they chain. Which events can be filtered at all is
-     * fixed by which ones have a filterer class, and asking for one that does not is an
-     * {@link IllegalArgumentException}, as is asking for an event name that is not registered.
-     * {@link #createModulusEventFilterer(int) createModulusEventFilterer} and
-     * {@link #invertEventFilterer(EventFilterer) invertEventFilterer} work on any event at all,
-     * since neither looks at what the event is.
-     * example:
+     * Creates a filterer for an event with a registered filterer class. Filterers are checked
+     * before the listener callback runs; available fields and setters depend on the event.
+     * Throws {@link IllegalArgumentException} if the event is unregistered or has no filterer.
      * <pre>
-     * // a block update filterer, narrowed to one position and one block id. the
-     * // event system asks it about every incoming update, so only the one wanted
-     * // ever reaches the listener
+     * // Narrow a block-update listener to a position and block id.
      * const near = JsMacros.createEventFilterer("BlockUpdate")
      *   .setPos(0, -60, 0)
      *   .setBlockId("minecraft:chest");
@@ -1017,20 +932,17 @@ public class FJsMacros extends PerExecLibrary {
      *   Chat.log(`the chest at ${pos.getX()}, ${pos.getY()}, ${pos.getZ()} changed`);
      * }));
      *
-     * // the same filterer can be re-pointed later, and the listener does not have
-     * // to be touched to do it
+     * // Change the filter without replacing the listener.
      * near.setBlockId("minecraft:furnace").setUpdateType("ENTITY");
      *
-     * // and a filterer that works on any event at all
+     * // A modulus filterer can be used with any event.
      * JsMacros.on("Tick", JsMacros.createModulusEventFilterer(20),
      *   JavaWrapper.methodToJava(function () {
      *     Chat.log("about a second went by");
      *   }));
      * </pre>
-     * @param event the name of the event to build a filterer for
-     * @return a filterer for that event, with its own setters for the event's fields
-     * @throws IllegalArgumentException if the event is not registered, or is registered but has
-     *         no filterer class
+     * @param event registered event name with an available filterer class
+     * @return a new filterer for the event
      * @since 1.9.1
      */
     @DocletReplaceTypeParams("E extends keyof EventFilterers")
@@ -1053,8 +965,10 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * create a composed event filterer.<br>
-     * this filterer combines multiple filterers together with and/or logic.
+     * Creates a filterer that combines conditions as OR groups of AND conditions; use its
+     * {@code and} and {@code or} methods to add conditions.
+     * @param initial initial filterer in the first AND group
+     * @return a composed filterer initialized with {@code initial}
      * @since 1.9.1
      */
     public FiltererComposed createComposedEventFilterer(EventFilterer initial) {
@@ -1062,8 +976,13 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * create a modulus event filterer.<br>
-     * this filterer only let every nth event pass through.
+     * Creates a stateful filterer that passes every {@code quotient}th filter call; a fresh
+     * filterer rejects calls until the threshold is reached. The count is shared by listeners
+     * using the same filterer. The constructor applies {@link Math#abs(int)}; zero and
+     * {@code Integer.MIN_VALUE} make every call pass.
+     * @param quotient threshold in filter calls; its absolute value is used except for
+     *                  {@code Integer.MIN_VALUE}
+     * @return the new modulus filterer
      * @since 1.9.1
      */
     public FiltererModulus createModulusEventFilterer(int quotient) {
@@ -1071,9 +990,10 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * inverts the base filterer's result.<br>
-     * this checks if the base is already inverted.<br>
-     * e.g. {@code filterer == invert(invert(filterer))} would be {@code true}.
+     * Inverts a filterer's test result; inverting an already inverted filterer returns its base.
+     * Throws {@link IllegalArgumentException} if {@code base} is {@code null}.
+     * @param base filterer to invert
+     * @return the inverted filterer, or its base if already inverted
      * @since 1.9.1
      */
     public EventFilterer invertEventFilterer(EventFilterer base) {
@@ -1081,42 +1001,27 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * create a custom event object that can trigger a event. It's recommended to use
-     * {@link EventCustom#registerEvent()} to set up the event to be visible in the GUI.
-     * <br>
-     * This is how a script talks to another script: the object created here is the same kind of
-     * thing the event system hands to a listener, with its own {@code put} and {@code get} calls
-     * to carry values along. Nothing is sent anywhere by creating it, and nothing is sent by the
-     * {@code put} calls either. The event goes out on
-     * {@link EventCustom#trigger() trigger()}, so a listener registered under the same name has
-     * to already be in place before that is called or nothing will hear it.
-     * <br>
-     * The name is not in the generated script type definitions, since those are built from the
-     * event classes in the source, so a script that both fires and listens for a custom event
-     * will not type-check against them without a cast.
-     * example:
+     * Creates a named event that can carry key-value arguments. Call
+     * {@link EventCustom#registerEvent()} to register its name for subscription and GUI visibility,
+     * then register listeners before calling {@link EventCustom#trigger()}, which dispatches
+     * immediately without queuing. Creation and storing arguments do not dispatch.
      * <pre>
-     * // carry a few values along with the event rather than through a global
+     * // Store arguments, register the name, then dispatch.
      * const ping = JsMacros.createCustomEvent("MyPluginPing");
      * ping.putString("from", "my-plugin");
      * ping.putInt("count", 1);
-     * // registerEvent is what makes the name show up in the GUI's event picker, and
-     * // without it nothing can subscribe to the name at all
      * ping.registerEvent();
-     * // trigger is the part that actually sends it, and it is a separate step on purpose
      * ping.trigger();
      *
-     * // the same object doubles as the payload for a script run in its own context,
-     * // which is the way to hand values to a script that waits for them
+     * // Custom events can also be passed as script arguments.
      * const data = JsMacros.createCustomEvent("MyPluginJob");
      * data.putString("task", "rebuild-world");
      * data.putBoolean("urgent", true);
      * JsMacros.runScript("worker.js", data);
      * </pre>
      *
-     * @param eventName name of the event. please don't use an existing one... your scripts might not like that.
-     * @return the custom event, which carries the values and is what gets triggered.
-     * @see BaseEventRegistry#addEvent(String)
+     * @param eventName name used to dispatch the event
+     * @return the event object
      * @since 1.2.8
      */
     public EventCustom createCustomEvent(String eventName) {
@@ -1124,14 +1029,10 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * asserts if {@code event} is the correct type of event<br>
-     * and convert {@code event} type to target type in ts<br>
-     * example:
-     * <pre>
-     * JsMacros.assertEvent(event, 'Service')
-     * </pre>
-     * @param event the event to assert
-     * @param type string of the event type
+     * Throws {@link AssertionError} unless the event's {@link Event} annotation value equals
+     * {@code type}; also narrows the event type in generated TypeScript declarations.
+     * @param event event to check
+     * @param type expected event name
      * @since 1.9.0
      */
     @DocletReplaceTypeParams("E extends keyof Events")
@@ -1150,27 +1051,80 @@ public class FJsMacros extends PerExecLibrary {
         }
     }
 
+    /**
+     * Listener implementation used for script event subscriptions, rather than a global library.
+     * <pre>
+     * const listener = JsMacros.on("Tick", JavaWrapper.methodToJava(function () {}));
+     * try {
+     *   Chat.log(listener.getCreatorName());
+     * } finally {
+     *   JsMacros.off(listener);
+     * }
+     * </pre>
+     */
     public interface ScriptEventListener extends IEventListener {
+        /**
+         * Triggers this listener through its inline hook; the default delegates to {@code trigger} and discards its returned container.
+         * This default does not ensure inline execution or completion; implementations may override it.
+         * @param event event occurrence passed to this listener
+         */
         default void triggerInline(BaseEvent event) {
             trigger(event);
         }
+        /** Returns the recorded creator label, not necessarily the name of the currently executing thread.
+         * Listeners from {@code on}, {@code once} and {@code waitForEvent} record the registration thread's name.
+         * @return creator label recorded for this listener
+         */
         String getCreatorName();
 
+        /**
+         * Returns the callback wrapper associated with this listener, if present.
+         * Listeners created by {@code waitForEvent} have no callback wrapper.
+         * @return callback wrapper, or {@code null} when absent
+         */
         @Nullable
         MethodWrapper<BaseEvent, EventContainer<?>, Object, ?> getWrapper();
 
+        /** Returns the script context associated with this listener.
+         * Listeners from {@code on} and {@code once} use the callback wrapper's context,
+         * which need not be the registration context; {@code waitForEvent} listeners use the waiting context.
+         * @return associated script context
+         */
         BaseScriptContext<?> getCtx();
     }
 
+    /**
+     * Pairs an event received by {@code waitForEvent} with its event container.
+     * <pre>
+     * const next = JsMacros.waitForEvent("Tick");
+     * try {
+     *   Chat.log(next.event.getEventName());
+     * } finally {
+     *   next.context.releaseLock();
+     * }
+     * </pre>
+     * Release the context lock promptly after processing when the returned event is held; the result is not necessarily currently locked.
+     *
+     * @param <E> paired event type
+     */
     public static class EventAndContext<E extends BaseEvent> {
+        /** The event reference paired with {@code context}; it is not copied or frozen. */
         public final E event;
+        /** The event container paired with {@code event}; release its lock promptly when processing a held event. */
         public final EventContainer<?> context;
 
+        /** Stores the supplied event and container references without dispatching or changing lock state.
+         * @param event event to pair
+         * @param context paired event container; supply a non-null reference for {@code toString()}
+         */
         public EventAndContext(E event, EventContainer<?> context) {
             this.event = event;
             this.context = context;
         }
 
+        /** Formats both stored references as {@code EventAndContext:{"event": %s, "context": %s}} using their {@code toString()} results; this is diagnostic text, not JSON or a snapshot.
+         * @return diagnostic string containing the event and container representations
+         */
         public String toString() {
             return String.format("EventAndContext:{\"event\": %s, \"context\": %s}", event.toString(), context.toString());
         }

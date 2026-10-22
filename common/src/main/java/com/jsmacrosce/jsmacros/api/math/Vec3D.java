@@ -7,29 +7,12 @@ import org.joml.Vector3f;
 import java.util.Objects;
 
 /**
- * A line segment in the world, held as two public writable endpoints: {@code x1}/{@code y1} and
- * {@code z1} for the start, {@code x2}/{@code y2} and {@code z2} for the end. It extends
- * {@link Vec2D}, so it is also a two dimensional segment and the flat measurements there work on
- * it, but everything that reports a length or an angle is overridden to include z.<br>
- * {@link #to3D()} returns a new segment containing all six endpoint coordinates, including
- * both z coordinates.<br>
- * Most of what it can tell you is a difference between the two ends, which is what
- * {@link #getDeltaX() getDeltaX()}, {@link #getDeltaY() getDeltaY()},
- * {@link #getDeltaZ() getDeltaZ()} and {@link #getMagnitude() getMagnitude()} read off, plus
- * {@link #getYaw() getYaw()} and {@link #getPitch() getPitch()}, which report the direction it runs
- * in as the same pair of angles the game itself uses for a player's view.<br>
- * Nothing here modifies the vector it is called on. Every member builds and returns a brand new
- * {@code Vec3D}, so the arithmetic is safe to chain. The endpoints themselves are the exception,
- * since assigning to them does change this vector.<br>
- * The arithmetic treats the whole segment as the thing being operated on. {@link #add(Vec3D) add}
- * and {@link #multiply(Vec3D) multiply} act on both endpoints, so they translate or resize the
- * segment rather than changing its direction, and {@link #normalize() normalize()} divides every
- * endpoint coordinate by the length, which rescales the segment towards the origin. There are also
- * {@link #addStart(Pos3D) addStart} and {@link #addEnd(Pos3D) addEnd} for moving one end and
- * leaving the other where it is, which is what a look direction needs. Passing a plain
- * {@link Vec2D} to the inherited two dimensional forms still selects those, and hands back a
- * {@code Vec2D} with z dropped.
- * example:
+ * A 3D line segment with mutable endpoints. Length and angle measurements include z.
+ * Inherited {@link Vec2D} overloads still operate in 2D: {@code add(Vec2D)} and
+ * {@code multiply(Vec2D)} return a plain {@code Vec2D}, while {@code dotProduct(Vec2D)} and
+ * {@code compareTo(Vec2D)} ignore z.
+ * The 3D arithmetic overloads return new segments; {@link #normalize()} divides both endpoints by
+ * the magnitude, moving the start unless it is at the origin.
  * <pre>
  * // Player.getPlayer() is null outside a world, so there is nothing to aim there
  * const player = Player.getPlayer();
@@ -48,13 +31,11 @@ import java.util.Objects;
  */
 public class Vec3D extends Vec2D {
     /**
-     * the z coordinate of the start of the segment. Public and writable, so assigning to it moves
-     * the start without going through any of the arithmetic below.
+     * The z coordinate of the segment's start.
      */
     public double z1;
     /**
-     * the z coordinate of the end of the segment. Public and writable, so assigning to it moves the
-     * end without going through any of the arithmetic below.
+     * The z coordinate of the segment's end.
      */
     public double z2;
 
@@ -146,8 +127,8 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * a new position at the end of the segment, with the z coordinate from {@code z2} as well as
-     * the flat ones. This is a copy, so writing to it does not move the segment.
+     * Returns a copy of the segment's end position, including its z coordinate. Modifying the
+     * returned position does not change this segment.
      *
      * @return a new {@link Pos3D} at the end of this segment
      * @since 1.2.6
@@ -158,12 +139,8 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * the Euclidean length of the segment through all three axes, the square root of
-     * {@link #getDeltaX() getDeltaX()}, {@link #getDeltaY() getDeltaY()} and
-     * {@link #getDeltaZ() getDeltaZ()} added together as squares. This overrides the flat
-     * {@link Vec2D#getMagnitude()}, so a segment that climbs will not report {@code 0} just
-     * because it is straight up and down. A segment whose ends are the same point has length
-     * {@code 0}, and no segment has a negative one.
+     * Returns the Euclidean length across x, y, and z. Unlike {@link Vec2D#getMagnitude()}, this
+     * includes vertical displacement.
      *
      * @return the length of this segment
      * @since 1.2.6
@@ -177,10 +154,7 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * the length of the segment squared, taken through all three axes, that is the value inside
-     * the square root that {@link #getMagnitude()} takes. Comparing magnitudes this way avoids
-     * the square root, and it is the right thing to reach for when all you want to know is which
-     * of two segments is longer, since squaring keeps the order.
+     * Returns the squared Euclidean length across x, y, and z.
      *
      * @return the squared length of this segment
      * @since 1.6.5
@@ -194,12 +168,9 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * a new segment with all six of this one's endpoint coordinates moved by the matching endpoint
-     * coordinate of another one. Since both ends move by the same amount this translates the
-     * segment and leaves its length and direction alone. This vector is not changed.<br>
-     * Passing a plain {@link Vec2D} instead selects the inherited
-     * {@link Vec2D#add(Vec2D) add(Vec2D)} and hands back a {@code Vec2D} with the z coordinates
-     * gone.
+     * Returns a new segment with each endpoint coordinate added to the corresponding coordinate of
+     * {@code vec}; this segment is unchanged. A {@link Vec2D} argument instead selects the inherited
+     * 2D overload, which returns a {@code Vec2D} and ignores z.
      *
      * @param vec the segment whose endpoints are added to this one's
      * @return a new segment with every endpoint coordinate added to its matching one
@@ -217,8 +188,8 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * a new segment with the start moved by the given position and the end left where it is, which
-     * tilts the segment without changing how far it is. This vector is not changed.
+     * Returns a new segment with its start offset by {@code pos} and its end unchanged. This segment
+     * is not modified.
      *
      * @param pos the position to move the start by
      * @return a new segment starting at the moved point and ending where this one did
@@ -229,8 +200,8 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * a new segment with the end moved by the given position and the start left where it is, which
-     * tilts the segment without changing how far it is. This vector is not changed.
+     * Returns a new segment with its end offset by {@code pos} and its start unchanged. This segment
+     * is not modified.
      *
      * @param pos the position to move the end by
      * @return a new segment ending at the moved point and starting where this one did
@@ -241,8 +212,8 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * a new segment with the start moved by the given amounts and the end left where it is. This
-     * vector is not changed.
+     * Returns a new segment with its start offset by the given amounts and its end unchanged; this
+     * segment is not modified.
      *
      * @param x the amount to add to the start's x coordinate
      * @param y the amount to add to the start's y coordinate
@@ -255,8 +226,8 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * a new segment with the end moved by the given amounts and the start left where it is. This
-     * vector is not changed.
+     * Returns a new segment with its end offset by the given amounts and its start unchanged; this
+     * segment is not modified.
      *
      * @param x the amount to add to the end's x coordinate
      * @param y the amount to add to the end's y coordinate
@@ -269,9 +240,8 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * a new segment with this one's start moved by the first three amounts and its end moved by the
-     * last three, so the two ends can be moved independently rather than the whole segment being
-     * translated. This vector is not changed.
+     * Returns a new segment with its start offset by the first three amounts and its end by the last
+     * three. Equal offsets translate the segment; this segment is unchanged.
      *
      * @param x1 the amount to add to the start's x coordinate
      * @param y1 the amount to add to the start's y coordinate
@@ -287,13 +257,10 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * a new segment with each of this one's endpoint coordinates multiplied by the matching
-     * endpoint coordinate of another one. This is a componentwise product, not a scale, so unless
-     * the other segment starts at the origin it will not simply make this one longer. This vector
-     * is not changed.<br>
-     * Passing a plain {@link Vec2D} instead selects the inherited
-     * {@link Vec2D#multiply(Vec2D) multiply(Vec2D)} and hands back a {@code Vec2D} with the z
-     * coordinates gone.
+     * Returns a new segment whose endpoint coordinates are multiplied componentwise by those of
+     * {@code vec}; this is not a uniform scale, and this segment is unchanged. A {@link Vec2D}
+     * argument instead selects the inherited 2D overload, which returns a {@code Vec2D} and ignores
+     * z.
      *
      * @param vec the segment whose endpoint coordinates are the factors
      * @return a new segment with every endpoint coordinate multiplied by its matching one
@@ -311,10 +278,9 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * a new segment with each of this one's endpoint coordinates multiplied by the matching factor
-     * given here, so again the two ends can be scaled independently. To scale the whole segment by
-     * one factor, use {@link #scale(double)} instead of passing the same number six times. This
-     * vector is not changed.
+     * Returns a new segment with each endpoint coordinate multiplied by its corresponding factor;
+     * the start and end can therefore be scaled independently. This segment is unchanged. For one
+     * factor applied to all coordinates, use {@link #scale(double)}.
      *
      * @param x1 the factor for the start's x coordinate
      * @param y1 the factor for the start's y coordinate
@@ -330,10 +296,8 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * a new segment with all six endpoint coordinates multiplied by one factor, which resizes the
-     * segment about the origin rather than changing only its length. To keep the start where it is
-     * and only change the length, move the end with {@link #addEnd(Pos3D) addEnd()} instead. This
-     * vector is not changed.
+     * Returns a new segment with all six endpoint coordinates multiplied by {@code scale}. This
+     * scales both endpoints about the origin; this segment is unchanged.
      *
      * @param scale the factor to multiply all six endpoint coordinates by
      * @return a new segment with all six endpoint coordinates scaled
@@ -345,16 +309,9 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * a new segment that points the same way as this one but is one long. What that means in
-     * practice is that every endpoint coordinate, start included, is divided by this segment's
-     * length, so the difference between the two ends comes out one long while the start slides
-     * towards the origin. For a segment that already starts at {@code 0, 0, 0}, such as the one
-     * {@link com.jsmacrosce.jsmacros.client.api.library.impl.FPositionCommon#createLookingVector(double, double) createLookingVector()}
-     * builds, that is exactly a unit direction; for one that does not, the start is moved as well
-     * and the result is a segment of length one running from a point near the origin rather than
-     * from where this one started.<br>
-     * A segment whose ends are the same point has length {@code 0}, and every coordinate of the
-     * result is then {@code NaN} rather than an error.
+     * Returns a new segment with both endpoints divided by this segment's length. The resulting
+     * segment has length one, but its start is also scaled and is preserved only if it is the
+     * origin. If the segment has zero length, division produces {@code NaN} coordinates.
      *
      * @return a new segment with the same direction but a length of 1
      * @since 1.6.5
@@ -366,13 +323,9 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * how far above or below the horizon this segment points, in degrees, in the same convention
-     * the game uses for a player's view: {@code 0} is level, negative is up and positive is down.<br>
-     * It is worked out from how far the segment travels horizontally compared with how far it
-     * climbs, where the horizontal side is a single distance across x and z together and the
-     * vertical side is the y difference.<br>
-     * For finite coordinates the range is {@code [-90, 90]}: straight up is {@code -90},
-     * straight down is {@code 90}, and a zero-length segment returns zero.
+     * Returns the segment's pitch in degrees: {@code 0} is level, negative is up, and positive is
+     * down. It uses the y difference and the combined horizontal distance across x and z; a
+     * zero-length segment returns {@code 0}.
      *
      * @return the pitch of this segment's direction in degrees
      * @since 1.2.6
@@ -386,7 +339,7 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * Copies this segment without discarding either z coordinate.
+     * Returns a copy of this segment, including both z coordinates.
      *
      * @return a new Vec3D containing all six endpoint coordinates
      */
@@ -396,22 +349,12 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * which way around the horizon this segment points, in degrees, in the same convention the game
-     * uses for a player's view: {@code 0} is south, {@code 90} is west and {@code -90} is east.
-     * North is the one direction that has two answers. The value is wrapped to between
-     * {@code -180} and {@code 180}, but the wrap sends {@code 180} down to {@code -180} and
-     * this method then negates it, so what actually comes out is the half open range from
-     * just above {@code -180} up to and including {@code 180}. A segment pointing exactly
-     * north therefore returns {@code 180} and never {@code -180}, and everything else lands
-     * strictly between the two. The game's own {@code Mth.wrapDegrees} turns either end into
-     * {@code -180}, so put the two through that before comparing yaws with {@code >} or
-     * {@code <} rather than expecting north to be a single number.<br>
-     * Only the x and z differences matter, so the segment's y coordinates are ignored and a
-     * segment running straight up or straight down reports the yaw of its horizontal projection, or
-     * {@code 0} when it has none. A segment whose ends are the same point has no direction to
-     * report and also comes out as {@code 0}.
+     * Returns the segment's yaw in degrees, using the view convention: {@code 0} is south,
+     * {@code 90} is west, and {@code -90} is east. Only x and z differences matter. The result is
+     * in {@code (-180, 180]}; exactly north returns {@code 180}. With no horizontal displacement,
+     * including a zero-length segment, the result is {@code 0}.
      *
-     * @return the yaw of this segment's direction, in degrees, between {@code -180} and {@code 180}
+     * @return the yaw of this segment's direction in degrees, in {@code (-180, 180]}
      * @since 1.2.6
      */
     public float getYaw() {
@@ -421,13 +364,11 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * how much two segments point the same way, the sum of the products of their matching
-     * coordinate differences over all three axes. The sign is the useful part: positive when the
-     * two directions are less than a right angle apart, {@code 0} when they are exactly a right
-     * angle apart or one of them has no length, and negative when they are more than a right angle
-     * apart. The magnitude is not an angle, it is a length squared scaled by how far apart the
-     * directions are.<br>
-     * The result is not normalized, so it grows with the length of both segments.
+     * Returns the dot product of the segments' endpoint differences. Its sign indicates whether
+     * their directions are less than, equal to, or greater than a right angle apart; it is zero if
+     * either segment has zero length. The result is not normalized, so its magnitude depends on
+     * both segment lengths. A {@link Vec2D} argument selects the inherited 2D overload, which
+     * ignores z.
      *
      * @param vec the segment to compare this one's direction against
      * @return the dot product of the two direction differences
@@ -440,14 +381,10 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * the vector perpendicular to both of these segments at once, which is the direction that is at
-     * a right angle to this one and to {@code vec} together. Only the end of the result is that
-     * direction; the start is always {@code 0, 0, 0}, so read it with
-     * {@link #getEnd() getEnd()}.<br>
-     * The direction follows the right hand rule from this segment towards {@code vec}, and the two
-     * arguments are not interchangeable: swapping them negates the result. When the segments are
-     * parallel the result is the zero vector rather than an error, and it is not normalized, so
-     * its length is the product of the two lengths scaled by how far apart they point.
+     * Returns the cross product of the endpoint differences as a segment from the origin. Its
+     * direction follows the right-hand rule from this segment toward {@code vec}; swapping the
+     * arguments negates it. Parallel directions produce a zero vector. The result is not
+     * normalized.
      *
      * @param vec the other segment to take the perpendicular to
      * @return a new vector from the origin to the vector perpendicular to both segments
@@ -464,8 +401,7 @@ public class Vec3D extends Vec2D {
     }
 
     /**
-     * a new segment running the other way, with the ends swapped. Its direction is the opposite of
-     * this one's and its length is the same. This vector is not changed.
+     * Returns a new segment with its endpoints swapped; this segment is unchanged.
      *
      * @return a new segment from the end of this one to its start
      * @since 1.2.6
@@ -475,18 +411,22 @@ public class Vec3D extends Vec2D {
         return new Vec3D(x2, y2, z2, x1, y1, z1);
     }
 
+    /**
+     * Formats the ordered start and end coordinates in x, y, z order. Finite coordinates have six
+     * fractional digits; formatting uses the default locale, so this text is not a stable
+     * serialization.
+     *
+     * @return the formatted endpoint coordinates
+     */
     @Override
     public String toString() {
         return String.format("%f, %f, %f -> %f, %f, %f", x1, y1, z1, x2, y2, z2);
     }
 
     /**
-     * the difference between the two ends of this segment as a plain three component float vector,
-     * that is {@code x2 - x1, y2 - y1, z2 - z1}. That makes it a direction rather than a position:
-     * the start of the segment is not in the result at all, and for a segment starting at the
-     * origin the result is simply the end point. Each component is narrowed from a
-     * {@code double} to a {@code float}, so a difference that is only a very small number can round
-     * away to zero.
+     * Returns the endpoint difference ({@code x2 - x1, y2 - y1, z2 - z1}) as a float vector, not
+     * a position. Each component is narrowed from {@code double} to {@code float} and may lose
+     * precision.
      *
      * @return a new {@code Vector3f} holding the coordinate differences of this segment
      * @since 1.6.5
@@ -495,6 +435,16 @@ public class Vec3D extends Vec2D {
         return new Vector3f((float) (x2 - x1), (float) (y2 - y1), (float) (z2 - z1));
     }
 
+    /**
+     * Compares this segment with another object by exact runtime class and all six ordered endpoint
+     * coordinates. Coordinates use {@link Double#compare(double, double)}: NaN values compare
+     * equal, while positive and negative zero compare differently. This compares the segment's
+     * endpoints, not just its displacement or length.
+     *
+     * @param o the object to compare with this segment
+     * @return {@code true} if {@code o} is this object or has the same runtime class and equal
+     *         endpoint coordinates; {@code false} otherwise
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -508,17 +458,22 @@ public class Vec3D extends Vec2D {
                 && Double.compare(z2, vec3D.z2) == 0;
     }
 
+    /**
+     * Computes a hash code from the current ordered endpoint coordinates, including both z
+     * coordinates. Because this segment is mutable, its hash may change when its coordinates change;
+     * avoid using it as a hash key while mutating it.
+     *
+     * @return the hash code for the current coordinates
+     */
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), z1, z2);
     }
 
     /**
-     * orders this segment against another one, first by where the start sits and then, only if the
-     * two starts compare equal, by where the end sits. The ordering of each end is
-     * {@link Pos3D#compareTo(Pos3D)}, that is by x, then y, then z, and it is a raw comparison on
-     * the coordinates rather than a distance, so two segments that cross can still order against
-     * each other.
+     * Compares segments lexicographically by start position, then end position; each position is
+     * compared by x, y, then z using {@link Pos3D#compareTo(Pos3D)}. This coordinate ordering does
+     * not compare segment lengths or whether they intersect.
      *
      * @param o the segment to compare this one against
      * @return a negative number, zero, or a positive number as this segment is before, the same

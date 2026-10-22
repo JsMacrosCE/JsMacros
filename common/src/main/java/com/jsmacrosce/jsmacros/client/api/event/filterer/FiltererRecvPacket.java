@@ -9,19 +9,12 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.EventFilterer;
 
 /**
- * A filter for the {@code RecvPacket} event, which fires for every packet the client receives from
- * the server, so it is the busiest event there is. A filterer is built with
+ * Filters callbacks for the {@code RecvPacket} event. Create it with
  * {@link com.jsmacrosce.jsmacros.core.library.impl.FJsMacros#createEventFilterer(java.lang.String) createEventFilterer()}
- * and handed to the {@code JsMacros.on} overload that takes a filterer, which then only calls back
- * for the packets this filterer accepts.<br>
- * The single {@link #type} is the only thing that can be filtered on, and it has to match the
- * packet's name exactly. It starts out {@code null}, which means no filtering, so an untouched
- * filterer accepts every received packet.<br>
- * A filterer only decides whether the listener runs, it never touches the packet. To actually
- * change or block a packet, cancel the event inside the listener instead. This filterer can only
- * be used with {@code RecvPacket}, and handing it to {@code JsMacros.on} for any other event throws
- * an error.
- * example:
+ * and pass it to the filterer-taking {@code JsMacros.on} overload. It matches packet names
+ * exactly; {@code null} accepts every received packet. Filtering only controls whether the
+ * listener runs. Packet changes or cancellation must be done by the listener. This filterer is
+ * valid only for {@code RecvPacket}.
  * <pre>
  * // only look at the chunk data packet
  * const filterer = JsMacros.createEventFilterer("RecvPacket")
@@ -39,25 +32,19 @@ import com.jsmacrosce.jsmacros.core.event.EventFilterer;
 @SuppressWarnings("unused")
 public class FiltererRecvPacket implements EventFilterer {
     /**
-     * the name of the packet to accept, such as {@code "ChunkDataS2CPacket"} for the chunk data
-     * packet, or {@code null} to accept every packet. The names are the ones
+     * Packet name to accept, or {@code null} to accept every packet. Names are those
      * {@link com.jsmacrosce.jsmacros.client.api.helper.PacketByteBufferHelper#getPacketNames() getPacketNames()}
-     * lists, not the game's class names, and they change between game versions, so look one up
-     * rather than hardcoding it.<br>
-     * The name has to match exactly, so a name the game does not use lets nothing through rather
-     * than everything.<br>
-     * This field is writable, {@link FiltererRecvPacket#setType(String) setType()} only does this
-     * assignment.
+     * lists, not necessarily the game's class names, and may change between game versions. Matching
+     * is exact. Names outside that list can still match a packet's simple class name when the
+     * helper falls back to it.
      */
     @Nullable
     @DocletReplaceReturn("PacketName | null")
     public String type;
 
     /**
-     * whether this filterer can be used for the given event name. It only answers {@code true}
-     * for {@code "RecvPacket"}, which is the event it is registered for, and the
-     * {@code JsMacros.on} overload that takes a filterer refuses a filterer that cannot filter
-     * the event it was given.
+     * Whether this filterer supports the named event; the filterer-taking {@code JsMacros.on}
+     * overload rejects unsupported event names.
      *
      * @param event the name of the event being listened to
      * @return {@code true} only for {@code "RecvPacket"}
@@ -68,10 +55,9 @@ public class FiltererRecvPacket implements EventFilterer {
     }
 
     /**
-     * the predicate this filterer evaluates. It is called for every packet the client receives, so
-     * it is on the hot path. Anything that is not a received-packet event is rejected outright,
-     * and for a received-packet event it passes every packet while {@link #type} is {@code null},
-     * otherwise only the packets whose name is exactly that. It never changes or blocks the packet.
+     * Tests whether the event is a received-packet event matching {@link #type}, or accepts every
+     * received packet when {@code type} is {@code null}. Other event types are rejected. This only
+     * controls listener invocation and does not modify or cancel the packet.
      *
      * @param event the event being filtered, which is an
      * {@link com.jsmacrosce.jsmacros.client.api.event.impl.EventRecvPacket} here
@@ -83,9 +69,8 @@ public class FiltererRecvPacket implements EventFilterer {
     }
 
     /**
-     * sets the name of the packet to accept, which turns filtering off entirely when passed
-     * {@code null}. The name has to match the packet's name exactly. Returns the same filterer so
-     * calls can be chained.
+     * Sets the exact packet name to accept; {@code null} disables type filtering. Returns this
+     * filterer for chaining.
      *
      * @param type the packet name to match, or {@code null} to accept every packet
      * @return this filterer, for chaining

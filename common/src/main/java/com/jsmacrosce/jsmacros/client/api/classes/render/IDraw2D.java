@@ -13,39 +13,18 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * What a 2D overlay has to be able to do, whichever class implements it.
+ * A 2D overlay that holds render elements; implemented by standalone overlays and screens.
  * <p>
- * Almost every script meets this through a {@code Draw2D}, which is the one that draws
- * over the game on its own. The other implementation is a screen, which is a 2D overlay
- * that is the game's own menu class: it is opened rather than registered, it pauses the
- * game, and it can hold buttons and text fields. Both can be read with the same code
- * because both are this.
+ * Both implementations expose the same element API.
  * <p>
- * The {@code T} is what the removal methods hand back. On a plain overlay that is the
- * overlay itself, so removals chain; on a screen it is the screen, for the same reason.
- * The element getters and the {@code add} methods return the element they made rather
- * than the overlay, so those never chain into anything.
- * <p>
- * There is a builder for each kind of element, and they are the richer route: the
- * {@code add} methods here take their arguments positionally and the builders name them.
- * Both produce the same elements, and a builder that was made from an overlay is bound
- * to it, so {@code buildAndAdd()} on it puts the element where the {@code add} call
- * would have.
- * <p>
- * The names here are the ones a script sees. Two are worth reading carefully, because
- * the same word means something else elsewhere: {@link #getWidth()} and
- * {@link #getHeight()} are the size of the <em>screen</em> as far as this overlay is
- * concerned, not the size of its content, and on a surface they are a count of surface
- * pixels rather than either of those.
- * example:
-     * <pre>
+ * <pre>
  * // a plain overlay, the usual implementation
  * const draw = Hud.createDraw2D();
  * draw.addText("hello", 10, 10, 0xFFFFFFFF, true);
  * draw.register();
  * </pre>
  *
- * @param <T> what the removal methods hand back, so that they chain
+ * @param <T> the type returned by removal methods
  * @author Wagyourtail
  * @since 1.2.7
  */
@@ -53,47 +32,29 @@ import java.util.function.Consumer;
 public interface IDraw2D<T> {
 
     /**
-     * how wide the screen is, in scaled pixels, as far as this overlay is concerned.
-     * <p>
-     * Every element coordinate on this overlay is in that space, so a position up to this
-     * width is on screen. On a plain overlay it is the window's width after the GUI scale
-     * has been applied, which is the same space the mouse readings are in. On a screen
-     * it is the screen's own width, which is usually the same number but is not when the
-     * screen has been given a different size.
-     * <p>
-     * This is not the width of the overlay's content. Elements are placed by absolute
-     * coordinate and there is no such thing as the overlay's own width.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.register();
-     * Chat.log(`screen is ${draw.getWidth()} pixels wide to this overlay`);
-     * </pre>
+     * Returns the current width supplied by this overlay, in its element coordinate
+     * space. Plain overlays default to the window's GUI-scaled width; screens use their
+     * current screen width, nested overlays their supplied width, and surfaces surface
+     * pixels. A screen's width can differ from the window's GUI-scaled width.
      *
-     * @return screen width
+     * @return the supplied width
      * @since 1.2.7
      */
     int getWidth();
 
     /**
-     * how tall the screen is, in scaled pixels, as far as this overlay is concerned.
-     * <p>
-     * The counterpart of {@link #getWidth()}, and in the same space as every element
-     * coordinate on this overlay.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.register();
-     * Chat.log(`screen is ${draw.getHeight()} pixels tall to this overlay`);
-     * </pre>
+     * Returns the current height supplied by this overlay, in its element coordinate
+     * space. Plain overlays default to the window's GUI-scaled height; screens use their
+     * current screen height, nested overlays their supplied height, and surfaces surface
+     * pixels.
      *
-     * @return screen height
+     * @return the supplied height
      * @since 1.2.7
      */
     int getHeight();
 
     /**
-     * every text element on this overlay, in the order they were added.
+     * Returns this overlay's text elements in insertion order; the returned list is independent of the overlay.
      * <p>
      * A new list each call, filtered by type, so changing it does not change what this
      * overlay holds. Nested overlays are not included, so text inside a panel is not in
@@ -112,11 +73,12 @@ public interface IDraw2D<T> {
      * @return text elements
      * @since 1.2.7
      */
+    @DocletIgnore
     @Deprecated
     List<Text> getTexts();
 
     /**
-     * every rectangle on this overlay, in the order they were added.
+     * Returns this overlay's rectangles in insertion order; the returned list is independent of the overlay.
      * <p>
      * A new list each call, filtered by type, so changing it does not change what this
      * overlay holds. Nested overlays are not included.
@@ -131,21 +93,13 @@ public interface IDraw2D<T> {
      * @return rect elements
      * @since 1.2.7
      */
+    @DocletIgnore
     @Deprecated
     List<Rect> getRects();
 
     /**
-     * every line on this overlay, in the order they were added.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. Nested overlays are not included.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addLine(0, 0, 10, 10, 0xFFFFFFFF);
-     * draw.register();
-     * Chat.log(`${draw.getLines().size()} lines`);
-     * </pre>
+     * Returns a new, mutable list of this overlay's line elements in insertion order.
+     * Nested overlays' contents are not included.
      *
      * @return all registered line elements.
      * @since 1.8.4
@@ -153,7 +107,7 @@ public interface IDraw2D<T> {
     List<Line> getLines();
 
     /**
-     * every item icon on this overlay, in the order they were added.
+     * Returns this overlay's item icons in insertion order; the returned list is independent of the overlay.
      * <p>
      * A new list each call, filtered by type, so changing it does not change what this
      * overlay holds. Nested overlays are not included.
@@ -168,11 +122,12 @@ public interface IDraw2D<T> {
      * @return item elements
      * @since 1.2.7
      */
+    @DocletIgnore
     @Deprecated
     List<Item> getItems();
 
     /**
-     * every image on this overlay, in the order they were added.
+     * Returns this overlay's images in insertion order; the returned list is independent of the overlay.
      * <p>
      * A new list each call, filtered by type, so changing it does not change what this
      * overlay holds. Nested overlays are not included.
@@ -187,24 +142,14 @@ public interface IDraw2D<T> {
      * @return image elements
      * @since 1.2.7
      */
+    @DocletIgnore
     @Deprecated
     List<Image> getImages();
 
     /**
-     * every nested overlay on this one, in the order they were added.
-     * <p>
-     * A new list each call, filtered by type, so changing it does not change what this
-     * overlay holds. This is the list of wrappers rather than of the overlays
-     * themselves; the contents of the nested overlays are not in here.
-     * example:
-     * <pre>
-     * const outer = Hud.createDraw2D();
-     * const panel = Hud.createDraw2D();
-     * panel.addText("inside", 5, 5, 0xFFFFFFFF, true);
-     * outer.addDraw2D(panel, 10, 10, 100, 50);
-     * outer.register();
-     * Chat.log(`${outer.getDraw2Ds().size()} nested overlays`);
-     * </pre>
+     * Returns a new, mutable list of nested-overlay wrappers in insertion order. Each
+     * wrapper carries the nested overlay's placement and displayed dimensions; nested
+     * overlays and their contents are not returned directly.
      *
      * @return all registered draw2d elements.
      * @since 1.8.4
@@ -212,46 +157,20 @@ public interface IDraw2D<T> {
     List<Draw2DElement> getDraw2Ds();
 
     /**
-     * Everything on this overlay of every kind, in the order things were added. The
-     * snapshot is read only and is taken when it is called, so changing it does not
-     * change what this overlay holds and elements taken off afterwards do not disappear
-     * from a copy already taken. The types have to be told apart with their own getters.
-     * <p>
-     * Nested overlays are wrappers in this list rather than the overlays themselves, and
-     * the contents of those nested overlays are not in here.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("one", 10, 10, 0xFFFFFFFF, true);
-     * draw.addRect(0, 0, 10, 10, 0xFFFF0000);
-     * draw.register();
-     * // both, where the per-type getters would each give one
-     * Chat.log(`${draw.getElements().size()} elements in total`);
-     * </pre>
+     * Returns an immutable snapshot of all elements in insertion order. It does not
+     * reflect elements added or removed afterward; the elements themselves are not
+     * made immutable. Nested overlays appear as wrappers, and their contents are not
+     * included.
      *
-     * @return a read only copy of the list of all elements added by scripts.
+     * @return an immutable snapshot of this overlay's elements
      * @since 1.2.9
      */
     List<RenderElement> getElements();
 
     /**
-     * removes any element regardless of type.
-     * <p>
-     * This is the one removal that does not need to know the type, which is what makes
-     * it the right one for an element read back out of {@link #getElements()}. The typed
-     * removals do the same thing and are deprecated.
-     * <p>
-     * The element itself is left alone, so it can be put back with
-     * {@link #reAddElement(RenderElement)} and comes back as it was. Removing something
-     * that is not on this overlay does nothing.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const text = draw.addText("temporary", 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * draw.removeElement(text);
-     * Chat.log(`${draw.getTexts().size()} texts left`);
-     * </pre>
+     * Removes an element of any type from this overlay. If absent, it has no effect;
+     * the element itself is unchanged and can be added again with
+     * {@link #reAddElement(RenderElement)}. The deprecated typed removals do the same.
      *
      * @param e the element to take off
      * @return self for chaining
@@ -260,27 +179,12 @@ public interface IDraw2D<T> {
     T removeElement(RenderElement e);
 
     /**
-     * re-add an element you removed with {@link #removeElement(RenderElement)}
-     * <p>
-     * For an element taken off, or one built with {@code build()} rather than
-     * {@code buildAndAdd()}. Adding an element that is already on the overlay leaves it
-     * as it is, and still reports the element back.
-     * <p>
-     * A nested overlay is the case that can fail, and this is where that is checked. One
-     * is refused, and {@code null} is returned, when it has no overlay behind it, when it
-     * is this overlay, or when it already contains this one further down. That last one
-     * is the cycle case: without the check the renderer would follow the nesting round
-     * and round.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const text = draw.addText("hello", 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * draw.removeElement(text);
-     * // back on, and still there
-     * draw.reAddElement(text);
-     * </pre>
+     * Adds an element to this overlay and returns it. This can restore an element removed
+     * with {@link #removeElement(RenderElement)} or add one built without
+     * {@code buildAndAdd()}. For nested-overlay wrappers, returns {@code null} if the
+     * wrapped overlay is missing, is this overlay, or would create a cycle.
      *
+     * @param <T> the type of element to add
      * @param e the element to put back
      * @return the element, or {@code null} if it is a nested overlay that was refused
      * @since 1.2.9
@@ -288,24 +192,10 @@ public interface IDraw2D<T> {
     <T extends RenderElement> T reAddElement(T e);
 
     /**
-     * adds a piece of text at a position, with a colour and a shadow.
+     * Adds text at a position, with a color and optional shadow.
      * <p>
-     * The position is in screen pixels from the top left, the colour is packed as the
-     * game packs colours with the alpha in the top byte, and the shadow is the game's
-     * own drop shadow behind the glyphs. This is the shortest form and puts the text at
-     * z-index 0 with a scale of 1 and no rotation.
-     * <p>
-     * There are eight forms of this. The ones that take a {@link TextHelper} keep that
-     * text's own styling rather than taking a plain string, the ones that take a z-index
-     * order the text against the other elements here, and the ones that take a scale and
-     * a rotation change how big and which way round the text is. Every one of them ends
-     * up at the same full form.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.addText("hello", 10, 10, 0xFFFFFFFF, true);
-     * draw.register();
-     * </pre>
+     * Coordinates are screen pixels from the top left; {@code color} is packed with
+     * alpha in its top byte. This overload uses z-index 0, scale 1, and no rotation.
      *
      * @param text the text to display
      * @param x      screen x
@@ -318,11 +208,16 @@ public interface IDraw2D<T> {
     Text addText(String text, int x, int y, int color, boolean shadow);
 
     /**
-     * @param text
+     * Adds text at a position with a color and optional shadow. Coordinates are screen
+     * pixels from the top left; {@code color} is packed with alpha in its top byte.
+     * Although this overload accepts {@code zIndex}, it currently uses z-index 0.
+     * Scale is 1 and rotation is 0.
+     *
+     * @param text the text to display
      * @param x      screen x
      * @param y      screen y
      * @param color  text color
-     * @param zIndex z-index
+     * @param zIndex currently ignored; the added text uses z-index 0
      * @param shadow include shadow layer
      * @return added text
      * @since 1.4.0
@@ -330,7 +225,11 @@ public interface IDraw2D<T> {
     Text addText(String text, int x, int y, int color, int zIndex, boolean shadow);
 
     /**
-     * @param text
+     * Adds text at a position, with a color, optional shadow, scale, and rotation.
+     * Coordinates are screen pixels from the top left; {@code color} is packed with
+     * alpha in its top byte. This overload uses z-index 0.
+     *
+     * @param text the text to display
      * @param x        screen x
      * @param y        screen y
      * @param color    text color
@@ -343,7 +242,11 @@ public interface IDraw2D<T> {
     Text addText(String text, int x, int y, int color, boolean shadow, double scale, double rotation);
 
     /**
-     * @param text
+     * Adds text at a position, with a color, optional shadow, scale, and rotation,
+     * at the specified z-index. Coordinates are screen pixels from the top left;
+     * {@code color} is packed with alpha in its top byte.
+     *
+     * @param text the text to display
      * @param x        screen x
      * @param y        screen y
      * @param color    text color
@@ -357,7 +260,11 @@ public interface IDraw2D<T> {
     Text addText(String text, int x, int y, int color, int zIndex, boolean shadow, double scale, double rotation);
 
     /**
-     * @param text
+     * Adds styled text at a position, with a color and optional shadow.
+     * Coordinates are screen pixels from the top left; {@code color} is packed
+     * with alpha in its top byte. This overload uses z-index 0, scale 1, and no rotation.
+     *
+     * @param text the styled text to display
      * @param x      screen x
      * @param y      screen y
      * @param color  text color
@@ -368,10 +275,14 @@ public interface IDraw2D<T> {
     Text addText(TextHelper text, int x, int y, int color, boolean shadow);
 
     /**
-     * @param text
+     * Adds styled text from a {@link TextHelper}; {@code color} tints its existing
+     * styling. Coordinates are screen pixels from the top left. Scale is 1 and
+     * rotation is 0. The supplied z-index is applied.
+     *
+     * @param text the styled text to display
      * @param x      screen x
      * @param y      screen y
-     * @param color  text color
+     * @param color  tint applied to the text's existing styling
      * @param zIndex z-index
      * @param shadow include shadow layer
      * @return added text
@@ -380,7 +291,11 @@ public interface IDraw2D<T> {
     Text addText(TextHelper text, int x, int y, int color, int zIndex, boolean shadow);
 
     /**
-     * @param text
+     * Adds styled text at a position, with a color, optional shadow, scale, and rotation.
+     * Coordinates are screen pixels from the top left; {@code color} is packed with
+     * alpha in its top byte. This overload uses z-index 0.
+     *
+     * @param text the styled text to display
      * @param x        screen x
      * @param y        screen y
      * @param color    text color
@@ -393,7 +308,11 @@ public interface IDraw2D<T> {
     Text addText(TextHelper text, int x, int y, int color, boolean shadow, double scale, double rotation);
 
     /**
-     * @param text
+     * Adds styled text at a position, with a color, optional shadow, scale, and rotation,
+     * at the specified z-index. Coordinates are screen pixels from the top left;
+     * {@code color} is packed with alpha in its top byte.
+     *
+     * @param text the styled text to display
      * @param x        screen x
      * @param y        screen y
      * @param color    text color
@@ -407,507 +326,500 @@ public interface IDraw2D<T> {
     Text addText(TextHelper text, int x, int y, int color, int zIndex, boolean shadow, double scale, double rotation);
 
     /**
-     * @param t
-     * @return self for chaining
+     * Removes the text element from this overlay; the element itself is unchanged.
+     *
+     * @param t text element to remove
+     * @return this overlay
      * @since 1.2.7
      */
+    @DocletIgnore
     @Deprecated
     T removeText(Text t);
 
     /**
-     * @param x             screen x, top left corner
-     * @param y             screen y, top left corner
-     * @param width         width on screen
-     * @param height        height on screen
-     * @param id            image id, in the form {@code minecraft:textures} path'd as found in texture packs, ie {@code assets/minecraft/textures/gui/recipe_book.png} becomes {@code minecraft:textures/gui/recipe_book.png}
-     * @param imageX        the left-most coordinate of the texture region
-     * @param imageY        the top-most coordinate of the texture region
-     * @param regionWidth   the width the texture region
-     * @param regionHeight  the height the texture region
-     * @param textureWidth  the width of the entire texture
-     * @param textureHeight the height of the entire texture
+     * Adds an unrotated texture region as an image with the default z-index and white tint.
+     *
+     * @param x image's screen-space left edge
+     * @param y image's screen-space top edge
+     * @param width displayed width in screen pixels
+     * @param height displayed height in screen pixels
+     * @param id texture identifier
+     * @param imageX region's left coordinate in the texture
+     * @param imageY region's top coordinate in the texture
+     * @param regionWidth region width in texture pixels
+     * @param regionHeight region height in texture pixels
+     * @param textureWidth full texture width in pixels
+     * @param textureHeight full texture height in pixels
      * @return added image
      * @since 1.2.7
      */
     Image addImage(int x, int y, int width, int height, String id, int imageX, int imageY, int regionWidth, int regionHeight, int textureWidth, int textureHeight);
 
     /**
-     * @param x             screen x, top left corner
-     * @param y             screen y, top left corner
-     * @param width         width on screen
-     * @param height        height on screen
-     * @param zIndex        z-index
-     * @param id            image id, in the form {@code minecraft:textures} path'd as found in texture packs, ie {@code assets/minecraft/textures/gui/recipe_book.png} becomes {@code minecraft:textures/gui/recipe_book.png}
-     * @param imageX        the left-most coordinate of the texture region
-     * @param imageY        the top-most coordinate of the texture region
-     * @param regionWidth   the width the texture region
-     * @param regionHeight  the height the texture region
-     * @param textureWidth  the width of the entire texture
-     * @param textureHeight the height of the entire texture
+     * Adds an unrotated texture region as an image with a specified z-index and white tint.
+     *
+     * @param x image's screen-space left edge
+     * @param y image's screen-space top edge
+     * @param width displayed width in screen pixels
+     * @param height displayed height in screen pixels
+     * @param zIndex ordering against elements on this overlay; lower values draw first
+     * @param id texture identifier
+     * @param imageX region's left coordinate in the texture
+     * @param imageY region's top coordinate in the texture
+     * @param regionWidth region width in texture pixels
+     * @param regionHeight region height in texture pixels
+     * @param textureWidth full texture width in pixels
+     * @param textureHeight full texture height in pixels
      * @return added image
      * @since 1.4.0
      */
     Image addImage(int x, int y, int width, int height, int zIndex, String id, int imageX, int imageY, int regionWidth, int regionHeight, int textureWidth, int textureHeight);
 
     /**
-     * @param x             screen x, top left corner
-     * @param y             screen y, top left corner
-     * @param width         width on screen
-     * @param height        height on screen
-     * @param id            image id, in the form {@code minecraft:textures} path'd as found in texture packs, ie {@code assets/minecraft/textures/gui/recipe_book.png} becomes {@code minecraft:textures/gui/recipe_book.png}
-     * @param imageX        the left-most coordinate of the texture region
-     * @param imageY        the top-most coordinate of the texture region
-     * @param regionWidth   the width the texture region
-     * @param regionHeight  the height the texture region
-     * @param textureWidth  the width of the entire texture
-     * @param textureHeight the height of the entire texture
-     * @param rotation      the rotation (clockwise) of the texture (as degrees)
+     * Adds a rotated texture region as an image with the default z-index and white tint.
+     * Rotation is in degrees about the image's center.
+     *
+     * @param x image's screen-space left edge
+     * @param y image's screen-space top edge
+     * @param width displayed width in screen pixels
+     * @param height displayed height in screen pixels
+     * @param id texture identifier
+     * @param imageX region's left coordinate in the texture
+     * @param imageY region's top coordinate in the texture
+     * @param regionWidth region width in texture pixels
+     * @param regionHeight region height in texture pixels
+     * @param textureWidth full texture width in pixels
+     * @param textureHeight full texture height in pixels
+     * @param rotation rotation in degrees
      * @return added image
      * @since 1.2.7
      */
     Image addImage(int x, int y, int width, int height, String id, int imageX, int imageY, int regionWidth, int regionHeight, int textureWidth, int textureHeight, double rotation);
 
     /**
-     * @param x             screen x, top left corner
-     * @param y             screen y, top left corner
-     * @param width         width on screen
-     * @param height        height on screen
-     * @param zIndex        z-index
-     * @param id            image id, in the form {@code minecraft:textures} path'd as found in texture packs, ie {@code assets/minecraft/textures/gui/recipe_book.png} becomes {@code minecraft:textures/gui/recipe_book.png}
-     * @param imageX        the left-most coordinate of the texture region
-     * @param imageY        the top-most coordinate of the texture region
-     * @param regionWidth   the width the texture region
-     * @param regionHeight  the height the texture region
-     * @param textureWidth  the width of the entire texture
-     * @param textureHeight the height of the entire texture
-     * @param rotation      the rotation (clockwise) of the texture (as degrees)
+     * Adds a rotated texture region as an image with a specified z-index and white tint.
+     * Rotation is in degrees about the image's center.
+     *
+     * @param x image's screen-space left edge
+     * @param y image's screen-space top edge
+     * @param width displayed width in screen pixels
+     * @param height displayed height in screen pixels
+     * @param zIndex ordering against elements on this overlay; lower values draw first
+     * @param id texture identifier
+     * @param imageX region's left coordinate in the texture
+     * @param imageY region's top coordinate in the texture
+     * @param regionWidth region width in texture pixels
+     * @param regionHeight region height in texture pixels
+     * @param textureWidth full texture width in pixels
+     * @param textureHeight full texture height in pixels
+     * @param rotation rotation in degrees
      * @return added image
      * @since 1.4.0
      */
     Image addImage(int x, int y, int width, int height, int zIndex, String id, int imageX, int imageY, int regionWidth, int regionHeight, int textureWidth, int textureHeight, double rotation);
 
     /**
-     * @param x
-     * @param y
-     * @param width
-     * @param height
-     * @param zIndex
-     * @param color
-     * @param id
-     * @param imageX
-     * @param imageY
-     * @param regionWidth
-     * @param regionHeight
-     * @param textureWidth
-     * @param textureHeight
-     * @param rotation
-     * @return
+     * Adds a rotated, tinted texture region as an image; its alpha is included in {@code color}.
+     * Rotation is in degrees about the image's center.
+     *
+     * @param x image's screen-space left edge
+     * @param y image's screen-space top edge
+     * @param width displayed width in screen pixels
+     * @param height displayed height in screen pixels
+     * @param zIndex ordering against elements on this overlay; lower values draw first
+     * @param color tint, packed with alpha in the top byte
+     * @param id texture identifier
+     * @param imageX region's left coordinate in the texture
+     * @param imageY region's top coordinate in the texture
+     * @param regionWidth region width in texture pixels
+     * @param regionHeight region height in texture pixels
+     * @param textureWidth full texture width in pixels
+     * @param textureHeight full texture height in pixels
+     * @param rotation rotation in degrees
+     * @return added image
      * @since 1.6.5
      */
     Image addImage(int x, int y, int width, int height, int zIndex, int color, String id, int imageX, int imageY, int regionWidth, int regionHeight, int textureWidth, int textureHeight, double rotation);
 
     /**
-     * @param x
-     * @param y
-     * @param width
-     * @param height
-     * @param zIndex
-     * @param alpha
-     * @param color
-     * @param id
-     * @param imageX
-     * @param imageY
-     * @param regionWidth
-     * @param regionHeight
-     * @param textureWidth
-     * @param textureHeight
-     * @param rotation
-     * @return
+     * Adds a rotated, tinted texture region as an image, with alpha supplied separately
+     * from the tint. Rotation is in degrees about the image's center.
+     *
+     * @param x image's screen-space left edge
+     * @param y image's screen-space top edge
+     * @param width displayed width in screen pixels
+     * @param height displayed height in screen pixels
+     * @param zIndex ordering against elements on this overlay; lower values draw first
+     * @param alpha image alpha, used as the top byte of the packed color
+     * @param color tint, whose top byte is replaced by {@code alpha}
+     * @param id texture identifier
+     * @param imageX region's left coordinate in the texture
+     * @param imageY region's top coordinate in the texture
+     * @param regionWidth region width in texture pixels
+     * @param regionHeight region height in texture pixels
+     * @param textureWidth full texture width in pixels
+     * @param textureHeight full texture height in pixels
+     * @param rotation rotation in degrees
+     * @return added image
      * @since 1.6.5
      */
     Image addImage(int x, int y, int width, int height, int zIndex, int alpha, int color, String id, int imageX, int imageY, int regionWidth, int regionHeight, int textureWidth, int textureHeight, double rotation);
 
     /**
-     * takes an image off this overlay.
-     * <p>
-     * The image itself
-     * self is left alone, so it can be put back with
-     * {@link #reAddElement(RenderElement)} and comes back as it was.
-     * {@link #removeElement(RenderElement)} does the same thing without needing the type.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const image = draw.addImage(10, 10, 16, 16, "minecraft:item/diamond", 0, 0, 16, 16, 16, 16);
-     * draw.register();
-     * draw.removeImage(image);
-     * Chat.log(`${draw.getImages().size()} images left`);
-     * </pre>
+     * Removes the image element from this overlay; the element itself is unchanged.
      *
-     * @param i the i to take off
-     * @return self for chaining
+     * @param i image element to remove
+     * @return this overlay
      * @since 1.2.7
      */
+    @DocletIgnore
     @Deprecated
     T removeImage(Image i);
 
     /**
-     * @param x1
-     * @param y1
-     * @param x2
-     * @param y2
-     * @param color as hex, with alpha channel
+     * Adds a filled rectangle between two corners, using the packed color's alpha.
+     *
+     * @param x1 first corner's x coordinate
+     * @param y1 first corner's y coordinate
+     * @param x2 opposite corner's x coordinate
+     * @param y2 opposite corner's y coordinate
+     * @param color packed color; alpha is in the top byte
      * @return added rect
      * @since 1.2.7
      */
     Rect addRect(int x1, int y1, int x2, int y2, int color);
 
     /**
-     * @param x1
-     * @param y1
-     * @param x2
-     * @param y2
-     * @param color as hex
-     * @param alpha alpha channel 0-255
+     * Adds a filled rectangle between two corners, with alpha supplied separately.
+     *
+     * @param x1 first corner's x coordinate
+     * @param y1 first corner's y coordinate
+     * @param x2 opposite corner's x coordinate
+     * @param y2 opposite corner's y coordinate
+     * @param color packed color; its top byte is replaced by {@code alpha}
+     * @param alpha alpha value used as the packed color's top byte
      * @return added rect
      * @since 1.2.7
      */
     Rect addRect(int x1, int y1, int x2, int y2, int color, int alpha);
 
-    /**
-     * @param x1
-     * @param y1
-     * @param x2
-     * @param y2
-     * @param color    as hex
-     * @param alpha    alpha channel 0-255
-     * @param rotation as degrees
-     * @return added rect
+    /** Adds a rectangle between two corners; in this overload, rotation is ignored.
+     *
+     * @param x1 first corner's x coordinate
+     * @param y1 first corner's y coordinate
+     * @param x2 opposite corner's x coordinate
+     * @param y2 opposite corner's y coordinate
+     * @param color rectangle color
+     * @param alpha alpha value from 0 (transparent) to 255 (opaque)
+     * @param rotation ignored
+     * @return the added rectangle
      * @since 1.2.7
      */
     Rect addRect(int x1, int y1, int x2, int y2, int color, int alpha, double rotation);
 
-    /**
-     * @param x1
-     * @param y1
-     * @param x2
-     * @param y2
-     * @param color    as hex
-     * @param alpha    alpha channel 0-255
-     * @param rotation as degrees
-     * @param zIndex   z-index
-     * @return added rect
+    /** Adds a rectangle between two corners; in this overload, rotation is ignored.
+     *
+     * @param x1 first corner's x coordinate
+     * @param y1 first corner's y coordinate
+     * @param x2 opposite corner's x coordinate
+     * @param y2 opposite corner's y coordinate
+     * @param color rectangle color
+     * @param alpha alpha value from 0 (transparent) to 255 (opaque)
+     * @param rotation ignored
+     * @param zIndex draw order relative to other overlay elements; lower values draw first
+     * @return the added rectangle
      * @since 1.4.0
      */
     Rect addRect(int x1, int y1, int x2, int y2, int color, int alpha, double rotation, int zIndex);
 
     /**
-     * takes a rectangle off this overlay.
-     * <p>
-     * The rectangle itself
-     * self is left alone, so it can be put back with
-     * {@link #reAddElement(RenderElement)} and comes back as it was.
-     * {@link #removeElement(RenderElement)} does the same thing without needing the type.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const rect = draw.addRect(10, 10, 110, 60, 0x80000000);
-     * draw.register();
-     * draw.removeRect(rect);
-     * Chat.log(`${draw.getRects().size()} rects left`);
-     * </pre>
+     * Removes the rectangle from this overlay without modifying it. It can be added
+     * again with {@link #reAddElement(RenderElement)}.
      *
-     * @param r the r to take off
-     * @return self for chaining
+     * @param r the rectangle to remove
+     * @return this overlay for chaining
      * @since 1.2.7
      */
+    @DocletIgnore
     @Deprecated
     T removeRect(Rect r);
 
-    /**
-     * @param x1    the x position of the start
-     * @param y1    the y position of the start
-     * @param x2    the x position of the end
-     * @param y2    the y position of the end
-     * @param color the color of the line, can include alpha value
-     * @return the added line.
+    /** Adds a one-pixel-wide line between its endpoints, at z-index 0.
+     *
+     * @param x1 start x coordinate
+     * @param y1 start y coordinate
+     * @param x2 end x coordinate
+     * @param y2 end y coordinate
+     * @param color line color, including alpha
+     * @return the added line
      * @since 1.8.4
      */
     Line addLine(int x1, int y1, int x2, int y2, int color);
 
-    /**
-     * @param x1     the x position of the start
-     * @param y1     the y position of the start
-     * @param x2     the x position of the end
-     * @param y2     the y position of the end
-     * @param color  the color of the line, can include alpha value
-     * @param zIndex the z-index of the line
-     * @return the added line.
+    /** Adds a one-pixel-wide line between its endpoints. Lower z-index elements draw first.
+     *
+     * @param x1 start x coordinate
+     * @param y1 start y coordinate
+     * @param x2 end x coordinate
+     * @param y2 end y coordinate
+     * @param color line color, including alpha
+     * @param zIndex draw order relative to other overlay elements
+     * @return the added line
      * @since 1.8.4
      */
     Line addLine(int x1, int y1, int x2, int y2, int color, int zIndex);
 
-    /**
-     * @param x1    the x position of the start
-     * @param y1    the y position of the start
-     * @param x2    the x position of the end
-     * @param y2    the y position of the end
-     * @param color the color of the line, can include alpha value
-     * @param width the width of the line
-     * @return the added line.
+    /** Adds a line with the specified width, at z-index 0.
+     *
+     * @param x1 start x coordinate
+     * @param y1 start y coordinate
+     * @param x2 end x coordinate
+     * @param y2 end y coordinate
+     * @param color line color, including alpha
+     * @param width line width in screen pixels
+     * @return the added line
      * @since 1.8.4
      */
     Line addLine(int x1, int y1, int x2, int y2, int color, double width);
 
-    /**
-     * @param x1     the x position of the start
-     * @param y1     the y position of the start
-     * @param x2     the x position of the end
-     * @param y2     the y position of the end
-     * @param color  the color of the line, can include alpha value
-     * @param zIndex the z-index of the line
-     * @param width  the width of the line
-     * @return the added line.
+    /** Adds a line with the specified z-index and width. Lower z-index elements draw first.
+     *
+     * @param x1 start x coordinate
+     * @param y1 start y coordinate
+     * @param x2 end x coordinate
+     * @param y2 end y coordinate
+     * @param color line color, including alpha
+     * @param zIndex draw order relative to other overlay elements
+     * @param width line width in screen pixels
+     * @return the added line
      * @since 1.8.4
      */
     Line addLine(int x1, int y1, int x2, int y2, int color, int zIndex, double width);
 
-    /**
-     * @param x1       the x position of the start
-     * @param y1       the y position of the start
-     * @param x2       the x position of the end
-     * @param y2       the y position of the end
-     * @param color    the color of the line, can include alpha value
-     * @param width    the width of the line
-     * @param rotation the rotation (clockwise) of the line (as degrees)
-     * @return the added line.
+    /** Adds a line with the specified width and rotation about its midpoint, at z-index 0.
+     *
+     * @param x1 start x coordinate
+     * @param y1 start y coordinate
+     * @param x2 end x coordinate
+     * @param y2 end y coordinate
+     * @param color line color, including alpha
+     * @param width line width in screen pixels
+     * @param rotation rotation in degrees
+     * @return the added line
      * @since 1.8.4
      */
     Line addLine(int x1, int y1, int x2, int y2, int color, double width, double rotation);
 
-    /**
-     * @param x1       the x position of the start
-     * @param y1       the y position of the start
-     * @param x2       the x position of the end
-     * @param y2       the y position of the end
-     * @param color    the color of the line, can include alpha value
-     * @param zIndex   the z-index of the line
-     * @param width    the width of the line
-     * @param rotation the rotation (clockwise) of the line (as degrees)
-     * @return the added line.
+    /** Adds a line with the specified z-index, width, and rotation about its midpoint.
+     * Lower z-index elements draw first.
+     *
+     * @param x1 start x coordinate
+     * @param y1 start y coordinate
+     * @param x2 end x coordinate
+     * @param y2 end y coordinate
+     * @param color line color, including alpha
+     * @param zIndex draw order relative to other overlay elements
+     * @param width line width in screen pixels
+     * @param rotation rotation in degrees
+     * @return the added line
      * @since 1.8.4
      */
     Line addLine(int x1, int y1, int x2, int y2, int color, int zIndex, double width, double rotation);
 
     /**
+     * Removes the line from this overlay without modifying it. It can be added
+     * again with {@link #reAddElement(RenderElement)}.
+     *
      * @param l the line to remove
-     * @return self chaining.
+     * @return this overlay for chaining
      * @since 1.8.4
      */
     T removeLine(Line l);
 
-    /**
-     * @param x  left most corner
-     * @param y  top most corner
-     * @param id item id
-     * @return added item
+    /** Adds an item icon with the default overlay enabled.
+     * @param x left coordinate
+     * @param y top coordinate
+     * @param id item identifier
+     * @return the added item element
      * @since 1.2.7
      */
     @DocletReplaceParams("x: int, y: int, id: CanOmitNamespace<ItemId>")
     Item addItem(int x, int y, String id);
 
-    /**
-     * @param x      left most corner
-     * @param y      top most corner
-     * @param zIndex z-index
-     * @param id     item id
-     * @return added item
+    /** Adds an item icon with the default overlay enabled and the specified draw order.
+     * @param x left coordinate
+     * @param y top coordinate
+     * @param zIndex draw order
+     * @param id item identifier
+     * @return the added item element
      * @since 1.4.0
      */
     @DocletReplaceParams("x: int, y: int, zIndex: int, id: CanOmitNamespace<ItemId>")
     Item addItem(int x, int y, int zIndex, String id);
 
-    /**
-     * @param x       left most corner
-     * @param y       top most corner
-     * @param id      item id
-     * @param overlay should include overlay health and count
-     * @return added item
+    /** Adds an item icon and controls whether its game-provided decorations are drawn.
+     * @param x left coordinate
+     * @param y top coordinate
+     * @param id item identifier
+     * @param overlay whether to draw item decorations, including durability and count
+     * @return the added item element
      * @since 1.2.7
      */
     @DocletReplaceParams("x: int, y: int, id: CanOmitNamespace<ItemId>, overlay: boolean")
     Item addItem(int x, int y, String id, boolean overlay);
 
-    /**
-     * @param x       left most corner
-     * @param y       top most corner
-     * @param zIndex  z-index
-     * @param id      item id
-     * @param overlay should include overlay health and count
-     * @return added item
+    /** Adds an item icon with a draw order and controls whether its game-provided decorations are drawn.
+     * @param x left coordinate
+     * @param y top coordinate
+     * @param zIndex draw order
+     * @param id item identifier
+     * @param overlay whether to draw item decorations, including durability and count
+     * @return the added item element
      * @since 1.4.0
      */
     @DocletReplaceParams("x: int, y: int, zIndex: int, id: CanOmitNamespace<ItemId>, overlay: boolean")
     Item addItem(int x, int y, int zIndex, String id, boolean overlay);
 
-    /**
-     * @param x        left most corner
-     * @param y        top most corner
-     * @param id       item id
-     * @param overlay  should include overlay health and count
-     * @param scale    scale of item
-     * @param rotation rotation of item
-     * @return added item
+    /** Adds a scaled and rotated item icon; rotation is in degrees about its center.
+     * @param x left coordinate
+     * @param y top coordinate
+     * @param id item identifier
+     * @param overlay whether to draw item decorations
+     * @param scale size multiplier
+     * @param rotation rotation in degrees
+     * @return the added item element
      * @since 1.2.7
      */
     @DocletReplaceParams("x: int, y: int, id: CanOmitNamespace<ItemId>, overlay: boolean, scale: double, rotation: double")
     Item addItem(int x, int y, String id, boolean overlay, double scale, double rotation);
 
-    /**
-     * @param x        left most corner
-     * @param y        top most corner
-     * @param zIndex   z-index
-     * @param id       item id
-     * @param overlay  should include overlay health and count
-     * @param scale    scale of item
-     * @param rotation rotation of item
-     * @return added item
+    /** Adds a scaled and rotated item icon with the specified draw order; rotation is in degrees about its center.
+     * @param x left coordinate
+     * @param y top coordinate
+     * @param zIndex draw order
+     * @param id item identifier
+     * @param overlay whether to draw item decorations
+     * @param scale size multiplier
+     * @param rotation rotation in degrees
+     * @return the added item element
      * @since 1.4.0
      */
     @DocletReplaceParams("x: int, y: int, zIndex: int, id: CanOmitNamespace<ItemId>, overlay: boolean, scale: double, rotation: double")
     Item addItem(int x, int y, int zIndex, String id, boolean overlay, double scale, double rotation);
 
-    /**
-     * @param x    left most corner
-     * @param y    top most corner
-     * @param item from inventory as helper
-     * @return added item
+    /** Adds an item icon from a stack, with the default overlay enabled.
+     * @param x left coordinate
+     * @param y top coordinate
+     * @param item item stack helper
+     * @return the added item element
      * @since 1.2.7
      */
     Item addItem(int x, int y, ItemStackHelper item);
 
-    /**
-     * @param x      left most corner
-     * @param y      top most corner
-     * @param zIndex z-index
-     * @param item   from inventory as helper
-     * @return added item
+    /** Adds an item icon from a stack, with the default overlay and specified draw order.
+     * @param x left coordinate
+     * @param y top coordinate
+     * @param zIndex draw order
+     * @param item item stack helper
+     * @return the added item element
      * @since 1.4.0
      */
     Item addItem(int x, int y, int zIndex, ItemStackHelper item);
 
-    /**
-     * @param x       left most corner
-     * @param y       top most corner
-     * @param item    from inventory as helper
-     * @param overlay should include overlay health and count
-     * @return added item
+    /** Adds an item icon from a stack and controls whether its game-provided decorations are drawn.
+     * @param x left coordinate
+     * @param y top coordinate
+     * @param item item stack helper
+     * @param overlay whether to draw item decorations, including durability and count
+     * @return the added item element
      * @since 1.2.7
      */
     Item addItem(int x, int y, ItemStackHelper item, boolean overlay);
 
-    /**
-     * @param x       left most corner
-     * @param y       top most corner
-     * @param zIndex  z-index
-     * @param item    from inventory as helper
-     * @param overlay should include overlay health and count
-     * @return added item
+    /** Adds an item icon from a stack with a draw order and control over its decorations.
+     * @param x left coordinate
+     * @param y top coordinate
+     * @param zIndex draw order
+     * @param item item stack helper
+     * @param overlay whether to draw item decorations, including durability and count
+     * @return the added item element
      * @since 1.4.0
      */
     Item addItem(int x, int y, int zIndex, ItemStackHelper item, boolean overlay);
 
-    /**
-     * @param x        left most corner
-     * @param y        top most corner
-     * @param item     from inventory as helper
-     * @param overlay  should include overlay health and count
-     * @param scale    scale of item
-     * @param rotation rotation of item
-     * @return added item
+    /** Adds a scaled and rotated item icon from a stack; rotation is in degrees about its center.
+     * @param x left coordinate
+     * @param y top coordinate
+     * @param item item stack helper
+     * @param overlay whether to draw item decorations
+     * @param scale size multiplier
+     * @param rotation rotation in degrees
+     * @return the added item element
      * @since 1.2.7
      */
     Item addItem(int x, int y, ItemStackHelper item, boolean overlay, double scale, double rotation);
 
-    /**
-     * @param x        left most corner
-     * @param y        top most corner
-     * @param zIndex   z-index
-     * @param item     from inventory as helper
-     * @param overlay  should include overlay health and count
-     * @param scale    scale of item
-     * @param rotation rotation of item
-     * @return added item
+    /** Adds a scaled and rotated item icon from a stack with the specified draw order among this overlay's elements; rotation is in degrees about its center.
+     * @param x left coordinate
+     * @param y top coordinate
+     * @param zIndex draw order
+     * @param item item stack helper
+     * @param overlay whether to draw item decorations
+     * @param scale size multiplier
+     * @param rotation rotation in degrees
+     * @return the added item element
      * @since 1.4.0
      */
     Item addItem(int x, int y, int zIndex, ItemStackHelper item, boolean overlay, double scale, double rotation);
 
     /**
-     * takes an item icon off this overlay.
-     * <p>
-     * The icon itself
-     * self is left alone, so it can be put back with
-     * {@link #reAddElement(RenderElement)} and comes back as it was.
-     * {@link #removeElement(RenderElement)} does the same thing without needing the type.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * const item = draw.addItem(10, 10, "minecraft:diamond");
-     * draw.register();
-     * draw.removeItem(item);
-     * Chat.log(`${draw.getItems().size()} items left`);
-     * </pre>
+     * Removes an item element from this overlay without changing the element itself.
      *
-     * @param i the i to take off
+     * @param i the item to remove
      * @return self for chaining
      * @since 1.2.7
      */
+    @DocletIgnore
     @Deprecated
     T removeItem(Item i);
 
     /**
-     * Tries to add the given draw2d as a child. Fails if cyclic dependencies are detected.
+     * Adds another overlay as a child, or returns {@code null} if that would create a cycle.
      *
-     * @param draw2D the draw2d to add
+     * @param draw2D the overlay to draw inside this one
      * @param x      the x position on this draw2d
      * @param y      the y position on this draw2d
-     * @param width  the width of the given draw2d
-     * @param height the height of the given draw2d
-     * @return a wrapper for the draw2d.
+     * @param width  the nested overlay's width
+     * @param height the nested overlay's height
+     * @return a wrapper for the nested overlay, or {@code null} if nesting would create a cycle
      * @since 1.8.4
      */
     Draw2DElement addDraw2D(Draw2D draw2D, int x, int y, int width, int height);
 
     /**
-     * Tries to add the given draw2d as a child. Fails if cyclic dependencies are detected.
+     * Adds another overlay as a child with the specified draw order, or returns {@code null} if that would create a cycle.
      *
-     * @param draw2D the draw2d to add
+     * @param draw2D the overlay to draw inside this one
      * @param x      the x position on this draw2d
      * @param y      the y position on this draw2d
-     * @param width  the width of the given draw2d
-     * @param height the height of the given draw2d
-     * @param zIndex the z-index for the draw2d
-     * @return a wrapper for the draw2d.
+     * @param width  the nested overlay's width
+     * @param height the nested overlay's height
+     * @param zIndex the nested overlay's draw order among this overlay's elements
+     * @return a wrapper for the nested overlay, or {@code null} if nesting would create a cycle
      * @since 1.8.4
      */
     Draw2DElement addDraw2D(Draw2D draw2D, int x, int y, int width, int height, int zIndex);
 
     /**
-     * @param draw2D the draw2d to remove
-     * @return self chaining.
+     * Removes the nested-overlay wrapper from this overlay without changing the nested overlay.
+     * @param draw2D the wrapper to remove
+     * @return this overlay for chaining
      * @since 1.8.4
      */
     T removeDraw2D(Draw2DElement draw2D);
 
     /**
-     * The builder is bound to this overlay, so {@code buildAndAdd()} on it puts the icon
-     * where the matching {@code addItem} call would have. Nothing is added until it is
-     * built.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.itemBuilder().item("minecraft:diamond").pos(10, 10).buildAndAdd();
-     * draw.register();
-     * </pre>
+     * Returns an item builder bound to this overlay; building does not add an element, while {@code buildAndAdd()} does.
      *
      * @return a builder for an {@link Item}.
      * @since 1.8.4
@@ -917,17 +829,7 @@ public interface IDraw2D<T> {
     }
 
     /**
-     * The builder comes with the stack already set, so it only needs a position and a
-     * build.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   const draw = Hud.createDraw2D();
-     *   draw.itemBuilder(player.getMainHand()).pos(10, 10).buildAndAdd();
-     *   draw.register();
-     * }
-     * </pre>
+     * Returns an item builder with the supplied stack set, bound to this overlay.
      *
      * @param item the item to use
      * @return a builder for an {@link Item}.
@@ -938,15 +840,7 @@ public interface IDraw2D<T> {
     }
 
     /**
-     * The builder is bound to this overlay, so {@code buildAndAdd()} on it puts the image
-     * where the matching {@code addImage} call would have. Nothing is added until it is
-     * built, and an image with no texture named draws nothing.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.imageBuilder("minecraft:item/diamond").pos(10, 10).size(16, 16).buildAndAdd();
-     * draw.register();
-     * </pre>
+     * Returns an image builder bound to this overlay. Building does not add an element; an image without a texture draws nothing.
      *
      * @return a builder for an {@link Image}.
      * @since 1.8.4
@@ -956,16 +850,7 @@ public interface IDraw2D<T> {
     }
 
     /**
-     * The builder comes with the texture already named, so it only needs a position, a
-     * size and a build. The id is the way a texture pack names the file, so
-     * {@code assets/minecraft/textures/gui/recipe_book.png} is
-     * {@code minecraft:textures/gui/recipe_book.png}.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.imageBuilder("minecraft:item/diamond").pos(10, 10).size(16, 16).buildAndAdd();
-     * draw.register();
-     * </pre>
+     * Returns an image builder bound to this overlay with its texture identifier set.
      *
      * @param id the id of the image
      * @return a builder for an {@link Image}.
@@ -976,15 +861,8 @@ public interface IDraw2D<T> {
     }
 
     /**
-     * The builder is bound to this overlay, so {@code buildAndAdd()} on it puts the
-     * rectangle where the matching {@code addRect} call would have. Nothing is added
-     * until it is built.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.rectBuilder().pos(10, 10, 110, 60).color(0x80000000).buildAndAdd();
-     * draw.register();
-     * </pre>
+     * Returns a rectangle builder bound to this overlay; {@code buildAndAdd()} adds
+     * the built rectangle to it.
      *
      * @return a builder for a {@link Rect}.
      * @since 1.8.4
@@ -994,15 +872,7 @@ public interface IDraw2D<T> {
     }
 
     /**
-     * The builder comes with the first corner and the size already set. Note that this
-     * is a corner and a size rather than two corners, so the second corner is worked out
-     * from them rather than being given.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.rectBuilder(10, 10, 100, 50).color(0x80000000).buildAndAdd();
-     * draw.register();
-     * </pre>
+     * Returns a rectangle builder with its first corner and size set.
      *
      * @param x      the x position of the rectangle
      * @param y      the y position of the rectangle
@@ -1016,15 +886,8 @@ public interface IDraw2D<T> {
     }
 
     /**
-     * The builder is bound to this overlay, so {@code buildAndAdd()} on it puts the line
-     * where the matching {@code addLine} call would have. Nothing is added until it is
-     * built.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.lineBuilder().pos(0, 0, 50, 50).color(0xFFFFFFFF).buildAndAdd();
-     * draw.register();
-     * </pre>
+     * Returns a line builder bound to this overlay; {@code buildAndAdd()} adds the
+     * built line to it.
      *
      * @return a builder for a {@link Line}.
      * @since 1.8.4
@@ -1034,15 +897,7 @@ public interface IDraw2D<T> {
     }
 
     /**
-     * The builder comes with both ends already set, so it only needs a colour and a
-     * build. The two points are the start and the end rather than two corners, so the
-     * line has a direction.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.lineBuilder(0, 0, 50, 50).color(0xFFFFFFFF).buildAndAdd();
-     * draw.register();
-     * </pre>
+     * Returns a line builder with both endpoints set.
      *
      * @param x1 the x position of the first point
      * @param y1 the y position of the first point
@@ -1056,15 +911,8 @@ public interface IDraw2D<T> {
     }
 
     /**
-     * The builder is bound to this overlay, so {@code buildAndAdd()} on it puts the text
-     * where the matching {@code addText} call would have. Nothing is added until it is
-     * built, and a text with nothing in it draws nothing.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.textBuilder().text("hello").pos(10, 10).color(0xFFFFFFFF).buildAndAdd();
-     * draw.register();
-     * </pre>
+     * Returns a text builder bound to this overlay; {@code buildAndAdd()} adds the
+     * built text to it.
      *
      * @return a builder for a {@link Text}.
      * @since 1.8.4
@@ -1074,14 +922,7 @@ public interface IDraw2D<T> {
     }
 
     /**
-     * The builder comes with the text already set, so it only needs a position, a colour
-     * and a build.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.textBuilder("hello").pos(10, 10).color(0xFFFFFFFF).buildAndAdd();
-     * draw.register();
-     * </pre>
+     * Returns a text builder with its text set.
      *
      * @param text the text to display
      * @return a builder for a {@link Text}.
@@ -1092,14 +933,7 @@ public interface IDraw2D<T> {
     }
 
     /**
-     * The same as the string form, except the text keeps whatever styling the helper
-     * carries rather than being a plain string.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.textBuilder(Chat.createTextHelperFromString("a green line")).pos(10, 10).color(0xFFFFFFFF).buildAndAdd();
-     * draw.register();
-     * </pre>
+     * Returns a text builder initialized with the supplied styled text.
      *
      * @param text the text to display
      * @return a builder for a {@link Text}.
@@ -1110,19 +944,8 @@ public interface IDraw2D<T> {
     }
 
     /**
-     * The builder is bound to the overlay it came from and the overlay being nested, so
-     * {@code buildAndAdd()} on it puts the nested overlay where the matching
-     * {@code addDraw2D} call would have. The cycle check happens when the element is
-     * added rather than here, so a builder happily builds something that will then be
-     * refused.
-     * example:
-     * <pre>
-     * const outer = Hud.createDraw2D();
-     * const panel = Hud.createDraw2D();
-     * panel.addText("inside", 5, 5, 0xFFFFFFFF, true);
-     * outer.draw2DBuilder(panel).pos(20, 20).size(100, 50).buildAndAdd();
-     * outer.register();
-     * </pre>
+     * Returns a builder for nesting {@code draw2D} in this overlay. Adding an element
+     * that would create a cycle is rejected by the overlay.
      *
      * @param draw2D the draw2d to add
      * @return a builder for a {@link Draw2D}.
@@ -1133,24 +956,9 @@ public interface IDraw2D<T> {
     }
 
     /**
-     * The overlay is emptied before the init function is called, so it is what puts
-     * anything back on it. That is why an overlay should be registered or opened rather
-     * than filled in by hand: a resize calls the init again, and an overlay filled in by
-     * hand would lose its elements to it.
-     * <p>
-     * The function is given this overlay, so it adds to it. If it throws, the failure
-     * goes to the fail function if one is set and is logged if it is not, and neither
-     * takes the game down.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.setOnInit(JavaWrapper.methodToJava(function (self) {
-     *   // self is this overlay, and it has just been emptied
-     *   self.addRect(10, 10, 110, 60, 0x80000000);
-     *   self.addText("rebuilt on every init", 16, 20, 0xFFFFFFFF, true);
-     * }));
-     * draw.register();
-     * </pre>
+     * Sets the callback run when this overlay initializes. If a callback is set, its
+     * elements are cleared first; nested overlays are initialized afterward. Callback
+     * failures are passed to the fail callback or logged.
      *
      * @param onInit calls your method as a {@link Consumer}&lt;{@link T}&gt;
      * @return self for chaining
@@ -1159,24 +967,9 @@ public interface IDraw2D<T> {
     T setOnInit(MethodWrapper<T, Object, Object, ?> onInit);
 
     /**
-     * The function is given the failure as a string, which is the throwable's own
-     * {@code toString} rather than just its message, so it carries the type and the
-     * message together. With no fail function set the failure is logged to the current
-     * profile instead, and either way the game carries on.
-     * <p>
-     * This only covers the init function. Nothing else on this overlay is guarded this
-     * way.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * draw.setOnFailInit(JavaWrapper.methodToJava(function (message) {
-     *   Chat.log(`panel failed to build: ${message}`);
-     * }));
-     * draw.setOnInit(JavaWrapper.methodToJava(function (self) {
-     *   self.addText("this one is fine", 10, 10, 0xFFFFFFFF, true);
-     * }));
-     * draw.register();
-     * </pre>
+     * Sets the callback that receives an initialization failure's {@code toString()}
+     * value. If unset, the failure is logged. This handles initialization failures
+     * only.
      *
      * @param catchInit calls your method as a {@link Consumer}&lt;{@link String}&gt;
      * @return self for chaining
@@ -1185,42 +978,28 @@ public interface IDraw2D<T> {
     T setOnFailInit(MethodWrapper<String, Object, Object, ?> catchInit);
 
     /**
-     * internal
+     * Renders this overlay using the supplied graphics context.
      *
-     * @param drawContext
+     * @param drawContext the graphics context to render with
      */
     @DocletIgnore
     void render(GuiGraphics drawContext);
 
     /**
-     * Where this overlay sits against the other registered overlays, lower drawn first.
-     * It orders whole overlays rather than the elements within one, and is not a screen
-     * position. On a plain overlay that is the window it draws over; a screen does not
-     * draw over other things and this has no effect on one.
-     * example:
-     * <pre>
-     * const back = Hud.createDraw2D();
-     * back.addRect(0, 0, 50, 50, 0x80000000);
-     * back.setZIndex(0);
-     * back.register();
-     * </pre>
+     * Sets this overlay's draw order relative to other registered overlays; lower values
+     * draw first. This orders whole overlays, not their elements, and does not affect
+     * screen overlays.
      *
-     * @param zIndex
+     * @param zIndex the overlay's draw order
      * @since 1.8.4
      */
     void setZIndex(int zIndex);
 
     /**
-     * Where this overlay sits against the other registered overlays, lower drawn first.
-     * This is not the z-index of any element on it; those are set per element and are on
-     * the elements themselves.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw2D();
-     * Chat.log(`overlay z-index: ${draw.getZIndex()}`);
-     * </pre>
+     * Returns this overlay's draw order relative to other registered overlays, not the
+     * z-index of its elements.
      *
-     * @return
+     * @return this overlay's draw order
      * @since 1.8.4
      */
     int getZIndex();

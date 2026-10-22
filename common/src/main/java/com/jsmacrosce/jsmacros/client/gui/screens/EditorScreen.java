@@ -51,7 +51,7 @@ import net.minecraft.network.chat.FontDescription;
 @DocletIgnore
 public class EditorScreen extends BaseScreen {
     private static final FormattedCharSequence ellipses = Component.literal("...").withStyle(ChatFormatting.DARK_GRAY).getVisualOrderText();
-    /** Pixels scrolled per wheel click */
+    /** Pixels scrolled per unit of vertical scroll delta. */
     private static final double SCROLL_WHEEL_SENSITIVITY = 50.0;
     public static final List<String> langs = Lists.newArrayList(
             "javascript",

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -17,6 +18,7 @@ import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.access.IInventory;
 import com.jsmacrosce.jsmacros.client.config.ClientConfigV2;
 
+@DocletIgnore
 @Mixin(AbstractContainerScreen.class)
 public class MixinHandledScreen<T extends AbstractContainerMenu> extends Screen implements IInventory {
 

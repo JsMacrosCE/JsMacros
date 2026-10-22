@@ -4,18 +4,19 @@ import net.minecraft.client.Camera;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Bridges the {@link Camera} position and rotation accessor renames.
- * <p>
- * 1.21.5 only has {@code getPosition()}; 1.21.8 onwards also expose {@code position()},
- * and 26.1 dropped the old name. The same split applies to the rotation getters, which
- * became {@code xRot()}/{@code yRot()} in 1.21.11. Keeping the switch here means render code
- * does not repeat the version gate at every camera lookup.
+ * Provides version-compatible access to a {@link Camera}'s position and rotations.
+ * Each method calls the accessor available in the current Minecraft source target.
  */
 public final class CameraCompat {
 
     private CameraCompat() {
     }
 
+    /**
+     * Returns the camera's stored position vector directly.
+     * @param camera non-null camera to read
+     * @return the camera's raw position vector
+     */
     public static Vec3 position(Camera camera) {
         //? if >=1.21.11 {
         /*return camera.position();
@@ -24,6 +25,11 @@ public final class CameraCompat {
         //? }
     }
 
+    /**
+     * Returns the camera's pitch (X rotation) in degrees.
+     * @param camera non-null camera to read
+     * @return the camera's pitch in degrees
+     */
     public static float xRot(Camera camera) {
         //? if >=1.21.11 {
         /*return camera.xRot();
@@ -32,6 +38,11 @@ public final class CameraCompat {
         //? }
     }
 
+    /**
+     * Returns the camera's yaw (Y rotation) in degrees.
+     * @param camera non-null camera to read
+     * @return the camera's yaw in degrees
+     */
     public static float yRot(Camera camera) {
         //? if >=1.21.11 {
         /*return camera.yRot();

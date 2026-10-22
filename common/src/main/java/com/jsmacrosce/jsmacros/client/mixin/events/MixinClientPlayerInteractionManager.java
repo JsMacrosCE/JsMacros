@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.MultiPlayerGameMode;
 import net.minecraft.client.player.LocalPlayer;
@@ -25,6 +27,7 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.player.EventInteractEntity;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockDataHelper;
 
 @Mixin(MultiPlayerGameMode.class)
+@DocletIgnore
 public class MixinClientPlayerInteractionManager {
 
     @Shadow

@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,10 +22,15 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.EventRecvPacket;
 import com.jsmacrosce.jsmacros.client.api.event.impl.EventSendPacket;
 
 /**
+ * Dispatches outgoing and incoming packet events from the client's network connection and passes
+ * each event's final packet to the connection path. Cancelled events and events whose packet is
+ * {@code null} stop that packet from continuing.
+ *
  * @author Etheradon
  * @since 1.8.4
  */
 @Mixin(Connection.class)
+@DocletIgnore
 public class MixinClientConnection {
 
     @Shadow

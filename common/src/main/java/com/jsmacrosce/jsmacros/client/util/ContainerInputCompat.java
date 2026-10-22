@@ -7,15 +7,9 @@ import net.minecraft.world.inventory.ClickType;
 //? }
 
 /**
- * Bridges the container click-action enum rename ({@code ClickType} -> {@code ContainerInput}).
- * <p>
- * The two enums are declared in the same order and carry the same ids in every
- * supported version, so {@code ordinal()} stays a stable action id across the rename and
- * the script-facing {@code EventClickSlot} action value does not change.
- * <p>
- * Overloads are declared per version rather than accepting {@link Object} so that call
- * sites need no version gate: the compiler picks the right overload from the static type
- * of the action.
+ * Provides helpers for the container click-action enum used by the current Minecraft target.
+ * The target-specific overloads expose the action's ordinal and test whether it is
+ * {@code THROW}.
  */
 public final class ContainerInputCompat {
 
@@ -23,18 +17,38 @@ public final class ContainerInputCompat {
     }
 
     //? if >=26.1 {
-    /*public static int actionId(ContainerInput action) {
+    /*/^*
+     * Returns the action's zero-based enum ordinal, which is not guaranteed to be a stable wire or protocol ID.
+     * @param action non-null container click action
+     * @return the action's zero-based enum ordinal
+     ^/
+    public static int actionId(ContainerInput action) {
         return action.ordinal();
     }
 
+    /^*
+     * Tests whether the action is {@code THROW}; {@code null} is treated as a non-throw action.
+     * @param action action to test; may be {@code null}
+     * @return {@code true} only for {@code THROW}; {@code false} for other actions or {@code null}
+     ^/
     public static boolean isThrow(ContainerInput action) {
         return action == ContainerInput.THROW;
     }
     *///? } else {
+    /**
+     * Returns the action's zero-based enum ordinal, which is not guaranteed to be a stable wire or protocol ID.
+     * @param action non-null container click action
+     * @return the action's zero-based enum ordinal
+     */
     public static int actionId(ClickType action) {
         return action.ordinal();
     }
 
+    /**
+     * Tests whether the action is {@code THROW}; {@code null} is treated as a non-throw action.
+     * @param action action to test; may be {@code null}
+     * @return {@code true} only for {@code THROW}; {@code false} for other actions or {@code null}
+     */
     public static boolean isThrow(ClickType action) {
         return action == ClickType.THROW;
     }

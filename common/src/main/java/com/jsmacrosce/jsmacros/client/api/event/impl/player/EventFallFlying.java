@@ -7,14 +7,10 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the local player starts or stops elytra flight, that is when the game toggles the
- * player's fall flying state.<br>
- * The state is polled once per client tick and the event only fires on a change, so it does not
- * repeat every tick while the player is gliding. Elytra flight normally starts and ends on the
- * player's own input, but the server can also force the state.<br>
- * This event is not cancellable, the flight state is applied to the player no matter what a
- * listener does.
- * example:
+ * Fires when the local player's polled fall-flying state differs from the previous sample.
+ * The state is checked once per client tick while a player is present. The previous sample is
+ * retained while no player is present, including across disconnects, so a later event may compare
+ * different player instances. The event is not cancellable.
  * <pre>
  * JsMacros.on("FallFlying", JavaWrapper.methodToJava(function (event) {
  *   if (event.state) {
@@ -29,16 +25,24 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event("FallFlying")
 public class EventFallFlying extends BaseEvent {
     /**
-     * {@code true} if the player just started flying with elytra, {@code false} if the player
-     * just stopped.
+     * The newly sampled fall-flying state: {@code true} if fall-flying, {@code false} otherwise.
      */
     public final boolean state;
 
+    /**
+     * Initializes the event with the supplied fall-flying state.
+     * @param state the supplied fall-flying state
+     */
     public EventFallFlying(boolean state) {
         super(JsMacrosClient.clientCore);
         this.state = state;
     }
 
+    /**
+     * Returns an event-name and stored-state diagnostic in the format {@code %s:{"state": %s}},
+     * with the payload rendered as {@code true} or {@code false}; this is not JSON.
+     * @return the event name and stored state in the diagnostic format
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"state\": %s}", this.getEventName(), state);

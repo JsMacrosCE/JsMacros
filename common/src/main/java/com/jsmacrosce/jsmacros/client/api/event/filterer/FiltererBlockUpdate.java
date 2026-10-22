@@ -16,24 +16,15 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * A filter for the {@code BlockUpdate} event, which by itself fires very often, since every block
- * change the server sends raises it. A filterer is built with
+ * Filters callbacks for the {@code BlockUpdate} event. Create it with
  * {@link com.jsmacrosce.jsmacros.core.library.impl.FJsMacros#createEventFilterer(java.lang.String) createEventFilterer()}
- * and handed to the {@code JsMacros.on} overload that takes a filterer, which then only calls back
- * for the block updates this filterer accepts. The fields below are the filter itself, and the
- * setters return the same filterer so a filter can be built in one chain.<br>
- * Every field starts out {@code null}, which means that part of the filter is not checked, so an
- * untouched filterer accepts every block update. The checks are combined, so setting a block id
- * and a position together only accepts a block of that id at that position.<br>
- * Position comes in two forms. {@link #pos} on its own is a single block, and adding {@link #pos2}
- * turns the pair into an inclusive box, which is what {@code setArea} sets up. Block states are
- * matched through {@link #blockState}, where an entry with a {@code null} value means the block
- * must not have that property at all.<br>
- * The filterer can only be used with {@code BlockUpdate}: handing it to {@code JsMacros.on} for
- * any other event throws an error.
- * example:
+ * and pass it to the filterer-taking {@code JsMacros.on} overload. Configured criteria combine;
+ * unset criteria do not restrict matches, so an untouched filterer accepts every block update. A
+ * position alone matches one block; a second corner makes an inclusive box. A {@code null}
+ * required block-state value means that property must be absent. Filtering only controls whether
+ * the listener runs, not the update itself. This filterer supports only {@code BlockUpdate}.
  * <pre>
- * // only block updates inside a 64 by 64 area, and only for dirt
+ * // block updates inside this inclusive box, and only for dirt
  * const filterer = JsMacros.createEventFilterer("BlockUpdate")
  *   .setArea(-32, 0, -32, 32, 255, 32)
  *   .setBlockId("dirt");
@@ -51,61 +42,43 @@ import java.util.Objects;
 @SuppressWarnings("unused")
 public class FiltererBlockUpdate implements EventFilterer {
     /**
-     * the block position this filter is centred on, or {@code null} to not filter by position.
-     * <br>
-     * On its own it matches that one block exactly. Together with {@link #pos2} it is the first
-     * corner of the box that position filtering then checks against, inclusive on every axis.<br>
-     * This field is writable, but assigning to it directly leaves {@link #pos2} alone, so a stale
-     * second corner would still widen the filter. Use
-     * {@link FiltererBlockUpdate#setPos(BlockPosHelper) setPos()}, which clears the second corner
-     * for you.
+     * First position corner, or {@code null} to disable position filtering. With {@link #pos2}
+     * non-null, the two corners define an inclusive box; assigning this field directly does not
+     * clear {@code pos2}.
      */
     @Nullable
     public BlockPosHelper pos;
     /**
-     * if this and pos are not null, filters area<br>
-     * this should always be larger or equal than pos
-     * <br>
-     * The far corner of the box {@link #pos} starts, matched inclusively on every axis. Use
-     * {@link FiltererBlockUpdate#setArea(BlockPosHelper, BlockPosHelper) setArea()}, which takes
-     * care of putting the two corners in the right order.
+     * Second position corner, or {@code null} to match only {@link #pos}. Coordinates must be
+     * greater than or equal to {@code pos} on every axis; {@link #setArea(BlockPosHelper, BlockPosHelper)}
+     * orders the corners automatically.
      */
     @Nullable
     public BlockPosHelper pos2;
     /**
-     * the block id to match, in the {@code namespace:name} form, or {@code null} to not filter by
-     * block. This is compared against the id of the block that changed, so only an exact match
-     * passes.
+     * Block id to match exactly, or {@code null} to disable block-id filtering.
      */
     @Nullable
     @DocletReplaceReturn("BlockId | null")
     public String blockId;
     /**
-     * block state properties to match, as a map of property name to the value it has to have, or
-     * {@code null} to not filter by block state. Every entry has to match for the filter to pass,
-     * but a property that is not listed is not checked, so this is a "must have" list rather than
-     * a full description of the state. A {@code null} value for a property means the block must
-     * not have that property at all.
-     * <br>
-     * Prefer {@link FiltererBlockUpdate#setBlockState(String, String) setBlockState()}, which
-     * builds this map for you, over replacing the map outright.
+     * Required block-state properties, or {@code null} to disable state filtering. Every entry
+     * must match; unlisted properties are ignored. A {@code null} value requires the property to
+     * be absent.
      */
     @Nullable
     public Map<String, String> blockState;
     /**
-     * the update type to match, {@code 'STATE'} or {@code 'ENTITY'}, or {@code null} to accept
-     * both. {@code 'STATE'} is a block state change and {@code 'ENTITY'} is a block entity data
-     * update.
+     * Update type to match: {@code "STATE"} for block-state changes or {@code "ENTITY"} for block
+     * entity data updates. {@code null} accepts either.
      */
     @Nullable
     @DocletReplaceReturn("BlockUpdateType | null")
     public String updateType;
 
     /**
-     * whether this filterer can be used for the given event name. It only answers {@code true}
-     * for {@code "BlockUpdate"}, which is the event it is registered for, and the {@code on}
-     * overload of {@code JsMacros} that takes a filterer refuses a filterer that cannot filter
-     * the event it was given.
+     * Whether this filterer supports the named event; the filterer-taking {@code JsMacros.on}
+     * overload rejects unsupported event names.
      *
      * @param event the name of the event being listened to
      * @return {@code true} only for {@code "BlockUpdate"}
@@ -116,16 +89,9 @@ public class FiltererBlockUpdate implements EventFilterer {
     }
 
     /**
-     * the predicate this filterer evaluates. It is called for every
-     * {@link EventBlockUpdate} the game raises, so it is on the hot path, and it only decides
-     * whether the listener runs, it never changes or blocks the block update itself.<br>
-     * A {@code null} field is not checked, so an untouched filterer accepts everything. The
-     * filters are combined: a set block id, a set position or box, every entry in the block state
-     * map and the update type all have to line up before {@code true} is returned. The position
-     * is a single block when {@link #pos2} is {@code null} and an inclusive box when it is not.
-     * A {@code null} value in the block state map means the block must not have that property,
-     * while any other value means it has to be exactly that. Anything that is not a
-     * {@link EventBlockUpdate} is rejected outright.
+     * Tests whether the event is a {@link EventBlockUpdate} matching every configured criterion.
+     * Non-block-update events are rejected; the result controls listener invocation, not the
+     * underlying block update.
      *
      * @param baseEvent the event being filtered, which is a
      * {@link com.jsmacrosce.jsmacros.client.api.event.impl.world.EventBlockUpdate} here
@@ -161,26 +127,23 @@ public class FiltererBlockUpdate implements EventFilterer {
     }
 
     /**
-     * sets the position this filter is centred on, which clears any area set before, so the
-     * filter matches that one block exactly until an area is set again. Returns the same
-     * filterer so calls can be chained.
+     * Sets the position to match, clearing any second corner so only that block is matched.
      *
      * @param x the block x coordinate
      * @param y the block y coordinate
      * @param z the block z coordinate
-     * @return this filterer, for chaining
+     * @return this filterer
      */
     public FiltererBlockUpdate setPos(int x, int y, int z) {
         return setPos(new BlockPosHelper(x, y, z));
     }
 
     /**
-     * sets the position this filter is centred on, which clears any area set before, so the
-     * filter matches that one block exactly until an area is set again. Passing {@code null}
-     * turns position filtering off entirely. Returns the same filterer so calls can be chained.
+     * Sets the position to match, clearing any second corner. Passing {@code null} disables
+     * position filtering.
      *
      * @param pos the block position to match, or {@code null} to match any position
-     * @return this filterer, for chaining
+     * @return this filterer
      */
     public FiltererBlockUpdate setPos(@Nullable BlockPosHelper pos) {
         this.pos = pos;
@@ -189,9 +152,7 @@ public class FiltererBlockUpdate implements EventFilterer {
     }
 
     /**
-     * sets the box of blocks this filter accepts, inclusive on every axis. The two corners can be
-     * given in any order, they are put the right way round for you. Returns the same filterer so
-     * calls can be chained.
+     * Sets an inclusive block-coordinate box; the two corners may be supplied in either order.
      *
      * @param x1 the x coordinate of one corner
      * @param y1 the y coordinate of one corner
@@ -199,21 +160,19 @@ public class FiltererBlockUpdate implements EventFilterer {
      * @param x2 the x coordinate of the other corner
      * @param y2 the y coordinate of the other corner
      * @param z2 the z coordinate of the other corner
-     * @return this filterer, for chaining
+     * @return this filterer
      */
     public FiltererBlockUpdate setArea(int x1, int y1, int z1, int x2, int y2, int z2) {
         return setArea(new BlockPosHelper(x1, y1, z1), new BlockPosHelper(x2, y2, z2));
     }
 
     /**
-     * sets the box of blocks this filter accepts, inclusive on every axis. The two corners can be
-     * given in any order, each axis is put the right way round for you, so a box where only one
-     * axis is given backwards still comes out correct. Returns the same filterer so calls can be
-     * chained.
+     * Sets an inclusive block-coordinate box, ordering each axis independently so either corner
+     * may have the lower coordinate on any axis.
      *
      * @param pos1 one corner of the box
      * @param pos2 the other corner of the box
-     * @return this filterer, for chaining
+     * @return this filterer
      */
     public FiltererBlockUpdate setArea(@NotNull BlockPosHelper pos1, @NotNull BlockPosHelper pos2) {
         if (pos1.getX() > pos2.getX() || pos1.getY() > pos2.getY() || pos1.getZ() > pos2.getZ()) {
@@ -232,14 +191,11 @@ public class FiltererBlockUpdate implements EventFilterer {
     }
 
     /**
-     * sets the block id this filter accepts, which turns off block id filtering when passed
-     * {@code null}. An id without a namespace is given the {@code minecraft} one, so
-     * {@code "chest"} and {@code "minecraft:chest"} are the same. The id has to match the block
-     * that changed exactly, so an id that does not exist never matches anything. Returns the same
-     * filterer so calls can be chained.
+     * Sets the exact block id to match; {@code null} disables block-id filtering. Unqualified ids
+     * are parsed with the default {@code minecraft} namespace.
      *
      * @param id the block id to match, in the {@code namespace:name} form
-     * @return this filterer, for chaining
+     * @return this filterer
      */
     @DocletReplaceParams("id: BlockId")
     public FiltererBlockUpdate setBlockId(@Nullable String id) {
@@ -248,13 +204,11 @@ public class FiltererBlockUpdate implements EventFilterer {
     }
 
     /**
-     * sets the update type this filter accepts, which turns off update type filtering when passed
-     * {@code null}. The value has to match the event's update type exactly, so anything that is
-     * not {@code 'STATE'} or {@code 'ENTITY'} lets nothing through. Returns the same filterer so
-     * calls can be chained.
+     * Sets the exact update type to match; {@code null} disables update-type filtering. A non-null
+     * value that differs from the event's type rejects the event.
      *
      * @param type the update type to match
-     * @return this filterer, for chaining
+     * @return this filterer
      */
     @DocletReplaceParams("type: BlockUpdateType")
     public FiltererBlockUpdate setUpdateType(@Nullable String type) {
@@ -263,12 +217,10 @@ public class FiltererBlockUpdate implements EventFilterer {
     }
 
     /**
-     * replaces every block state requirement with the given map, so any requirement added earlier
-     * is gone. Passing {@code null} turns block state filtering off entirely. Returns the same
-     * filterer so calls can be chained.
+     * Replaces all required block-state properties; {@code null} disables state filtering.
      *
-     * @param states the properties to require, or {@code null} to require nothing
-     * @return this filterer, for chaining
+     * @param states properties and required values, or {@code null} to disable state filtering
+     * @return this filterer
      */
     public FiltererBlockUpdate setBlockStates(@Nullable Map<String, String> states) {
         blockState = states;
@@ -276,15 +228,12 @@ public class FiltererBlockUpdate implements EventFilterer {
     }
 
     /**
-     * requires the block to have the given state property set to the given value, keeping any
-     * requirement added before. The value has to be written the way the game names that property
-     * value, which is what the event's own block state map holds, so read it from there rather
-     * than guessing. Passing {@code null} for the value requires the block not to have that
-     * property at all. Returns the same filterer so calls can be chained.
+     * Adds or replaces a required block-state property; a {@code null} value requires that the
+     * property be absent.
      *
-     * @param property setting to null will make sure the block doesn't have this property
-     * @param value the value the property has to have, or {@code null} to require the property to be absent
-     * @return this filterer, for chaining
+     * @param property the property name
+     * @param value the required value, or {@code null} to require the property to be absent
+     * @return this filterer
      */
     public FiltererBlockUpdate setBlockState(String property, @Nullable String value) {
         if (blockState == null) blockState = new HashMap<>();

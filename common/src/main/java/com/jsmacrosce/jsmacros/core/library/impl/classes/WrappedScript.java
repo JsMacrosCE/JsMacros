@@ -12,65 +12,22 @@ import com.jsmacrosce.jsmacros.core.language.EventContainer;
 import java.util.function.Function;
 
 /**
- * the thing behind {@code JsMacros.wrapScriptRun} and {@code wrapScriptRunAsync}: instead of
- * holding a function, it holds a whole script, and calling any of the methods on it starts that
- * script in its own run with an {@link EventWrappedScript} as its payload.<br>
- * It exists because a script written as a file is not a Java object, so it cannot be handed to a
- * Java API that wants a callback, a filter, a supplier or a comparator. This wraps the run in
- * something that implements all of them at once, by way of
- * {@link com.jsmacrosce.jsmacros.core.MethodWrapper MethodWrapper}, so the same wrapper can be
- * passed wherever any one of those is expected. Which method the Java caller ends up calling is
- * what decides the shape of the run, and each of the nine does the same three things: build the
- * event, dispatch it when it is an {@link EventWrappedScript}, run the script through {@link #f},
- * and then either return the value the script produced
- * or throw it away.
- * <br>
- * It is not the same thing as {@code JavaWrapper.methodToJava}, which is the other way of getting
- * a wrapper and the one to reach for when the code to run is already in this script. That wraps
- * the function itself; this one wraps a separate file or a language and script string. Both hand
- * back a {@code MethodWrapper}, so the two are interchangeable from the Java side, and neither is
- * this class, which a script never sees.
- * <br>
- * Two behaviours are worth knowing. The first is that a run started through {@code wrapScriptRun}
- * blocks the Java caller until the run's lock is released, which is when that script run is over;
- * {@code wrapScriptRunAsync} leaves the wait off, but only for the three methods that return
- * nothing. The methods that hand a value back always wait even in the async form, since there is
- * nothing to return until the script has answered, so an async wrapper used as a function is
- * still a blocking one.<br>
- * The second is that the wait is guarded. An
- * {@link com.jsmacrosce.jsmacros.core.EventLockWatchdog EventLockWatchdog} is started against
- * every run at the default limit, so a wrapped script that joins a thread the caller is already on
- * and never comes back has its context taken down instead of hanging the caller for good. The
- * watchdog is started without a listener here, so the timeout is reported through the profile's
- * log rather than through any event. While the run holds its lock, the calling thread is also put
- * on the profile's joined thread stack, so code the wrapped script runs on it is treated as being
- * on the main thread.<br>
- * This class is absent from the shipped TypeScript definitions. Nothing reachable from a
- * whitelisted signature names it, because {@code wrapScriptRun} is declared as returning a
- * {@code MethodWrapper}, so the type parameters below are only visible in these docs.
- * example:
- * <pre class="language-typescript">
- * // the calling side. the wrapper is what gets passed to whatever Java API
- * // wants a callback, and this form blocks the caller until the script is done
+ * Wraps a script run as a {@link MethodWrapper} for Java callback interfaces. Calls that return a
+ * value wait for the script even when the wrapper is asynchronous; calls that return nothing wait
+ * only for synchronous wrappers. Synchronous calls start a lock watchdog using the configured
+ * maximum lock time; if the lock remains held past that limit, the script context is closed.
+ * The one-argument {@link #accept(Object)} method passes an existing {@link BaseEvent} through;
+ * other forms create an {@link EventWrappedScript} payload.
+ * <pre>
+ * // Pass the wrapper to a Java API that accepts a callback.
  * const wrapper = JsMacros.wrapScriptRun("adder.js");
- *
- * // "adder.js" is resolved against the macro folder, not against the folder of
- * // the script that wrapped it
- *
- * // inside "adder.js": `event` is a WrappedScript event, and arg1 is what the
- * // Java caller passed. arg2 is only filled in when the wrapper was passed to
- * // the Java side as a two argument interface, so on the one argument forms
- * // this reads as null, and Number(null) is 0. the answer goes back out
- * // through one of the setReturn methods, which the wrapper hands on for the
- * // interface it was passed as. the cast is for the editor's benefit, since
- * // the shipped typings give the `event` global the type of any event rather
- * // than of this one
- * const wrapped = event as any;
- * wrapped.setReturnDouble(Number(wrapped.arg1) + Number(wrapped.arg2));
- *
- * // the async form is the same wrapper with the wait left off, so it is the
- * // one to use when the Java API is holding on to it and will call it later
+ * // Async wrappers skip waiting only for callbacks with no return value.
  * const later = JsMacros.wrapScriptRunAsync("adder.js");
+ * </pre>
+ * In the wrapped target script {@code adder.js}, a two-argument callback supplies
+ * {@code arg1} and {@code arg2} through its {@link EventWrappedScript} payload:
+ * <pre>
+ * event.setReturnDouble(Number(event.arg1) + Number(event.arg2));
  * </pre>
  * @param <T> the type the first argument arrives as
  * @param <U> the type the second argument arrives as, and {@code null} unless the wrapper was
@@ -80,24 +37,25 @@ import java.util.function.Function;
 public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptContext<?>> {
     private final Core<?, ?> runner;
     /**
-     * the run itself, handed in by whoever made the wrapper. It takes the
-     * {@link com.jsmacrosce.jsmacros.core.event.BaseEvent BaseEvent} that was built for the call
-     * and gives back the container the script is running in, which is what the wait and the
-     * watchdog are done against. For the wrappers {@code JsMacros.wrapScriptRun} and
-     * {@code wrapScriptRunAsync} build it is {@code Core.exec} on the wrapped script's file or
-     * source, with the event name taken from the event that was just built, so the run is
-     * identified as a {@code "WrappedScript"} run. The wrapper dispatches that event to registry
-     * listeners before invoking this function.
+     * Starts the run for the supplied event and returns its container, used for waiting and the
+     * lock watchdog. Events created by the wrapper are dispatched before this function is called.
      */
     public final Function<BaseEvent, EventContainer<BaseScriptContext<?>>> f;
     /**
-     * whether this wrapper leaves the wait off. It is set by the call that made the wrapper and is
-     * never changed afterwards, and it is the difference between
-     * {@code JsMacros.wrapScriptRun} and {@code wrapScriptRunAsync}. It is only consulted by the
-     * three methods that return nothing; the ones that hand a value back wait either way.
+     * Whether this wrapper skips waiting for methods that return nothing. Value-returning methods
+     * wait regardless of this flag.
      */
     public final boolean _async;
 
+    /**
+     * Stores the runner and callback used by this wrapper and configures whether void-returning
+     * callbacks skip waiting.
+     *
+     * @param runner core used to create events and handle synchronous-call waiting
+     * @param f function invoked with the event to start the run and return its container for waiting
+     * @param _async whether void-returning callbacks skip waiting; value-returning callbacks wait
+     *        regardless
+     */
     public WrappedScript(Core<?, ?> runner, Function<BaseEvent, EventContainer<BaseScriptContext<?>>> f, boolean _async) {
         super();
         this.runner = runner;
@@ -111,18 +69,9 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     }
 
     /**
-     * starts the script with a single argument, and does nothing with what it produces. This is
-     * the {@code Consumer} form.<br>
-     * It is the one method that does not always wrap its argument: if what it was given is
-     * already a {@link com.jsmacrosce.jsmacros.core.event.BaseEvent BaseEvent} that goes straight
-     * to the script, so a wrapper passed as a {@code Consumer} of some event type hands the
-     * script that event rather than an {@link EventWrappedScript} wrapping it. It is not
-     * additionally dispatched unless it is itself an EventWrappedScript. Anything else is
-     * wrapped, dispatched, and read by the script as {@code arg1}.<br>
-     * Whether the caller waits for the script to finish depends on {@code _async}, so a wrapper
-     * from {@code wrapScriptRun} blocks the Java thread that called it and one from
-     * {@code wrapScriptRunAsync} does not. What the script sets as its result is dropped, so
-     * there is nothing to hand back here.
+     * Runs the script with one argument and discards its result. An existing {@link BaseEvent} is
+     * passed through unchanged; any other value becomes {@code arg1} of an {@link EventWrappedScript}.
+     * The call waits unless this wrapper is asynchronous.
      *
      * @param t the argument to pass to the script, and the value of {@code arg1} unless it is
      *          already an event
@@ -146,11 +95,9 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     }
 
     /**
-     * starts the script with two arguments, and does nothing with what it produces. This is the
-     * {@code BiConsumer} form, and unlike {@link #accept(java.lang.Object) accept} it always
-     * wraps: the two values go in as {@code arg1} and {@code arg2}.<br>
-     * Whether the caller waits depends on {@code _async}, the same as for the single argument
-     * form, and the script's result is dropped.
+     * Runs the script with {@code t} as {@code arg1} and {@code u} as {@code arg2}, discarding its
+     * result. Unlike {@link #accept(java.lang.Object) accept}, this always creates an
+     * {@link EventWrappedScript}. The call waits unless this wrapper is asynchronous.
      *
      * @param t the first argument, which the script reads as {@code arg1}
      * @param u the second argument, which the script reads as {@code arg2}
@@ -173,19 +120,12 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     }
 
     /**
-     * starts the script with a single argument and hands back what it produced. This is the
-     * {@code Function} form.<br>
-     * The argument always goes in as {@code arg1} and {@code arg2} is {@code null}, even if the
-     * value is already an event, since the pass through on {@link #accept(java.lang.Object) accept}
-     * is only for the form that returns nothing. The result is read straight off the event and
-     * returned as it is, with no cast, so it is the script that has to produce something the
-     * Java method the wrapper stands in for can take.<br>
-     * This waits for the script even when {@code _async} is set, since there is nothing to return
-     * before it has answered, so an async wrapper used as a function still blocks the caller.
+     * Runs the script with {@code t} as {@code arg1} and {@code arg2} set to {@code null}, then
+     * returns the event's result unchanged. Unlike {@link #accept(java.lang.Object) accept}, it
+     * always creates an {@link EventWrappedScript}; it waits even when {@code _async} is set.
      *
      * @param t the argument to pass to the script, which the script reads as {@code arg1}
-     * @return whatever the script put on the event's result, which is {@code null} unless the
-     * script set it
+     * @return the event's result, or {@code null} if none was set
      */
     @Override
     public V apply(T t) {
@@ -205,16 +145,12 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     }
 
     /**
-     * starts the script with two arguments and hands back what it produced. This is the
-     * {@code BiFunction} form, and is the only one that puts a second value in front of the
-     * script.<br>
-     * The result is read straight off the event and returned as it is, and the call waits for the
-     * script even when {@code _async} is set.
+     * Runs the script with {@code t} as {@code arg1} and {@code u} as {@code arg2}, then returns
+     * the event's result unchanged. It waits even when {@code _async} is set.
      *
      * @param t the first argument, which the script reads as {@code arg1}
      * @param u the second argument, which the script reads as {@code arg2}
-     * @return whatever the script put on the event's result, which is {@code null} unless the
-     * script set it
+     * @return the event's result, or {@code null} if none was set
      */
     @Override
     public V apply(T t, U u) {
@@ -234,15 +170,12 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     }
 
     /**
-     * starts the script with a single argument and casts what it produced to a
-     * {@code Boolean}. This is the {@code Predicate} form, and the cast is unchecked and happens
-     * here rather than in the script, so a script that sets anything else fails the Java caller
-     * with a {@link ClassCastException} rather than raising anything in the script itself.<br>
-     * {@code arg2} is {@code null}, and the call waits for the script even when {@code _async} is
-     * set.
+     * Runs the script with {@code t} as {@code arg1} and {@code arg2} set to {@code null}, then
+     * casts the result to {@code Boolean}. It waits even when {@code _async} is set; a non-Boolean
+     * result, including {@code null}, causes a {@link ClassCastException}.
      *
      * @param t the argument to pass to the script, which the script reads as {@code arg1}
-     * @return the script's result cast to a boolean, so {@code null} fails here as well
+     * @return the script's result cast to a boolean
      * @throws ClassCastException if the script's result is not a {@code Boolean}
      */
     @Override
@@ -263,10 +196,9 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     }
 
     /**
-     * starts the script with two arguments and casts what it produced to a {@code Boolean}. This
-     * is the {@code BiPredicate} form, and casts the same unchecked way
-     * {@link #test(java.lang.Object) test} does.<br>
-     * The call waits for the script even when {@code _async} is set.
+     * Runs the script with {@code t} as {@code arg1} and {@code u} as {@code arg2}, then casts its
+     * result to {@code Boolean}. The call waits even when {@code _async} is set; a non-Boolean
+     * result, including {@code null}, causes a {@link ClassCastException}.
      *
      * @param t the first argument, which the script reads as {@code arg1}
      * @param u the second argument, which the script reads as {@code arg2}
@@ -291,12 +223,8 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     }
 
     /**
-     * starts the script with no arguments at all and does nothing with what it produces. This is
-     * the {@code Runnable} form, so both {@code arg1} and {@code arg2} are {@code null} for the
-     * script.<br>
-     * Whether the caller waits depends on {@code _async}, the same as for
-     * {@link #accept(java.lang.Object) accept}, so this is the one to use for a Java API that
-     * wants something to call and does not need an answer.
+     * Runs the script with both {@code arg1} and {@code arg2} set to {@code null}; its result is
+     * discarded. The caller waits unless {@code _async} is set.
      */
     @Override
     public void run() {
@@ -316,14 +244,10 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     }
 
     /**
-     * starts the script with one of the two values a sort is comparing and casts what it produced
-     * to an {@code Integer}. This is the {@code Comparator} form.<br>
-     * Only the first value is forwarded: the script gets {@code o1} as {@code arg1} and
-     * {@code arg2} is {@code null}, so a wrapped script used as a comparator has no way to see
-     * what it is being compared against. The cast to {@code Integer} is unchecked and happens
-     * here, so a script that sets anything else makes the sort fail with a
-     * {@link ClassCastException} rather than raising anything in the script itself.<br>
-     * The call waits for the script even when {@code _async} is set.
+     * Runs the script with {@code o1} as {@code arg1} and {@code arg2} set to {@code null}; the
+     * comparator's second value, {@code o2}, is not passed to the script. The result is cast to
+     * {@code Integer}, and the call waits even when {@code _async} is set. A non-Integer result,
+     * including {@code null}, causes a {@link ClassCastException}.
      *
      * @param o1 the first of the two values, which the script reads as {@code arg1}
      * @param o2 the second of the two values, which is not passed on to the script
@@ -348,12 +272,8 @@ public class WrappedScript<T, U, V> extends MethodWrapper<T, U, V, BaseScriptCon
     }
 
     /**
-     * starts the script with no arguments and hands back what it produced. This is the
-     * {@code Supplier} form, so both {@code arg1} and {@code arg2} are {@code null} for the
-     * script.<br>
-     * The result is read straight off the event and returned as it is, and the call waits for the
-     * script even when {@code _async} is set, so a supplier built from an async wrapper is still a
-     * blocking one.
+     * Runs the script with both {@code arg1} and {@code arg2} set to {@code null}, then returns its
+     * result unchanged. The call waits even when {@code _async} is set.
      *
      * @return whatever the script put on the event's result, which is {@code null} unless the
      * script set it

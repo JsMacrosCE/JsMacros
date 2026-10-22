@@ -10,19 +10,11 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when a container screen finishes opening, which is every screen the player opens that
- * holds a menu, so chests, crafting tables, furnaces, shulker boxes, the ender chest and the
- * player's own inventory included.<br>
- * This event is cancellable, and cancelling does close the container again. It is raised at the
- * very end of the call that switches the screen, so the container has already been set and
- * initialised by the time listeners see it, and cancelling puts the screen that was open before
- * back instead. When nothing was open before, that means the container is simply closed again.
- * <br>
- * Note that in creative mode this event is skipped for everything except the creative inventory
- * screen itself, so opening a chest in creative does not raise it. It is also distinct from
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventOpenScreen}, which fires for
- * every screen change and is raised before this one.
- * example:
+ * Fires after a container screen is set. Cancelling restores the previously displayed screen, or
+ * a {@code KeyMacrosScreen(null)} fallback if there was none. In creative mode it is skipped for
+ * container screens other than the creative inventory. Unlike
+ * {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventOpenScreen}, it only fires for
+ * container screens and fires after that event.
  * <pre>
  * JsMacros.on("OpenContainer", JavaWrapper.methodToJava(function (event) {
  *   if (event.screen.getScreenClassName() === "ShulkerBoxScreen") {
@@ -38,25 +30,38 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "OpenContainer", cancellable = true)
 public class EventOpenContainer extends BaseEvent {
     /**
-     * the container that is opening, wrapped in a fresh {@link Inventory}. The concrete type
-     * follows the screen, so a chest gives back a container inventory and a crafting table gives
-     * back a crafting inventory. It is the same menu the screen is showing, so an action taken
-     * through it reaches the open container.
+     * The opening container, wrapped in a fresh {@link Inventory} for the screen's menu.
      */
     public final Inventory<?> inventory;
     /**
-     * the screen that is opening, as the {@link IScreen} interface every game screen implements.
-     * Its class name is available from
+     * The container screen that is opening, as an {@link IScreen}. Its class name is available from
      * {@link com.jsmacrosce.jsmacros.client.api.classes.render.IScreen#getScreenClassName() getScreenClassName()}.
      */
     public final IScreen screen;
 
+    /**
+     * Wraps the supplied container screen and retains it as the event screen. This does not open or
+     * display a screen; a non-null {@code screen} must implement {@link IScreen}. A failed cast occurs
+     * after the inventory wrapper is created. A null input leaves both {@link #screen} and
+     * {@link #inventory} null.
+     *
+     * @param screen the container screen to wrap and retain; may be null
+     */
     public EventOpenContainer(AbstractContainerScreen<?> screen) {
         super(JsMacrosClient.clientCore);
         this.inventory = Inventory.create(screen);
         this.screen = (IScreen) screen;
     }
 
+    /**
+     * Returns a diagnostic string containing the event name, screen name, and inventory.
+     * The format is {@code %s:{"screenName": "%s", "inventory": %s}}; values are inserted
+     * with {@link String#format(String, Object...)} formatting, not JSON serialization. The
+     * computed screen name from the stored screen is rendered as {@code "null"} when null; a null inventory is rendered as
+     * unquoted {@code null}.
+     *
+     * @return the formatted event and payload summary
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"screenName\": \"%s\", \"inventory\": %s}", this.getEventName(), JsMacrosClient.getScreenName((Screen) screen), inventory);

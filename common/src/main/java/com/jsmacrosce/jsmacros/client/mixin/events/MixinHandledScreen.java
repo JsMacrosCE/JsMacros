@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.Slot;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,6 +16,7 @@ import com.jsmacrosce.jsmacros.client.util.SlotClickEvents;
 import net.minecraft.world.inventory.ClickType;
  //? }
 
+@DocletIgnore
 @Mixin(AbstractContainerScreen.class)
 public class MixinHandledScreen {
 

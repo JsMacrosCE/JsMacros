@@ -7,6 +7,7 @@ import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.access.CustomClickEvent;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
@@ -15,37 +16,19 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 import java.util.stream.Collectors;
 
 /**
- * the formatting on a run of text: its colour, its four text decorations, and what happens when
- * it is clicked or hovered.
+ * Exposes the formatting and click/hover events stored on a text style.
  * <p>
- * This is a read-only view of one Brigadier style, and the whole class is reached through
- * {@link TextHelper#visit(com.jsmacrosce.jsmacros.core.MethodWrapper)}: a piece of text is
- * split into runs by whatever the server put in it, and the visitor hands a style for each run
- * along with the text of that run. A run's style is only its <i>own</i> formatting, so a run
- * that inherits its colour from the text around it reports no colour of its own; the game works
- * that out later and the style object here does not.
+ * {@link TextHelper#visit(com.jsmacrosce.jsmacros.core.MethodWrapper)} supplies a style for each
+ * visited text run. These accessors report properties stored on that style, not formatting
+ * inherited from surrounding text.
  * <p>
- * The four decorations — {@link #bold()}, {@link #italic()}, {@link #underlined()} and
- * {@link #strikethrough()}, with {@link #obfuscated()} for the scrambled one — are plain
- * booleans. Note that {@code false} means "not set here" rather than "explicitly off", since a
- * style only records the decorations that were turned on.
- * <br>
- * The colour is the awkward part, because the game has two colour systems and this class exposes
- * both. A colour can be one of the sixteen legacy named ones, in which case it has an index and
- * an rgb value, or it can be an arbitrary rgb value, in which case it has neither. Three of the
- * accessors — {@link #getColor()}, {@link #getColorIndex()} and {@link #getColorValue()} — answer
- * "which legacy colour" and give {@code -1} when the colour is not a legacy one or is not set at
- * all. {@link #getCustomColor()} is the odd one out and the one to reach for: it gives
- * {@code -1} only when there is no colour at all, and the rgb of whichever colour there is, so it
- * covers both systems. {@link #hasColor()} and {@link #hasCustomColor()} are what tell the two
- * systems apart.
+ * Decoration accessors return booleans. For colours, {@link #getColorIndex()} and
+ * {@link #getColorValue()} return {@code -1} when there is no legacy named colour; use
+ * {@link #getCustomColor()} for the packed RGB of either colour kind, or {@code -1} when unset.
+ * {@link #hasColor()} and {@link #hasCustomColor()} distinguish unset, legacy, and custom colours.
  * <p>
- * Clicking and hovering are read in two steps: {@link #getClickAction()} and
- * {@link #getHoverAction()} name what happens, and {@link #getClickValue()} and
- * {@link #getHoverValue()} carry the argument. A JsMacros-registered command reports the action
- * {@code "custom"} and hands back a runnable from {@link #getCustomClickValue()} instead of a
- * string, so that is the one case where the value is not text.
- * example:
+ * Click and hover accessors expose the action separately from its value. JsMacros-registered
+ * clicks report {@code "custom"}; retrieve their runnable with {@link #getCustomClickValue()}.
  * <pre>
  * // a style is per run, so visit walks the text and gives one to each run
  * const text = Chat.createTextHelperFromString("some styled line");
@@ -75,26 +58,15 @@ import java.util.stream.Collectors;
 @SuppressWarnings("unused")
 @DocletCategory("Misc Helpers")
 public class StyleHelper extends BaseHelper<Style> {
+    /** Wraps the supplied raw text style reference without copying or parsing it.
+     * @param base raw text style to wrap
+     */
     public StyleHelper(Style base) {
         super(base);
     }
 
     /**
-     * whether this run has a colour of its own.
-     * <p>
-     * This is the check the colour accessors need first, since all of them answer {@code -1} or
-     * {@code null} when there is no colour rather than throwing. It says nothing about which
-     * kind of colour it is: pair it with {@link #hasCustomColor()} for that, or read
-     * {@link #getColorName()} and look at whether it starts with a hash.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("a coloured run");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.hasColor()) {
-     *     Chat.log(`${run} has a colour`);
-     *   }
-     * }));
-     * </pre>
+     * Whether this style has a colour set.
      *
      * @return {@code true} if a colour is set, {@code false} otherwise
      * @since 1.6.5
@@ -104,42 +76,20 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * @return the color index of this style or {@code -1} if no color is set.
+     * @return the legacy colour index, or {@code -1} if unset or custom
      * @deprecated use {@link #getColorIndex()} instead.
      */
+    @DocletIgnore
     @Deprecated
     public int getColor() {
         return getColorIndex();
     }
 
     /**
-     * the legacy formatting named by this run's colour, if there is one.
-     * <p>
-     * Only the sixteen legacy named colours have a formatting; an arbitrary rgb colour does not
-     * and gives {@code null}. The name is misleading in one respect worth knowing: a run with
-     * <b>no</b> colour at all does not give {@code null} here, it throws a
-     * {@link java.lang.NullPointerException}, because the lookup reads the
-     * colour without checking it is there first. {@link #hasColor()} is therefore not optional
-     * before this call.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("a coloured run");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   // without this check an uncoloured run throws here
-     *   if (style.hasColor()) {
-     *     const formatting = style.getFormatting();
-     *     if (formatting !== null) {
-     *       Chat.log(`${run} uses ${formatting.getName()}`);
-     *     } else {
-     *       Chat.log(`${run} uses an rgb colour, not a legacy one`);
-     *     }
-     *   }
-     * }));
-     * </pre>
+     * Returns the legacy formatting for this style's colour. An arbitrary RGB colour returns
+     * {@code null}; when no colour is set, this method throws {@link java.lang.NullPointerException}.
      *
-     * @return the formatting of this style, or {@code null} if no formatting was found.
-     * @throws NullPointerException if this run has no colour of its own, which
-     * {@link #hasColor()} rules out
+     * @return the legacy formatting, or {@code null} for an arbitrary rgb colour
      * @since 1.8.4
      */
     @Nullable
@@ -149,30 +99,10 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * the position of this run's colour in the sixteen legacy colours, or {@code -1}.
-     * <p>
-     * For a colour the index runs {@code 0} to {@code 9} for the first ten and then {@code 10} to
-     * {@code 15} for the rest, and the character the old formatting code uses is the lowercase
-     * hexadecimal digit of that index, so the sixteen read {@code 0} to {@code 9} and then
-     * {@code a} to {@code f}. {@code 9} is {@code blue} and {@code 15} is {@code white}, which is
-     * code {@code f}; the modifiers come after {@code f} and are not hexadecimal. The index is
-     * what the deprecated {@link #getColor()} returns. A run with no colour, and a run coloured
-     * with an arbitrary rgb value, both give {@code -1}; {@link #hasColor()} separates the first
-     * case and {@link #hasCustomColor()} the second.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("a coloured run");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.hasColor()) {
-     *     if (!style.hasCustomColor()) {
-     *       // the legacy index, which is also the old formatting code's digit
-     *       Chat.log(`${run} is legacy colour ${style.getColorIndex()}`);
-     *     }
-     *   }
-     * }));
-     * </pre>
+     * Returns this style's legacy colour index. Custom RGB colours are not assigned a legacy
+     * index.
      *
-     * @return the color index of this style or {@code -1} if no color is set.
+     * @return the legacy colour index, or {@code -1} if no colour is set or it is an arbitrary rgb colour
      * @since 1.8.4
      */
     public int getColorIndex() {
@@ -184,25 +114,8 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * the rgb value of this run's colour, or {@code -1}.
-     * <p>
-     * This is the legacy colour's own rgb value, so the answer depends on which of the sixteen
-     * it is and is the same number for every run of that colour. It is the same value the game
-     * draws that colour with. A run with no colour, and one coloured with an arbitrary rgb value
-     * rather than a legacy name, both give {@code -1}; for the arbitrary value use
-     * {@link #getCustomColor()} after {@link #hasCustomColor()}.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("a coloured run");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.hasColor()) {
-     *     const rgb = style.getColorValue();
-     *     if (rgb !== -1) {
-     *       Chat.log(`${run} is drawn as #${rgb.toString(16)}`);
-     *     }
-     *   }
-     * }));
-     * </pre>
+     * Returns the RGB value associated with a legacy named colour; custom RGB colours and
+     * unset colours return {@code -1}.
      *
      * @return the color value of this style or {@code -1} if it doesn't have one.
      * @since 1.8.4
@@ -216,23 +129,8 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * this run's colour written as a string, or {@code null}.
-     * <p>
-     * The two colour systems come out as two different shapes of string: a legacy colour gives
-     * its name, such as {@code "dark_red"}, and an arbitrary rgb colour gives a hash-prefixed
-     * six-digit hex value such as {@code "#8B0000"}. So a single check tells the two apart —
-     * a leading hash means custom — which is the same test {@link #hasCustomColor()} makes.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("a coloured run");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   const name = style.getColorName();
-     *   if (name !== null) {
-     *     // "dark_red" for a legacy colour, "#8B0000" for an arbitrary one
-     *     Chat.log(`${run} is ${name}`);
-     *   }
-     * }));
-     * </pre>
+     * Returns the serialized colour of this style, or {@code null} if unset. Legacy colours
+     * serialize by name and custom colours as hash-prefixed hexadecimal RGB.
      *
      * @return the color name of this style or {@code null} if it has no color.
      * @since 1.8.4
@@ -243,25 +141,8 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * whether this run's colour is an arbitrary rgb value rather than a legacy name.
-     * <p>
-     * This is the discriminator between the game's two colour systems, and it needs
-     * {@link #hasColor()} first: a run with no colour at all is not a custom colour either, so
-     * this alone answers {@code false} for both "uncoloured" and "legacy". Where a run is custom
-     * the value itself comes from {@link #getCustomColor()}.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("a coloured run");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.hasColor()) {
-     *     if (style.hasCustomColor()) {
-     *       // an rgb value packed as one number, 0xRRGGBB
-     *       const rgb = style.getCustomColor();
-     *       Chat.log(`${run} is #${rgb.toString(16).padStart(6, "0")}`);
-     *     }
-     *   }
-     * }));
-     * </pre>
+     * Returns whether this style has a custom RGB colour. Returns {@code false} when unset; use
+     * {@link #hasColor()} to distinguish unset from a legacy colour.
      *
      * @return {@code true} if this run has a colour that is not one of the legacy named ones
      * @since 1.6.5
@@ -271,29 +152,8 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * this run's colour as a packed rgb number.
-     * <p>
-     * The value is the colour's three channels in one integer, {@code 0xRRGGBB}, with the alpha
-     * byte left out, and it is the number to hand to anything wanting a raw colour. A run with
-     * no colour gives {@code -1}.
-     * <br>
-     * The name is a little misleading: this is the rgb value of <i>any</i> colour, so a legacy
-     * named colour answers with its rgb value too and not only {@code -1}. Pair it with
-     * {@link #hasCustomColor()} when the distinction matters.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("a coloured run");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.hasColor()) {
-     *     const rgb = style.getCustomColor();
-     *     // unpack it into the three channels
-     *     const r = Math.floor(rgb / 65536);
-     *     const g = Math.floor(rgb / 256) % 256;
-     *     const b = rgb % 256;
-     *     Chat.log(`${run} is rgb(${r}, ${g}, ${b})`);
-     *   }
-     * }));
-     * </pre>
+     * Returns this style's colour as packed {@code 0xRRGGBB}, whether custom or legacy, or
+     * {@code -1} if unset. Use {@link #hasCustomColor()} to distinguish custom from legacy.
      *
      * @return the packed rgb value of this run's colour, or {@code -1} if it has no colour
      * @since 1.6.5
@@ -303,20 +163,7 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * whether this run is bold.
-     * <p>
-     * A run is bold when it carries the bold flag itself. A run inside bold text with no flag of
-     * its own is not bold here, because the style records only what was set on it and the
-     * inherited bold is worked out by the renderer rather than stored.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("plain and bold");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.bold()) {
-     *     Chat.log(`${run} is bold`);
-     *   }
-     * }));
-     * </pre>
+     * Returns whether this style has its bold flag set; inherited formatting is not included.
      *
      * @return {@code true} if this run is bold, {@code false} otherwise
      * @since 1.6.5
@@ -326,19 +173,7 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * whether this run is italic.
-     * <p>
-     * The same rule as {@link #bold()}: it answers for this run's own flag, not for what the
-     * run inherits from the text around it.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("plain and slanted");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.italic()) {
-     *     Chat.log(`${run} is italic`);
-     *   }
-     * }));
-     * </pre>
+     * Returns whether this style has its italic flag set; inherited formatting is not included.
      *
      * @return {@code true} if this run is italic, {@code false} otherwise
      * @since 1.6.5
@@ -348,19 +183,7 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * whether this run is underlined.
-     * <p>
-     * The same rule as {@link #bold()}: it answers for this run's own flag, not for what the
-     * run inherits from the text around it.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("plain and underlined");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.underlined()) {
-     *     Chat.log(`${run} is underlined`);
-     *   }
-     * }));
-     * </pre>
+     * Returns whether this style has its underline flag set; inherited formatting is not included.
      *
      * @return {@code true} if this run is underlined, {@code false} otherwise
      * @since 1.6.5
@@ -370,19 +193,7 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * whether this run is struck through.
-     * <p>
-     * The same rule as {@link #bold()}: it answers for this run's own flag, not for what the
-     * run inherits from the text around it.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("plain and struck through");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.strikethrough()) {
-     *     Chat.log(`${run} is struck through`);
-     *   }
-     * }));
-     * </pre>
+     * Returns whether this style has its strikethrough flag set; inherited formatting is not included.
      *
      * @return {@code true} if this run is struck through, {@code false} otherwise
      * @since 1.6.5
@@ -392,22 +203,7 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * whether this run is obfuscated, which is the scrambled-text effect.
-     * <p>
-     * Obfuscated runs are drawn with their characters constantly replaced, and they are the
-     * mechanism a server uses to hide part of a message such as the name in a whitelist message.
-     * Like the other decorations this answers for this run's own flag rather than for what it
-     * inherits.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("plain and scrambled");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.obfuscated()) {
-     *     // the run's own characters are still readable to a script
-     *     Chat.log(`a scrambled run holding ${run}`);
-     *   }
-     * }));
-     * </pre>
+     * Returns whether this style has its obfuscated flag set; inherited formatting is not included.
      *
      * @return {@code true} if this run is obfuscated, {@code false} otherwise
      * @since 1.6.5
@@ -417,46 +213,10 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * what clicking this run does, or {@code null} if it does nothing.
-     * <p>
-     * This is the action's own name, and it is a string rather than a helper so a script can
-     * branch on it with a comparison. The value the action needs comes from
-     * {@link #getClickValue()}, except for the {@code "custom"} action, which is JsMacros-registered
-     * and hands back a runnable from {@link #getCustomClickValue()} instead. A {@code SHOW_DIALOG}
-     * action has no value either, and {@link #getClickValue()} gives it {@code null}.
-     * <p>
-     * The value is the action's enum constant name, so it is <i>uppercase</i>, and it is not the
-     * lowercase id the game puts on the wire. The eight constants are {@code OPEN_URL} for
-     * {@code open_url}, {@code OPEN_FILE} for {@code open_file}, {@code RUN_COMMAND} for
-     * {@code run_command}, {@code SUGGEST_COMMAND} for {@code suggest_command},
-     * {@code SHOW_DIALOG} for {@code show_dialog}, {@code CHANGE_PAGE} for {@code change_page},
-     * {@code COPY_TO_CLIPBOARD} for {@code copy_to_clipboard}, and {@code CUSTOM} for
-     * {@code custom}.
-     * <br>
-     * That last pair is the one place the case changes, and the reason is that
-     * {@code "custom"} in lowercase is hard-coded here. A JsMacros-registered click is
-     * recognised by its own event type and reported as that literal, while the game's own
-     * {@code custom} click — which carries server-supplied data rather than a runnable — is not
-     * recognised and falls through to the constant name.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("click me");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   const action = style.getClickAction();
-     *   if (action === null) {
-     *     return;
-     *   }
-     *   if (action === "custom") {
-     *     // a command a script registered, and the runnable is what runs it
-     *     const runnable = style.getCustomClickValue();
-     *     if (runnable !== null) {
-     *       runnable.run();
-     *     }
-     *   } else {
-     *     Chat.log(`clicking ${run} would ${action} ${style.getClickValue()}`);
-     *   }
-     * }));
-     * </pre>
+     * Returns the click action's enum name, or {@code null} when no click event is set. Built-in
+     * action names are uppercase; JsMacros-registered clicks return {@code "custom"} and their
+     * runnable is available from {@link #getCustomClickValue()}. Other action values are available
+     * from {@link #getClickValue()}.
      *
      * @return the click action's enum constant name in upper case, {@code "custom"} for a
      * JsMacros-registered command, or {@code null} if this run has no click action
@@ -475,26 +235,9 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * the argument the click action needs, as text, or {@code null}.
-     * <p>
-     * Which action this is depends on what {@link #getClickAction()} said: a url, a file path, a
-     * command to run, a command to suggest, a page number as a decimal string, or the text to
-     * copy. A run with no click action gives {@code null}, and so does the {@code "custom"}
-     * action, whose value is a runnable rather than text and comes from
-     * {@link #getCustomClickValue()} instead, and so does {@code SHOW_DIALOG}, which this does
-     * not read a value for at all.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("a clickable run");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.getClickAction() !== null) {
-     *     const value = style.getClickValue();
-     *     if (value !== null) {
-     *       Chat.log(`${run} would act on ${value}`);
-     *     }
-     *   }
-     * }));
-     * </pre>
+     * the text argument for a click action, or {@code null} when the action has no text value.
+     * {@link #getClickAction()} identifies the action. A page number is returned as a decimal
+     * string; the {@code "custom"} and {@code SHOW_DIALOG} actions have no text value.
      *
      * @return the click action's argument as a string, or {@code null} if there is no click
      * action or the action is {@code "custom"} or {@code SHOW_DIALOG}
@@ -514,26 +257,8 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * the runnable behind a JsMacros-registered click, or {@code null}.
-     * <p>
-     * This is the one click whose value is code rather than text: a command a script registered
-     * is stored as a runnable, and this hands it back so the script that put the text together
-     * can recognise its own click and act on it. It is {@code null} for every other kind of
-     * click and for a run with none, and the way to tell the case is
-     * {@link #getClickAction()} returning {@code "custom"}.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("a script command");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.getClickAction() === "custom") {
-     *     const runnable = style.getCustomClickValue();
-     *     if (runnable !== null) {
-     *       // this is the command a script registered, so running it is safe
-     *       runnable.run();
-     *     }
-     *   }
-     * }));
-     * </pre>
+     * the runnable stored by a JsMacros-registered click, or {@code null} for other click events.
+     * {@link #getClickAction()} reports {@code "custom"} for that event.
      *
      * @return the runnable to call for a {@code "custom"} click, or {@code null} if this run's
      * click action is not {@code "custom"}
@@ -548,28 +273,9 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * what hovering this run does, or {@code null} if it does nothing.
-     * <p>
-     * The name of the hover action, and the content of the hover comes from
-     * {@link #getHoverValue()}. The three names are the game's own: {@code show_text},
-     * {@code show_item} and {@code show_entity}.
-     * <p>
-     * <b>This is not the same string shape as {@link #getClickAction()},</b> and comparing the
-     * two is the trap. That one is the enum constant name and so is upper case, where this is
-     * the lowercase id the game puts on the wire; {@code SHOW_ITEM} against {@code show_item}
-     * is the whole difference. {@link #getClickAction()} spells out its own eight constants and
-     * why, and it has one case change of its own that this does not: a JsMacros-registered
-     * command reports as the literal {@code "custom"}.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("hover me");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   const action = style.getHoverAction();
-     *   if (action !== null) {
-     *     Chat.log(`hovering ${run} would ${action}`);
-     *   }
-     * }));
-     * </pre>
+     * the serialized name of this run's hover action, or {@code null} if it has no hover event.
+     * Unlike {@link #getClickAction()}, this name is lowercase (for example,
+     * {@code show_item}). The action's value is returned by {@link #getHoverValue()}.
      *
      * @return the hover action's name, or {@code null} if this run has no hover action
      * @since 1.6.5
@@ -581,7 +287,7 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * what this run's hover shows, or {@code null}.
+     * the value shown by this run's hover event, or {@code null} when there is no recognized event.
      * <p>
      * The type of the answer depends on what {@link #getHoverAction()} said, and there are
      * three shapes: a {@code show_text} hover gives a {@link TextHelper} for the text shown;
@@ -590,11 +296,9 @@ public class StyleHelper extends BaseHelper<Style> {
      * entity tooltip. A run with no hover gives {@code null}, as does any hover action the game
      * does not recognise.
      * <p>
-     * Because the three shapes do not share a type, the answer is untyped and a script that
-     * wants to use it should switch on the action first. Only the item shape differs across
-     * game versions in what it wraps, so a script reading it should go through the helper rather
-     * than the raw object.
-     * example:
+     * The result has different shapes, so use {@link #getHoverAction()} to distinguish them.
+     * For {@code show_item}, it is an {@link ItemStackHelper} wrapping the item value.
+     * <p>
      * <pre>
      * const text = Chat.createTextHelperFromString("hover me");
      * text.visit(JavaWrapper.methodToJava(function (style, run) {
@@ -623,7 +327,7 @@ public class StyleHelper extends BaseHelper<Style> {
      *
      * @return a {@link TextHelper} for a {@code show_text} hover, an {@link ItemStackHelper} for
      * a {@code show_item} hover, a list of {@link TextHelper} for a {@code show_entity} hover,
-     * or {@code null} if there is no hover action
+     * or {@code null} if there is no recognized hover action
      * @since 1.6.5
      */
     @Nullable
@@ -641,20 +345,7 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * the text this run inserts when shift-clicked, or {@code null}.
-     * <p>
-     * An insertion is what a chat box puts on the input line when a shift-clicked run is
-     * clicked, and most runs have none. A run with no insertion gives {@code null}.
-     * example:
-     * <pre>
-     * const text = Chat.createTextHelperFromString("a shift-clickable run");
-     * text.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   const insertion = style.getInsertion();
-     *   if (insertion !== null) {
-     *     Chat.log(`shift-clicking ${run} would type ${insertion}`);
-     *   }
-     * }));
-     * </pre>
+     * the text inserted for this run, or {@code null} if it has no insertion.
      *
      * @return the insertion text, or {@code null} if this run has none
      * @since 1.6.5
@@ -663,6 +354,9 @@ public class StyleHelper extends BaseHelper<Style> {
         return base.getInsertion();
     }
 
+    /** Returns a diagnostic summary of the wrapped style's stored properties.
+     * @return a diagnostic representation of the wrapped style
+     */
     @Override
     public String toString() {
         return "StyleHelper:{\"color\": \"" + (hasColor() ? hasCustomColor() ? getCustomColor() : String.format("%x", getColorIndex()) : "none") + "\"" +

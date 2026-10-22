@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundLoginPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
@@ -15,6 +17,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 @Mixin(ClientPacketListener.class)
+@DocletIgnore
 public class MixinClientPlayNetworkHandler {
 
     @Unique

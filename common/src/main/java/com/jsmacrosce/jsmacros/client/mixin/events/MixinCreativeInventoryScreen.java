@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.world.inventory.Slot;
@@ -23,6 +25,7 @@ import net.minecraft.world.inventory.ClickType;
 //? }
 
 @Mixin(CreativeModeInventoryScreen.class)
+@DocletIgnore
 public abstract class MixinCreativeInventoryScreen {
 
     @Unique

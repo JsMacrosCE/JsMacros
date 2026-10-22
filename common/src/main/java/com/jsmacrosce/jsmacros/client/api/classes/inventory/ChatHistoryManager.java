@@ -14,37 +14,19 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * the two chat histories: everything that has come in, and everything that was sent.
- * <p>
- * These are different lists. The received side is the scrollback, what
- * {@link #getRecvLines()} and {@link #getRecvCount()} read and what
- * {@link #insertRecvText(int, TextHelper, int, boolean)} and the remove methods change. The
- * sent side is only two things, {@link #getSent()} which hands back the list itself and
- * {@link #clearSent(boolean)} which empties it.
- * <p>
- * The methods that <b>change</b> the history each come in an {@code await} form, and it is worth
- * knowing what it does before reaching for one. Without it a call returns as soon as the work
- * has been <i>queued</i> on the client thread, which is almost always what a script wants; with
- * it the call blocks until its own task has run, which means it also waits out whatever else was
- * queued ahead of it. The readers do not have the choice at all: they
- * always wait, because reading a list the client thread is in the middle of rewriting is the
- * case that actually bites.
- * <p>
- * The one exception is {@link #getSent()}, which hands back the list itself rather than a
- * copy, so a script that writes to it is editing the client history directly.
- * example:
+ * Manages received chat scrollback and sent-message history. Received-history reads called off
+ * the joined client thread queue work on that thread and always wait for it to finish; mutations
+ * queue work there but wait only when their {@code await} argument is {@code true}.
+ * {@link #getSent()} returns the live sent-history list, so changes to it affect the chat
+ * component directly.
  * <pre>
  * const history = Chat.getHistory();
- * // what has come in
  * Chat.log(`${history.getRecvCount()} lines in the scrollback`);
  * const last = history.getRecvLines();
  * if (last.size() > 0) {
- *   // a line is not a string, it is a wrapper with the text and the tick it arrived on
  *   const newest = last.get(last.size() - 1);
  *   Chat.log(`the newest is ${newest.getText().getString()}, on tick ${newest.getCreationTick()}`);
  * }
- * // and what was sent, which is a list a script can edit in place
- * Chat.log(`sent: ${history.getSent()}`);
  * </pre>
  * @since 1.6.0
  */
@@ -52,13 +34,21 @@ public class ChatHistoryManager {
     private static final Minecraft mc = Minecraft.getInstance();
     private final ChatComponent hud;
 
+    /**
+     * Manages the received and sent history of the supplied chat component.
+     * {@link com.jsmacrosce.jsmacros.client.api.library.impl.FChat#getHistory()} obtains a manager
+     * for Minecraft's chat component; this constructor stores the supplied component without
+     * copying or changing its history.
+     *
+     * @param hud chat component whose history is managed
+     */
     public ChatHistoryManager(ChatComponent hud) {
         this.hud = hud;
     }
 
     /**
-     * @param index
-     * @return
+     * @param index zero-based index in the received-message history
+     * @return the received message at that index
      * @since 1.6.0
      */
     public ChatHudLineHelper getRecvLine(int index) throws InterruptedException {
@@ -76,7 +66,7 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @return the amount of messages in the chat history.
+     * @return the number of received messages in the chat history
      * @throws InterruptedException
      * @since 1.8.4
      */
@@ -92,7 +82,7 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @return all received messages in the chat history.
+     * @return a new list of wrappers for all received messages
      * @throws InterruptedException
      * @since 1.8.4
      */
@@ -108,8 +98,12 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @param index
-     * @param line
+     * Inserts a chat line at the specified history index. Calls on the joined client thread insert
+     * immediately; other calls queue the insertion without waiting for it to finish.
+     *
+     * @param index history position at which to insert the line
+     * @param line the chat line to insert
+     * @throws InterruptedException if the calling thread is interrupted
      * @since 1.6.0
      */
     public void insertRecvText(int index, TextHelper line) throws InterruptedException {
@@ -117,11 +111,15 @@ public class ChatHistoryManager {
     }
 
     /**
-     * you should probably run {@link #refreshVisible()} after...
+     * Inserts a chat line at the specified history index. Calls on the joined client thread insert
+     * immediately; other calls queue the insertion without waiting for it to finish. The
+     * {@code timeTicks} argument is currently unused. Call {@link #refreshVisible()} to update
+     * the visible chat after the insertion.
      *
-     * @param index
-     * @param line
-     * @param timeTicks
+     * @param index history position at which to insert the line
+     * @param line the chat line to insert
+     * @param timeTicks currently unused
+     * @throws InterruptedException if the calling thread is interrupted
      * @since 1.6.0
      */
     public void insertRecvText(int index, TextHelper line, int timeTicks) throws InterruptedException {
@@ -129,11 +127,15 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @param index
-     * @param line
-     * @param timeTicks
-     * @param await
-     * @throws InterruptedException
+     * Inserts a chat line at the specified history index. Calls on the joined client thread insert
+     * immediately; other calls queue the insertion and wait for it to finish only when
+     * {@code await} is {@code true}. The {@code timeTicks} argument is currently unused.
+     *
+     * @param index history position at which to insert the line
+     * @param line the chat line to insert
+     * @param timeTicks currently unused
+     * @param await whether to wait for a queued insertion to finish when called off the joined client thread
+     * @throws InterruptedException if waiting is interrupted
      * @since 1.6.0
      */
     public void insertRecvText(int index, TextHelper line, int timeTicks, boolean await) throws InterruptedException {
@@ -150,7 +152,7 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @param index
+     * @param index zero-based received-message history index to remove
      * @since 1.6.0
      */
     public void removeRecvText(int index) throws InterruptedException {
@@ -158,9 +160,12 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @param index
-     * @param await
-     * @throws InterruptedException
+     * Removes the received message at the specified history index. Off-thread removal is queued;
+     * set {@code await} to {@code true} to wait for it to finish.
+     *
+     * @param index zero-based received-message history index to remove
+     * @param await whether to wait for queued removal to finish
+     * @throws InterruptedException if waiting is interrupted
      * @since 1.6.0
      */
     public void removeRecvText(int index, boolean await) throws InterruptedException {
@@ -177,7 +182,7 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @param text
+     * @param text text whose exact raw value is matched against received messages
      * @since 1.6.0
      */
     public void removeRecvTextMatching(TextHelper text) throws InterruptedException {
@@ -185,9 +190,12 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @param text
-     * @param await
-     * @throws InterruptedException
+     * Removes received messages whose raw content equals {@code text}. Off-thread removal is
+     * queued; set {@code await} to {@code true} to wait for it to finish.
+     *
+     * @param text text whose exact raw value is matched against received messages
+     * @param await whether to wait for queued removal to finish
+     * @throws InterruptedException if waiting is interrupted
      * @since 1.6.0
      */
     public void removeRecvTextMatching(TextHelper text, boolean await) throws InterruptedException {
@@ -204,7 +212,10 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @param filter
+     * Removes received messages for which {@code filter} returns {@code true}. Off-thread removal
+     * is queued without waiting for it to finish.
+     *
+     * @param filter predicate applied to each received message
      * @since 1.6.0
      */
     public void removeRecvTextMatchingFilter(MethodWrapper<ChatHudLineHelper, Object, Boolean, ?> filter) throws InterruptedException {
@@ -212,9 +223,12 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @param filter
-     * @param await
-     * @throws InterruptedException
+     * Removes received messages for which {@code filter} returns {@code true}. Off-thread removal
+     * is queued; set {@code await} to {@code true} to wait for it to finish.
+     *
+     * @param filter predicate applied to each received message
+     * @param await whether to wait for queued removal to finish
+     * @throws InterruptedException if waiting is interrupted
      * @since 1.6.0
      */
     public void removeRecvTextMatchingFilter(MethodWrapper<ChatHudLineHelper, Object, Boolean, ?> filter, boolean await) throws InterruptedException {
@@ -242,7 +256,8 @@ public class ChatHistoryManager {
     }
 
     /**
-     * this will reset the view of visible messages
+     * Rebuilds the visible chat view from the received-message history. Off-thread work is queued
+     * without waiting for it to finish.
      *
      * @since 1.6.0
      */
@@ -251,8 +266,11 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @param await
-     * @throws InterruptedException
+     * Rebuilds the visible chat view from the received-message history. Off-thread work is queued;
+     * set {@code await} to {@code true} to wait for it to finish.
+     *
+     * @param await whether to wait for queued work to finish
+     * @throws InterruptedException if waiting is interrupted
      * @since 1.6.0
      */
     public void refreshVisible(boolean await) throws InterruptedException {
@@ -270,6 +288,8 @@ public class ChatHistoryManager {
     }
 
     /**
+     * Clears the received-message history without waiting for queued off-thread work to finish.
+     *
      * @since 1.6.0
      */
     public void clearRecv() throws InterruptedException {
@@ -277,8 +297,11 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @param await
-     * @throws InterruptedException
+     * Clears the received-message history. Off-thread work is queued; set {@code await} to
+     * {@code true} to wait for it to finish.
+     *
+     * @param await whether to wait for queued work to finish
+     * @throws InterruptedException if waiting is interrupted
      * @since 1.6.0
      */
     public void clearRecv(boolean await) throws InterruptedException {
@@ -295,7 +318,7 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @return direct reference to sent message history list. modifications will affect the list.
+     * @return the live sent-message history list; modifying it changes the chat component's list
      * @since 1.6.0
      */
     public List<String> getSent() {
@@ -303,6 +326,8 @@ public class ChatHistoryManager {
     }
 
     /**
+     * Clears the sent-message history without waiting for queued off-thread work to finish.
+     *
      * @since 1.6.0
      */
     public void clearSent() throws InterruptedException {
@@ -310,8 +335,11 @@ public class ChatHistoryManager {
     }
 
     /**
-     * @param await
-     * @throws InterruptedException
+     * Clears the sent-message history. Off-thread work is queued; set {@code await} to
+     * {@code true} to wait for it to finish.
+     *
+     * @param await whether to wait for queued work to finish
+     * @throws InterruptedException if waiting is interrupted
      * @since 1.6.0
      */
     public void clearSent(boolean await) throws InterruptedException {

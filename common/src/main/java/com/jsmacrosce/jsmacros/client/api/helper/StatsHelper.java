@@ -25,36 +25,20 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * the player's statistics counters, which are the same numbers the statistics screen shows.
+ * Provides access to the player's client-side statistics counters.
  * <p>
- * This is a view onto the game's own counters rather than a copy, so a value read here is the
- * count the game holds for that statistic. The game is what fills them in, and it only does so
- * when the server sends the statistics it is keeping, so a value read straight after an action
- * may not have caught up yet; {@link #updateStatistics()} asks the server for them.
- * <p>
- * There are two ways to ask this class for a value, and the difference matters. The typed calls
- * such as {@link #getBlockMined(String)} and {@link #getCustomStat(String)} name one exact
- * statistic and return it, and they are the ones to use whenever a script knows what it wants.
- * The keyed calls {@link #getRawStatValue(String)}, {@link #getFormattedStatValue(String)} and
- * {@link #getStatText(String)} instead take a key from {@link #getStatList()}.
- * <br>
- * Each key identifies an individual statistic by its type and registry value, for example
- * {@code minecraft.mined:minecraft.stone}. The maps preserve separate entries for statistics
- * in the same category. {@link #getStatText(String)} still returns the category's heading,
- * rather than the individual statistic's display name.
- * <br>
- * A statistic the client was never sent has no entry at all, so a key that is not in
- * {@link #getStatList()} makes the three keyed calls throw rather than return zero.
- * example:
+ * Typed methods query a named registry statistic, while custom-stat methods query the named custom
+ * statistic directly. Keyed methods accept names from {@link #getStatList()}; unknown keys throw
+ * {@link IllegalArgumentException}. {@link #getStatText(String)} returns the statistic type's
+ * display name, not an individual statistic name. {@link #updateStatistics()} requests updated
+ * statistics from the server.
  * <pre>
  * if (World.isWorldLoaded()) {
  *   const stats = Player.getStatistics();
  *
- *   // the typed calls name one exact statistic, so this is unambiguous
  *   Chat.log(`${stats.getBlockMined("minecraft:stone")} stone mined`);
  *   Chat.log(`${stats.getItemUsed("minecraft:diamond_pickaxe")} pickaxe uses`);
  *
- *   // ask the server to send everything it is holding before reading
  *   stats.updateStatistics();
  * }
  * </pre>
@@ -64,28 +48,18 @@ import java.util.stream.Collectors;
 @SuppressWarnings("unused")
 @DocletCategory("Misc Helpers")
 public class StatsHelper extends BaseHelper<StatsCounter> {
+    /**
+     * Wraps the supplied statistics counter.
+     *
+     * @param base raw statistics counter to wrap
+     */
     public StatsHelper(StatsCounter base) {
         super(base);
     }
 
     /**
-     * the keys of the statistics this helper currently holds.
-     * <p>
-     * This is where the keys the keyed calls take come from, and it is the list to walk when a
-     * script wants to see everything at once. A key that is not in this list makes
-     * {@link #getRawStatValue(String)}, {@link #getFormattedStatValue(String)} and
-     * {@link #getStatText(String)} throw, so this doubles as the list of valid keys.
-     * <br>
-     * Each key names one recorded statistic. Statistics in the same category have distinct keys.
-     * example:
-     * <pre>
-     * if (World.isWorldLoaded()) {
-     *   const stats = Player.getStatistics();
-     *   for (const key of stats.getStatList()) {
-     *     Chat.log(`${key}: ${stats.getFormattedStatValue(key)}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the names of the statistics currently held by this helper; each name identifies
+     * one statistic, including when multiple statistics share a type.
      *
      * @return a list of individual statistic keys, one per recorded statistic
      * @since 1.8.4
@@ -95,33 +69,11 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
-     * the heading of the category the given key belongs to.
-     * <p>
-     * Although a key identifies an individual statistic, this returns the category's own name —
-     * the "Mined" or "Used" heading — shared by statistics of the same type. It is
-     * the text the statistics screen prints at the top of each group, which is what makes it
-     * useful as a label when walking {@link #getStatList()}, and misleading as a way of naming
-     * one statistic.
-     * <br>
-     * This returns the game's own text component, not a {@link TextHelper}, so it carries the
-     * client's language; wrap it if a helper is wanted.
-     * example:
-     * <pre>
-     * if (World.isWorldLoaded()) {
-     *   const stats = Player.getStatistics();
-     *   // getStatText hands back the game's own text component, so wrap it to read it
-     *   const TextHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.TextHelper");
-     *   for (const key of stats.getStatList()) {
-     *     // the heading for that whole category, not for one statistic
-     *     const heading = TextHelper.wrap(stats.getStatText(key));
-     *     Chat.log(`${heading.getString()} - ${key}: ${stats.getFormattedStatValue(key)}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the display name of the statistic type identified by {@code statKey}, rather than
+     * a name specific to that statistic.
      *
      * @param statKey one of the keys from {@link #getStatList()}
      * @return the text component naming that statistic's category
-     * @throws IllegalArgumentException if the key is not one this helper holds
      * @since 1.8.4
      */
     public Component getStatText(String statKey) {
@@ -134,23 +86,10 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
-     * the raw counter for the individual statistic the given key names, as a plain number.
-     * <p>
-     * The value is the game's own count, unformatted: distance statistics use centimetres and
-     * plain counters have no thousands separator. The key selects the exact recorded statistic.
-     * example:
-     * <pre>
-     * if (World.isWorldLoaded()) {
-     *   const stats = Player.getStatistics();
-     *   for (const key of stats.getStatList()) {
-     *     Chat.log(`${key} = ${stats.getRawStatValue(key)}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the unformatted counter for the statistic identified by {@code statKey}.
      *
      * @param statKey one of the keys from {@link #getStatList()}
      * @return the raw value of the matching statistic
-     * @throws IllegalArgumentException if the key is not one this helper holds
      * @since 1.8.4
      */
     public int getRawStatValue(String statKey) {
@@ -163,24 +102,11 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
-     * the counter for the statistic the given key names, the way the statistics screen prints it.
-     * <p>
-     * This is the same number {@link #getRawStatValue(String)} returns, run through the
-     * statistic's own formatter, so a distance can read as "1.2 km", a time uses the formatter's
-     * selected unit, and a plain count stays a plain count.
-     * example:
-     * <pre>
-     * if (World.isWorldLoaded()) {
-     *   const stats = Player.getStatistics();
-     *   for (const key of stats.getStatList()) {
-     *     Chat.log(`${stats.getFormattedStatValue(key)} (raw ${stats.getRawStatValue(key)})`);
-     *   }
-     * }
-     * </pre>
+     * Returns the counter for the statistic identified by {@code statKey}, formatted by that
+     * statistic's formatter.
      *
      * @param statKey one of the keys from {@link #getStatList()}
      * @return the formatted value of the matching statistic
-     * @throws IllegalArgumentException if the key is not one this helper holds
      * @since 1.8.4
      */
     public String getFormattedStatValue(String statKey) {
@@ -193,17 +119,8 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
-     * Every statistic this helper holds, keyed by its statistic name, with each value already
-     * formatted. Statistics in the same category retain their individual entries.
-     * example:
-     * <pre>
-     * if (World.isWorldLoaded()) {
-     *   const stats = Player.getStatistics();
-     *   for (const entry of stats.getFormattedStatMap().entrySet()) {
-     *     Chat.log(`${entry.getKey()}: ${entry.getValue()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the formatted counters currently held by this helper, keyed by individual
+     * statistic name.
      *
      * @return a map of statistic name to its formatted value
      * @since 1.8.4
@@ -217,19 +134,8 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
-     * every statistic this helper holds, keyed by its individual statistic name, with each value unformatted.
-     * <p>
-     * The raw counterpart to {@link #getFormattedStatMap()}; statistics in the same category
-     * retain separate entries.
-     * example:
-     * <pre>
-     * if (World.isWorldLoaded()) {
-     *   const stats = Player.getStatistics();
-     *   for (const entry of stats.getRawStatMap().entrySet()) {
-     *     Chat.log(`${entry.getKey()}: ${entry.getValue()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the unformatted counters currently held by this helper, keyed by individual
+     * statistic name.
      *
      * @return a map of individual statistic name to its raw value
      * @since 1.8.4
@@ -243,8 +149,10 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
+     * The number of times the player has killed the entity with this identifier.
+     *
      * @param id the identifier of the entity
-     * @return how many times the player has killed the entity.
+     * @return the kill count
      * @since 1.8.4
      */
     @DocletReplaceParams("id: EntityId")
@@ -253,8 +161,10 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
+     * The number of times the player has been killed by the entity with this identifier.
+     *
      * @param id the identifier of the entity
-     * @return how many times the player has killed the specified entity.
+     * @return the death count
      * @since 1.8.4
      */
     @DocletReplaceParams("id: EntityId")
@@ -263,8 +173,10 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
+     * The number of times the player has mined the block with this identifier.
+     *
      * @param id the identifier of the block
-     * @return how many times the player has mined the block.
+     * @return the mined count
      * @since 1.8.4
      */
     @DocletReplaceParams("id: BlockId")
@@ -273,8 +185,10 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
+     * Returns the broken-item count for the item identified by {@code id}.
+     *
      * @param id the identifier of the item
-     * @return how many times the player has broken the item.
+     * @return the broken count
      * @since 1.8.4
      */
     @DocletReplaceParams("id: ItemId")
@@ -283,8 +197,10 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
+     * Returns the crafted-item count for the item identified by {@code id}.
+     *
      * @param id the identifier of the item
-     * @return how many times the player has crafted the item.
+     * @return the crafted count
      * @since 1.8.4
      */
     @DocletReplaceParams("id: ItemId")
@@ -293,8 +209,10 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
+     * Returns the item-use count for the item identified by {@code id}.
+     *
      * @param id the identifier of the item
-     * @return how many times the player has used the item.
+     * @return the used count
      * @since 1.8.4
      */
     @DocletReplaceParams("id: ItemId")
@@ -303,8 +221,10 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
+     * Returns the item pickup count for the item identified by {@code id}.
+     *
      * @param id the identifier of the item
-     * @return how many times the player has picked up the item.
+     * @return the picked-up count
      * @since 1.8.4
      */
     @DocletReplaceParams("id: ItemId")
@@ -313,8 +233,10 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
+     * Returns the item-drop count for the item identified by {@code id}.
+     *
      * @param id the identifier of the item
-     * @return how many times the player has dropped the item.
+     * @return the dropped count
      * @since 1.8.4
      */
     @DocletReplaceParams("id: ItemId")
@@ -323,8 +245,10 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
-     * @param id the identifier of the custom stat
-     * @return the value of the custom stat.
+     * Returns the counter for the custom statistic identified by {@code id}.
+     *
+     * @param id the custom statistic identifier
+     * @return the raw counter value
      * @since 1.8.4
      */
     public int getCustomStat(String id) {
@@ -336,8 +260,10 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
-     * @param id the identifier of the custom stat
-     * @return the formatted value of the custom stat.
+     * Returns the formatted counter for the custom statistic identified by {@code id}.
+     *
+     * @param id the custom statistic identifier
+     * @return the formatted counter value
      * @since 1.8.4
      */
     public String getCustomFormattedStat(String id) {
@@ -346,7 +272,7 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
-     * Used to request an update of the statistics from the server.
+     * Requests that the server send the current statistics over the active connection.
      *
      * @return self for chaining.
      * @since 1.8.4
@@ -358,6 +284,12 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
         return this;
     }
 
+    /**
+     * Returns a diagnostic string containing the formatted statistics map, in the form
+     * {@code StatsHelper:{...}}.
+     *
+     * @return diagnostic string containing the formatted statistics map
+     */
     @Override
     public String toString() {
         return String.format("StatsHelper:{%s}", getFormattedStatMap());

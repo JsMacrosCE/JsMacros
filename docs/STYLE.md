@@ -17,6 +17,9 @@ only details that change a caller's understanding or use of it, such as:
 - a meaningful distinction between overloads;
 - version-dependent behavior or a non-obvious limitation.
 
+Improve clarity while preserving useful information; concision is a constraint,
+not the objective. A shorter, accurate comment can still be a worse replacement
+if it loses usage guidance, a useful relationship, or the shape of a value.
 Prefer the shortest wording that preserves those facts. Remove repeated
 introductions, restatements of names and signatures, obvious implications,
 hypothetical use cases, rhetorical warnings, and advice not supported by the
@@ -46,14 +49,22 @@ long catalogue of examples.
 
 ### Members and overloads
 
+- Use a short operation description followed by structured parameter and return
+  tags. A little repetition is acceptable for consistency; do not remove tags
+  merely because the description mentions their meaning. An inherited contract
+  may be left inherited rather than mechanically duplicated.
 - Methods: describe the action or returned value, then state non-obvious
   conditions and effects. A method name and rendered signature already convey
   many basics; don't repeat them in a paragraph.
-- Parameters: document meaning, accepted form, units, coordinate space, or
-  special cases in `@param`. Keep each description about that parameter.
+- Parameters: keep and fill `@param` tags for parameters of documented API
+  methods. Describe meaning, accepted form, units, coordinate space, or special
+  cases. Keep each description about that parameter.
 - Returns: use `@return` for the result's meaning and important states; don't
   restate its Java type. State null/sentinel behavior explicitly when it is not
   obvious. Keep prose consistent with `@Nullable` and any doclet type override.
+  Keep and fill the tag for a non-void result, rather than replacing a blank tag
+  with description-only prose. For fluent methods returning the same instance,
+  use the established wording `self for chaining`.
 - Fields: describe what the value represents and units/state if relevant. Mark
   script read-only fields with `@DocletReadOnly`; Java `final` fields are
   recognized automatically. Do not mistake read-only for constant, frozen, or
@@ -63,6 +74,29 @@ long catalogue of examples.
 - Overloads: explain the meaningful difference once where possible, but make
   each overload's own contract understandable. Do not copy the same long
   caveat/example into every overload.
+
+Preserve useful lifecycle consequences, intended-use restrictions, extension
+guidance, and API relationships. These supplement the factual description;
+they are not filler simply because they describe how to use the API. Prefer
+caller vocabulary over descriptions that merely restate an implementation flag,
+but do not turn a flag into a guarantee about a future outcome. A small inline
+value example such as `{@code "sodium"}` is useful when it explains a value's
+shape; it does not need a separate executable example.
+
+### Audience and exclusions
+
+Source Javadoc may serve mod developers, but generated references and typings
+serve script developers. Use `@DocletIgnore` for public implementation hooks that
+are not intended as scripting APIs. Non-public members are already excluded by
+the shared doclet model. Retain useful source documentation even when excluded.
+
+Deprecated members are excluded from the current script reference and typings
+under the agreed project policy; apply `@DocletIgnore` consistently when making
+an approved exclusion change. Retain source deprecation explanations and provide
+migration guidance where appropriate. Exclusion does not change runtime access,
+but it does remove generated signatures and autocomplete support. Do not use
+exclusion to conceal an uncertain contract or a renderer defect. Audience and
+annotation changes are separate from comment-only editing assignments.
 
 Event documentation should identify when the event fires, what its payload
 means, and any important cancellation or thread behavior. Verify these against
@@ -78,6 +112,10 @@ description paragraphs **before the first block tag**: text after `@param`,
 description. This is especially important for examples; otherwise a renderer
 may place them in a parameter/return description or omit them.
 
+Put the Javadoc before the declaration's annotations and modifiers. A comment
+inserted between an annotation and its declaration can be ignored by javac and
+disappear from every generated format.
+
 Supported/appropriate tags:
 
 - `@param name ...`: one non-empty tag for each meaningful parameter. For a
@@ -85,15 +123,21 @@ Supported/appropriate tags:
 - `@return ...`: one tag for a meaningful non-void result. Explain semantics,
   not the return type repeated in words.
 - `@since x.y.z`: the **JsMacrosCE release** that introduced this API, not the
-  Minecraft version. Preserve known historical values; do not guess or leave
+  Minecraft version. Leave existing tags and values unchanged during prose
+  repair. Preserve known historical values; do not guess or leave
   `[citation needed]` in polished user-facing docs. Investigate uncertain
   history separately.
 - `@deprecated explanation`: say why it is deprecated and what to use instead
   when known. Keep this consistent with Java's `@Deprecated` annotation.
 
-Do not add `@see`: its output is inconsistent (`webdoclet` ignores it and it can
-leak raw into TypeScript). Use an inline `{@link ...}` in the relevant sentence
-instead. Do not assume standard tags such as `@throws`, `@author`, or arbitrary
+Leave existing `@author` tags unchanged during prose repair. Authorship cleanup
+and uncertain release history are separate work, not incidental pruning.
+
+`@see` is a standard, non-deprecated tag, but its output is inconsistent
+(`webdoclet` ignores it and it can leak raw into TypeScript). Do not add it;
+when converting an existing tag, preserve the useful relationship with an inline
+`{@link ...}` in the relevant sentence. Do not simply delete the information.
+Do not assume standard tags such as `@throws`, `@author`, or arbitrary
 custom tags are faithfully represented in all outputs. Before introducing one,
 prove its behavior across the actual generated artifacts; otherwise put a
 verified exception/failure contract in the description or `@return`.
@@ -222,13 +266,21 @@ snapshot before using that API as evidence. Edit shared source, not generated
 Stonecutter views or `build/docs` output. Preserve unrelated user edits and
 public names/signatures/annotations.
 
-For a batch, use `/docs-prune`. Keep batches coherent and bounded; assign
-parallel editors disjoint files. A separate reviewer should look for both lost
-contracts and unsupported claims. Generate the affected documentation
+For a campaign, use `/docs-prune` and the [persistent queue](PRUNING.md).
+Workers assigned a bounded task must not invoke the command recursively. Keep
+batches coherent and bounded by comment volume and complexity, not just file
+count; assign parallel editors disjoint files. A separate reviewer should look
+for both lost contracts and unsupported claims. Generate the affected documentation
 target(s), compare Python output with the edited source, and inspect each
 affected format. For new markup/tags, script typings, or custom doclet
 annotations, inspect all four formats and run focused fixtures/checks for
 positive and negative cases.
+
+Record a completed concision pass, an independent changed-contract review,
+unresolved behavior claims, and artifact coverage separately. An unresolved
+claim does not erase completed work on other members, but it must not be
+reported as verified. Preserve audited historical tags; prose pruning is not
+a new `@since` audit.
 
 Before accepting a change, ask:
 

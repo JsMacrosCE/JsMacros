@@ -13,16 +13,11 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the client receives a block update from the server.<br>
- * The same event is used for three different server packets, which are told apart by
- * {@link #updateType}: a single block state change ({@code 'STATE'}), a batch of section block
- * changes (also {@code 'STATE'}, fired once for every changed block in the batch), and a block
- * entity data packet ({@code 'ENTITY'}).<br>
- * This event is not cancellable, it only reports what the server sent.<br>
- * Listeners can be narrowed down with a
+ * Fires after a block-state or block-entity update packet is handled. Section updates produce one
+ * {@code 'STATE'} event per block; block-entity data packets produce {@code 'ENTITY'} events. The
+ * event is not cancellable. Listeners can be narrowed down with a
  * {@link com.jsmacrosce.jsmacros.client.api.event.filterer.FiltererBlockUpdate}, which can match
  * on position, area, block id, block states and update type.
- * example:
  * <pre>
  * JsMacros.on("BlockUpdate", JavaWrapper.methodToJava(function (event) {
  *   const pos = event.block.getBlockPos();
@@ -40,8 +35,8 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "BlockUpdate", oldName = "BLOCK_UPDATE", filterer = FiltererBlockUpdate.class)
 public class EventBlockUpdate extends BaseEvent {
     /**
-     * the block that was updated, exposes the block's position, id, name, state properties and,
-     * for {@code 'ENTITY'} updates, the block entity's NBT data. Read the position from
+     * Snapshot of the block state, position, and optional block entity associated with this update.
+     * For {@code 'ENTITY'} updates, it also exposes block-entity NBT data. Read the position from
      * {@link BlockDataHelper#getBlockPos() getBlockPos()}, the id from
      * {@link BlockDataHelper#getId() getId()}, the NBT from
      * {@link BlockDataHelper#getNBT() getNBT()} and the state from
@@ -49,19 +44,39 @@ public class EventBlockUpdate extends BaseEvent {
      */
     public final BlockDataHelper block;
     /**
-     * what kind of update triggered this event.<br>
+     * Kind of update that triggered this event:
      * {@code 'STATE'} for a block state change, {@code 'ENTITY'} for a block entity data update.
      */
     @DocletReplaceReturn("BlockUpdateType")
     @DocletDeclareType(name = "BlockUpdateType", type = "'STATE' | 'ENTITY'")
     public final String updateType;
 
+    /**
+     * Initializes the event with a helper wrapping the supplied block state and the supplied update label.
+     * The block state must be non-null; a null {@code block} causes {@link NullPointerException} during
+     * construction. The entity and position are retained as supplied without validation or copying;
+     * a null position is accepted here but causes {@link NullPointerException} when position-dependent
+     * access or {@link #toString()} is used. The update label is stored unchanged and is not restricted
+     * to {@code "STATE"} or {@code "ENTITY"}.
+     *
+     * @param block the block state to wrap; must not be {@code null}
+     * @param blockEntity the associated block entity, retained as supplied and possibly {@code null}
+     * @param blockPos the associated position, retained as supplied and possibly {@code null}
+     * @param updateType the update label, retained unchanged and possibly {@code null}
+     */
     public EventBlockUpdate(BlockState block, BlockEntity blockEntity, BlockPos blockPos, String updateType) {
         super(JsMacrosClient.clientCore);
         this.block = new BlockDataHelper(block, blockEntity, blockPos);
         this.updateType = updateType;
     }
 
+    /**
+     * Returns a diagnostic string containing the event name and the block helper's string form.
+     * Formatting dereferences the stored position; if it is {@code null}, this method throws
+     * {@link NullPointerException}.
+     *
+     * @return the event name and block helper formatted as {@code %s:{"block": %s}}
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"block\": %s}", this.getEventName(), block);

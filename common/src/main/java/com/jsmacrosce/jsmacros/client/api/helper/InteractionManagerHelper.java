@@ -33,58 +33,26 @@ import java.util.Locale;
 import java.util.concurrent.Semaphore;
 
 /**
- * Helper for ClientPlayerInteractionManager
- * it accesses interaction manager from {@code mc} instead of {@code base}, to avoid issues
+ * Controls client-side player interactions with the world through the current interaction manager.
  * <p>
- * Everything the player does to the world goes through one object — breaking a block,
- * attacking, using an item on something, right-clicking — and this is a handle on it. It is
- * reached through {@code Player.getInteractionManager()}, or the shorter
- * {@code Player.interactions()}, and it is {@code null} outside a world.
+ * Obtain it with {@code Player.interactions()}, which is {@code null} when no interaction
+ * manager is available. Block and entity target overrides affect operations that use the
+ * crosshair until cleared; range and block checks may also clear or turn an override into a
+ * miss.
  * <p>
- * Three things are worth knowing before using it.
- * <br>
- * <b>Targeting.</b> The calls that act on "whatever the player is looking at" use the
- * crosshair, and the game changes what the crosshair is on continuously. The {@code setTarget}
- * family overrides that, so a script can aim at a specific block or entity and have the call
- * act on it instead. An override lasts until it is cleared, so a script that sets one and does
- * not clear it has changed the game for everything after it;
- * {@link #clearTargetOverride()} puts it back and {@link #hasTargetOverride()} says whether
- * one is in place.
- * <br>
- * <b>Waiting.</b> Several calls take an {@code await} argument: with {@code false} they queue
- * the work and return at once, and with {@code true} they block until the server has answered.
- * Waiting is the thing that cannot be done from the main thread, so a call that waits and is
- * made <i>on</i> the main thread throws rather than freezing the game. The two failures are
- * separate and worth keeping apart: that main-thread check raises
- * {@link java.lang.IllegalThreadStateException}, and the {@code throws InterruptedException} on
- * the blocking calls comes from the {@code Semaphore} they wait on, which is not the same thing
- * as refusing the call. Either way the advice is the same: these are the ones to run from a
- * script's own thread, not from inside a main-thread callback.
- * <br>
- * <b>Breaking a block takes time.</b> {@link #breakBlock()} does the whole thing — starts the
- * break, waits for it to finish, and reports what happened — which is why it blocks and why it
- * can end in an interruption rather than a success. {@link #breakBlockAsync} is the version
- * that hands the result to a callback instead of blocking, and is usually the better one in an
- * event.
- * example:
+ * An {@code await} option waits for the queued client-thread invocation when called from outside
+ * the client thread and its joined-thread stack; it does not wait for server confirmation.
+ * Calls on that stack execute directly. {@link #breakBlock()} rejects waiting on that stack
+ * after checking for an immediate result; timed {@link #holdInteract(int)} calls reject it
+ * before enabling the hold. Waiting can be interrupted; interruption during a timed hold
+ * can leave the interact override enabled.
  * <pre>
  * const interactions = Player.interactions();
  * if (interactions === null) { throw new Error("not in a world"); }
  *
- * // act on whatever the player is looking at
- * interactions.breakBlock();
- *
- * // act on a specific block instead, then put the crosshair back
- * interactions.setTarget(10, 64, -10);
- * const result = interactions.breakBlock();
- * interactions.clearTargetOverride();
- * if (result !== null) {
+ * interactions.breakBlockAsync(JavaWrapper.methodToJava(function (result) {
  *   Chat.log(`break finished as ${result.reason}`);
- * }
- *
- * // holding an interact for a number of ticks, and letting go afterwards
- * const left = interactions.holdInteract(20);
- * Chat.log(`${left} ticks were not spent`);
+ * }));
  * </pre>
  *
  * @author aMelonRind
@@ -96,23 +64,28 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     protected final Minecraft mc = Minecraft.getInstance();
 
     /**
-     * indicates if the helper should auto update the base manager, default is true<br>
-     * when the base doesn't equal to the current manager,<br>
-     *  if this is false, raise an error;<br>
-     *  else if base is updated, the method works as usual;<br>
-     *  else if the method don't need manager or network interaction, work as usual with old manager;<br>
-     *  else the method does nothing
+     * Whether methods refresh this helper's wrapped manager when it differs from the client's
+     * current manager. Defaults to {@code true}; when disabled, a mismatch throws
+     * {@link RuntimeException}. If no replacement manager exists, updating fails and retains
+     * the wrapped manager. See {@link #checkBase(boolean)} for the exact result.
      */
     public boolean autoUpdateBase = true;
 
+    /**
+     * Wraps the supplied interaction manager as this helper's initial reference.
+     * @param base initial interaction manager to wrap
+     */
     public InteractionManagerHelper(MultiPlayerGameMode base) {
         super(base);
     }
 
     /**
-     * checks if the base matches the current manager
-     * @param update true if the base should be updated. otherwise it'll raise an error if it's not up-to-date
-     * @return true if base is available
+     * Checks whether the wrapped manager is current, optionally replacing it with the client's current manager.
+     * Matching references return {@code true}, including when both are {@code null}.
+     * A mismatch with {@code update == false} throws {@link RuntimeException}.
+     * @param update whether to replace a stale manager with a non-null current manager
+     * @return {@code true} if the references match or replacement succeeds; {@code false} if
+     *         replacement was requested but the current manager is null, leaving the wrapped manager unchanged
      */
     public boolean checkBase(boolean update) {
         if (mc.gameMode == base) return true;
@@ -127,7 +100,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @return the player's current gamemode.
+     * @return the wrapped manager's current game mode
      * @since 1.9.0
      */
     @DocletReplaceReturn("Gamemode")
@@ -137,7 +110,8 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param gameMode possible values are survival, creative, adventure, spectator (case insensitive)
+     * Sets the client's local game mode; it does not change the server's game mode.
+     * @param gameMode game mode name; recognized names are case-insensitive, and unrecognized names retain the current mode
      * @return self for chaining
      * @since 1.9.0
      */
@@ -149,7 +123,10 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * sets crosshair target to a block
+     * Overrides the crosshair hit result with the block at these coordinates and its down face.
+     * @param x block x coordinate
+     * @param y block y coordinate
+     * @param z block z coordinate
      * @return self for chaining
      * @since 1.9.0
      */
@@ -159,22 +136,16 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * sets crosshair target to a block
+     * Overrides the crosshair hit result with the block at these coordinates and the named face.
      * <p>
      * This is an override, not a read: it tells the game that the calls acting on "whatever the
      * player is looking at" should act on this block instead. It stays in place until
      * {@link #clearTargetOverride()} puts it back, so a script that sets one and does not clear
      * it has changed the game for everything that runs after it.
      * <br>
-     * There are seven forms, and this is one of the six block-position ones. A block position is
-     * given either as {@code x}, {@code y} and {@code z} ints or as a {@link BlockPosHelper} a
-     * script already has; each of those two can then be paired with the direction as a string
-     * like this one, as an {@code int} that is the game's 3D data value, or left out. The
-     * direction is which face of the block the call acts on, and the no-direction form uses the
-     * down face. The seventh form takes a {@code EntityHelper} and targets an entity instead of
-     * a block.
-     * example:
-     * <pre>
+     * The override remains until cleared or removed by configured target checks. The other overloads
+     * accept a {@link BlockPosHelper}, a 3D face data value, or an entity.
+      * <pre>
      * const interactions = Player.interactions();
      * if (interactions === null) { throw new Error("not in a world"); }
      *
@@ -182,8 +153,12 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
      * interactions.setTarget(10, 64, -10, "up");
      * interactions.interactBlock(10, 64, -10, "up", false);
      * interactions.clearTargetOverride();
-     * </pre>
-     * @return self for chaining
+      * </pre>
+      * @param x block x coordinate
+      * @param y block y coordinate
+      * @param z block z coordinate
+      * @param direction block face name: {@code up}, {@code down}, {@code north}, {@code south}, {@code east}, or {@code west}
+      * @return self for chaining
      * @since 1.9.0
      */
     @DocletReplaceParams("x: int, y: int, z: int, direction: Direction")
@@ -194,7 +169,11 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * sets crosshair target to a block
+     * Overrides the crosshair hit result with the block at these coordinates and the face identified by its 3D data value.
+     * @param x block x coordinate
+     * @param y block y coordinate
+     * @param z block z coordinate
+     * @param direction face's 3D data value (0-5: down, up, north, south, west, east)
      * @return self for chaining
      * @since 1.9.0
      */
@@ -205,7 +184,8 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * sets crosshair target to a block
+     * Overrides the crosshair hit result with the block at {@code pos} and its down face.
+     * @param pos block position
      * @return self for chaining
      * @since 1.9.0
      */
@@ -215,29 +195,34 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * sets crosshair target to a block
+     * Overrides the crosshair hit result with the block at {@code pos} and the named face.
+     * @param pos block position
+     * @param direction block face name: {@code up}, {@code down}, {@code north}, {@code south}, {@code east}, or {@code west}
      * @return self for chaining
      * @since 1.9.0
      */
-    @DocletReplaceParams("bpos: BlockPosHelper, direction: Direction")
+    @DocletReplaceParams("pos: BlockPosHelper, direction: Direction")
     public InteractionManagerHelper setTarget(BlockPosHelper pos, String direction) {
         InteractionProxy.Target.setTargetBlock(pos.getRaw(), Direction.byName(direction.toLowerCase(Locale.ROOT)));
         return this;
     }
 
     /**
-     * sets crosshair target to a block
+     * Overrides the crosshair hit result with the block at {@code pos} and the face identified by its 3D data value.
+     * @param pos block position
+     * @param direction face's 3D data value (0-5: down, up, north, south, west, east)
      * @return self for chaining
      * @since 1.9.0
      */
-    @DocletReplaceParams("bpos: BlockPosHelper, direction: Hexit")
+    @DocletReplaceParams("pos: BlockPosHelper, direction: Hexit")
     public InteractionManagerHelper setTarget(BlockPosHelper pos, int direction) {
         InteractionProxy.Target.setTargetBlock(pos.getRaw(), Direction.from3DDataValue(direction));
         return this;
     }
 
     /**
-     * sets crosshair target to an entity
+     * Overrides the crosshair hit result with the entity. Throws an {@code AssertionError} if the entity is not pickable or is the local player.
+     * @param entity entity to target
      * @return self for chaining
      * @since 1.9.0
      */
@@ -249,7 +234,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @return current hitResult
+     * @return the current crosshair hit result, or {@code null} if none is available
      * @since 1.9.1
      */
     public @Nullable HitResultHelper<?> getTarget() {
@@ -257,7 +242,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @return targeted block pos, null if not targeting block
+     * @return the targeted block position, or {@code null} when the current hit result is not a block hit
      * @since 1.9.0
      */
     @Nullable
@@ -270,7 +255,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @return targeted entity, null if not targeting entity
+     * @return the entity currently under the crosshair, or {@code null} when there is no crosshair entity
      * @since 1.9.0
      */
     @Nullable
@@ -282,7 +267,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * sets crosshair target to missed (doesn't target anything)
+     * Overrides the crosshair hit result with a miss.
      * @return self for chaining
      * @since 1.9.0
      */
@@ -292,8 +277,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @return {@code true} if target have been set by {@code ClientPlayerEntityHelper#setTarget()} or
-     *  {@code ClientPlayerEntityHelper#setTargetMissed()}
+     * @return whether a crosshair target override is set, including a miss override
      * @since 1.9.0
      */
     public boolean hasTargetOverride() {
@@ -301,7 +285,8 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * clears target override
+     * Clears the crosshair target override.
+     * Revalidating the pending break override can end it and invoke its callbacks on the caller's thread.
      * @return self for chaining
      * @since 1.9.0
      */
@@ -311,9 +296,8 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param enabled if target overriding should check range. default is {@code true}
-     * @param autoClear if override should clear when out of range.
-     *                  if {@code false}, target will set to missed if out of range. default is {@code true}
+     * @param enabled whether to check override range; defaults to {@code true}
+     * @param autoClear whether an out-of-range override is cleared; if {@code false}, it becomes a miss
      * @return self for chaining
      * @since 1.9.0
      */
@@ -324,9 +308,8 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param enabled if target overriding should check air. default is {@code false}
-     * @param autoClear if override should clear when is air.
-     *                  if {@code false}, target will set to missed if is air. default is {@code false}
+     * @param enabled whether to check if a block target is air; defaults to {@code false}
+     * @param autoClear whether an air-block override is cleared; if {@code false}, it becomes a miss
      * @return self for chaining
      * @since 1.9.0
      */
@@ -337,10 +320,10 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * this check ignores air. use {@code ClientPlayerEntityHelper#setTargetAirCheck()} to check air.
-     * @param enabled if target overriding should check block shape. default is {@code true}
-     * @param autoClear if override should clear when shape is empty.
-     *                  if {@code false}, target will set to missed if is empty. default is {@code false}
+     * Controls whether block-target overrides are rejected when the block's collision shape is empty.
+     * Air blocks are excluded from this check; use {@link #setTargetAirCheck(boolean, boolean)} to check air.
+     * @param enabled whether to check for an empty block shape; defaults to {@code true}
+     * @param autoClear whether an override with an empty shape is cleared; otherwise it becomes a miss. Defaults to {@code false}
      * @return self for chaining
      * @since 1.9.0
      */
@@ -351,7 +334,9 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * resets all range, air and shape check settings to default.
+     * Resets the checks to defaults: range checking enabled and clears out-of-range targets;
+     * air checking disabled and retains air targets; shape checking enabled and turns empty
+     * shapes into misses.
      * @return self for chaining
      * @since 1.9.0
      */
@@ -363,6 +348,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
 
 
     /**
+     * @return self for chaining
      * @since 1.5.0
      */
     public InteractionManagerHelper attack() throws InterruptedException {
@@ -370,7 +356,8 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param await
+     * @param await whether to wait for the queued client-thread attack call to finish when called outside the client thread and its joined-thread stack; calls on that stack execute directly. This does not wait for server confirmation
+     * @return self for chaining
      * @since 1.6.0
      */
     public InteractionManagerHelper attack(boolean await) throws InterruptedException {
@@ -389,7 +376,9 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param entity
+     * Attacks the entity and swings the main-hand item. Does nothing if the interaction manager is unavailable.
+     * @param entity entity to attack; targeting the local player throws {@code AssertionError}
+     * @return self for chaining
      * @since 1.5.0
      */
     public InteractionManagerHelper attack(EntityHelper<?> entity) throws InterruptedException {
@@ -397,8 +386,10 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param await
-     * @param entity
+     * Attacks the entity and swings the main-hand item. Does nothing if the interaction manager is unavailable.
+     * @param await whether to wait for the queued attack and swing to finish when called outside the client thread and its joined-thread stack; calls on that stack execute directly. This does not wait for server confirmation
+     * @param entity entity to attack; targeting the local player throws {@code AssertionError}
+     * @return self for chaining
      * @since 1.6.0
      */
     public InteractionManagerHelper attack(EntityHelper<?> entity, boolean await) throws InterruptedException {
@@ -425,10 +416,11 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param x         the x coordinate to attack
-     * @param y         the y coordinate to attack
-     * @param z         the z coordinate to attack
-     * @param direction possible values are "up", "down", "north", "south", "east", "west"
+     * Starts breaking the block at the given block coordinates and swings the main-hand item.
+     * @param x block x coordinate
+     * @param y block y coordinate
+     * @param z block z coordinate
+     * @param direction block face name: {@code up}, {@code down}, {@code north}, {@code south}, {@code east}, or {@code west}
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -438,10 +430,12 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param x
-     * @param y
-     * @param z
-     * @param direction 0-5 in order: [DOWN, UP, NORTH, SOUTH, WEST, EAST];
+     * Starts breaking the block at the given block coordinates and swings the main-hand item.
+     * @param x block x coordinate
+     * @param y block y coordinate
+     * @param z block z coordinate
+     * @param direction face's 3D data value (0-5: down, up, north, south, west, east)
+     * @return self for chaining
      * @since 1.5.0
      */
     @DocletReplaceParams("x: int, y: int, z: int, direction: Hexit")
@@ -450,11 +444,12 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param x         the x coordinate to attack
-     * @param y         the y coordinate to attack
-     * @param z         the z coordinate to attack
-     * @param direction possible values are "up", "down", "north", "south", "east", "west"
-     * @param await     whether to wait for the attack to finish
+     * Starts breaking the block at the given block coordinates and swings the main-hand item.
+     * @param x block x coordinate
+     * @param y block y coordinate
+     * @param z block z coordinate
+     * @param direction block face name: {@code up}, {@code down}, {@code north}, {@code south}, {@code east}, or {@code west}
+     * @param await whether to wait for the queued block-breaking call and swing to finish when called outside the client thread and its joined-thread stack; calls on that stack execute directly. This does not wait for server confirmation
      * @return self for chaining.
      * @since 1.8.4
      */
@@ -464,12 +459,13 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param x
-     * @param y
-     * @param z
-     * @param direction 0-5 in order: [DOWN, UP, NORTH, SOUTH, WEST, EAST];
-     * @param await
-     * @throws InterruptedException
+     * Starts breaking the block at the given block coordinates and swings the main-hand item.
+     * @param x block x coordinate
+     * @param y block y coordinate
+     * @param z block z coordinate
+     * @param direction face's 3D data value (0-5: down, up, north, south, west, east)
+     * @param await whether to wait for the queued block-breaking call and swing to finish when called outside the client thread and its joined-thread stack; calls on that stack execute directly. This does not wait for server confirmation
+     * @return self for chaining
      * @since 1.6.0
      */
     @DocletReplaceParams("x: int, y: int, z: int, direction: Hexit, await: boolean")
@@ -498,10 +494,11 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * breaks a block, will wait till it's done<br>
-     * you can use {@code ClientPlayerEntityHelper#setTarget()} to specify which block to break
-     * @return result, or null if interaction manager is unavailable
-     * @see InteractionManagerHelper#setTarget(int, int, int, String)
+     * Breaks the currently targeted block and waits for the break result.
+     * An immediate result is checked first; otherwise, calling on the client thread or a thread
+     * joined to it throws {@link IllegalThreadStateException}. No targeted block is reported by
+     * a callback outcome such as {@code NO_TARGET}, not by returning {@code null}.
+     * @return the reported break result, or {@code UNAVAILABLE} when the immediate check finds no interaction manager
      * @throws InterruptedException
      * @since 1.9.0
      */
@@ -527,27 +524,11 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * breaks a block, will wait till it's done<br>
-     * this is the same as pointing the crosshair at the block, breaking what is targeted, and
-     * then putting the crosshair back:
-     * <pre>
-     * const interactions = Player.interactions();
-     * if (interactions === null) { throw new Error("not in a world"); }
-     *
-     * interactions.setTarget(10, 64, -10);
-     * // only break if the override actually landed on that block, since a
-     * // reach check or another script may have moved it in the meantime
-     * let res = null;
-     * const aimed = interactions.getTargetedBlock();
-     * if (aimed !== null) {
-     *   const where = aimed.getX() + " " + aimed.getY() + " " + aimed.getZ();
-     *   if (where === "10 64 -10") {
-     *     res = interactions.breakBlock();
-     *   }
-     * }
-     * interactions.clearTargetOverride();
-     * </pre>
-     * @return result, or {@code null} if the target moved before the break could start
+     * Attempts to break the block at the given position, temporarily overriding the target when needed.
+     * @param x block x coordinate
+     * @param y block y coordinate
+     * @param z block z coordinate
+     * @return the break result, or {@code null} if the position cannot be targeted
      * @throws InterruptedException
      * @since 1.9.0
      */
@@ -557,26 +538,9 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * breaks a block, will wait till it's done<br>
-     * the same as the three-coordinate form, aimed at a position the script already has:
-     * <pre>
-     * const interactions = Player.interactions();
-     * if (interactions === null) { throw new Error("not in a world"); }
-     *
-     * const pos = PositionCommon.createBlockPos(10, 64, -10);
-     * interactions.setTarget(pos);
-     * let res = null;
-     * const aimed = interactions.getTargetedBlock();
-     * if (aimed !== null) {
-     *   const where = aimed.getX() + " " + aimed.getY() + " " + aimed.getZ();
-     *   const want = pos.getX() + " " + pos.getY() + " " + pos.getZ();
-     *   if (where === want) {
-     *     res = interactions.breakBlock();
-     *   }
-     * }
-     * interactions.clearTargetOverride();
-     * </pre>
-     * @return result, or {@code null} if the target moved before the break could start
+     * Attempts to break the block at {@code pos}, temporarily overriding the target when needed.
+     * @param pos position to break
+     * @return the break result, or {@code null} if the position cannot be targeted
      * @throws InterruptedException
      * @since 1.9.0
      */
@@ -598,24 +562,12 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * starts breaking a block<br>
-     * you can use {@code ClientPlayerEntityHelper#setTarget()} to specify which block to break
-     * <p>
-     * The non-blocking counterpart to {@link #breakBlock()}: it starts the break and returns,
-     * and the result arrives at the callback. That makes it the one to use inside an event,
-     * where blocking would hold up the game, and the callback runs on the main thread, so
-     * anything it wants to read has to be handed to it rather than reached for.
-     * <p>
-     * The result is a reason string and, on success, the position that was broken. A
-     * {@code SUCCESS} means the client finished the break, not that the server accepted it: a
-     * protected block or a lagging server will still refuse it.
-     * <p>
-     * A {@code null} callback is allowed, and is the way to start a break without caring how it
-     * turns out.
-     * <br>
-     * To break a block at a known position rather than the targeted one, set the target first
-     * with {@link #setTarget(int, int, int)} and clear it afterwards.
-     * example:
+     * Starts breaking the currently targeted block and delivers the outcome to {@code callback}.
+     * A null callback starts the break without registering for its outcome. {@code SUCCESS}
+     * means the client completed the break; it does not guarantee server acceptance.
+     * Immediate-result callbacks are submitted to the client thread, and normal game-driven
+     * completion runs there. Cancellation, target clearing, reset, or a break-override query can
+     * instead invoke pending callbacks synchronously on the calling thread.
      * <pre>
      * const interactions = Player.interactions();
      * if (interactions === null) { throw new Error("not in a world"); }
@@ -627,12 +579,9 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
      *   }
      * }));
      *
-     * // and to stop one part way through
-     * // interactions.cancelBreakBlock();
      * </pre>
      *
-     * @param callback this will mostly be called on main thread!
-     *                 Use {@code methodToJavaAsync()} instead of {@code methodToJava()} to avoid errors.
+     * @param callback receives the break outcome
      * @return self for chaining
      * @since 1.9.0
      */
@@ -680,6 +629,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
+     * @return whether the current interaction manager is destroying a block
      * @since 1.8.0
      */
     public boolean isBreakingBlock() {
@@ -688,7 +638,9 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @return {@code true} if there's not finished block breaking from {@code ClientPlayerEntityHelper#breakBlock()}
+     * Checks whether a break override is active. This can terminate an invalid override and
+     * dispatch pending callbacks synchronously on the caller's thread.
+     * @return {@code true} while a valid break override remains active
      * @since 1.9.0
      */
     public boolean hasBreakBlockOverride() {
@@ -696,8 +648,8 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * cancels breaking block that previously started by {@code ClientPlayerEntityHelper#breakBlock()} or
-     *  {@code ClientPlayerEntityHelper#breakBlockAsync()}
+     * Cancels the active block-break override and reports {@code CANCELLED} to registered callbacks.
+     * Callbacks run synchronously on the caller's thread.
      * @return self for chaining
      * @since 1.9.0
      */
@@ -708,7 +660,8 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
 
 
 
-    /**
+    /** Starts using the main-hand item.
+     * @return self for chaining
      * @since 1.5.0
      */
     public InteractionManagerHelper interact() throws InterruptedException {
@@ -716,7 +669,9 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param await
+     * @param await whether to wait for the queued client-thread invocation; calls on the client or
+     *              joined-thread stack execute directly, and no server confirmation is awaited
+     * @return self for chaining
      * @since 1.6.0
      */
     public InteractionManagerHelper interact(boolean await) throws InterruptedException {
@@ -735,19 +690,21 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param entity
-     * @param offHand
+     * Interacts with {@code entity} using the selected hand.
+     * @param entity entity to interact with; the local player's entity causes {@code AssertionError}
+     * @param offHand whether to use the off hand instead of the main hand
+     * @return self for chaining
      * @since 1.5.0, renamed from {@code interact} in 1.6.0
      */
     public InteractionManagerHelper interactEntity(EntityHelper<?> entity, boolean offHand) throws InterruptedException {
         return interactEntity(entity, offHand, false);
     }
 
-    /**
-     * @param entity
-     * @param offHand
-     * @param await
-     * @throws InterruptedException
+    /** Interacts with an entity using the selected hand.
+     * @param entity entity to interact with; the player's own entity causes an {@link AssertionError}
+     * @param offHand whether to use the off hand instead of the main hand
+     * @param await whether to wait for the queued client-thread task to run; it does not wait for server confirmation
+     * @return self for chaining
      * @since 1.6.0
      */
     public InteractionManagerHelper interactEntity(EntityHelper<?> entity, boolean offHand, boolean await) throws InterruptedException {
@@ -778,17 +735,19 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
         return this;
     }
 
-    /**
-     * @param offHand
+    /** Uses the selected hand's held item.
+     * @param offHand whether to use the off hand instead of the main hand
+     * @return self for chaining
      * @since 1.5.0, renamed from {@code interact} in 1.6.0
      */
     public InteractionManagerHelper interactItem(boolean offHand) throws InterruptedException {
         return interactItem(offHand, false);
     }
 
-    /**
-     * @param offHand
-     * @param await
+    /** Uses the selected hand's held item.
+     * @param offHand whether to use the off hand instead of the main hand
+     * @param await whether to wait for the queued client-thread task to run; it does not wait for server confirmation
+     * @return self for chaining
      * @since 1.6.0
      */
     public InteractionManagerHelper interactItem(boolean offHand, boolean await) throws InterruptedException {
@@ -817,11 +776,13 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param x         the x coordinate to interact
-     * @param y         the y coordinate to interact
-     * @param z         the z coordinate to interact
-     * @param direction possible values are "up", "down", "north", "south", "east", "west"
-     * @return self for chaining.
+     * Interacts with the block at the given coordinates, using the face named by {@code direction}.
+     * @param x block x coordinate
+     * @param y block y coordinate
+     * @param z block z coordinate
+     * @param direction face name: {@code up}, {@code down}, {@code north}, {@code south}, {@code east}, or {@code west}
+     * @param offHand whether to use the off hand instead of the main hand
+     * @return this helper for chaining
      * @since 1.8.4
      */
     @DocletReplaceParams("x: int, y: int, z: int, direction: Direction, offHand: boolean")
@@ -830,11 +791,13 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param x
-     * @param y
-     * @param z
-     * @param direction 0-5 in order: [DOWN, UP, NORTH, SOUTH, WEST, EAST];
-     * @param offHand
+     * Interacts with the block at the given coordinates, using the face selected by its 3D data value.
+     * @param x block x coordinate
+     * @param y block y coordinate
+     * @param z block z coordinate
+     * @param direction face data value: {@code 0} down, {@code 1} up, {@code 2} north, {@code 3} south, {@code 4} west, {@code 5} east
+     * @param offHand whether to use the off hand instead of the main hand
+     * @return self for chaining
      * @since 1.5.0, renamed from {@code interact} in 1.6.0
      */
     @DocletReplaceParams("x: int, y: int, z: int, direction: Hexit, offHand: boolean")
@@ -843,12 +806,14 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param x         the x coordinate to interact
-     * @param y         the y coordinate to interact
-     * @param z         the z coordinate to interact
-     * @param direction possible values are "up", "down", "north", "south", "east", "west"
-     * @param await     whether to wait for the interaction to complete
-     * @return self for chaining.
+     * Interacts with the block at the given coordinates, using the face named by {@code direction}.
+     * @param x block x coordinate
+     * @param y block y coordinate
+     * @param z block z coordinate
+     * @param direction face name: {@code up}, {@code down}, {@code north}, {@code south}, {@code east}, or {@code west}
+     * @param offHand whether to use the off hand instead of the main hand
+     * @param await whether to wait for the queued client-thread task to run; it does not wait for server confirmation
+     * @return this helper for chaining
      * @since 1.8.4
      */
     @DocletReplaceParams("x: int, y: int, z: int, direction: Direction, offHand: boolean, await: boolean")
@@ -857,12 +822,14 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @param x
-     * @param y
-     * @param z
-     * @param direction 0-5 in order: [DOWN, UP, NORTH, SOUTH, WEST, EAST];
-     * @param offHand
-     * @param await     whether to wait for the interaction to complete
+     * Interacts with the block at the given coordinates, using the face selected by its 3D data value.
+     * @param x block x coordinate
+     * @param y block y coordinate
+     * @param z block z coordinate
+     * @param direction face data value: {@code 0} down, {@code 1} up, {@code 2} north, {@code 3} south, {@code 4} west, {@code 5} east
+     * @param offHand whether to use the off hand instead of the main hand
+     * @param await whether to wait for the queued client-thread task to run; it does not wait for server confirmation
+     * @return this helper for chaining
      * @since 1.5.0, renamed from {@code interact} in 1.6.0
      */
     @DocletReplaceParams("x: int, y: int, z: int, direction: Hexit, offHand: boolean, await: boolean")
@@ -900,8 +867,9 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * starts/stops long interact
-     * @return self for chaining
+     * Starts or stops the continuous interact override.
+     * @param holding whether to enable or disable the override
+     * @return this helper for chaining
      * @since 1.9.0
      */
     public InteractionManagerHelper holdInteract(boolean holding) throws InterruptedException {
@@ -909,8 +877,12 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * starts/stops long interact
-     * @return self for chaining
+     * Starts or stops the continuous interact override.
+     * Disabling runs directly on the caller's thread. Enabling runs directly on the client or
+     * joined-thread stack, otherwise it is queued on the client thread.
+     * @param holding whether to enable or disable the override
+     * @param awaitFirstClick whether to wait for queued enabling work, not server confirmation; ignored when disabling
+     * @return this helper for chaining
      * @since 1.9.0
      */
     public InteractionManagerHelper holdInteract(boolean holding, boolean awaitFirstClick) throws InterruptedException {
@@ -933,32 +905,12 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * interacts for specified number of ticks
-     * <p>
-     * This holds the interact down for a number of game ticks, which is what a door or a button
-     * needs, and it is a blocking call: the script waits while the ticks go by. It cannot be run
-     * on the main thread for the same reason {@link #breakBlock()} cannot.
-     * <br>
-     * The return value is what was left over, not what was done. It is the full {@code ticks}
-     * when the interaction was cut short — the player interrupted it, or the target changed —
-     * and {@code 0} when all of them were spent, so a script that cares whether the hold
-     * actually lasted has to compare the two.
-     * <br>
-     * The interaction is released before this returns, so a script does not have to pair it with
-     * {@link #holdInteract(boolean)}.
-     * example:
-     * <pre>
-     * const interactions = Player.interactions();
-     * if (interactions === null) { throw new Error("not in a world"); }
-     *
-     * // hold for one second, which is twenty ticks
-     * const left = interactions.holdInteract(20);
-     * if (left !== 0) {
-     *   Chat.log(`the hold was cut short with ${left} ticks left`);
-     * }
-     * </pre>
-     *
-     * @return remaining ticks if the interaction was interrupted
+     * Holds interact for up to the specified number of unpaused game ticks, stopping when paused
+     * or when the override stops. Calling on the client or joined-thread stack throws
+     * {@link IllegalThreadStateException}. The hold is released on normal return; interruption
+     * while waiting can leave it active.
+     * @param ticks number of ticks to hold
+     * @return ticks not yet elapsed; nonzero if the hold was stopped by pausing with {@code stopOnPause} enabled or if the override stopped, and {@code 0} when the full duration elapsed
      * @throws InterruptedException
      * @since 1.9.0
      */
@@ -967,10 +919,12 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * interacts for specified number of ticks
-     * @param stopOnPause if {@code false}, this interaction will not return when interrupted by pause.
-     *                    the timer will not decrease, meaning it'll continue right after unpause and interact exact amount of ticks.
-     * @return remaining ticks if the interaction was interrupted
+     * Holds interact for up to the specified number of unpaused game ticks. Calling on the client
+     * or joined-thread stack throws {@link IllegalThreadStateException}. The hold is released on
+     * normal return; interruption while waiting can leave it active.
+     * @param ticks number of unpaused ticks to hold
+     * @param stopOnPause whether to stop when the game is paused; if {@code false}, paused ticks do not count and the hold resumes after unpausing
+     * @return ticks remaining; nonzero if paused with {@code stopOnPause} enabled or if the override stopped, and {@code 0} when the full duration elapsed
      * @throws InterruptedException
      * @since 1.9.0
      */
@@ -991,7 +945,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
     }
 
     /**
-     * @return {@code true} if interaction from {@code ClientPlayerEntityHelper#holdInteract()} is active
+     * @return whether the hold-interact override is active
      * @since 1.9.0
      */
     public boolean hasInteractOverride() {

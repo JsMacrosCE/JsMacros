@@ -12,7 +12,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Custom Events
+ * A named event with key-value arguments. Call {@link #registerEvent()} before subscribing; dispatch
+ * also reaches eligible {@code ANYTHING} listeners.
  *
  * @author Wagyourtail
  * @since 1.2.8
@@ -22,22 +23,34 @@ import java.util.concurrent.ConcurrentHashMap;
 @Event("Custom")
 public class EventCustom extends BaseEvent {
     protected Map<String, Object> args = new ConcurrentHashMap<>();
+    /** Name used as this custom event's dispatch and subscription-registration key. Changing it does not register the new name; call {@link #registerEvent()} separately. */
     public String eventName;
+    /** Explicit permission for joined dispatch; defaults to {@code false}. */
     public boolean joinable;
+    /** Whether this event permits cancellation; defaults to {@code false}. */
     public boolean cancelable;
 
+    /**
+     * Whether this event permits joining, based on its current {@code joinable} or {@code cancelable} flag.
+     * @return {@code true} if either flag is true; this does not guarantee every listener is joined.
+     */
     @Override
     public boolean joinable() {
         return joinable || cancelable;
     }
 
+    /**
+     * Whether this event currently permits cancellation.
+     * @return the current value of {@code cancelable}; calling {@link #cancel()} marks this instance cancelled when permitted.
+     */
     @Override
     public boolean cancellable() {
         return cancelable;
     }
 
     /**
-     * @param eventName name of the event. please don't use an existing one... your scripts might not like that.
+     * @param runner core that supplies this event's runtime context
+     * @param eventName name used to dispatch this event
      */
     public EventCustom(Core<?, ?> runner, String eventName) {
         super(runner);
@@ -45,8 +58,8 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * Triggers the event.
-     * Try not to cause infinite looping by triggering the same {@link EventCustom} from its own listeners.
+     * Dispatches this event to listeners registered under its name and eligible {@code ANYTHING}
+     * listeners.
      *
      * @since 1.2.8
      */
@@ -55,9 +68,9 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * trigger the event listeners, then run {@code callback} when they finish.
+     * Dispatches the event on a thread-pool task, then runs {@code callback} after dispatch returns.
      *
-     * @param callback used as a {@link Runnable}, so no args, no return value.
+     * @param callback callback to run after dispatch
      * @since 1.9.0
      */
     public void triggerAsync(MethodWrapper<Object, Object, Object, ?> callback) {
@@ -72,11 +85,11 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * Put an Integer into the event.
+     * Stores an integer argument.
      *
-     * @param name
-     * @param i
-     * @return
+     * @param name argument key
+     * @param i value to store
+     * @return the stored integer value
      * @since 1.2.8
      */
     public int putInt(String name, int i) {
@@ -85,11 +98,11 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * put a String into the event.
+     * Stores a string argument.
      *
-     * @param name
-     * @param str
-     * @return
+     * @param name argument key
+     * @param str value to store
+     * @return the stored string value
      * @since 1.2.8
      */
     public String putString(String name, String str) {
@@ -98,11 +111,11 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * put a Double into the event.
+     * Stores a double argument.
      *
-     * @param name
-     * @param d
-     * @return
+     * @param name argument key
+     * @param d value to store
+     * @return the stored double value
      * @since 1.2.8
      */
     public double putDouble(String name, double d) {
@@ -111,11 +124,11 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * put a Boolean into the event.
+     * Stores a boolean argument.
      *
-     * @param name
-     * @param b
-     * @return
+     * @param name argument key
+     * @param b value to store
+     * @return the stored boolean value
      * @since 1.2.8
      */
     public boolean putBoolean(String name, boolean b) {
@@ -124,11 +137,11 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * put anything else into the event.
+     * Stores an object argument. Guest-language objects cause an {@link AssertionError}.
      *
-     * @param name
-     * @param o
-     * @return
+     * @param name argument key
+     * @param o value to store
+     * @return the stored object
      * @since 1.2.8
      */
     public Object putObject(String name, Object o) {
@@ -140,10 +153,10 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * Returns the type of the defined item in the event as a string.
+     * Returns the stored argument's type label, or {@code null} when the key is absent.
      *
-     * @param name
-     * @return
+     * @param name argument key
+     * @return {@code Int}, {@code String}, {@code Double}, {@code Boolean}, or {@code Object}; {@code null} if absent
      * @since 1.2.8
      */
     @DocletReplaceReturn("'Int' | 'String' | 'Double' | 'Boolean' | 'Object' | null")
@@ -166,10 +179,10 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * Gets an Integer from the event.
+     * Returns the argument if it is an integer; otherwise returns {@code null}.
      *
-     * @param name
-     * @return
+     * @param name argument key
+     * @return the value, or {@code null} if absent or not an integer
      * @since 1.2.8
      */
     @Nullable
@@ -183,10 +196,10 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * Gets a String from the event
+     * Returns the argument if it is a string; otherwise returns {@code null}.
      *
-     * @param name
-     * @return
+     * @param name argument key
+     * @return the value, or {@code null} if absent or not a string
      * @since 1.2.8
      */
     @Nullable
@@ -200,10 +213,10 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * Gets a Double from the event.
+     * Returns the argument if it is a double; otherwise returns {@code null}.
      *
-     * @param name
-     * @return
+     * @param name argument key
+     * @return the value, or {@code null} if absent or not a double
      * @since 1.2.8
      */
     @Nullable
@@ -217,10 +230,10 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * Gets a Boolean from the event.
+     * Returns the argument if it is a boolean; otherwise returns {@code null}.
      *
-     * @param name
-     * @return
+     * @param name argument key
+     * @return the value, or {@code null} if absent or not a boolean
      * @since 1.2.8
      */
     @Nullable
@@ -234,10 +247,10 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * Gets an Object from the event.
+     * Returns the argument value, or {@code null} if absent.
      *
-     * @param name
-     * @return
+     * @param name argument key
+     * @return the value, or {@code null} if absent
      * @since 1.2.8
      */
     @Nullable
@@ -246,7 +259,7 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * @return map backing the event
+     * @return the live map backing this event; changes to it change the event's arguments
      * @since 1.6.4
      */
     public Map<String, Object> getUnderlyingMap() {
@@ -254,7 +267,7 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * registers event so you can see it in the gui
+     * Registers this event's name so it can be subscribed to and shown in the GUI.
      *
      * @since 1.3.0
      */

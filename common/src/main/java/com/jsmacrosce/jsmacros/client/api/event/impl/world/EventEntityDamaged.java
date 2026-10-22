@@ -9,22 +9,13 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires for every living entity in the client world whose health goes down, including the local
- * player and every mob or animal the client is tracking.<br>
- * The event is derived from health changes, not from damage sources, so it also fires for health
- * that is removed by a mod or by a command, and it does not fire in singleplayer worlds for the
- * integrated server's copy of the player.<br>
- * For the local player only, {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventDamage}
- * and {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventHealthChange} fire
- * alongside this event.<br>
- * This event is not cancellable, and it fires just before the new value is written, not after.
- * The mixin injects at the head of {@code setHealth}, so {@code health} already carries the
- * incoming value while reading the entity's health back from the world still gives the old one.
- * example:
+ * Fires before a client-side living entity's health decreases through {@code setHealth}; it does not
+ * identify a damage source and is not cancellable. {@code health} is the incoming value and
+ * {@code damage} is the difference from the previously tracked health.
  * <pre>
  * JsMacros.on("EntityDamaged", JavaWrapper.methodToJava(function (event) {
  *   if (event.entity.getType() === "minecraft:creeper") {
- *     Chat.log(`Creeper took ${event.damage} damage, ${event.health} hp left`);
+ *     Chat.log(`Creeper took ${event.damage} damage; incoming health: ${event.health}`);
  *   }
  * }))
  * </pre>
@@ -33,27 +24,29 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event("EntityDamaged")
 public class EventEntityDamaged extends BaseEvent {
     /**
-     * the entity that lost health. It is wrapped in the most specific
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper} subclass for its
-     * type, so it can be narrowed further with {@code asLiving()}, {@code asPlayer()} and the
-     * other {@code as...()} helpers. Its type is available from
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getType() getType()}
-     * and its name from
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getName() getName()}.
+     * Entity whose health is decreasing.
      */
     public final EntityHelper<?> entity;
     /**
-     * the entity's health after the loss, in half hearts as the vanilla health bar counts them.
+     * Incoming health value passed to {@code setHealth}.
      *
      * @since 1.6.5
      */
     public final float health;
     /**
-     * how much health the entity lost, the difference between its health before and after the
-     * change. Always positive.
+     * Decrease from the previously tracked health; positive.
      */
     public final float damage;
 
+    /**
+     * Wraps an entity and stores the supplied health and damage values without applying damage.
+     * A {@code null} entity causes {@link java.util.Objects#requireNonNull(Object)} to throw
+     * {@link NullPointerException} during helper creation.
+     *
+     * @param e non-null entity to wrap; no living-entity validation is performed
+     * @param health supplied incoming health value; it is stored unchanged and not applied
+     * @param amount supplied decrease amount, stored unchanged as {@code damage} without calculation or validation
+     */
     public EventEntityDamaged(Entity e, float health, float amount) {
         super(JsMacrosClient.clientCore);
         entity = EntityHelper.create(e);
@@ -61,6 +54,12 @@ public class EventEntityDamaged extends BaseEvent {
         this.damage = amount;
     }
 
+    /**
+     * Returns a diagnostic string containing the event name, entity helper string, and stored values.
+     * The format is {@code %s:{"entity": %s, "health": %f, "damage": %f}}.
+     *
+     * @return diagnostic text in the stated format
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"entity\": %s, \"health\": %f, \"damage\": %f}", this.getEventName(), entity.toString(), health, damage);

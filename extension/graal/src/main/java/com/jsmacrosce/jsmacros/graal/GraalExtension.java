@@ -20,15 +20,30 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Set;
 
+/** Provides Graal language support and the {@code JavaWrapper} library through the extension loader; it is not a script global.
+ * <pre>
+ * const extension = context.getCtx().runner.extensions.getExtensionForName("graal");
+ * if (extension !== null) {
+ *   Chat.log(extension.getExtensionName() + ": " + extension.defaultFileExtension());
+ * }
+ * </pre>
+ */
 public class GraalExtension implements LanguageExtension, LibraryExtension {
     private Core<?, ?> runner;
     private static GraalLanguageDefinition languageDefinition;
 
+    /** Returns the loader registration identifier {@code "graal"}.
+     * @return this extension's registration identifier
+     */
     @Override
     public String getExtensionName() {
         return "graal";
     }
 
+    /** Stores the core and registers this extension's {@code graal} configuration options.
+     * The runner is stored before registration; a registration failure is wrapped in {@code RuntimeException} and does not undo that assignment.
+     * @param runner core to store and use for configuration registration
+     */
     @Override
     public void init(Core<?, ?> runner) {
         this.runner = runner;
@@ -40,11 +55,19 @@ public class GraalExtension implements LanguageExtension, LibraryExtension {
         }
     }
 
+    /** Returns this language extension's selection priority.
+     * @return priority value {@code 1000}; higher priorities are normally preferred, but this does not guarantee selection
+     */
     @Override
     public int getPriority() {
         return 1000;
     }
 
+    /** Tests a file using the initialized runner's Graal engine and language detection; a detected language gets a name-preferred match when its basename contains {@code "graal"}.
+     * An {@code IOException} from language detection is printed and results in {@code NOT_MATCH}.
+     * @param fname candidate file to test
+     * @return {@code MATCH_WITH_NAME} for a detected language with {@code "graal"} in its basename, {@code MATCH} for another detected language, or {@code NOT_MATCH} when the engine lacks the detected language or detection throws {@code IOException}
+     */
     @Override
     public ExtMatch extensionMatch(File fname) {
         try {
@@ -60,11 +83,22 @@ public class GraalExtension implements LanguageExtension, LibraryExtension {
         return ExtMatch.NOT_MATCH;
     }
 
+    /** Returns the default file suffix, without a leading period.
+     * @return {@code "js"}
+     */
     @Override
     public String defaultFileExtension() {
         return "js";
     }
 
+    /** Returns the cached Graal language definition, creating it on the first call.
+     * The definition is stored statically across extension instances and uses the core supplied when it is created;
+     * a call finding the cache populated ignores its core argument. Creation is unsynchronized, so concurrent calls
+     * can construct competing definitions. During creation, the calling thread's context class loader is changed to
+     * this extension's loader and restored on the normal path, not in a failure-protected block.
+     * @param runner core used if the shared definition has not yet been created
+     * @return the cached Graal language definition
+     */
     @Override
     public BaseLanguage<?, ?> getLanguage(Core<?, ?> runner) {
         if (languageDefinition == null) {
@@ -76,11 +110,23 @@ public class GraalExtension implements LanguageExtension, LibraryExtension {
         return languageDefinition;
     }
 
+    /** Returns this extension's library classes for loader registration.
+     * Each call returns a fresh mutable set containing {@code FWrapper.class}.
+     * @return fresh set of contributed library classes
+     */
     @Override
     public Set<Class<? extends BaseLibrary>> getLibraries() {
         return Sets.newHashSet(FWrapper.class);
     }
 
+    /** Builds a diagnostic wrapper for a Graal polyglot exception; other throwable types are not recognized.
+     * Host exceptions use their host class name and optional message; other polyglot exceptions use
+     * {@code GuestExceptionSimplifier}, falling back to {@code "UnknownGuestException"} if its message is null.
+     * The wrapper retains the original throwable and may include a source position and linked guest/host frames;
+     * the frame chain stops at the first host {@code org.graalvm.polyglot.Context.eval} frame.
+     * @param ex throwable to inspect
+     * @return diagnostic wrapper for a {@code PolyglotException}, or {@code null} otherwise
+     */
     @Override
     public BaseWrappedException<?> wrapException(Throwable ex) {
         if (ex instanceof PolyglotException) {
@@ -103,6 +149,11 @@ public class GraalExtension implements LanguageExtension, LibraryExtension {
         return null;
     }
 
+    /** Tests whether the object is a Graal {@code Value} instance.
+     * This type check does not establish that the value originated in guest code.
+     * @param o value to inspect
+     * @return {@code true} for a {@code Value} instance; {@code false} otherwise
+     */
     @Override
     public boolean isGuestObject(Object o) {
         return o instanceof Value;

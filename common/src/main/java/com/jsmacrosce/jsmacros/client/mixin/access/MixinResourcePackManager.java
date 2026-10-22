@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackRepository;
 import org.spongepowered.asm.mixin.Mixin;
@@ -9,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import com.jsmacrosce.jsmacros.client.access.IResourcePackManager;
 
 @Mixin(PackRepository.class)
+@DocletIgnore
 public class MixinResourcePackManager implements IResourcePackManager {
 
     @Unique

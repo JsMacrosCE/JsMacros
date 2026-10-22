@@ -6,15 +6,11 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when the client receives the data for a chunk from the server.<br>
- * The event is fired once per chunk the server sends, after the chunk data has been applied to
- * the client world, so any block in that chunk can be queried from the
- * {@link com.jsmacrosce.jsmacros.client.api.library.impl.FWorld world} library at that point.<br>
- * This event is not cancellable, it only reports that a chunk arrived.
- * example:
+ * Fires after a full chunk-data packet has updated the client world. This event is not cancellable;
+ * {@code isFull} is always {@code true} on this event path.
  * <pre>
  * JsMacros.on("ChunkLoad", JavaWrapper.methodToJava(function (event) {
- *   Chat.log(`Chunk ${event.x}, ${event.z} loaded (full: ${event.isFull})`);
+ *   Chat.log(`Chunk ${event.x}, ${event.z} loaded`);
  * }))
  * </pre>
  * @author Wagyourtail
@@ -24,20 +20,24 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 @Event(value = "ChunkLoad", oldName = "CHUNK_LOAD")
 public class EventChunkLoad extends BaseEvent {
     /**
-     * the chunk's x coordinate, in chunk coordinates. Multiply by 16 for the block x coordinate.
+     * The chunk's x coordinate, in chunk coordinates.
      */
     public final int x;
     /**
-     * the chunk's z coordinate, in chunk coordinates. Multiply by 16 for the block z coordinate.
+     * The chunk's z coordinate, in chunk coordinates.
      */
     public final int z;
     /**
-     * whether the chunk was sent as a full chunk.<br>
-     * Note: the client currently only fires this event for full chunk data, so this field is
-     * always {@code true}.
+     * Whether the packet contained full chunk data; always {@code true} on this event path.
      */
     public final boolean isFull;
 
+    /**
+     * Stores the supplied chunk coordinates and full-data flag; this constructor does not load or modify a chunk.
+     * @param x chunk x coordinate, in chunk coordinates
+     * @param z chunk z coordinate, in chunk coordinates
+     * @param isFull whether the supplied data represents a full chunk; {@code false} is stored unchanged
+     */
     public EventChunkLoad(int x, int z, boolean isFull) {
         super(JsMacrosClient.clientCore);
         this.x = x;
@@ -45,6 +45,11 @@ public class EventChunkLoad extends BaseEvent {
         this.isFull = isFull;
     }
 
+    /**
+     * Returns a diagnostic string containing the event name and stored chunk coordinates.
+     * The format is {@code %s:{"x": %d, "z": %d}}; {@code isFull} is omitted.
+     * @return the formatted diagnostic string
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"x\": %d, \"z\": %d}", this.getEventName(), x, z);

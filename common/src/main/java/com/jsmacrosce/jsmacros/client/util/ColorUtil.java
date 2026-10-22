@@ -1,11 +1,17 @@
 package com.jsmacrosce.jsmacros.client.util;
 
+/** Utilities for packed ARGB color values.
+ * <pre>
+ * const ColorUtil = Java.type("com.jsmacrosce.jsmacros.client.util.ColorUtil");
+ * const opaque = ColorUtil.fixAlpha(0x336699);
+ * </pre>
+ */
 public class ColorUtil {
     /**
-     * Ensures a color doesn't have 0 opacity if it has rgb.
+     * Adds fully opaque alpha when the value has nonzero RGB and a zero alpha byte.
      *
-     * @param color input color with potentially no opacity
-     * @return color with added opacity, if needed
+     * @param color packed ARGB color; a zero alpha byte is treated as omitted only when RGB is nonzero
+     * @return the input unchanged, or with its alpha byte set to {@code 0xFF}
      */
     public static int fixAlpha(int color) {
         int alpha = color & 0xFF000000;

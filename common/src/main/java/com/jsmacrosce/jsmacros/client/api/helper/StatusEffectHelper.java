@@ -10,32 +10,10 @@ import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
 /**
- * one status effect on one entity: what it is, how strong, how long left, and how it behaves.
- * <p>
- * A status effect is more than a name. The same effect at a different strength is a different
- * thing in game terms, so the two numbers here matter as much as the identifier: the
- * <b>strength</b> is the amplifier, where 0 is level I and 1 is level II, and the
- * <b>time</b> is the remaining duration in ticks, so 20 ticks is one second and 24000 is
- * twenty minutes. Reading a level as though it were the amplifier, or a duration as though it
- * were seconds, is the easy mistake with this class.
- * <p>
- * The rest describes how the effect presents itself rather than what it does. A beacon's effect
- * is <b>ambient</b>, which is a different rendering rather than a different power. An effect
- * can be invisible or have its icon hidden without not being there, so {@link #isVisible()} and
- * {@link #hasIcon()} describe the display while {@link #isHarmful()},
- * {@link #isNeutral()} and {@link #isBeneficial()} describe the effect. Exactly one of those
- * three is true for any effect.
- * <p>
- * The effect is only half of the story: whether the player has it, at what strength and for
- * how long, is on the entity, through
- * {@code LivingEntityHelper.getStatusEffects()}. The registry also hands out effects on their
- * own through {@code Client.getRegistryManager().getStatusEffect(id)}, which is the one to use
- * to find out about an effect rather than to apply it — those have a duration of zero and are
- * not on anything.
- * <br>
- * An effect on an entity is a snapshot: the object does not update as the duration runs down,
- * so a script watching an effect has to read it again.
- * example:
+ * Describes a status-effect instance, including its type, amplifier, duration, and display flags.
+ * Amplifiers are zero-based (level I is 0); duration is in ticks, with {@code -1} indicating
+ * infinite duration. Values are snapshots and do not count down after retrieval. Use an entity's
+ * status-effect list for applied instances, or the registry to inspect an effect type.
  * <pre>
  * const player = Player.getPlayer();
  * if (player !== null) {
@@ -63,11 +41,17 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 @DocletCategory("Misc Helpers")
 public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
 
+    /** Wraps the supplied status-effect instance.
+     * @param s raw status-effect instance to wrap
+     */
     public StatusEffectHelper(MobEffectInstance s) {
         super(s);
     }
 
     /**
+     * Wraps the status-effect type with zero duration.
+     *
+     * @param s the status-effect type to wrap
      * @since 1.8.4
      */
     public StatusEffectHelper(MobEffect s) {
@@ -75,6 +59,10 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
     }
 
     /**
+     * Wraps the status-effect type with the supplied duration.
+     *
+     * @param s the status-effect type to wrap
+     * @param t the initial duration in ticks, or {@code -1} for infinite duration
      * @since 1.8.4
      */
     public StatusEffectHelper(MobEffect s, int t) {
@@ -82,23 +70,9 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
     }
 
     /**
-     * the effect's identifier, the one it is written as in the data files.
-     * <p>
-     * This is the same string the registry's {@code getStatusEffect} takes, so the two round
-     * trip, and it is the one to log or compare rather than a display name.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   for (const effect of player.getStatusEffects()) {
-     *     if (effect.getId() === "minecraft:regeneration") {
-     *       Chat.log("regenerating");
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Returns the effect's registry identifier.
      *
-     * @return
+     * @return the identifier
      * @since 1.2.4
      */
     @DocletReplaceReturn("StatusEffectId")
@@ -107,26 +81,9 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
     }
 
     /**
-     * the strength of this effect, as the game's amplifier rather than its level.
-     * <p>
-     * This is zero-based, so a plain effect gives 0 and what the game calls level II gives 1.
-     * The level shown in the inventory is this plus one, and getting that wrong is the usual
-     * reason an effect's strength looks a step out.
-     * <br>
-     * An instant effect such as instant health also has a strength, even though it applies
-     * once, because the same value is reused as the amount for those.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   for (const effect of player.getStatusEffects()) {
-     *     // what the inventory shows is one more than this
-     *     Chat.log(`${effect.getId()} is level ${effect.getStrength() + 1}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the zero-based amplifier (level I is {@code 0}).
      *
-     * @return
+     * @return the amplifier
      * @since 1.2.4
      */
     public int getStrength() {
@@ -134,7 +91,9 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
     }
 
     /**
-     * @return the string name of the category of the status effect, "HARMFUL", "NEUTRAL", or "BENEFICIAL".
+     * Returns the effect category.
+     *
+     * @return {@code "HARMFUL"}, {@code "NEUTRAL"}, or {@code "BENEFICIAL"}
      * @since 1.8.4
      */
     @DocletReplaceReturn("StatusEffectCategory")
@@ -143,29 +102,9 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
     }
 
     /**
-     * how long this effect has left, in ticks.
-     * <p>
-     * This is the game's own unit and not seconds: twenty ticks is one second, so 24000 is
-     * twenty minutes. Infinite duration is {@code -1}; check {@link #isPermanent()} before
-     * dividing a finite duration by 20 to get seconds.
-     * <br>
-     * A duration of zero is normal and means the effect has run out, so it is not by itself a
-     * sign of anything wrong; the game's own default when an effect is created with no
-     * duration is zero.
-     * <br>
-     * It is a snapshot. The duration runs down on the entity's copy, not on this object, so a
-     * script that wants the time left as the effect wears off has to read it again rather than
-     * hold on to one of these.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   for (const effect of player.getStatusEffects()) {
-     *     const remaining = effect.isPermanent() ? "infinite duration" : `${Math.ceil(effect.getTime() / 20)}s left`;
-     *     Chat.log(`${effect.getId()} has ${remaining}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the instance's remaining duration snapshot in ticks. Infinite duration is
+     * {@code -1}; zero is an expired duration. Re-read the entity's effect to observe its
+     * countdown.
      *
      * @return remaining ticks, or {@code -1} for infinite duration
      * @since 1.2.4
@@ -175,22 +114,9 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
     }
 
     /**
-     * whether this effect is applied permanently.
-     * <p>
-     * Reads the effect's infinite-duration flag. Infinite duration is represented by
-     * {@code -1}; a duration of zero is not permanent.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   for (const effect of player.getStatusEffects()) {
-     *     const wearsOff = !effect.isPermanent();
-     *     Chat.log(`${effect.getId()} ${wearsOff ? "wears off" : "does not wear off"}`);
-     *   }
-     * }
-     * </pre>
+     * Returns whether this instance has infinite duration.
      *
-     * @return {@code true} if this effect is applied permanently, {@code false} otherwise.
+     * @return {@code true} for infinite duration; {@code false} otherwise
      * @since 1.8.4
      */
     public boolean isPermanent() {
@@ -198,28 +124,10 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
     }
 
     /**
-     * Ambient effects are usually applied through beacons and they make the particles more
-     * translucent.
-     * <p>
-     * This is a presentation flag rather than a different effect: an ambient effect behaves
-     * exactly like a non-ambient one, it is only drawn as the faint swirl a beacon gives. It is
-     * the quickest way for a script to tell where an effect came from.
-     * <br>
-     * An effect from a beacon is ambient, and so is one the game applies itself for the player's
-     * own benefit; a potion or a command is not.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * if (player !== null) {
-     *   for (const effect of player.getStatusEffects()) {
-     *     if (effect.isAmbient()) {
-     *       Chat.log(`${effect.getId()} came from a beacon, not a potion`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Returns the instance's ambient flag. This is a display/state flag and does not reliably
+     * identify how the effect was applied.
      *
-     * @return {@code true} if this effect is an ambient one, {@code false} otherwise.
+     * @return {@code true} if ambient; {@code false} otherwise
      * @since 1.8.4
      */
     public boolean isAmbient() {
@@ -227,7 +135,9 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
     }
 
     /**
-     * @return {@code true} if this effect has an icon it should render, {@code false} otherwise.
+     * Returns whether the effect display should show an icon.
+     *
+     * @return {@code true} if the icon is shown; {@code false} otherwise
      * @since 1.8.4
      */
     public boolean hasIcon() {
@@ -235,8 +145,7 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
     }
 
     /**
-     * @return {@code true} if this effect affects the particle color and gets rendered in game,
-     * {@code false} otherwise.
+     * @return {@code true} if this effect is shown in the game's effect display; {@code false} otherwise.
      * @since 1.8.4
      */
     public boolean isVisible() {
@@ -244,28 +153,8 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
     }
 
     /**
-     * An effect which is instant can still carry a duration on the instance.
-     * <p>
-     * This is a property of the effect itself rather than of this instance: instant effects are
-     * the ones that apply their effect all at once and wear off, and in this build they are the
-     * ones built on the game's instant base class — instant health, instant damage and
-     * saturation. Every instance of the same effect answers the same way here, whatever
-     * duration the instance happens to have.
-     * <br>
-     * The game still records a duration on an instant effect, and the {@code /effect} command
-     * is one place a longer one can be asked for: given no duration it gives an instant effect
-     * a single tick and a continuous one 600 ticks, and given a duration it uses that number
-     * as-is for an instant effect where it multiplies a continuous one by 20. A script that
-     * wants to know why an instant effect has a duration should read {@link #getTime()}.
-     * example:
-     * <pre>
-     * const registry = Client.getRegistryManager();
-     * const instantHealth = registry.getStatusEffect("minecraft:instant_health");
-     * if (instantHealth.isInstant()) {
-     *   // applies all at once, so a duration on it would only come from a command
-     *   Chat.log("instant health is an instant effect");
-     * }
-     * </pre>
+     * Reports whether this effect type applies its effect instantly; this is independent of the
+     * instance's duration.
      *
      * @return {@code true} if this effect should be applied instantly, {@code false} otherwise.
      * @since 1.8.4
@@ -298,6 +187,9 @@ public class StatusEffectHelper extends BaseHelper<MobEffectInstance> {
         return base.getEffect().value().getCategory() == MobEffectCategory.HARMFUL;
     }
 
+    /** Returns a diagnostic string containing the effect identifier, strength, and duration.
+     * @return diagnostic representation of the wrapped status-effect instance
+     */
     @Override
     public String toString() {
         return String.format("StatusEffectHelper:{\"id\": \"%s\", \"strength\": %d, \"time\": %d}", getId(), getStrength(), getTime());

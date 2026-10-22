@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
@@ -29,6 +31,7 @@ import net.minecraft.client.GuiMessageTag;
 //? }
 
 @Mixin(ChatComponent.class)
+@DocletIgnore
 public abstract class MixinChatHud implements IChatHud {
 
     //? if >=26.1 {

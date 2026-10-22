@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -39,6 +41,7 @@ import com.jsmacrosce.jsmacros.util.ChunkPosCompat;
 import java.util.*;
 
 @Mixin(ClientPacketListener.class)
+@DocletIgnore
 public abstract class MixinClientPlayNetworkHandler extends ClientCommonPacketListenerImpl {
 
     @Shadow

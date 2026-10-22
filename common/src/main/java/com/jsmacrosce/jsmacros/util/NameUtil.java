@@ -9,6 +9,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
+ * Utilities for guessing player names and roles from chat-message prefixes.
  * @author Etheradon
  * @since 1.8.4
  */
@@ -25,18 +26,10 @@ public final class NameUtil {
     }
 
     /**
-     * An approach to retrieve the name of a player from a chat message.
-     * <p>Iterate until &lt;. If found, get the next valid name
-     * <p>Iterate until :. If found, get the last valid name
-     * <p>Iterate until >>. If found get the last valid name
-     * <p>Iterate until ->. If found get the last valid name (continue if empty)
-     * <p>The potential last name is the last value between [] or before >. It's used when the
-     * sentence just continues.
-     * <p>There are some edge cases like "name > &lt;WrongName>", because it could also be "Guild >
-     * name :". Since the last one is much more common, I will stay with this approach.
-     *
-     * @return a list of the name at index 0 and any potential roles as subsequent elements or an
-     * empty list if the name could not be identified.
+     * Guesses a player name and preceding roles from at most the first 60 characters of a chat message.
+     * Returns an empty list when no supported prefix pattern is recognized.
+     * @param text chat message to inspect
+     * @return guessed roles and player name, or an empty list when no supported prefix is recognized
      */
     public static List<String> guessNameAndRoles(String text) {
         String toAnalyze = text.substring(0, Math.min(MAX_STRING_LENGTH, text.length()));

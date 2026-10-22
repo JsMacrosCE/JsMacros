@@ -23,14 +23,9 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 /**
- * A sixteen by sixteen column of the world, and everything that can be asked of one without leaving
- * it. A script gets one from {@code World.getChunk(x, z)}, which takes chunk coordinates rather
- * than a block position, and from the chunk events.<br>
- * The thing to know before using any of this is that a chunk has two coordinate systems, and they
- * are not interchangeable. {@link #getChunkX()} and {@link #getChunkZ()} name the chunk itself,
- * while everything else on this class is relative to the chunk's own corner: {@link #getOffsetBlock(int, int, int)}
- * takes offsets from zero to fifteen, not world coordinates.
- * example:
+ * Provides access to a chunk. {@code World.getChunk(x, z)} takes chunk coordinates, while
+ * {@link #getOffsetBlock(int, int, int)} uses local {@code x}/{@code z} offsets and absolute
+ * {@code y} coordinates.
  * <pre>
  * const player = Player.getPlayer();
  * const chunk = World.getChunk(Math.floor(player.getX() / 16), Math.floor(player.getZ() / 16));
@@ -55,26 +50,16 @@ import java.util.stream.StreamSupport;
 @DocletCategory("Misc Helpers")
 public class ChunkHelper extends BaseHelper<ChunkAccess> {
 
+    /** Wraps the supplied chunk access reference without loading or looking up a chunk.
+     * @param base raw chunk access to wrap
+     */
     public ChunkHelper(ChunkAccess base) {
         super(base);
     }
 
     /**
-     * The world position of the chunk's own {@code (0, 0, 0)}, which is the corner every offset on
-     * this class is measured from. This is the block {@link #getOffsetBlock(int, int, int)} reaches
-     * with all three offsets at zero.
-     * example:
-     * <pre>
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   const corner = chunk.getStartingBlock();
-     *   Chat.log(`chunk ${chunk.getChunkX()}, ${chunk.getChunkZ()} starts at ${corner}`);
-     *   // a full chunk is sixteen blocks along x and z
-     *   Chat.log(`and ends at ${corner.east(15).south(15)}`);
-     * }
-     * </pre>
-     *
-     * @return the first block (0 0 0 coordinate) of this chunk.
+     * Returns the world position of this chunk's local origin.
+     * @return the block position at local {@code (0, 0, 0)}.
      * @since 1.8.4
      */
     public BlockPosHelper getStartingBlock() {
@@ -82,32 +67,12 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * A block in this chunk, named by its offset from the chunk's own corner. The {@code x} and
-     * {@code z} offsets run from zero to fifteen and the {@code y} offset is an absolute height
-     * rather than an offset, since a chunk reaches all the way from the bottom of the world to the
-     * top. Passing offsets outside that gives a position that is in a different chunk.
-     * example:
-     * <pre>
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   // the middle of the chunk, at sea level
-     *   const middle = chunk.getOffsetBlock(8, 64, 8);
-     *   const block = World.getBlock(middle);
-     *   if (block !== null) {
-     *     Chat.log(`the middle of the chunk holds ${block.getId()}`);
-     *   }
-     *
-     *   // the four corners, all at the bottom of the world
-     *   for (const [x, z] of [[0, 0], [15, 0], [0, 15], [15, 15]]) {
-     *     Chat.log(`corner ${x}, ${z} is ${chunk.getOffsetBlock(x, chunk.getMinBuildHeight(), z)}`);
-     *   }
-     * }
-     * </pre>
-     *
-     * @param xOffset the xOffset offset
-     * @param y       the actual y coordinate
-     * @param zOffset the zOffset offset
-     * @return the block offset from the starting block of this chunk by xOffset y zOffset.
+     * Returns a block position from local {@code x}/{@code z} offsets and an absolute {@code y}.
+     * Offsets outside {@code 0..15} on {@code x} or {@code z} produce positions in another chunk.
+     * @param xOffset local x coordinate (normally {@code 0..15})
+     * @param y       absolute y coordinate
+     * @param zOffset local z coordinate (normally {@code 0..15})
+     * @return the resulting world block position.
      * @since 1.8.4
      */
     public BlockPosHelper getOffsetBlock(int xOffset, int y, int zOffset) {
@@ -115,22 +80,8 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The highest {@code y} a block can be at in this chunk, counted as a position rather than a
-     * count. This is the top of the world and is the same for every chunk, so it is really a
-     * question about the world rather than about the chunk it was asked of.
-     * example:
-     * <pre>
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   // the top of the world, and one below it
-     *   const top = chunk.getMaxBuildHeight();
-     *   Chat.log(`${top} and ${top - 1}`);
-     *   // the difference between the two ends is the height
-     *   Chat.log(`and the chunk is ${chunk.getHeight()} tall`);
-     * }
-     * </pre>
-     *
-     * @return the maximum height of this chunk.
+     * Returns the chunk's upper build-height boundary.
+     * @return the exclusive upper y boundary.
      * @since 1.8.4
      */
     public int getMaxBuildHeight() {
@@ -138,24 +89,8 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The lowest {@code y} a block can be at in this chunk, which can be below zero on a world with
-     * a deep dark world generation setting. Like {@link #getMaxBuildHeight()} this is a property of
-     * the world rather than of this chunk.
-     * example:
-     * <pre>
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   Chat.log(`the world starts at y ${chunk.getMinBuildHeight()}`);
-     *   // the very bottom of the chunk
-     *   const floor = chunk.getOffsetBlock(0, chunk.getMinBuildHeight(), 0);
-     *   const block = World.getBlock(floor);
-     *   if (block !== null) {
-     *     Chat.log(`and there is ${block.getId()} there`);
-     *   }
-     * }
-     * </pre>
-     *
-     * @return the minimum height of this chunk.
+     * Returns the chunk's lower build-height boundary.
+     * @return the inclusive lower y boundary.
      * @since 1.8.4
      */
     public int getMinBuildHeight() {
@@ -163,20 +98,8 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * How many blocks tall the world is, which is the distance from
-     * {@link #getMaxBuildHeight()} to {@link #getMinBuildHeight()} with one added for the top
-     * block being counted as well.
-     * example:
-     * <pre>
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   const min = chunk.getMinBuildHeight();
-     *   const max = chunk.getMaxBuildHeight();
-     *   Chat.log(`${max - min + 1} tall, and getHeight says ${chunk.getHeight()}`);
-     * }
-     * </pre>
-     *
-     * @return the height of this chunk.
+     * Returns the chunk's build height in blocks.
+     * @return the number of blocks between the lower and upper build-height boundaries.
      * @since 1.8.4
      */
     public int getHeight() {
@@ -184,35 +107,12 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The first free {@code y} above the tallest block in a column of this chunk, as the heightmap
-     * named sees it. Which blocks count as tall depends on the heightmap: the surface one counts
-     * anything that is not air, while the motion blocking ones count what is in the way, and the
-     * no-leaves one leaves leaves out.<br>
-     * The {@code x} and {@code z} are offsets from the chunk's corner, not world coordinates, and
-     * the answer is the free space above rather than the block itself, so a solid column with its
-     * top at sixty-four answers sixty-five.
-     * <p>
-     * A heightmap that has never been filled in answers the bottom of the world for every column,
-     * so this is only worth reading from a heightmap the chunk has actually been scanned into.
-     * example:
-     * <pre>
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   const surface = chunk.getSurfaceHeightmap();
-     *   for (let z = 0; z !== 16; z += 4) {
-     *     const line = [];
-     *     for (let x = 0; x !== 16; x += 4) {
-     *       line.push(`${x},${z}: ${chunk.getTopYAt(x, z, surface)}`);
-     *     }
-     *     Chat.log(line.join("  "));
-     *   }
-     * }
-     * </pre>
-     *
-     * @param xOffset   the xOffset coordinate
-     * @param zOffset   the zOffset coordinate
-     * @param heightmap the heightmap to use
-     * @return the maximum {@code y} position of all blocks inside this chunk.
+     * Returns the first available y value in the given heightmap column; x and z are local offsets.
+     * This is the free space above the heightmap's highest counted block, not that block's y value.
+     * @param xOffset   local x coordinate
+     * @param zOffset   local z coordinate
+     * @param heightmap heightmap to query
+     * @return the first available y value for the column.
      * @since 1.8.4
      */
     public int getTopYAt(int xOffset, int zOffset, Heightmap heightmap) {
@@ -220,21 +120,8 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The {@code x} of the chunk itself, which is the world {@code x} divided by sixteen rounded
-     * down. This is the number {@code World.getChunk} takes, and it is not a world coordinate.
-     * example:
-     * <pre>
-     * // which chunk the player is standing in
-     * const player = Player.getPlayer();
-     * const chunk = World.getChunk(Math.floor(player.getX() / 16), Math.floor(player.getZ() / 16));
-     * if (chunk !== null) {
-     *   Chat.log(`chunk ${chunk.getChunkX()}, ${chunk.getChunkZ()}`);
-     *   // and the world position that works out to
-     *   Chat.log(`which covers ${chunk.getStartingBlock()}`);
-     * }
-     * </pre>
-     *
-     * @return the {@code x} coordinate (not the world coordinate) of this chunk.
+     * Returns this chunk's x coordinate in chunk units, as accepted by {@code World.getChunk}.
+     * @return the chunk x coordinate.
      * @since 1.8.4
      */
     public int getChunkX() {
@@ -242,18 +129,8 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The {@code z} of the chunk itself, which is the world {@code z} divided by sixteen rounded
-     * down.
-     * example:
-     * <pre>
-     * // a chunk position pair, and the block it starts at
-     * const chunk = World.getChunk(-3, 7);
-     * if (chunk !== null) {
-     *   Chat.log(`${chunk.getChunkX()}, ${chunk.getChunkZ()} starts at ${chunk.getStartingBlock()}`);
-     * }
-     * </pre>
-     *
-     * @return the {@code z} coordinate (not the world coordinate) of this chunk.
+     * Returns this chunk's z coordinate in chunk units, as accepted by {@code World.getChunk}.
+     * @return the chunk z coordinate.
      * @since 1.8.4
      */
     public int getChunkZ() {
@@ -261,26 +138,12 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The biome at a point in this chunk, as the biome's registry id. The {@code x} and {@code z} are
-     * offsets from the chunk's corner, while the {@code y} is an absolute height, since a biome
-     * depends on it: a cave and the surface above it can be different biomes.
-     * <p>
-     * The biome is read out of the world that is loaded rather than out of this chunk, so the
-     * answer is the live one.
-     * example:
-     * <pre>
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   // the surface and the bottom of the same column
-     *   Chat.log(`at the top: ${chunk.getBiome(8, chunk.getMaxBuildHeight() - 1, 8)}`);
-     *   Chat.log(`at the bottom: ${chunk.getBiome(8, chunk.getMinBuildHeight(), 8)}`);
-     * }
-     * </pre>
-     *
-     * @param xOffset the x offset
-     * @param y       the y coordinate
-     * @param zOffset the z offset
-     * @return the biome at the given position.
+     * Returns the registry id of the biome at a position in the loaded world. X and z are local
+     * offsets from this chunk's origin; y is an absolute coordinate.
+     * @param xOffset local x coordinate
+     * @param y       absolute y coordinate
+     * @param zOffset local z coordinate
+     * @return the biome registry id.
      * @since 1.8.4
      */
     @DocletReplaceReturn("Biome")
@@ -289,31 +152,10 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * How much time players have spent in this chunk, counted up while somebody is in it. The game
-     * uses it to decide how hard the chunk is, and a chunk nobody has visited stays at zero.<br>
-     * The game is what moves this counter, and it moves it for the chunks players are in, so a
-     * chunk nobody has been near stays where it was.
-     * example:
-     * <pre>
-     * // the chunks around the player, and how much time each has seen
-     * const player = Player.getPlayer();
-     * const cx = Math.floor(player.getX() / 16);
-     * const cz = Math.floor(player.getZ() / 16);
-     * for (let dx = -1; dx !== 2; dx += 1) {
-     *   for (let dz = -1; dz !== 2; dz += 1) {
-     *     const chunk = World.getChunk(cx + dx, cz + dz);
-     *     if (chunk !== null) {
-     *       Chat.log(`${chunk.getChunkX()}, ${chunk.getChunkZ()}: ${chunk.getInhabitedTime()} ticks`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Returns the chunk's cumulative inhabited time in ticks. The counter is maintained by the
+     * game; reading it here does not advance it.
      *
-     * With an increasing inhabited time, the local difficulty increases and stronger mobs will
-     * spawn. Because the time is cumulative, the more players are in the chunk, the faster the time
-     * will increase.
-     *
-     * @return the cumulative time players have spent inside this chunk.
+     * @return the cumulative inhabited time, in ticks.
      * @since 1.8.4
      */
     public long getInhabitedTime() {
@@ -321,24 +163,10 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The entities in this chunk right now, read out of the world rather than out of the chunk
-     * itself, so this is a snapshot of what the client currently knows about. An entity is counted
-     * by the chunk it is standing in, so one that straddles a border is only in one of them.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * const chunk = World.getChunk(Math.floor(player.getX() / 16), Math.floor(player.getZ() / 16));
-     * if (chunk !== null) {
-     *   const entities = chunk.getEntities();
-     *   Chat.log(`${entities.size()} entities in this chunk`);
-     *   for (let i = 0; i !== entities.size(); i += 1) {
-     *     const e = entities.get(i);
-     *     Chat.log(`  ${e.getType()} at ${e.getPos()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns entities currently exposed by the client rendering iterable whose chunk position
+     * equals this chunk's position. This is a newly collected list, not the chunk's entity storage.
      *
-     * @return all entities inside this chunk.
+     * @return the collected entities whose chunk position matches this chunk.
      * @since 1.8.4
      */
     public List<? extends EntityHelper<?>> getEntities() {
@@ -347,26 +175,9 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The positions of the block entities in this chunk: a chest, a sign, a spawner, anything that
-     * keeps data of its own. The list is of positions rather than of blocks, so what each one holds
-     * is a further lookup.
-     * example:
-     * <pre>
-     * const player = Player.getPlayer();
-     * const chunk = World.getChunk(Math.floor(player.getX() / 16), Math.floor(player.getZ() / 16));
-     * if (chunk !== null) {
-     *   const spots = chunk.getTileEntities();
-     *   Chat.log(`${spots.size()} block entities in this chunk`);
-     *   for (let i = 0; i !== spots.size(); i += 1) {
-     *     const block = World.getBlock(spots.get(i));
-     *     if (block !== null) {
-     *       Chat.log(`  ${block.getId()} at ${spots.get(i)}`);
-     *     }
-     *   }
-     * }
-     * </pre>
+     * Returns the positions of block entities stored in this chunk.
      *
-     * @return all tile entity positions inside this chunk.
+     * @return the collected block-entity positions.
      * @since 1.8.4
      */
     public List<BlockPosHelper> getTileEntities() {
@@ -374,32 +185,11 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * Runs a callback over every block in the chunk and gives the chunk back so calls can be
-     * chained. The order is by {@code x}, then {@code z}, then {@code y}, from
-     * {@link #getMinBuildHeight()} through {@link #getMaxBuildHeight()} inclusively.
-     * The {@code includeAir} flag is what keeps the walk affordable, since air is
-     * most of a chunk.<br>
-     * The callback receives a {@link BlockDataHelper}, so the block, its position and its block
-     * entity data are all reachable from what it is given. Nothing here stops the walk early: a
-     * callback that has found what it wanted still has to return, and the whole chunk is read
-     * either way.
-     * example:
-     * <pre>
-     * // count the blocks of one kind in the chunk, skipping air
-     * const player = Player.getPlayer();
-     * const chunk = World.getChunk(Math.floor(player.getX() / 16), Math.floor(player.getZ() / 16));
-     * let ores = 0;
-     * if (chunk !== null) {
-     *   chunk.forEach(false, JavaWrapper.methodToJava(function (block) {
-     *     if (block.getId() === "minecraft:diamond_ore") {
-     *       ores += 1;
-     *     }
-     *   }));
-     *   Chat.log(`${ores} diamond ore in this chunk`);
-     * }
-     * </pre>
+     * Calls {@code callback} for each included block, in local {@code x}, then {@code z}, then
+     * ascending absolute {@code y} order. The y range includes both build-height bounds. The walk
+     * always visits the full chunk; the callback cannot stop it early.
      *
-     * @param includeAir whether to include air blocks or not
+     * @param includeAir whether to call the callback for air blocks
      * @param callback   the callback function
      * @return self for chaining.
      * @since 1.8.4
@@ -422,31 +212,14 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * Whether the chunk holds at least one of the named blocks, as far as the chunk's own block
-     * data can say. This is the cheap one: it walks the chunk's block storage rather than building a
-     * helper for every block, and it stops at the first match, so it is the call to use as a test
-     * before doing anything expensive.
-     * <p>
-     * The ids may be written with or without the {@code minecraft} namespace. One that is well
-     * formed but names no block resolves to the air block, and that never matches, while one that is
-     * not a well formed id at all is an error.
-     * example:
-     * <pre>
-     * // is it worth scanning this chunk at all
-     * const player = Player.getPlayer();
-     * const chunk = World.getChunk(Math.floor(player.getX() / 16), Math.floor(player.getZ() / 16));
-     * if (chunk !== null) {
-     *   if (!chunk.containsAny("diamond_ore", "deepslate_diamond_ore")) {
-     *     Chat.log("no diamonds in this chunk");
-     *   } else {
-     *     Chat.log("worth looking at");
-     *   }
-     * }
-     * </pre>
+     * Tests whether the chunk contains any requested block. Block ids may omit the
+     * {@code minecraft} namespace; an id absent from the registry resolves to air. The current
+     * implementation compares each block state with a set of blocks, so ordinary nonempty valid
+     * requests do not match and return {@code false}.
      *
      * @param blocks the blocks to search for
-     * @return {@code true} if this chunk contains at least one of the specified blocks,
-     * {@code false} otherwise.
+     * @return {@code false} for ordinary nonempty valid requests; otherwise, whether a requested
+     * block was found.
      * @since 1.8.4
      */
     @DocletReplaceParams("...blocks: JavaVarArgs<CanOmitNamespace<BlockId>>")
@@ -469,30 +242,9 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * Whether the chunk holds every one of the named blocks. It walks the chunk's block storage and
-     * drops each block off the list as it finds it, so it answers true as soon as the list empties
-     * and answers false only once the whole chunk has been read.
-     * <p>
-     * The ids may be written with or without the {@code minecraft} namespace. One that is well
-     * formed but names no block resolves to the air block, which any chunk satisfies because it has
-     * air in it, so a mistyped id makes the answer true for the wrong reason rather than false.
-     * Reading {@link BlockDataHelper#getId()} off a block is the way to check what an id really
-     * names.
-     * example:
-     * <pre>
-     * // a chunk with every one of a set of blocks in it
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   const wanted = ["stone", "dirt", "grass_block"];
-     *   if (chunk.containsAll(wanted)) {
-     *     Chat.log("all of them are here");
-     *   } else if (chunk.containsAny(wanted)) {
-     *     Chat.log("some of them are here");
-     *   } else {
-     *     Chat.log("none of them are here");
-     *   }
-     * }
-     * </pre>
+     * Tests whether the chunk contains every requested block. Block ids may omit the
+     * {@code minecraft} namespace. An id absent from the registry resolves to air, which can make
+     * the result true for an unintended reason. An empty argument list also returns true.
      *
      * @param blocks the blocks to search for
      * @return {@code true} if the chunk contains all the specified blocks, {@code false}
@@ -520,20 +272,8 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The heightmaps this chunk holds, each paired with the kind it is. Only the kinds the chunk has
-     * actually been scanned for are in here, so a chunk that has not been worked out may have none
-     * at all, and the collection is a read-only view rather than a copy.
-     * example:
-     * <pre>
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   const maps = chunk.getHeightmaps();
-     *   Chat.log(`${maps.size()} heightmaps on this chunk`);
-     *   for (const entry of maps) {
-     *     Chat.log(`  one of them: ${entry.getKey()}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the heightmaps currently stored for this chunk as type/map entries. The returned
+     * collection is unmodifiable; it reflects only maps currently present.
      *
      * @return a map of the raw heightmap data.
      * @since 1.8.4
@@ -543,24 +283,9 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The chunk's surface heightmap, which counts any block that is not air. This creates the
-     * heightmap if the chunk does not have it yet, and a freshly created one has never been filled
-     * in, so it answers the bottom of the world for every column until the game scans it.
-     * <p>
-     * Feed it to {@link #getTopYAt(int, int, Heightmap)} to read a column out of it.
-     * example:
-     * <pre>
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   const surface = chunk.getSurfaceHeightmap();
-     *   // the highest non-air block in the middle column, and the first free space above it
-     *   const free = chunk.getTopYAt(8, 8, surface);
-     *   const block = World.getBlock(chunk.getOffsetBlock(8, free - 1, 8));
-     *   if (block !== null) {
-     *     Chat.log(`top of the middle column is ${block.getId()} at y ${free - 1}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the {@code WORLD_SURFACE} heightmap, counting non-air blocks. Creates an unprimed
+     * map when none exists; until populated, its columns return the chunk's minimum build height.
+     * Use {@link #getTopYAt(int, int, Heightmap)} to query a column.
      *
      * @return the raw surface heightmap.
      * @since 1.8.4
@@ -570,23 +295,8 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The chunk's ocean floor heightmap, which counts what is in the way rather than what is not
-     * air, so it ignores a block that something can stand through. This creates the heightmap if the
-     * chunk does not have it yet, and one that has never been filled in answers the bottom of the
-     * world for every column.
-     * example:
-     * <pre>
-     * // a terrain profile across the chunk, ignoring anything passable
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   const floor = chunk.getOceanFloorHeightmap();
-     *   const profile = [];
-     *   for (let x = 0; x !== 16; x += 1) {
-     *     profile.push(chunk.getTopYAt(x, 8, floor));
-     *   }
-     *   Chat.log(`floor profile: ${profile.join(", ")}`);
-     * }
-     * </pre>
+     * Returns the chunk's ocean-floor heightmap, which counts blocks that block motion. A new map
+     * is created if needed; until populated, its columns return the chunk's minimum build height.
      *
      * @return the raw ocean floor heightmap.
      * @since 1.8.4
@@ -596,20 +306,9 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The chunk's motion blocking heightmap, which counts what is in the way and also counts any
-     * fluid, so water has a surface here. This creates the heightmap if the chunk does not have it
-     * yet, and one that has never been filled in answers the bottom of the world for every column.
-     * example:
-     * <pre>
-     * // where something would land if it fell into this chunk
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   const blocking = chunk.getMotionBlockingHeightmap();
-     *   for (let z = 0; z !== 16; z += 4) {
-     *     Chat.log(`column ${z} lands at y ${chunk.getTopYAt(8, z, blocking)}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the chunk's motion-blocking heightmap, which counts blocks that block motion or
+     * contain fluid. A new map is created if needed; until populated, its columns return the chunk's
+     * minimum build height.
      *
      * @return the raw motion blocking heightmap.
      * @since 1.8.4
@@ -619,22 +318,8 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
     }
 
     /**
-     * The chunk's motion blocking heightmap with leaves left out, so a tree canopy does not count as
-     * ground. This creates the heightmap if the chunk does not have it yet, and one that has never
-     * been filled in answers the bottom of the world for every column.
-     * example:
-     * <pre>
-     * // the ground under a forest rather than the top of the trees
-     * const chunk = World.getChunk(0, 0);
-     * if (chunk !== null) {
-     *   const noLeaves = chunk.getMotionBlockingNoLeavesHeightmap();
-     *   const withLeaves = chunk.getMotionBlockingHeightmap();
-     *   for (let z = 0; z !== 16; z += 8) {
-     *     Chat.log(`at ${z}: ground ${chunk.getTopYAt(8, z, noLeaves)}, `
-     *       + `canopy ${chunk.getTopYAt(8, z, withLeaves)}`);
-     *   }
-     * }
-     * </pre>
+     * Returns the chunk's motion-blocking heightmap, excluding leaves blocks. A new map is created
+     * if needed; until populated, its columns return the chunk's minimum build height.
      *
      * @return the raw motion blocking heightmap without leaves.
      * @since 1.8.4
@@ -643,6 +328,9 @@ public class ChunkHelper extends BaseHelper<ChunkAccess> {
         return base.getOrCreateHeightmapUnprimed(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES);
     }
 
+    /** Returns a diagnostic string containing this chunk's x and z chunk coordinates.
+     * @return the diagnostic representation of this wrapped chunk, including its x and z chunk coordinates.
+     */
     @Override
     public String toString() {
         return String.format("ChunkHelper:{\"x\": %d, \"z\": %d}", getChunkX(), getChunkZ());

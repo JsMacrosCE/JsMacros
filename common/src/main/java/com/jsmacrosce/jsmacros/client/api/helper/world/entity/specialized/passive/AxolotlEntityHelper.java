@@ -5,17 +5,7 @@ import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 
 /**
- * the axolotl, which comes in five colour variants and can be talked into playing dead.
- * <p>
- * The variant is available twice over: {@link #getVariantId() getVariantId} gives the small
- * number the game stores and {@link #getVariantName() getVariantName} gives the name, and
- * both name the same five - {@code lucy}, {@code wild}, {@code gold}, {@code cyan} and
- * {@code blue}. Four of those are the common ones and only the blue is the rare variant,
- * which is not something this class reports.
- * <p>
- * An axolotl caught with a bucket keeps that fact for life, which is what {@link
- * #isFromBucket() isFromBucket} reports, and it is why the game will not let one despawn.
- * example:
+ * Provides access to an axolotl's variant, playing-dead state, and bucket-origin flag.
  * <pre>
  * const AxolotlEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.AxolotlEntityHelper");
  * const axolotls = World.getEntities(32, "axolotl");
@@ -36,15 +26,17 @@ import com.jsmacrosce.doclet.DocletReplaceReturn;
 @SuppressWarnings("unused")
 public class AxolotlEntityHelper extends AnimalEntityHelper<Axolotl> {
 
+    /**
+     * Wraps the supplied axolotl and retains its reference for this helper.
+     *
+     * @param base the axolotl entity to wrap
+     */
     public AxolotlEntityHelper(Axolotl base) {
         super(base);
     }
 
     /**
-     * The number the game stores the variant as, running from {@code 0} for {@code lucy} up
-     * to {@code 4} for the rare blue one. It is the id rather than the name, so it is the
-     * figure to compare against, and {@link #getVariantName() getVariantName} is the one to
-     * print.
+     * Returns the numeric identifier of this axolotl's variant.
      *
      * @return the id of this axolotl's variant.
      * @since 1.8.4
@@ -54,9 +46,7 @@ public class AxolotlEntityHelper extends AnimalEntityHelper<Axolotl> {
     }
 
     /**
-     * The variant name as the game writes it in its save data: one of {@code lucy},
-     * {@code wild}, {@code gold}, {@code cyan} or {@code blue}. It is the bare name with no
-     * namespace on the front, unlike the cat and frog variants elsewhere in this package.
+     * Returns the game name of this axolotl's variant.
      *
      * @return the name of this axolotl's variant.
      * @since 1.8.4
@@ -67,9 +57,7 @@ public class AxolotlEntityHelper extends AnimalEntityHelper<Axolotl> {
     }
 
     /**
-     * Whether the axolotl has gone limp and is lying on its side. It is the game's own
-     * playing-dead state, which it falls into when badly hurt and leaves again on its own,
-     * so it is a few seconds rather than something a player sets.
+     * Returns whether the axolotl is playing dead.
      *
      * @return {@code true} if the axolotl is playing dead, {@code false} otherwise.
      * @since 1.8.4
@@ -79,9 +67,7 @@ public class AxolotlEntityHelper extends AnimalEntityHelper<Axolotl> {
     }
 
     /**
-     * Whether this axolotl was caught with a bucket rather than found in the world. The game
-     * keeps the flag for good and uses it to stop the axolotl being unloaded, so one of
-     * these is never a despawn candidate.
+     * Returns whether this axolotl has the from-bucket flag set.
      *
      * @return {@code true} if the axolotl came from a bucket, {@code false} otherwise.
      * @since 1.8.4

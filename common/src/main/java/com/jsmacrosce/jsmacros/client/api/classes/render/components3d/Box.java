@@ -35,33 +35,13 @@ import com.mojang.blaze3d.platform.DepthTestFunction;
 //? }
 
 /**
- * the outline of an axis-aligned cuboid, and optionally its solid inside.
+ * An axis-aligned cuboid with an outline and an optional filled interior. Its position
+ * is defined by two opposite corners, and its outline and fill have independent colours.
+ * Setters taking a packed colour make a zero alpha byte opaque unless the whole value
+ * is zero; overloads taking a separate alpha preserve zero alpha.
  * <p>
- * The two corners are two opposite corners rather than a minimum and a maximum, so
- * they can be given in any order and the box is built between them either way. A box
- * that covers one block therefore runs from the block's own position to one block
- * further along each axis, which is what {@code boxBuilder().forBlock(int, int, int)}
- * does for you.
- * <p>
- * Coordinates are block coordinates in the dimension the player is in, and the
- * overlay that holds it is drawn relative to the camera, so a box moves with the
- * player rather than staying put in the world.
- * <p>
- * There are two colours, and they are independent. The outline is always drawn, in
- * {@code color}, and the inside is drawn as well only when {@code fill} is set, in
- * {@code fillColor}. A box made with {@code fill} off and no fill colour therefore
- * shows only its edges.
- * <p>
- * {@code cull} is {@code true} when the box is depth tested, so terrain draws over it,
- * and {@code false} when it is drawn over everything, which is what every
- * {@code Draw3D} helper gives you unless the argument is passed explicitly.
- * {@link Line3D#setAlwaysOnTop(boolean)} says the same thing the other way round.
- * <p>
- * A colour written without an alpha of its own is made opaque, so
- * {@code 0x00FF0000} comes out as {@code 0xFFFF0000}. A colour of {@code 0x00000000}
- * is left alone, since there is nothing there to make visible; use the setters that
- * take a separate alpha when {@code 0} is what is wanted.
- * example:
+ * {@code cull} enables depth testing, allowing terrain to hide the box; otherwise it is
+ * drawn over the world. Builders and {@code Draw3D} helpers default it to false.
  * <pre>
  * const draw = Hud.createDraw3D();
  * // a filled red cube one block on a side, drawn over the world
@@ -96,53 +76,57 @@ public class Box implements RenderElement3D<Box> {
     //? }
 
     /**
-     * the two opposite corners of this box, as a segment.
-     * <p>
-     * Public and writable, so the box can be moved by writing to the coordinates
-     * directly as well as through
-     * {@link #setPos(double, double, double, double, double, double)}. The two ends
-     * are the corners as they were given and are not put in any order, so
-     * {@code pos.getStart()} is whichever corner was passed first.
+     * The two opposite corners defining this box. Their supplied order is retained.
      *
      * @since 1.0.6
      */
     public Vec3D pos;
     /**
-     * the colour of the outline, packed as the game packs colours, with the alpha in
-     * the top byte. Public and writable; the outline is drawn whatever {@link #fill}
-     * is set to.
+     * The outline colour, packed with alpha in the top byte. The outline is drawn
+     * whether or not {@link #fill} is set.
      *
      * @since 1.0.6
      */
     public int color;
     /**
-     * the colour of the inside, packed the same way as {@link #color}. Public and
-     * writable. This is only used when {@link #fill} is {@code true}, and is a
-     * separate colour from the outline rather than a shade of it.
+     * The fill colour, packed the same way as {@link #color}; used only when
+     * {@link #fill} is {@code true}.
      *
      * @since 1.0.6
      */
     public int fillColor;
     /**
-     * whether the inside of this box is drawn as well as its outline.
-     * <p>
-     * Public and writable, so it can be changed on a box that is already in an
-     * overlay and take effect on the next frame.
+     * Whether to draw the inside as well as the outline.
      *
      * @since 1.0.6
      */
     public boolean fill;
     /**
-     * whether this box is depth tested, so that terrain draws over it.
-     * <p>
-     * {@code true} is the ordinary box that terrain hides and {@code false} is the one
-     * drawn over everything. Every {@code Draw3D} helper that takes no {@code cull}
-     * argument leaves this {@code false}.
+     * Whether this box is depth tested, allowing terrain to hide it; false draws it
+     * over the world.
      *
      * @since 1.0.6
      */
     public boolean cull;
 
+    /**
+     * Constructs a detached box from two ordered opposite corners in world-space block
+     * coordinates and packed outline and fill colours. Each colour uses
+     * {@link ColorUtil#fixAlpha(int)}: a nonzero RGB value with a zero alpha byte
+     * becomes opaque, while zero remains transparent.
+     * This does not add or register the box with a {@link Draw3D} overlay.
+     *
+     * @param x1 x coordinate of the first corner
+     * @param y1 y coordinate of the first corner
+     * @param z1 z coordinate of the first corner
+     * @param x2 x coordinate of the opposite corner
+     * @param y2 y coordinate of the opposite corner
+     * @param z2 z coordinate of the opposite corner
+     * @param color packed outline colour
+     * @param fillColor packed fill colour
+     * @param fill whether to draw the interior
+     * @param cull whether to enable the renderer's depth-testing setting
+     */
     public Box(double x1, double y1, double z1, double x2, double y2, double z2, int color, int fillColor, boolean fill, boolean cull) {
         setPos(x1, y1, z1, x2, y2, z2);
         setColor(color);
@@ -151,6 +135,26 @@ public class Box implements RenderElement3D<Box> {
         this.cull = cull;
     }
 
+    /**
+     * Constructs a detached box from two ordered opposite corners in world-space block
+     * coordinates, with outline and fill alpha supplied separately. Each colour's
+     * existing alpha byte is ignored;
+     * its low 24 bits are combined with the corresponding alpha using a left shift,
+     * without range validation. This does not add or register the box with an overlay.
+     *
+     * @param x1 x coordinate of the first corner
+     * @param y1 y coordinate of the first corner
+     * @param z1 z coordinate of the first corner
+     * @param x2 x coordinate of the opposite corner
+     * @param y2 y coordinate of the opposite corner
+     * @param z2 z coordinate of the opposite corner
+     * @param color outline RGB value; its top byte is ignored
+     * @param alpha outline alpha, shifted into the top byte without range validation
+     * @param fillColor fill RGB value; its top byte is ignored
+     * @param fillAlpha fill alpha, shifted into the top byte without range validation
+     * @param fill whether to draw the interior
+     * @param cull whether to enable the renderer's depth-testing setting
+     */
     public Box(double x1, double y1, double z1, double x2, double y2, double z2, int color, int alpha, int fillColor, int fillAlpha, boolean fill, boolean cull) {
         setPos(x1, y1, z1, x2, y2, z2);
         setColor(color, alpha);
@@ -160,20 +164,7 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * moves this box to run between two corners.
-     * <p>
-     * The two triples are opposite corners rather than a minimum and a maximum, so
-     * they can be given in either order and the box is the same either way. This
-     * replaces the box's position object rather than writing into the old one, so a
-     * reference taken to it beforehand stops following the box.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFFFFFF, 0x00000000, false);
-     * // move it two blocks along x without changing its size
-     * box.setPos(2, 64, 0, 3, 65, 1);
-     * draw.register();
-     * </pre>
+     * Replaces {@link #pos} with the supplied opposite corners, retaining their order.
      *
      * @param x1 the x coordinate of the first corner
      * @param y1 the y coordinate of the first corner
@@ -188,20 +179,8 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * set this component's pos to a block
-     * <p>
-     * The box is made to cover exactly that one block, running from the block's own
-     * position to one block further along each axis. A block position is a corner,
-     * not a centre, so the block this names is the one whose base corner is at those
-     * coordinates rather than the one the player is standing in.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.boxBuilder(0, 64, 0).color(0xFFFF0000).buildAndAdd();
-     * // point it at a different block instead of rebuilding it
-     * box.setPosToBlock(10, 64, 10);
-     * draw.register();
-     * </pre>
+     * Sets this box to cover the block at {@code pos}, extending one block from its
+     * coordinates along each axis.
      *
      * @param pos the block to cover
      * @since 1.9.0
@@ -211,18 +190,8 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * set this component's pos to a block
-     * <p>
-     * The box is made to cover exactly that one block, from the coordinates given to
-     * one block further along each axis. The numbers are a block corner rather than
-     * its middle, so {@code 0, 64, 0} is the block above {@code 0, 63, 0}.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFFFFFF, 0x00000000, false);
-     * box.setPosToBlock(10, 70, -3);
-     * draw.register();
-     * </pre>
+     * Sets this box to cover the block at the given coordinates, extending one block
+     * from that corner along each axis.
      *
      * @param x the x coordinate of the block's corner
      * @param y the y coordinate of the block's corner
@@ -234,19 +203,8 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * set this component's pos to a point
-     * <p>
-     * The box becomes a cube centred on the point, running from one radius below it to
-     * one radius above it on each axis, so its side length is twice the radius. A
-     * radius of {@code 0.5} is therefore a cube exactly one block on a side.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFFFFFF, 0x00000000, false);
-     * // a one block cube centred on a point
-     * box.setPosToPoint(PositionCommon.createPos(0.5, 64.5, 0.5), 0.5);
-     * draw.register();
-     * </pre>
+     * Sets this box to a cube centred on {@code pos}, with side length twice
+     * {@code radius}.
      *
      * @param pos the centre of the cube
      * @param radius half the side length, in blocks
@@ -257,20 +215,8 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * set this component's pos to a point
-     * <p>
-     * The cube is centred on the point given, running from one radius below it to one
-     * radius above it on each axis, so the side length is twice the radius. A
-     * negative radius is not checked and simply flips the two corners, which leaves
-     * the same cube.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFFFFFF, 0x00000000, false);
-     * // a two block cube centred on the middle of that block
-     * box.setPosToPoint(0.5, 64.5, 0.5, 1);
-     * draw.register();
-     * </pre>
+     * Sets this box to a cube centred on the given point, with side length twice
+     * {@code radius}. A negative radius reverses the supplied corner order.
      *
      * @param x the x coordinate of the centre
      * @param y the y coordinate of the centre
@@ -283,19 +229,9 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * A colour with no alpha of its own is made opaque: if the alpha byte is zero and
-     * there is some red, green or blue, it becomes {@code 0xFF}. A colour of
-     * {@code 0x00000000} is left alone, since there is nothing to make visible, and so
-     * is one that already carries a non-zero alpha. Use {@link #setColor(int, int)}
-     * when an alpha of {@code 0} is what is wanted.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFFFFFF, 0x00000000, false);
-     * // no alpha in this one, so the outline comes out fully opaque
-     * box.setColor(0x00FF00);
-     * draw.register();
-     * </pre>
+     * Replaces the outline colour. If its alpha byte is zero but its RGB value is
+     * nonzero, the alpha is made opaque; {@code 0x00000000} remains transparent.
+     * Use {@link #setColor(int, int)} to specify zero alpha explicitly.
      *
      * @param color the colour of the outline
      * @since 1.0.6
@@ -305,18 +241,8 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * The same alpha handling as {@link #setColor(int)}, and it is applied whether or
-     * not {@link #fill} is on, so a fill colour set ahead of turning the fill on is
-     * already opaque by the time it is used.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFFFFFF, 0x00000000, false);
-     * box.setFill(true);
-     * // no alpha in this one, so the inside comes out fully opaque
-     * box.setFillColor(0x0000FF);
-     * draw.register();
-     * </pre>
+     * Replaces the fill colour using the same zero-alpha handling as
+     * {@link #setColor(int)}. The colour is stored even while filling is disabled.
      *
      * @param fillColor the colour of the inside
      * @since 1.0.6
@@ -326,16 +252,8 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * The alpha is put in the top byte and the rest of the colour kept as it is, with
-     * nothing filled in, so an alpha of {@code 0} really does make the outline
-     * invisible rather than being treated as a missing one.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFFFFFF, 0x00000000, false);
-     * box.setColor(0xFF0000, 128);
-     * draw.register();
-     * </pre>
+     * Sets the outline RGB and alpha explicitly. The alpha replaces the top byte;
+     * zero remains transparent.
      *
      * @param color the colour of the outline
      * @param alpha the alpha of the outline, from 0 to 255
@@ -346,17 +264,7 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * Only the top byte is replaced and the colour is left alone, so this fades a
-     * box's edges without touching what colour they are. A value of {@code 0} makes
-     * the outline invisible while leaving the inside alone.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFFFFFF, 0x00000000, true);
-     * // fade the edges, leave the inside as it is
-     * box.setAlpha(64);
-     * draw.register();
-     * </pre>
+     * Replaces the outline alpha without changing its RGB or the fill colour.
      *
      * @param alpha the alpha of the outline, from 0 to 255
      * @since 1.1.8
@@ -366,17 +274,8 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * The two are packed the same way as {@link #setColor(int, int)}, and an alpha of
-     * {@code 0} is kept rather than being filled in. This only has a visible effect
-     * while {@link #fill} is on.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFFFFFF, 0x00000000, true);
-     * // a half transparent blue inside behind an opaque red outline
-     * box.setFillColor(0x0000FF, 128);
-     * draw.register();
-     * </pre>
+     * Sets the fill RGB and alpha explicitly, preserving zero alpha. It is visible
+     * only when {@link #fill} is true.
      *
      * @param fillColor the colour of the inside
      * @param alpha the alpha of the inside, from 0 to 255
@@ -387,16 +286,8 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * Only the top byte of the fill colour is replaced and its colour is left alone.
-     * This has no visible effect unless {@link #fill} is on, since the inside is not
-     * drawn at all otherwise.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFFFFFF, 0x00000000, true);
-     * box.setFillAlpha(64);
-     * draw.register();
-     * </pre>
+     * Replaces the fill alpha without changing its RGB. It is visible only when
+     * {@link #fill} is true.
      *
      * @param alpha the alpha of the inside, from 0 to 255
      * @since 1.1.8
@@ -406,17 +297,8 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * This can be changed on a box that is already in an overlay and takes effect on
-     * the next frame, which is the cheap way to make a box appear when something
-     * happens. Turning it off leaves the outline and its colour untouched.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const box = draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFF0000, 0x88000000, false);
-     * draw.register();
-     * // solid once something is true
-     * box.setFill(true);
-     * </pre>
+     * Controls whether the interior is drawn; disabling it leaves the outline
+     * unchanged.
      *
      * @param fill whether to draw the inside as well as the outline
      * @since 1.0.6
@@ -425,6 +307,13 @@ public class Box implements RenderElement3D<Box> {
         this.fill = fill;
     }
 
+    /**
+     * Tests equality by exact runtime class and current position value; colour, fill,
+     * and depth-testing settings are ignored. A null argument or a different class
+     * does not match; null positions compare equal to null positions.
+     * @param o object to compare
+     * @return {@code true} if the objects match by this rule
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -433,27 +322,20 @@ public class Box implements RenderElement3D<Box> {
         return Objects.equals(pos, box.pos);
     }
 
+    /**
+     * Computes a hash from the current position only. Since position is mutable, the
+     * hash may change when it changes; colour, fill, and depth-testing settings are ignored.
+     * @return hash of the current position
+     */
     @Override
     public int hashCode() {
         return Objects.hash(pos);
     }
 
     /**
-     * orders this box against another one, on their positions.
-     * <p>
-     * Only ever reached for two boxes, since the sort compares class names first and
-     * only ties get here. What it looks at is the two corners, and the comparison is a
-     * raw one on the coordinates rather than a distance, so two boxes that overlap
-     * still order against each other rather than tying. The colour, the fill and the
-     * cull flag are not part of it.
-     * example:
-     * <pre>
-     * const draw = Hud.createDraw3D();
-     * const a = draw.boxBuilder().forBlock(0, 64, 0).color(0xFFFF0000).build();
-     * const b = draw.boxBuilder().forBlock(10, 64, 0).color(0xFF00FF00).build();
-     * // the red one is nearer the origin, so it sorts first
-     * Chat.log(`a sorts before b: ${a.compareToSame(b) < 0}`);
-     * </pre>
+     * Compares this box's corner coordinates lexicographically with another box's.
+     * The comparison is not based on distance or overlap; colour, fill, and culling
+     * do not affect the result.
      *
      * @param other another box to order this one against
      * @return a negative number, zero, or a positive number as this box is before, the
@@ -550,18 +432,13 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * collects the values for a {@link Box}, then builds it.
+     * Configures a {@link Box} before building it. {@link #build()} returns the box
+     * without adding it; {@link #buildAndAdd()} adds it to the originating overlay.
+     * The default is a zero-size box at the origin with opaque white outline and fill
+     * colours, no fill, and no depth testing.
      * <p>
-     * A chain of setters, then {@link #build()} for a box that is not put anywhere or
-     * {@link #buildAndAdd()} for one added to the overlay it was made from. The
-     * defaults are a box with no size, at the origin, white outline, white inside,
-     * fully opaque, not filled, and drawn over everything.
-     * <p>
-     * There are two ways to give the same box. {@link #forBlock(int, int, int)} takes
-     * one block and makes a box covering exactly it, which is the usual case, while
-     * the {@code pos} setters take two corners and so can make a box of any size at
-     * all.
-     * example:
+     * Use {@link #forBlock(int, int, int)} for a one-block box or the corner setters
+     * to specify arbitrary bounds.
      * <pre>
      * const draw = Hud.createDraw3D();
      * draw.boxBuilder(0, 64, 0)
@@ -590,23 +467,23 @@ public class Box implements RenderElement3D<Box> {
         private boolean fill = false;
         private boolean cull = false;
 
+        /**
+         * Creates a builder with coincident origin corners, opaque white outline and
+         * fill, filling disabled, and depth testing disabled. Construction does not
+         * build or add a box. A null parent is acceptable for {@link #build()}, but
+         * {@link #buildAndAdd()} throws {@link NullPointerException} when it tries to
+         * add to that parent.
+         *
+         * @param parent overlay used by {@link #buildAndAdd()}; may be null when only
+         *               building detached boxes
+         */
         public Builder(Draw3D parent) {
             this.parent = parent;
         }
 
         /**
-         * Taken by reference, so the built box and this builder share the position and
-         * moving one moves the other. The two corners are the box's opposite corners
-         * rather than a minimum and a maximum, so which one is the first is arbitrary.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * const corner = PositionCommon.createPos(0, 64, 0);
-         * draw.boxBuilder().pos1(corner).pos2(1, 65, 1).buildAndAdd();
-         * // moving the corner after the fact moves the box with it
-         * corner.y = 70;
-         * draw.register();
-         * </pre>
+         * Sets the first of the box's opposite corners. The position is stored by
+         * reference, so mutating it affects boxes built later, not boxes already built.
          *
          * @param pos1 the first position of the box
          * @return self for chaining.
@@ -618,18 +495,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The block's own position, without its offset, so this is a block corner
-         * rather than the middle of the block. The other corner still has to be given
-         * separately; this does not by itself make a box one block on a side.
-         * example:
-         * <pre>
-         * const player = Player.getPlayer();
-         * if (player !== null) {
-         *   const draw = Hud.createDraw3D();
-         *   draw.boxBuilder().pos1(player.getBlockPos()).pos2(1, 65, 1).buildAndAdd();
-         *   draw.register();
-         * }
-         * </pre>
+         * Sets the first corner from the block's integer coordinates; a second corner
+         * is still required to define the box.
          *
          * @param pos1 the first position of the box
          * @return self for chaining.
@@ -641,15 +508,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * One corner on its own. Nothing is sized from it, so this only makes a box
-         * once the second corner is given as well; {@link #forBlock(int, int, int)}
-         * is the one call that does both.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * draw.boxBuilder().pos1(0, 64, 0).pos2(3, 67, 2).color(0xFFFF0000).buildAndAdd();
-         * draw.register();
-         * </pre>
+         * Sets the first corner; use {@link #forBlock(int, int, int)} to set both
+         * corners for a single block.
          *
          * @param x1 the x coordinate of the first position of the box
          * @param y1 the y coordinate of the first position of the box
@@ -663,14 +523,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The builder's own position rather than a copy, so changing it changes what a
-         * box built afterwards will be.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.pos1(0, 64, 0);
-         * Chat.log(`first corner is ${builder.getPos1()}`);
-         * </pre>
+         * Returns the builder's first-corner object; mutating it affects boxes built later.
          *
          * @return the first position of the box.
          * @since 1.8.4
@@ -680,18 +533,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Taken by reference, so the built box and this builder share the position and
-         * moving one moves the other. This is the corner opposite
-         * {@link #pos1(double, double, double)}, not a far corner in any particular
-         * direction.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * const corner = PositionCommon.createPos(1, 65, 1);
-         * draw.boxBuilder().pos1(0, 64, 0).pos2(corner).buildAndAdd();
-         * corner.x = 4;
-         * draw.register();
-         * </pre>
+         * Sets the corner opposite {@link #pos1(double, double, double)}. The position
+         * is stored by reference, so mutating it affects boxes built later, not boxes already built.
          *
          * @param pos2 the second position of the box
          * @return self for chaining.
@@ -703,19 +546,9 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The block's own position, without its offset, so this is a block corner
-         * rather than the middle of the block. Two neighbouring block positions given
-         * to the two {@code pos} setters make a box one block on a side.
-         * example:
-         * <pre>
-         * const player = Player.getPlayer();
-         * if (player !== null) {
-         *   const draw = Hud.createDraw3D();
-         *   const base = player.getBlockPos();
-         *   draw.boxBuilder().pos1(base).pos2(base.offset(1, 1, 1)).buildAndAdd();
-         *   draw.register();
-         * }
-         * </pre>
+         * Sets the opposite corner from the block's integer coordinates; unlike
+         * {@link #pos2(double, double, double)}, this converts the helper to a position
+         * object before storing it.
          *
          * @param pos2 the second position of the box
          * @return self for chaining.
@@ -727,15 +560,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The corner opposite the first, and together the two decide the box's size
-         * and where it sits. Which is the start and which is the end is arbitrary, so
-         * they can be given in either order.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * draw.boxBuilder().pos1(0, 64, 0).pos2(3, 67, 2).color(0xFFFF0000).buildAndAdd();
-         * draw.register();
-         * </pre>
+         * Sets the opposite corner; together with the first corner it determines the
+         * box, and either corner may be first.
          *
          * @param x2 the x coordinate of the second position of the box
          * @param y2 the y coordinate of the second position of the box
@@ -749,14 +575,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The builder's own position rather than a copy, so changing it changes what a
-         * box built afterwards will be.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.pos2(1, 65, 1);
-         * Chat.log(`second corner is ${builder.getPos2()}`);
-         * </pre>
+         * Returns the builder's second-corner object; mutating it affects boxes built later.
          *
          * @return the second position of the box.
          * @since 1.8.4
@@ -766,18 +585,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Both corners at once, which is the two number form of the two separate
-         * {@code pos} setters. The corners are opposite rather than a minimum and a
-         * maximum, so they can be given in either order. Both positions are new
-         * objects here, so unlike the {@link #pos(Pos3D, Pos3D)} form nothing outside
-         * shares them with the built box.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * // a 3 by 3 by 2 box
-         * draw.boxBuilder().pos(0, 64, 0, 3, 67, 2).color(0xFFFF0000).buildAndAdd();
-         * draw.register();
-         * </pre>
+         * Sets both opposite corners, creating new position objects rather than
+         * retaining references supplied by the caller.
          *
          * @param x1 the x coordinate of the first position of the box
          * @param y1 the y coordinate of the first position of the box
@@ -795,19 +604,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Each block's own position, without its offset. Two blocks a diagonal apart
-         * make a box filling the space between them, so two blocks that are one apart
-         * on each axis make a box exactly one block on a side.
-         * example:
-         * <pre>
-         * const player = Player.getPlayer();
-         * if (player !== null) {
-         *   const draw = Hud.createDraw3D();
-         *   const base = player.getBlockPos();
-         *   draw.boxBuilder().pos(base, base.offset(1, 1, 1)).color(0xFFFF0000).buildAndAdd();
-         *   draw.register();
-         * }
-         * </pre>
+         * Sets both corners from the block positions' integer coordinates, converting
+         * each helper to a position object.
          *
          * @param pos1 the first position of the box
          * @param pos2 the second position of the box
@@ -821,9 +619,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Both positions are taken by reference, so the built box and this builder
-         * share them and moving either one moves the box.
-         * example:
+         * Stores both position objects by reference in the builder. Mutating either
+         * affects a later build; an already-built box copies their coordinate values.
          * <pre>
          * const draw = Hud.createDraw3D();
          * const corner = PositionCommon.createPos(0, 64, 0);
@@ -845,17 +642,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Highlights the given block position.
-         * <p>
-         * Both corners at once, running from the coordinates given to one block further
-         * along each axis, which is the block those coordinates name. This is the
-         * shortest way to say "one block" and overwrites any corners set before it.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * draw.boxBuilder().forBlock(0, 64, 0).color(0xFFFF0000).buildAndAdd();
-         * draw.register();
-         * </pre>
+         * Sets both corners to cover the block at these coordinates, from its corner
+         * to one block further along each axis. This replaces any previously set corners.
          *
          * @param x the x coordinate of the block
          * @param y the y coordinate of the block
@@ -870,13 +658,9 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Highlights the given block position.
-         * <p>
-         * Both corners at once, running from the block's own position to one block
-         * further along each axis, which is the block that position names rather than
-         * the one the player is in. The block's offset is not included, so a block at
-         * {@code 0.5, 64, 0.5} still makes the box covering the whole block.
-         * example:
+         * Sets both corners to cover the block named by this position, from its integer
+         * coordinates to one block further along each axis; the position's offset is
+         * not used.
          * <pre>
          * const player = Player.getPlayer();
          * if (player !== null) {
@@ -897,16 +681,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The alpha is read out of this colour rather than being left alone, so a
-         * colour written with a zero alpha byte comes out opaque unless the alpha was
-         * set separately afterwards. This is the outline colour, not the fill.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * // half a red outline, with the alpha coming out of the colour
-         * builder.color(0x80FF0000);
-         * Chat.log(`colour 0x${builder.getColor().toString(16)}, alpha ${builder.getAlpha()}`);
-         * </pre>
+         * Sets the outline colour and derives its alpha from the packed value, making
+         * a zero alpha byte opaque for non-black colours, as in {@link ColorUtil#fixAlpha(int)}.
          *
          * @param color the color of the box
          * @return self for chaining.
@@ -919,15 +695,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The two are kept apart on the builder, so the colour is stored exactly as
-         * given and whatever alpha it carried is not what the built box is drawn at.
-         * This is the outline colour; the inside is {@link #fillColor(int, int)}.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.color(0xFF0000, 128);
-         * Chat.log(`colour 0x${builder.getColor().toString(16)}, alpha ${builder.getAlpha()}`);
-         * </pre>
+         * Sets the outline colour and alpha separately; the colour is stored unchanged,
+         * including any alpha byte, which is ignored when building the box's outline.
          *
          * @param color the color of the box
          * @param alpha the alpha value for the box's color
@@ -941,15 +710,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Nothing is clamped, so a component over 255 carries into the one above it
-         * rather than being cut off, and the alpha is left as the last colour or
-         * {@link #alpha(int)} call set it.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.color(255, 128, 0);
-         * Chat.log(`colour 0x${builder.getColor().toString(16)}, alpha ${builder.getAlpha()}`);
-         * </pre>
+         * Packs the components with shifts and bitwise OR, without clamping or masking;
+         * leaves the separately stored outline alpha unchanged.
          *
          * @param r the red component of the color
          * @param g the green component of the color
@@ -963,15 +725,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The same packing as the three argument form, with the alpha kept apart. The
-         * defaults are a colour of {@code 0xFFFFFF} and an alpha of {@code 0xFF}, so
-         * a builder with nothing set builds an opaque white box.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.color(0, 128, 255, 255);
-         * Chat.log(`colour 0x${builder.getColor().toString(16)}, alpha ${builder.getAlpha()}`);
-         * </pre>
+         * Packs RGB as in {@link #color(int, int, int)} and stores alpha separately.
          *
          * @param r the red component of the color
          * @param g the green component of the color
@@ -987,15 +741,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The builder's own field rather than a copy, and unlike a built box it does
-         * not mask the alpha out, so a colour set with an alpha in it reads back with
-         * that alpha still in the number.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.color(0x80FF0000);
-         * Chat.log(`colour 0x${builder.getColor().toString(16)}, alpha ${builder.getAlpha()}`);
-         * </pre>
+         * Returns the stored outline colour, which may retain an alpha byte even though
+         * the built box uses the separately stored alpha.
          *
          * @return the color of the box.
          * @since 1.8.4
@@ -1005,15 +752,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * From 0 to 255, and independent of the colour: setting this does not touch
-         * the colour and setting the colour afterwards does not touch this. This is
-         * the outline's alpha; the inside has {@link #fillAlpha(int)}.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.color(0xFF0000).alpha(64);
-         * Chat.log(`outline alpha ${builder.getAlpha()}`);
-         * </pre>
+         * Sets the outline alpha independently of its colour; a later colour setter
+         * that accepts alpha may replace it. The fill alpha is separate.
          *
          * @param alpha the alpha value for the box's color
          * @return self for chaining.
@@ -1025,15 +765,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * From 0 to 255, and {@code 255} until a colour or alpha call changes it. This
-         * is the outline's alpha and is independent of the fill's.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.fillColor(0x0000FF, 64);
-         * // the fill's alpha changed; the outline is untouched
-         * Chat.log(`outline alpha ${builder.getAlpha()}, fill alpha ${builder.getFillAlpha()}`);
-         * </pre>
+         * Returns the separately stored outline alpha; it is independent of the fill alpha.
          *
          * @return the alpha value of the box's color.
          * @since 1.8.4
@@ -1043,17 +775,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The alpha is read out of this colour rather than being left alone, the same
-         * as the outline's. This only has a visible effect once
-         * {@link #fill(boolean)} is on, since the inside is not drawn at all
-         * otherwise.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * // half a blue inside, with the alpha coming out of the colour
-         * builder.fill(true).fillColor(0x800000FF);
-         * Chat.log(`fill 0x${builder.getFillColor().toString(16)}, alpha ${builder.getFillAlpha()}`);
-         * </pre>
+         * Stores the colour and sets the separate fill alpha from its alpha byte;
+         * {@link ColorUtil#fixAlpha(int)} makes a non-black colour with zero alpha opaque.
          *
          * @param fillColor the fill color of the box
          * @return self for chaining.
@@ -1066,16 +789,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The two are kept apart on the builder, so the colour is stored exactly as
-         * given. This is independent of the outline's colour and alpha, and both can
-         * be set at once for a box with a different colour inside and out.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * // a half transparent blue inside, whatever the outline is
-         * builder.color(0xFFFF0000).fill(true).fillColor(0x0000FF, 128);
-         * Chat.log(`fill 0x${builder.getFillColor().toString(16)}, alpha ${builder.getFillAlpha()}`);
-         * </pre>
+         * Stores the colour and alpha separately from the outline; the colour is kept
+         * exactly as given, including any alpha byte in it.
          *
          * @param fillColor the fill color of the box
          * @param alpha     the alpha value for the box's fill color
@@ -1089,15 +804,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Nothing is clamped, so a component over 255 carries into the one above it,
-         * and the fill's alpha is left as the last fill colour or
-         * {@link #fillAlpha(int)} call set it. The outline is not touched.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.fill(true).fillColor(0, 0, 255);
-         * Chat.log(`fill 0x${builder.getFillColor().toString(16)}, alpha ${builder.getFillAlpha()}`);
-         * </pre>
+         * Packs the RGB components without clamping or masking them; this does not
+         * change the separately stored fill alpha or the outline.
          *
          * @param r the red component of the fill color
          * @param g the green component of the fill color
@@ -1111,16 +819,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The same packing as the three argument form, with the fill's alpha kept
-         * apart from the outline's, so a box can have a fully transparent inside and a
-         * fully opaque outline.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.color(0xFFFF0000).fill(true).fillColor(255, 0, 0, 0);
-         * // opaque red outline, invisible inside
-         * Chat.log(`outline alpha ${builder.getAlpha()}, fill alpha ${builder.getFillAlpha()}`);
-         * </pre>
+         * Packs RGB without clamping or masking and stores alpha separately from the
+         * outline.
          *
          * @param r the red component of the fill color
          * @param g the green component of the fill color
@@ -1136,14 +836,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The builder's own field rather than a copy, and unlike a built box it does
-         * not mask the alpha out.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.fill(true).fillColor(0x0000FF);
-         * Chat.log(`fill 0x${builder.getFillColor().toString(16)}`);
-         * </pre>
+         * Returns the stored fill colour, which may include an alpha byte; the built
+         * box combines this value with the separately stored fill alpha.
          *
          * @return the fill color of the box.
          * @since 1.8.4
@@ -1153,14 +847,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * From 0 to 255, and independent of the fill's colour and of the outline's
-         * alpha. It only matters once {@link #fill(boolean)} is on.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.fill(true).fillColor(0x0000FF).fillAlpha(64);
-         * Chat.log(`fill alpha ${builder.getFillAlpha()}`);
-         * </pre>
+         * Sets the separate fill alpha without changing the fill colour or outline.
          *
          * @param fillAlpha the alpha value for the box's fill color
          * @return self for chaining.
@@ -1172,15 +859,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * From 0 to 255, and {@code 255} until a fill colour or fill alpha call
-         * changes it. Setting the outline's alpha does not move this one.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * builder.color(0xFF0000, 64);
-         * // the outline faded; the fill is untouched
-         * Chat.log(`outline alpha ${builder.getAlpha()}, fill alpha ${builder.getFillAlpha()}`);
-         * </pre>
+         * Returns the separately stored fill alpha, initially {@code 255}; outline
+         * alpha changes do not affect it.
          *
          * @return the alpha value of the box's fill color.
          * @since 1.8.4
@@ -1190,18 +870,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * This is the flag the fill colour hangs on, so setting a fill colour without
-         * turning the fill on draws nothing different. The default is off.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * draw.boxBuilder().forBlock(0, 64, 0)
-         *    .color(0xFFFF0000)
-         *    .fillColor(0x00FF00)
-         *    .fill(true)
-         *    .buildAndAdd();
-         * draw.register();
-         * </pre>
+         * Controls whether the inside is drawn; it defaults to {@code false}.
          *
          * @param fill {@code true} if the box should be filled, {@code false} otherwise
          * @return self for chaining.
@@ -1213,13 +882,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * The default is {@code false}, so a box from this builder draws only its
-         * outline unless the fill is turned on.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * Chat.log(`filled by default: ${builder.isFilled()}`);
-         * </pre>
+         * Returns whether the builder enables drawing the box's inside.
          *
          * @return {@code true} if the box should be filled, {@code false} otherwise.
          * @since 1.8.4
@@ -1229,16 +892,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * {@code true} is the depth tested box that terrain hides and {@code false} is
-         * the one drawn over everything. The default here is {@code false}, so a box
-         * from this builder is on top unless asked otherwise.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * // a box something in front of it can hide
-         * draw.boxBuilder().forBlock(0, 64, 0).cull(true).color(0xFFFF0000).buildAndAdd();
-         * draw.register();
-         * </pre>
+         * Enables depth testing, allowing terrain to hide the box; defaults to
+         * {@code false}, which draws it over the world.
          *
          * @param cull whether to enable culling or not
          * @return self for chaining.
@@ -1250,15 +905,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * That is, {@code true} when the box is depth tested and terrain can hide it.
-         * It is the inverse of what {@link Line3D#isAlwaysOnTop()} reports for a
-         * built line.
-         * example:
-         * <pre>
-         * const builder = Hud.createDraw3D().boxBuilder();
-         * // the default is not culled, so the box is drawn over everything
-         * Chat.log(`culled: ${builder.isCulled()}`);
-         * </pre>
+         * Returns whether this builder enables depth testing, allowing terrain to hide
+         * the box. The default is {@code false}.
          *
          * @return {@code true} if culling is enabled for this box, {@code false} otherwise.
          * @since 1.8.4
@@ -1268,17 +916,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Creates the box for the given values and adds it to the draw3D.
-         * <p>
-         * The box goes into the same list any other 3D box does, so
-         * {@code Draw3D.getBoxes()} reports it and {@code removeBox} takes it off
-         * again. It draws nothing until the overlay itself is registered.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * draw.boxBuilder().forBlock(0, 64, 0).color(0xFFFF0000).buildAndAdd();
-         * draw.register();
-         * </pre>
+         * Builds the box and adds it to the parent overlay.
          *
          * @return the build box.
          * @since 1.8.4
@@ -1290,24 +928,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Builds the box from the given values.
-         * <p>
-         * The box is not put anywhere, so it draws nothing until it is added to an
-         * overlay. It is a separate object from the builder, so the builder can be
-         * changed and used again afterwards.
-         * example:
-         * <pre>
-         * const draw = Hud.createDraw3D();
-         * const builder = draw.boxBuilder().color(0xFFFF0000);
-         * builder.forBlock(0, 64, 0);
-         * const first = builder.build();
-         * // the same builder, a second box somewhere else
-         * builder.forBlock(10, 64, 10);
-         * const second = builder.build();
-         * draw.addBox(first);
-         * draw.addBox(second);
-         * draw.register();
-         * </pre>
+         * Builds a new box from the current builder values without adding it to an
+         * overlay. Later builder changes do not modify the returned box.
          *
          * @return the build box.
          */

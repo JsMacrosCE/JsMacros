@@ -6,51 +6,22 @@ import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 
 /**
- * one of the game's text formattings: either a colour from the old sixteen, or a decoration
- * such as bold.
+ * Wraps one of Minecraft's text color or formatting codes.
  * <p>
- * A formatting is the game's own enum, and it has twenty-two constants that fall into three
- * groups which do not quite line up. Sixteen are <b>colours</b>, {@code BLACK} through
- * {@code WHITE}. Five are <b>modifiers</b>: {@code OBFUSCATED}, {@code BOLD},
- * {@code STRIKETHROUGH}, {@code UNDERLINE} and {@code ITALIC}. The last is {@code RESET}, which
- * is neither, and no colour is also a modifier.
+ * {@code RESET} is neither a color nor a modifier, so {@link #isColor()} and
+ * {@link #isModifier()} are both false for it.
  * <p>
- * {@link #isColor()} distinguishes a real colour from a sentinel, because it
- * is true for exactly the sixteen colours and false for everything else. Those sixteen carry a
- * name, a legacy index running {@code 0} to {@code 15} and an rgb value, and
- * {@link #getColorValue()} answers that rgb value for them. The five modifiers and
- * {@code RESET} carry no colour of their own, so {@link #getColorIndex()} answers {@code -1}
- * for those and {@link #getColorValue()} also answers {@code -1}.
+ * The color index and RGB value are {@code -1} for modifiers and {@code RESET}.
  * <p>
- * {@link #isModifier()} is not the opposite of {@link #isColor()}, and that is worth knowing
- * before either is used as a guard. It is true for the five modifiers and false for the
- * colours, but {@code RESET} answers {@code false} to both, so a test for the other case would
- * include {@code RESET} as well. The debug string can safely print any formatting: non-colours
- * carry the {@code -1} colour sentinel.
- * <p>
- * A formatting comes from a colour that was written as one of the old names, which is what
- * {@link StyleHelper#getFormatting()} answers. An arbitrary rgb colour has no formatting, so a
- * run using one gives {@code null} there; a run with no colour at all is the case that throws
- * instead, so check {@link StyleHelper#hasColor()} first.
- * <br>
- * The class also exposes the legacy colour code character, which is what the old
- * {@code §}-prefixed string format is built from.
- * example:
- * <pre class="language-typescript">
- * const line = Chat.createTextHelperFromString("a coloured run");
- * line.visit(JavaWrapper.methodToJava(function (style: StyleHelper, run: string) {
+ * A {@link StyleHelper} returns this only for legacy formatting values; arbitrary RGB colors do
+ * not have a formatting code.
+ * <pre>
+ * const line = Chat.createTextBuilder().append("a coloured run").withColor(0xc).build();
+ * line.visit(JavaWrapper.methodToJava(function (style, run) {
  *   if (style.hasColor()) {
  *     const formatting = style.getFormatting();
  *     if (formatting !== null) {
- *       if (formatting.isColor()) {
- *         // one of the sixteen: a name, an index and an rgb value
- *         Chat.log(`${run} is ${formatting.getName()}, code ${formatting.getCode()}`);
- *         Chat.log(`rgb ${formatting.getColorValue()}, index ${formatting.getColorIndex()}`);
- *       } else {
- *         // a modifier, or RESET: a name and a code but no colour of its own, so
- *         // both colour readers return the -1 sentinel
- *         Chat.log(`${run} is ${formatting.getName()}, rgb ${formatting.getColorValue()}, index ${formatting.getColorIndex()}`);
- *       }
+ *       Chat.log(`${run}: ${formatting.getName()}, index ${formatting.getColorIndex()}, rgb ${formatting.getColorValue()}`);
  *     }
  *   }
  * }));
@@ -63,14 +34,18 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 @DocletCategory("Misc Helpers")
 public class FormattingHelper extends BaseHelper<ChatFormatting> {
 
+    /**
+     * Wraps the supplied formatting value without copying or parsing it.
+     *
+     * @param base raw text color or formatting code to wrap
+     */
     public FormattingHelper(ChatFormatting base) {
         super(base);
     }
 
     /**
-     * The rgb colour this formatting paints with, and the reason {@link #isColor()} has to be
-     * checked when a script needs an actual colour. Only the sixteen colours carry one;
-     * modifiers and {@code RESET} return the sentinel {@code -1} instead.
+     * Returns the RGB value for one of the sixteen colors; modifiers and {@code RESET} return
+     * {@code -1}.
      *
      * @return the color value, or {@code -1} for non-color formats.
      * @since 1.8.4
@@ -81,8 +56,8 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
     }
 
     /**
-     * @return the index of this formatting, {@code 0} to {@code 15} for the sixteen colours, or
-     *         {@code -1} for a modifier and for {@code RESET}.
+     * @return the legacy color index ({@code 0}–{@code 15}), or {@code -1} for a modifier or
+     *         {@code RESET}.
      * @since 1.8.4
      */
     public int getColorIndex() {
@@ -90,7 +65,7 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
     }
 
     /**
-     * @return the name of this formatting.
+     * @return the lowercase name of this formatting.
      * @since 1.8.4
      */
     public String getName() {
@@ -98,43 +73,11 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
     }
 
     /**
-     * The color code can be used with the paragraph to color text.
-     * <p>
-     * This is the single character the old string format uses, so the section symbol followed by
-     * this character is what turns text on.
-     * <p>
-     * For a colour the character is the lowercase hexadecimal digit of that colour's own
-     * {@link #getColorIndex()}, which is why the sixteen read {@code 0} to {@code 9} and then
-     * {@code a} to {@code f}. The index is what the character is built from, not the name:
-     * {@code dark_red} has index {@code 4} and so its character is {@code 4};
-     * {@code red} has index {@code 12}, which is hexadecimal {@code c}, so its character is
-     * {@code c}; and {@code d} is {@code light_purple} at index {@code 13} rather than a
-     * reading of {@code dark_red}.
-     * <p>
-     * The five modifiers are the letters that follow the colours and are not hexadecimal, so they
-     * are {@code k} for {@code obfuscated}, {@code l} for {@code bold}, {@code m} for
-     * {@code strikethrough}, {@code n} for {@code underline} and {@code o} for {@code italic}.
-     * {@code RESET} is the odd one out: it has index {@code -1} and no colour, and its character
-     * is {@code r}.
-     * <br>
-     * The value comes back as a one character string, not as a number, so it can be pasted into a
-     * plain message as it stands; only the section symbol in front of it has to be added.
-     * example:
-     * <pre>
-     * const line = Chat.createTextHelperFromString("a coloured run");
-     * line.visit(JavaWrapper.methodToJava(function (style, run) {
-     *   if (style.hasColor()) {
-     *     const formatting = style.getFormatting();
-     *     if (formatting !== null) {
-     *       // the old code is a section symbol followed by this character
-     *       const code = "§" + formatting.getCode();
-     *       Chat.log(`${run} is typed as ${code} in a plain message`);
-     *     }
-     *   }
-     * }));
-     * </pre>
+     * Returns the legacy formatting code character. Prefix it with the section symbol ({@code §})
+     * to form a legacy formatting sequence; color codes are {@code 0}–{@code 9} and {@code a}–
+     * {@code f}, modifiers are {@code k}–{@code o}, and {@code RESET} is {@code r}.
      *
-     * @return the color code of this formatting.
+     * @return the formatting code character.
      * @since 1.8.4
      */
     public char getCode() {
@@ -142,9 +85,8 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
     }
 
     /**
-     * @return {@code true} if this formatting is one of the sixteen colours, {@code false}
-     *         otherwise. This is also {@code false} for the five modifiers and for
-     *         {@code RESET}, so it distinguishes a colour from {@link #getColorValue()}'s sentinel.
+     * @return {@code true} for one of the sixteen colors; {@code false} for modifiers and
+     *         {@code RESET}.
      * @since 1.8.4
      */
     public boolean isColor() {
@@ -152,15 +94,20 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
     }
 
     /**
-     * @return {@code true} if this formatting is one of the five modifiers, {@code false}
-     *         otherwise. Note that {@code RESET} answers {@code false} here as well as to
-     *         {@link #isColor()}, so this is not the opposite of that call.
+     * @return {@code true} for one of the five modifiers; {@code false} for colors and
+     *         {@code RESET}.
      * @since 1.8.4
      */
     public boolean isModifier() {
         return base.isFormat();
     }
 
+    /**
+     * Returns a diagnostic string containing this formatting's index, color value, name, code,
+     * and color and modifier flags.
+     *
+     * @return diagnostic representation of the wrapped formatting
+     */
     @Override
     public String toString() {
         return String.format("FormattingHelper:{\"index\": %d, \"color\": %d, \"name\": \"%s\", \"code\": \"%s\", \"isColor\": %b, \"isModifier\": %b}", getColorIndex(), getColorValue(), getName(), getCode(), isColor(), isModifier());

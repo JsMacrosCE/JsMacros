@@ -13,12 +13,8 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 import java.util.UUID;
 
 /**
- * Fires when the client receives a boss bar update packet from the server.<br>
- * The {@link #type} field says which part of the bar the server touched. Only the data
- * belonging to that update type actually changed; when {@link #bossBar} is not {@code null} it
- * exposes the full vanilla boss bar state as it is at the moment the event fires.<br>
- * This event is not cancellable, it only reports what the server sent.
- * example:
+ * Reports each boss-bar packet action after the client handles it. {@link #type} identifies the
+ * action; {@link #bossBar} is the full bar state when available. This event is not cancellable.
  * <pre>
  * JsMacros.on("Bossbar", JavaWrapper.methodToJava(function (event) {
  *   if (event.bossBar === null) {
@@ -36,14 +32,9 @@ import java.util.UUID;
 @Event(value = "Bossbar", oldName = "BOSSBAR_UPDATE")
 public class EventBossbar extends BaseEvent {
     /**
-     * the boss bar this event is about, or {@code null} when the bar is not currently in the boss
-     * bar overlay.<br>
-     * A {@code 'REMOVE'} update always reports {@code null} here, because the bar is taken off the
-     * screen before the event is fired, but that is not the only case: the overlay is looked up by
-     * the bar's uuid for every other update type too, so any of those can report {@code null} as
-     * well when the overlay no longer holds a bar with that uuid. Always check this field before
-     * reading from it.<br>
-     * When it is not {@code null} it exposes the full bar state through
+     * The full boss bar state, or {@code null} if the overlay has no bar for this UUID. A
+     * {@code 'REMOVE'} event always has {@code null}; other update types may also have {@code null}.
+     * When non-null, it exposes the bar's
      * {@link BossBarHelper#getName() getName()},
      * {@link BossBarHelper#getPercent() getPercent()},
      * {@link BossBarHelper#getColor() getColor()} and
@@ -52,12 +43,11 @@ public class EventBossbar extends BaseEvent {
     @Nullable
     public final BossBarHelper bossBar;
     /**
-     * the uuid of the boss bar this event is about, in its string form. Remains usable even when
-     * {@link #bossBar} is {@code null}.
+     * The bar UUID as a string, available even when {@link #bossBar} is {@code null}.
      */
     public final String uuid;
     /**
-     * which part of the boss bar the server updated.<br>
+     * The boss-bar packet action.
      * {@code 'ADD'} for a new bar, {@code 'REMOVE'} when it is taken away, and
      * {@code 'UPDATE_PERCENT'}, {@code 'UPDATE_NAME'}, {@code 'UPDATE_STYLE'} or
      * {@code 'UPDATE_PROPERTIES'} for the respective changes to an existing bar.
@@ -71,6 +61,15 @@ public class EventBossbar extends BaseEvent {
     )
     public final String type;
 
+    /**
+     * Initializes this event from the supplied action, bar identifier, and optional raw bar.
+     * A non-null bar is wrapped in a {@link BossBarHelper}; a null bar leaves {@link #bossBar}
+     * null. The supplied action is stored unchanged and is not validated against the bar or
+     * identifier. A null identifier throws {@code NullPointerException} while converting it to a string.
+     * @param type supplied action label; arbitrary values, including {@code null}, are stored unchanged
+     * @param uuid identifier for the bar; must be non-null
+     * @param bossBar raw bar to wrap, or {@code null} when no bar is available
+     */
     public EventBossbar(String type, UUID uuid, LerpingBossEvent bossBar) {
         super(JsMacrosClient.clientCore);
         if (bossBar != null) {
@@ -82,6 +81,12 @@ public class EventBossbar extends BaseEvent {
         this.type = type;
     }
 
+    /**
+     * Formats a diagnostic string containing the event name and the current helper's string, or
+     * the stored UUID string when no helper is present. The fallback is unquoted and is not a
+     * standalone UUID field or a JSON serialization.
+     * @return event name followed by {@code :{"bossBar": %s}}, with {@code %s} replaced by the helper string or UUID string
+     */
     @Override
     public String toString() {
         return String.format("%s:{\"bossBar\": %s}", this.getEventName(), bossBar != null ? bossBar.toString() : uuid);
