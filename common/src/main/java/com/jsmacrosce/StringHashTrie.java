@@ -1,17 +1,11 @@
 package com.jsmacrosce;
 
-import com.google.common.collect.Sets;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Is this even faster than just iterating through a LinkedHashSet / HashSet at this point?
- * also should the node-length just always be 1?
- *
- * @author Wagyourtail
- */
+/** Stores strings in a prefix trie and exposes collection operations and prefix queries. */
 @SuppressWarnings("unused")
 public class StringHashTrie implements Collection<String> {
     private Map<String, StringHashTrie> children = new HashMap<>();
@@ -52,12 +46,19 @@ public class StringHashTrie implements Collection<String> {
     @Override
     public boolean contains(Object o) {
         if (o instanceof String) {
-            if (((String) o).length() <= keyLength) {
-                return leafs.contains(o);
+            String value = (String) o;
+            if (value.length() <= keyLength) {
+                if (leafs.contains(value)) {
+                    return true;
+                }
+                // a value ending exactly on a child key is stored as that child's empty remainder
+                return value.length() == keyLength
+                        && children.containsKey(value)
+                        && children.get(value).contains("");
             } else {
-                StringHashTrie child = children.get(((String) o).substring(0, keyLength));
+                StringHashTrie child = children.get(value.substring(0, keyLength));
                 if (child != null) {
-                    return child.contains(((String) o).substring(keyLength));
+                    return child.contains(value.substring(keyLength));
                 }
             }
         }
@@ -89,13 +90,20 @@ public class StringHashTrie implements Collection<String> {
             this.leafs.add(s);
             return true;
         }
+        // a value that ends exactly on a child key lives inside that child, so descending
+        // structurally would store it a second time beside the child
+        if (contains(s)) {
+            return false;
+        }
         if (s.length() <= keyLength || children.size() == 0) {
             if (leafs.contains(s)) {
                 return false;
             }
             for (int i = Math.min(s.length(), keyLength); i > 0; --i) {
                 for (String key : leafs) {
-                    if (key.length() >= i && key.substring(0, i).equals(s.substring(0, i))) {
+                    // a leaf of exactly i characters is still a leaf once this node has rekeyed to
+                    // i, so only a longer one leaves a child behind to descend into
+                    if (key.length() > i && key.substring(0, i).equals(s.substring(0, i))) {
                         rekey(i);
                         return children.get(s.substring(0, keyLength)).add(s.substring(keyLength));
                     }
@@ -117,7 +125,7 @@ public class StringHashTrie implements Collection<String> {
                         }
                     }
                     for (String key : leafs) {
-                        if (key.length() >= i && key.substring(0, i).equals(newKey.substring(0, i))) {
+                        if (key.length() > i && key.substring(0, i).equals(newKey.substring(0, i))) {
                             rekey(i);
                             return children.get(s.substring(0, keyLength)).add(s.substring(keyLength));
                         }
@@ -146,17 +154,23 @@ public class StringHashTrie implements Collection<String> {
     @Override
     public boolean remove(Object o) {
         if (o instanceof String) {
-            if (((String) o).length() <= keyLength) {
-                if (leafs.remove(o)) {
+            String value = (String) o;
+            if (value.length() <= keyLength) {
+                if (leafs.remove(value)) {
                     if (leafs.size() == 0 && children.size() == 0 && parent != null) {
                         parent.removeChild(key);
                     }
                     return true;
                 }
+                // a value ending exactly on a child key is stored as that child's empty remainder,
+                // and removing it there prunes the emptied child as well
+                if (value.length() == keyLength && children.containsKey(value)) {
+                    return children.get(value).remove("");
+                }
             } else {
-                StringHashTrie trie = children.get(((String) o).substring(0, keyLength));
+                StringHashTrie trie = children.get(value.substring(0, keyLength));
                 if (trie != null) {
-                    return trie.remove(((String) o).substring(keyLength));
+                    return trie.remove(value.substring(keyLength));
                 }
             }
         }
@@ -236,17 +250,19 @@ public class StringHashTrie implements Collection<String> {
                 return new HashSet<>();
             }
         } else if (prefix.length() > 0) {
+            // a node can hold several leafs, so every one of them has to be looked at
+            Set<String> contents = new HashSet<>();
             for (String leaf : leafs) {
                 if (leaf.startsWith(prefix)) {
-                    return Sets.newHashSet(leaf);
+                    contents.add(leaf);
                 }
             }
             for (String key : children.keySet()) {
                 if (key.startsWith(prefix)) {
-                    return children.get(key).getAll().stream().map(e -> key + e).collect(Collectors.toSet());
+                    contents.addAll(children.get(key).getAll().stream().map(e -> key + e).collect(Collectors.toSet()));
                 }
             }
-            return new HashSet<>();
+            return contents;
         } else {
             return getAll();
         }
@@ -297,28 +313,67 @@ public class StringHashTrie implements Collection<String> {
         return results;
     }
 
+    /** One input to {@link #rekey}: either a child key or a leaf that outgrew the new key length. */
+    private record RekeySource(String value, StringHashTrie child) {
+    }
+
+    /**
+     * Rebuilds this node around a shorter key length. Children whose keys share a longer prefix
+     * than the new one collapse onto the same key, so they end up in a single merged child instead
+     * of overwriting each other, and every leaf that outgrows the new key length joins whichever
+     * child it now belongs to. A leaf and a child may carry the same string, so the two are kept
+     * apart here rather than looked up in the children map. Nothing below this node may be lost.
+     */
     private void rekey(int newKeyLength) {
-        int innerKeyLength = keyLength - newKeyLength;
-        Map<String, StringHashTrie> newMap = new HashMap<>();
-        for (String key : children.keySet()) {
-            String newKey = key.substring(0, newKeyLength);
-            String childKey = key.substring(newKeyLength);
-            StringHashTrie innerChild = children.get(key);
-            if (innerChild.children.size() == 0 && innerChild.leafs.size() == 1) {
-                newMap.put(newKey, new StringHashTrie(childKey + innerChild.leafs.toArray()[0], this, newKey));
-            } else {
-                innerChild.parent = newMap.put(newKey, new StringHashTrie(innerKeyLength, childKey, innerChild, this, newKey));
-                innerChild.key = childKey;
+        Map<String, List<RekeySource>> grouped = new LinkedHashMap<>();
+        for (String childKey : children.keySet()) {
+            grouped.computeIfAbsent(childKey.substring(0, newKeyLength), k -> new ArrayList<>())
+                    .add(new RekeySource(childKey, children.get(childKey)));
+        }
+        List<String> outgrownLeafs = new ArrayList<>();
+        for (String leaf : leafs) {
+            if (leaf.length() > newKeyLength) {
+                outgrownLeafs.add(leaf);
             }
         }
-        leafs.removeIf(leaf -> {
-            if (leaf.length() > newKeyLength) {
-                String newKey = leaf.substring(0, newKeyLength);
-                newMap.put(newKey, new StringHashTrie(leaf.substring(newKeyLength), this, newKey));
-                return true;
+        leafs.removeAll(outgrownLeafs);
+        for (String leaf : outgrownLeafs) {
+            grouped.computeIfAbsent(leaf.substring(0, newKeyLength), k -> new ArrayList<>())
+                    .add(new RekeySource(leaf, null));
+        }
+        Map<String, StringHashTrie> newMap = new LinkedHashMap<>();
+        for (Map.Entry<String, List<RekeySource>> group : grouped.entrySet()) {
+            String newKey = group.getKey();
+            List<RekeySource> sources = group.getValue();
+            if (sources.size() == 1 && sources.get(0).child() != null) {
+                StringHashTrie innerChild = sources.get(0).child();
+                if (innerChild.children.isEmpty() && innerChild.leafs.size() == 1) {
+                    // a lone child holding a single string folds straight into this level
+                    newMap.put(newKey, new StringHashTrie(
+                            sources.get(0).value().substring(newKeyLength)
+                                    + innerChild.leafs.iterator().next(), this, newKey));
+                    continue;
+                }
             }
-            return false;
-        });
+            StringHashTrie merged = new StringHashTrie();
+            merged.parent = this;
+            merged.key = newKey;
+            for (RekeySource source : sources) {
+                String remainder = source.value().substring(newKeyLength);
+                if (source.child() == null) {
+                    merged.leafs.add(remainder);
+                } else {
+                    // the child keeps its own contents and key length, it only moves up one level
+                    source.child().parent = merged;
+                    source.child().key = remainder;
+                    merged.children.put(remainder, source.child());
+                }
+                // child remainders are all as long as each other and a leaf is never longer than
+                // that, so this is the key length the merged node needs
+                merged.keyLength = Math.max(merged.keyLength, remainder.length());
+            }
+            newMap.put(newKey, merged);
+        }
         keyLength = newKeyLength;
         children = newMap;
     }
