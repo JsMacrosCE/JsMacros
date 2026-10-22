@@ -88,7 +88,8 @@ it does not assemble the combined site. Use `copyVitepressDoc` with the desired
 selection to do that. The singular and plural properties are mutually exclusive;
 unknown or empty targets fail rather than falling back to another version.
 
-To build the generated site:
+`./gradlew buildVitepressSite` installs the site dependencies and builds the
+static site. To run the steps directly:
 
 ```sh
 cd build/docs/vitepress
@@ -124,6 +125,21 @@ Do not edit generated files as a way to fix documentation.
 Devkits consume the matching `build/docs/targets/<Minecraft>` tree, not one shared
 typing/HTML tree for every version. Legacy HTML can be served independently from
 each target's `web` directory, with its existing mod-version paths and assets.
+
+## Distribution packaging
+
+`createDist` includes the rendered site at `dist/vitepress/`, so distribution
+artifacts ship browsable documentation instead of a site project that the
+consumer has to install and build. `createDistSite` copies the output of
+`buildVitepressSite`, which runs `npm ci` and `npm run build` in
+`build/docs/vitepress`. The release, beta and dev workflows install Node before
+Gradle for this reason.
+
+`-x createDistSite` skips the site while still producing the per-target
+`dist/docs/<Minecraft>` trees. The rendered site is the largest part of the
+artifact (see [Site size](#site-size)), so a local packaging run that does not
+need browsable docs should skip it; CI release builds render every selected
+target.
 
 ## Site size
 

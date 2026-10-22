@@ -6,6 +6,7 @@ import org.gradle.api.attributes.Usage
 import org.gradle.api.attributes.java.TargetJvmVersion
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.Sync
 import org.gradle.api.tasks.javadoc.Javadoc
@@ -157,6 +158,34 @@ fun Project.registerDocumentationTasks(supportedVersions: List<String>, defaultT
         into(File(docsRoot, "vitepress"))
         // Keep installed dependencies/build caches between site assemblies.
         preserve { include("node_modules/**", ".vitepress/cache/**", ".vitepress/dist/**") }
+    }
+
+    // The site is a Node project, so distribution packaging shells out to npm.
+    val siteDir = File(docsRoot, "vitepress")
+    val npmCommand = if (System.getProperty("os.name").lowercase().contains("windows")) "npm.cmd" else "npm"
+    tasks.register<Exec>("installVitepressSite") {
+        group = "documentation"
+        description = "Installs the assembled VitePress site dependencies"
+        dependsOn("copyVitepressDoc")
+        workingDir = siteDir
+        commandLine(npmCommand, "ci")
+        inputs.files(File(siteDir, "package.json"), File(siteDir, "package-lock.json"))
+        outputs.dir(File(siteDir, "node_modules"))
+    }
+    tasks.register<Exec>("buildVitepressSite") {
+        group = "documentation"
+        description = "Builds the static VitePress site for the selected Minecraft targets"
+        dependsOn("installVitepressSite")
+        workingDir = siteDir
+        commandLine(npmCommand, "run", "build")
+        inputs.dir(File(siteDir, "content"))
+        inputs.files(
+            File(siteDir, ".vitepress/config.mts"),
+            File(siteDir, ".vitepress/theme"),
+            File(siteDir, "package.json"),
+            File(siteDir, "package-lock.json")
+        )
+        outputs.dir(File(siteDir, ".vitepress/dist"))
     }
     tasks.register("generateDocsAll") {
         group = "documentation"

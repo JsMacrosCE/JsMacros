@@ -215,16 +215,20 @@ gradle.projectsEvaluated {
     tasks.register("createDistDocs", Copy::class.java) {
         group = "distribution"
         description = "Packages generated documentation into the dist directory"
-        dependsOn("prepareDist", "copyPyDoc", "copyTSDoc", "copyWebDoc", "copyVitepressDoc",
+        dependsOn("prepareDist", "copyPyDoc", "copyTSDoc", "copyWebDoc",
             mcVersionsToBuild.map { "copyDocs${it.replace(".", "")}" })
         mcVersionsToBuild.forEach { minecraft ->
             from(File(docsBuildDir, "targets/$minecraft")) { into("docs/$minecraft") }
         }
-        from(File(docsBuildDir, "vitepress")) {
-            into("vitepress")
-            exclude("node_modules/**", ".vitepress/cache/**", ".vitepress/dist/**")
-        }
         into(distDirFile)
+    }
+
+    tasks.register("createDistSite", Copy::class.java) {
+        group = "distribution"
+        description = "Packages the built VitePress site into dist/vitepress"
+        dependsOn("prepareDist", "buildVitepressSite")
+        from(File(docsBuildDir, "vitepress/.vitepress/dist"))
+        into(File(distDirFile, "vitepress"))
     }
 
     // Package loader-specific jars
@@ -323,6 +327,7 @@ gradle.projectsEvaluated {
         description = "Assembles documentation, mods, extensions, devkits, and sources into dist/"
         dependsOn(
             "createDistDocs",
+            "createDistSite",
             "createDistMods",
             "createDistExtensions",
             devkitTasks,

@@ -137,31 +137,27 @@ jobs:
         with:
           cache-overwrite-existing: true
 
-      # The doclets write the shipped definitions and the website, so their own
-      # checks belong here rather than only on a machine that has the artifacts.
-      - name: Doclet checks
-        run: ./gradlew --console=plain --stacktrace -p buildSrc check
-
-      # One target is enough to prove that the site is assembled and builds. Every
-      # target is generated when the documentation is released.
-      - name: Generate the documentation for one target
-        run: |
-          ./gradlew --console=plain --stacktrace \
-            -PdocsMinecraftVersions=26.1.2 \
-            :generateVitepressDoc :copyVitepressDoc
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: build/docs/vitepress/package-lock.json
+          cache-dependency-path: docs/vitepress/package-lock.json
 
-      - name: Install the site dependencies
-        run: npm --prefix build/docs/vitepress ci
+      # The doclets write the shipped definitions and the website, so their own
+      # checks belong here rather than only on a machine that has the artifacts.
+      - name: Doclet checks
+        run: ./gradlew --console=plain --stacktrace -p buildSrc check
+
+      # One target is enough to prove that the site is assembled and builds.
+      # Every target is generated when the documentation is released. Going
+      # through the Gradle task also exercises the install/build path that
+      # distribution packaging uses.
+      - name: Build the documentation site for one target
+        run: |
+          ./gradlew --console=plain --stacktrace \
+            -PdocsMinecraftVersions=26.1.2 \
+            :buildVitepressSite
 
       - name: Test the site
         run: npm --prefix build/docs/vitepress run test
-
-      - name: Build the site
-        run: npm --prefix build/docs/vitepress run build
