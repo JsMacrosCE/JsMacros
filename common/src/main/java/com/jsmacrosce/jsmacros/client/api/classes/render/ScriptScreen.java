@@ -46,23 +46,89 @@ public class ScriptScreen extends BaseScreen {
      * @since 1.8.4
      */
     public boolean shouldPause = true;
-    private final int bgStyle;
+    private final boolean menuBackground;
+    private final boolean blurredBackground;
     @Nullable
     private MethodWrapper<Pos3D, GuiGraphics, Object, ?> onRender;
 
     /**
-     * Sets up a screen with the supplied literal title and optional menu-background rendering.
+     * Sets up a screen with the supplied literal title and both background effects enabled: the
+     * game's menu background overlay is drawn and the world behind it is blurred.
      * The title must be non-null; an empty title is allowed. This constructor does not open the screen.
      * Passing {@code null} for {@code title} causes a {@code NullPointerException}.
      *
      * @param title non-null literal screen title, not a translation key
-     * @param dirt whether to request the screen's menu-background rendering step
+     * @param menuBackground whether to draw the game's menu background overlay
      */
-    public ScriptScreen(String title, boolean dirt) {
+    public ScriptScreen(String title, boolean menuBackground) {
+        this(title, menuBackground, true);
+    }
+
+    /**
+     * Sets up a screen with the supplied literal title and background effects.
+     * The title must be non-null; an empty title is allowed. This constructor does not open the screen.
+     * Passing {@code null} for {@code title} causes a {@code NullPointerException}.
+     * <p>
+     * The two effects are independent. The menu background is vanilla's darkened background: on
+     * the supported versions it is a flat translucent black overlay rather than a picture, so it
+     * only darkens what is behind the screen. The blurred background applies vanilla's menu blur
+     * to the world behind the screen. With both off, the world is shown unmodified.
+     *
+     * @param title non-null literal screen title, not a translation key
+     * @param menuBackground whether to draw the game's menu background overlay
+     * @param blurredBackground whether to blur the world behind the screen
+     * @since 2.0.0
+     */
+    public ScriptScreen(String title, boolean menuBackground, boolean blurredBackground) {
         super(Component.literal(title), null);
-        this.bgStyle = dirt ? 0 : 1;
+        this.menuBackground = menuBackground;
+        this.blurredBackground = blurredBackground;
         this.drawTitle = true;
     }
+
+    //? if >=26.1 {
+    /*@Override
+    protected void extractMenuBackground(GuiGraphicsExtractor drawContext) {
+        if (!menuBackground) {
+            return;
+        }
+        super.extractMenuBackground(drawContext);
+    }
+    *///?} else {
+    @Override
+    protected void renderMenuBackground(GuiGraphics drawContext) {
+        if (!menuBackground) {
+            return;
+        }
+        super.renderMenuBackground(drawContext);
+    }
+    //?}
+
+    //? if >=26.1 {
+    /*@Override
+    protected void extractBlurredBackground(GuiGraphicsExtractor drawContext) {
+        if (!blurredBackground) {
+            return;
+        }
+        super.extractBlurredBackground(drawContext);
+    }
+    *///? } else if >1.21.5 {
+    @Override
+    protected void renderBlurredBackground(GuiGraphics drawContext) {
+        if (!blurredBackground) {
+            return;
+        }
+        super.renderBlurredBackground(drawContext);
+    }
+    //?} else {
+    /*@Override
+    protected void renderBlurredBackground() {
+        if (!blurredBackground) {
+            return;
+        }
+        super.renderBlurredBackground();
+    }
+    *///?}
 
     @Override
     protected void init() {
@@ -128,7 +194,7 @@ public class ScriptScreen extends BaseScreen {
         if (drawContext == null) {
             return;
         }
-        if (bgStyle == 0) {
+        if (menuBackground) {
             //? if >=26.1 {
             /*this.extractMenuBackground(drawContext);
             *///?} else {
