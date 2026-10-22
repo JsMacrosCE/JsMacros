@@ -30,10 +30,10 @@ build/docs/vitepress/content/2.0.0/
 ```
 
 The combined site has a version selector labeled with the current reference's
-Minecraft version (just the version number), and a separate sidebar for
-each snapshot. It discovers only generated targets, not an assumed list of pages.
-Outside an API reference, the selector shows the latest generated Minecraft version.
-Class pages and snapshot overviews identify their Minecraft target.
+Minecraft version (just the version number). It discovers only generated targets,
+not an assumed list of pages. Outside an API reference, the selector shows the
+latest generated Minecraft version. A snapshot overview states its Minecraft
+target in the page; every page of a reference states it in the selector.
 
 Indexes and sidebars use short names and nest supporting types under their owners;
 fully qualified Java names remain on individual pages. A nested type in a library
@@ -42,6 +42,13 @@ global-access notice. Supporting types retain their own pages and constructors,
 and existing URLs are preserved. An otherwise unclassified index has no extra
 "Uncategorized" heading; mixed indexes use an "Other classes/libraries/events"
 section instead.
+
+A member page shows the branch of the tree it belongs to, not the whole tree:
+the group it is in, the section, and the types that hold it, plus links to the
+other groups. The group pages list every member, so the full tree is one click
+away. A search answers for the snapshot the reader is on: the index holds every
+snapshot, but results from other Minecraft versions and other mod versions are
+dropped.
 
 Stonecutter decides which declarations exist and which names/signatures apply.
 The doclet does not interpret Stonecutter comments a second time. A method that
@@ -94,8 +101,9 @@ The website build allows Node a 12 GiB heap, bounds VitePress build concurrency
 to four pages instead of its default 64, and disables the Markdown render cache.
 This is a heap ceiling, not a reservation; use a suitably sized machine when
 building every target together. Minification and local search remain enabled.
-A measured five-target build used about 10.7 GiB peak resident memory. On smaller
-machines, generate and build a selected subset of targets instead.
+A measured five-target build used about 10.8 GiB peak resident memory and took
+about seven minutes. On smaller machines, generate and build a selected subset of
+targets instead.
 
 `copyVitepressDoc` synchronizes only the generated site directory; source files in
 `docs/vitepress` are inputs and are never rewritten. Installed site dependencies
@@ -106,6 +114,24 @@ Do not edit generated files as a way to fix documentation.
 Devkits consume the matching `build/docs/targets/<Minecraft>` tree, not one shared
 typing/HTML tree for every version. Legacy HTML can be served independently from
 each target's `web` directory, with its existing mod-version paths and assets.
+
+## Site size
+
+Most of a generated page is navigation, not content. Two settings keep that from
+growing with the number of pages:
+
+- `metaChunk` writes the site data and the page hash map into one shared chunk.
+  Inlined, they were repeated on every page and grew with the page count, which
+  made a five-target site larger than any static host accepts.
+- A member page shows the branch of the tree it belongs to instead of the whole
+  tree. The tree is the same on every page of a snapshot, so repeating it made
+  the site as many times larger as the class tree.
+
+A five-target site is about 240 MB, of which about 116 MB is HTML and about 80 MB
+is the per-page content. The rest of the HTML is the tree on the group pages,
+which is one page per group and target. A member page is about 25 KB of HTML,
+roughly 5 KB compressed, so the remaining duplication is a publishing cost
+rather than a reading one.
 
 ## Minecraft class links
 
@@ -140,7 +166,9 @@ namespace exposes instance methods, so use its getters (e.g. `World.getServer15M
 ```sh
 ./gradlew :buildSrc:testExternalTypeLinks :buildSrc:testDocletLinks \
   :buildSrc:testDocBodyRenderer :buildSrc:testTsRenderer :buildSrc:testMarkdownWriter
-node --test docs/vitepress/.vitepress/api-snapshots.test.ts
+node --test docs/vitepress/.vitepress/api-snapshots.test.ts \
+  docs/vitepress/.vitepress/theme/inline-highlight.test.ts \
+  docs/vitepress/.vitepress/theme/search-scope.test.ts
 ```
 
 The offline doclet fixture compiles synthetic external types and actually runs
