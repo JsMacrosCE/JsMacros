@@ -47,8 +47,11 @@ Stonecutter decides which declarations exist and which names/signatures apply.
 The doclet does not interpret Stonecutter comments a second time. A method that
 exists as a compatibility stub is still documented on that target: generation
 cannot infer useful behavior from method presence. Its Javadoc must explain
-version-dependent behavior. `@since` continues to mean the JsMacros version, not
-the Minecraft version.
+version-dependent behavior. A member that only makes sense on some of the
+targets can instead be guarded out in the shared source, and is then documented
+only on the targets that have it, so its Javadoc does not have to describe the
+others. `@since` continues to mean the JsMacros version, not the Minecraft
+version.
 
 ## Commands
 
