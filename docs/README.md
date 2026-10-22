@@ -92,9 +92,19 @@ To build the generated site:
 
 ```sh
 cd build/docs/vitepress
-pnpm install --frozen-lockfile
-pnpm test
-pnpm build
+npm ci
+npm test
+npm run build
+```
+
+For a live preview while editing the site, regenerate and copy the content, then
+start the dev server in the generated directory:
+
+```sh
+./gradlew copyVitepressDoc
+cd build/docs/vitepress
+npm ci
+npm run dev
 ```
 
 The website build allows Node a 12 GiB heap, bounds VitePress build concurrency

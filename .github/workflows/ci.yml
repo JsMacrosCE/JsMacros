@@ -150,23 +150,18 @@ jobs:
             -PdocsMinecraftVersions=26.1.2 \
             :generateVitepressDoc :copyVitepressDoc
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.25.0
-
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: build/docs/vitepress/pnpm-lock.yaml
+          cache: npm
+          cache-dependency-path: build/docs/vitepress/package-lock.json
 
       - name: Install the site dependencies
-        run: pnpm --dir build/docs/vitepress install --frozen-lockfile
+        run: npm --prefix build/docs/vitepress ci
 
       - name: Test the site
-        run: pnpm --dir build/docs/vitepress test
+        run: npm --prefix build/docs/vitepress run test
 
       - name: Build the site
-        run: pnpm --dir build/docs/vitepress build
+        run: npm --prefix build/docs/vitepress run build
