@@ -1,5 +1,6 @@
 package io.noties.prism4j.languages;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import io.noties.prism4j.Prism4j;
 import org.jetbrains.annotations.NotNull;
 
@@ -7,6 +8,7 @@ import static io.noties.prism4j.Prism4j.*;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.compile;
 
+@DocletIgnore
 public class Prism_regex {
     @NotNull
     public static Prism4j.Grammar create(@NotNull Prism4j prism4j) {

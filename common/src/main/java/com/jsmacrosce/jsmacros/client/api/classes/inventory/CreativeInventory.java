@@ -9,6 +9,7 @@ import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
  * @author Etheradon
  * @since 1.8.4
  */
+@DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
 
@@ -114,8 +116,25 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
     }
 
     /**
-     * @param tabName the name of the tab to select
+     * selects a tab by its display name.
+     * <p>
+     * The name is matched against the same translated names {@link #getTabNames()} returns, so it
+     * has to be the name as the client is showing it rather than the tab id, and a name that
+     * matches no tab is an error rather than a no-op. The two methods for the common tabs,
+     * {@link #selectInventory()} and {@link #selectHotbar()}, do not have that problem.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * if (inv.is("Creative Inventory")) {
+     *   const names = inv.getTabNames();
+     *   if (names.length > 0) {
+     *     inv.selectTab(names[0]);
+     *   }
+     * }
+     * </pre>
+     * @param tabName the display name of the tab to select
      * @return self for chaining.
+     * @throws IllegalArgumentException if no tab has that display name
      * @since 1.8.4
      */
     public CreativeInventory selectTab(String tabName) {
@@ -124,10 +143,46 @@ public class CreativeInventory extends Inventory<CreativeModeInventoryScreen> {
         return this;
     }
 
+    /**
+     * the display name of every creative tab, in the order the tabs are laid out.
+     * <p>
+     * These are the translated names the game shows, so they follow the language the client is in
+     * and are not the ids. That makes this the list to match a name typed into the search box
+     * against, and it is what {@link #selectTab(String)} takes.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * if (inv.is("Creative Inventory")) {
+     *   for (const name of inv.getTabNames()) {
+     *     Chat.log(name);
+     *   }
+     * }
+     * </pre>
+     * @return a list of the display name of each tab
+     * @since 1.8.4
+     */
     public List<String> getTabNames() {
         return CreativeModeTabs.allTabs().stream().map(e -> e.getDisplayName().getString()).collect(Collectors.toList());
     }
 
+    /**
+     * the same list as {@link #getTabNames()}, but as text objects rather than strings.
+     * <p>
+     * The two are built from the same source in the same order, so the index of an entry matches
+     * between them. Reach for this one when the name is going somewhere that takes text, and for
+     * the plain one when it is being compared.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * if (inv.is("Creative Inventory")) {
+     *   for (const text of inv.getTabTexts()) {
+     *     Chat.log(text.getString());
+     *   }
+     * }
+     * </pre>
+     * @return a list of the display name of each tab, as text
+     * @since 1.8.4
+     */
     public List<TextHelper> getTabTexts() {
         return CreativeModeTabs.allTabs().stream().map(e -> TextHelper.wrap(e.getDisplayName())).collect(Collectors.toList());
     }

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingfields;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -10,6 +11,7 @@ import com.jsmacrosce.wagyourgui.elements.TextInput;
 
 import java.lang.reflect.InvocationTargetException;
 
+@DocletIgnore
 public class FloatField extends AbstractSettingField<Float> {
 
     public FloatField(int x, int y, int width, Font textRenderer, AbstractSettingContainer parent, SettingsOverlay.SettingField<Float> field) {
@@ -22,7 +24,7 @@ public class FloatField extends AbstractSettingField<Float> {
         try {
             TextInput floatIn = addRenderableWidget(new TextInput(x + width / 2, y, width / 2, height, textRenderer, 0xFF101010, 0, 0xFF4040FF, 0xFFFFFFFF, setting.get().toString(), null, (value) -> {
                 try {
-                    if (value.equals("")) {
+                    if (value.isEmpty()) {
                         value = "0";
                     }
                     setting.set(Float.parseFloat(value));

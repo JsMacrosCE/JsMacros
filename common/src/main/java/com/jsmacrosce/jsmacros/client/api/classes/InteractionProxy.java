@@ -28,6 +28,45 @@ import java.util.function.Consumer;
 public class InteractionProxy {
     private static final Minecraft mc = Minecraft.getInstance();
 
+    /**
+     * puts every part of the interaction proxy back to what it was before any of it was changed.
+     * <p>
+     * Four separate things are undone here, and the order matters for one of them. The target
+     * checks go back to their defaults first, so the six flags a script may have changed are the
+     * defaults again; the target override is dropped next, which also re-runs the target update;
+     * the block breaking override is then turned off with the reason {@code RESET}; and the long
+     * interact override is turned off last.
+     * <p>
+     * The block breaking half is the one with a consequence beyond the flag. Turning the override
+     * off runs whatever callbacks were waiting on the break finishing, and they are told
+     * {@code RESET} and given no position, so a script that registered a callback for a break it
+     * is giving up on is called rather than left waiting. The client's own block breaking is also
+     * stopped at that point unless the attack key is held down, so this ends an in progress break
+     * rather than only the override around it.
+     * <p>
+     * Nothing calls this from a script. The game calls it for the client when a world is joined
+     * and when the client disconnects, so a script's overrides never survive either of those. A
+     * script that wants the same effect has the four parts individually, three of which are the
+     * same calls this makes.
+     * <p>
+     * <b>This class is not in the shipped TypeScript definitions, so a script never names it.</b>
+     * The equivalent is spelled with the interaction manager rather than this class.
+     * example:
+     * <pre>
+     * // the same four things, one at a time, through the manager that
+     * // is in the definitions. The checks and the target are the same
+     * // calls, and the break half reports CANCELLED rather than RESET
+     * const interactions = Player.getInteractionManager();
+     * if (interactions !== null) {
+     *   interactions.resetTargetChecks();
+     *   interactions.clearTargetOverride();
+     *   interactions.cancelBreakBlock();
+     *   interactions.holdInteract(false, false);
+     * }
+     * </pre>
+     *
+     * @since 1.9.0
+     */
     public static void reset() {
         Target.resetChecks();
         Target.setTarget(null);
@@ -248,6 +287,13 @@ public class InteractionProxy {
              * * `TARGET_CHANGE` - if the targeted block has changed.<br>
              * * `UNAVAILABLE` - if InteractionManager was unavailable. (mc.interactionManager is null)<br>
              * * null - unknown. (proxy method has been called outside the api)<br>
+             * <p>
+             * Every one of these is produced by the proxy turning the break override off, and
+             * each of them runs the callbacks that were waiting, which is why a callback is
+             * always told something even when the break did not finish. The accompanying
+             * {@code pos} is only filled in for `SUCCESS`, where the block that broke is known;
+             * every other outcome passes no position at all, so a callback that needs the
+             * position has to fall back to whatever it was already looking at.
              */
             @DocletReplaceReturn("BreakBlockResult$Reason | null")
             @DocletDeclareType(name = "BreakBlockResult$Reason", type = "'SUCCESS' | 'CANCELLED' | 'INTERRUPTED' | 'NOT_BREAKING' | 'RESET' | 'NO_OVERRIDE' | 'IS_AIR' | 'NO_TARGET' | 'TARGET_LOST' | 'TARGET_CHANGE' | 'UNAVAILABLE'")

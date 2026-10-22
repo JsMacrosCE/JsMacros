@@ -1,11 +1,14 @@
 package com.jsmacrosce.jsmacros.client.tick;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import java.util.PriorityQueue;
 
 /**
  * @author Wagyourtail
  * Ignore this xd
  */
+@DocletIgnore
 public class TickSync {
     int tc = 0;
     final PriorityQueue<TickSyncInt> minHeap = new PriorityQueue<>();
@@ -42,6 +45,7 @@ public class TickSync {
         }
     }
 
+    @DocletIgnore
     public static class TickSyncInt implements Comparable<TickSyncInt> {
         public final int tick;
 

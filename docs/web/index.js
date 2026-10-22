@@ -51,9 +51,16 @@ async function openMain(url, dontpush) {
     mainContent.setAttribute("class", cname);
     mainContent.innerHTML = doc.innerHTML;
     for (const a of mainContent.getElementsByTagName("a")) {
-        if (!a.hasAttribute("target") && !a.getAttribute("href")?.startsWith("#") && !a.hasAttribute("onclick")) {
-            a.setAttribute("href", a.getAttribute("href").replace(/(\.\.\/)*/, `${versionSelect.value}/`));
-            frameLink(a);
+        const href = a.getAttribute("href");
+        if (!a.hasAttribute("target") && !a.hasAttribute("onclick")) {
+            if (href?.startsWith("#")) {
+                // Handle anchor links within the same page
+                a.setAttribute("onclick", `scrlTo('${href}'); return false;`);
+            } else {
+                // Handle links to other pages
+                a.setAttribute("href", href.replace(/(\.\.\/)*/, `${versionSelect.value}/`));
+                frameLink(a);
+            }
         }
     }
     if (cname === "searchMain") {

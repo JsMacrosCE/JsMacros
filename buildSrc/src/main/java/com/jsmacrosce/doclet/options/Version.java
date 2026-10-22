@@ -1,9 +1,11 @@
 package com.jsmacrosce.doclet.options;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import jdk.javadoc.doclet.Doclet;
 
 import java.util.List;
 
+@DocletIgnore
 public class Version implements Doclet.Option {
     public static String version = null;
 

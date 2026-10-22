@@ -20,10 +20,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
-import com.jsmacrosce.doclet.DocletDeclareType;
-import com.jsmacrosce.doclet.DocletReplaceParams;
-import com.jsmacrosce.doclet.DocletReplaceReturn;
-import com.jsmacrosce.doclet.DocletReplaceTypeParams;
+import com.jsmacrosce.doclet.*;
 import com.jsmacrosce.jsmacros.api.math.Pos2D;
 import com.jsmacrosce.jsmacros.client.JsMacros;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
@@ -46,9 +43,44 @@ import net.minecraft.world.inventory.ClickType;
 //? }
 
 /**
+ * the handle on an open container screen, and the base every other inventory type in this
+ * package extends.
+ * <p>
+ * The class itself is what an unrecognised container falls back to. The type a script actually
+ * gets depends on the screen that is open, because {@link #create(Screen)} looks at the screen
+ * and picks the matching subclass: a chest is a {@code ContainerInventory}, a furnace a
+ * {@code FurnaceInventory}, a crafting table a {@code CraftingInventory}, and so on. Which one
+ * arrived is worth checking rather than assuming, either with {@link #is(String...)} or by
+ * reading {@link #getType()}, because a script that assumes a chest and is handed a furnace
+ * will misread the slot numbers.
+ * <p>
+ * Nothing here is a copy of the container. Every click, drop and swap is a real action sent to
+ * the game, and the slot numbers are the menu's own, counted across the whole open menu rather
+ * than per section. That is what makes {@link #getMap()} worth reading once: it names the
+ * sections of the menu and which slot numbers belong to each, so a script can ask for
+ * {@code "hotbar"} instead of hard coding a number that changes with the screen.
+ * <p>
+ * The sections a map carries are only the ones that apply to what is open, so any given screen
+ * has a subset of the full set of names.
+ * example:
+ * <pre>
+ * const inv = Player.openInventory();
+ * // which kind of container is this?
+ * Chat.log(`this is ${inv.getType()}`);
+ * // the named sections, rather than slot numbers that move per screen
+ * Chat.log(`main: ${inv.getSlots("main")}`);
+ * Chat.log(`hotbar: ${inv.getSlots("hotbar")}`);
+ * // count what is in there, without touching any slot
+ * const counts = inv.getItemCount();
+ * for (const id of counts.keySet()) {
+ *   Chat.log(`${id} x ${counts.get(id)}`);
+ * }
+ * </pre>
+ *
  * @author Wagyourtail
  * @since 1.0.8
  */
+@DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public class Inventory<T extends AbstractContainerScreen<?>> {
     private enum InventoryAction {
@@ -69,6 +101,28 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     protected final LocalPlayer player;
     protected static Minecraft mc = Minecraft.getInstance();
 
+    /**
+     * the handle for whatever container is open right now, falling back to the player's own
+     * inventory when nothing is.
+     * <p>
+     * This is the same call {@code Player.openInventory()} makes, and it is the one to reach for
+     * when a script does not care which container it gets. When a container screen is open the
+     * result is the subclass for that screen; when none is, there is no container to describe,
+     * so this builds a handler over a player inventory instead and a creative player gets the
+     * creative one.
+     * <p>
+     * That fallback is a screen that was never opened, so the parts of the handler that need one
+     * open are not usable on the result: {@link #getSlotUnderMouse()} throws when the screen is
+     * not the current one, and it never is in this case.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * Chat.log(`${inv.getType()} has ${inv.getTotalSlots()} slots`);
+     * </pre>
+     *
+     * @return a handler for the open container, or for the player's own inventory if none is
+     * @since 1.0.8
+     */
     public static Inventory<?> create() {
         Inventory<?> inv = create(mc.screen);
         // TODO: What to do with horses? The horse inventory would need to be opened with a packet
@@ -82,6 +136,32 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
         return inv;
     }
 
+    /**
+     * the handle for a container screen, or nothing at all if the screen is not a container.
+     * <p>
+     * This is the form to reach for when a script has its own screen in hand and wants the
+     * container behind it, because unlike {@link #create()} it does not fall back to anything.
+     * A screen that is not a container at all, including no screen, comes back as {@code null},
+     * so the result has to be checked before it is used.
+     * <p>
+     * The subclasses are chosen by the screen type, and a screen this does not recognise still
+     * comes back as a plain handler rather than as {@code null}, since it is a container all
+     * the same.
+     * example:
+     * <pre>
+     * const screen = Hud.getOpenScreen();
+     * const inv = Java.type("com.jsmacrosce.jsmacros.client.api.classes.inventory.Inventory")
+     * .create(screen);
+     * if (inv !== null) {
+     *   Chat.log(`${inv.getType()} has ${inv.getTotalSlots()} slots`);
+     * }
+     * </pre>
+     *
+     * @param s the screen to describe
+     * @return a handler for the container behind it, or {@code null} if it is not a container
+     *         screen
+     * @since 1.0.8
+     */
     @Nullable
     public static Inventory<?> create(@Nullable Screen s) {
         if (s instanceof AbstractContainerScreen) {
@@ -169,9 +249,10 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     /**
      * Clicks a slot with a mouse button.~~if the slot is a container, it will click the first slot in the container
      *
-     * @param slot
-     * @param mouseButton
-     * @return
+     * @param slot the slot to click, counted across the whole open menu
+     * @param mouseButton 0 to pick the stack up, 2 to clone it. Any other value is treated the
+     *        same as 0, so only those two are worth passing.
+     * @return self for chaining.
      * @since 1.0.8
      */
     @DocletReplaceParams("slot: int, mouseButton: Trit")
@@ -183,9 +264,10 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
     /**
      * Does a drag-click with a mouse button. (the slots don't have to be in order or even adjacent, but when vanilla minecraft calls the underlying function they're always sorted...)
      *
-     * @param slots
-     * @param mouseButton
-     * @return
+     * @param slots the slots to spread across, which do not have to be adjacent or in order
+     * @param mouseButton 0 to spread evenly, anything else to spread greedily. Only whether it
+     *        is 0 is looked at, so any other value means the same thing.
+     * @return self for chaining.
      */
     @DocletReplaceParams("slots: int[], mouseButton: Bit")
     public Inventory<T> dragClick(int[] slots, int mouseButton) {
@@ -527,7 +609,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
      * @param slot
      * @param hotbarSlot 0-8 or 40 for offhand
      * @return
-     * @since 1.6.5 [citation needed]
+     * @since 1.6.4
      */
     @DocletReplaceParams("slot: int, hotbarSlot: HotbarSwapSlot")
     public Inventory<T> swapHotbar(int slot, int hotbarSlot) {
@@ -798,6 +880,26 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
         return this.inventory.getTitle().getString();
     }
 
+    /**
+     * the screen behind this handler, as a script sees it.
+     * <p>
+     * This is the same screen object the handler was built from, not a copy of it, so it is the
+     * way to get at the screen's own API when a script needs something this class does not wrap.
+     * It is {@code null} once {@link #close()} has been called, because that clears it.
+     * <p>
+     * Unlike the methods around it this one carries no {@code @since}: the version it arrived in
+     * is not recorded anywhere, so it is left unstated rather than guessed.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * const screen = inv.getRawContainer();
+     * if (screen !== null) {
+     *   Chat.log(`the screen object is a ${screen.getClass().getName()}`);
+     * }
+     * </pre>
+     *
+     * @return the screen this handler was built from
+     */
     @DocletReplaceReturn("IScreen")
     public T getRawContainer() {
         return this.inventory;

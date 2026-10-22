@@ -14,6 +14,38 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
+ * the two chat histories: everything that has come in, and everything that was sent.
+ * <p>
+ * These are different lists. The received side is the scrollback, what
+ * {@link #getRecvLines()} and {@link #getRecvCount()} read and what
+ * {@link #insertRecvText(int, TextHelper, int, boolean)} and the remove methods change. The
+ * sent side is only two things, {@link #getSent()} which hands back the list itself and
+ * {@link #clearSent(boolean)} which empties it.
+ * <p>
+ * The methods that <b>change</b> the history each come in an {@code await} form, and it is worth
+ * knowing what it does before reaching for one. Without it a call returns as soon as the work
+ * has been <i>queued</i> on the client thread, which is almost always what a script wants; with
+ * it the call blocks until its own task has run, which means it also waits out whatever else was
+ * queued ahead of it. The readers do not have the choice at all: they
+ * always wait, because reading a list the client thread is in the middle of rewriting is the
+ * case that actually bites.
+ * <p>
+ * The one exception is {@link #getSent()}, which hands back the list itself rather than a
+ * copy, so a script that writes to it is editing the client history directly.
+ * example:
+ * <pre>
+ * const history = Chat.getHistory();
+ * // what has come in
+ * Chat.log(`${history.getRecvCount()} lines in the scrollback`);
+ * const last = history.getRecvLines();
+ * if (last.size() > 0) {
+ *   // a line is not a string, it is a wrapper with the text and the tick it arrived on
+ *   const newest = last.get(last.size() - 1);
+ *   Chat.log(`the newest is ${newest.getText().getString()}, on tick ${newest.getCreationTick()}`);
+ * }
+ * // and what was sent, which is a list a script can edit in place
+ * Chat.log(`sent: ${history.getSent()}`);
+ * </pre>
  * @since 1.6.0
  */
 public class ChatHistoryManager {

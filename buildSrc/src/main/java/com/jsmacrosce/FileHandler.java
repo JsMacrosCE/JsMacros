@@ -1,11 +1,14 @@
 package com.jsmacrosce;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
 import java.io.*;
 
 /**
  * @author Wagyourtail
  * @since 1.1.8
  */
+@DocletIgnore
 public class FileHandler {
     private final File f;
 
@@ -53,15 +56,15 @@ public class FileHandler {
      * @since 1.1.8
      */
     public String read() throws IOException {
-        String ret = "";
+        StringBuilder ret = new StringBuilder();
         try (BufferedReader in = new BufferedReader(new FileReader(f))) {
             String line = in.readLine();
             while (line != null) {
-                ret += line + "\n";
+                ret.append(line).append("\n");
                 line = in.readLine();
             }
         }
-        return ret;
+        return ret.toString();
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.editor;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.config.ClientConfigV2;
 
@@ -10,6 +11,7 @@ import java.util.function.Consumer;
 /**
  *
  */
+@DocletIgnore
 public class History {
     protected int MAX_UNDO = JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class).editorHistorySize;
     protected List<HistoryStep> undo = new ArrayList<>(MAX_UNDO + 1);

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingcontainer;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import com.jsmacrosce.jsmacros.client.gui.settings.SettingsOverlay;
@@ -8,6 +9,7 @@ import com.jsmacrosce.wagyourgui.overlays.TextPrompt;
 
 import java.lang.reflect.InvocationTargetException;
 
+@DocletIgnore
 public class ColorMapSetting extends AbstractMapSettingContainer<short[], ColorMapSetting.ColorEntry> {
 
     public ColorMapSetting(int x, int y, int width, int height, Font textRenderer, SettingsOverlay parent, String[] group) {

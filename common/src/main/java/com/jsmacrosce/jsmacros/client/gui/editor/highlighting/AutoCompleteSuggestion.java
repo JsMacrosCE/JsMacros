@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.editor.highlighting;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.network.chat.Component;
 import com.jsmacrosce.jsmacros.client.gui.screens.EditorScreen;
 

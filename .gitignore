@@ -34,6 +34,9 @@ doc/
 *.log
 *.log.gz
 
+# The mixin configurations are written from their json5 sources at build time.
+*.mixins.json
+
 docs/web/[0-9]*
 
 /META-INF/
@@ -44,3 +47,4 @@ docs/web/[0-9]*
 
 # General working dir for anything that is needed during development
 working/
+.opencode/

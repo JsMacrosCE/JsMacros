@@ -4,8 +4,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.reflect.ClassPath;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
@@ -32,7 +34,10 @@ import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+
 import org.jetbrains.annotations.Nullable;
+
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
@@ -55,15 +60,66 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 /**
+ * a packet's bytes, as something a script can read and write.
+ * <p>
+ * The wire format is a stream of typed values, and this is that stream: the read and write
+ * calls mirror each other exactly, so {@code writeVarInt} pairs with {@code readVarInt} and
+ * {@code writeString} with {@code readString}, and the order matters. A script reading a
+ * packet has to read the fields in the order the packet wrote them, because nothing in the
+ * buffer says what is where.
+ * <p>
+ * A helper is either a <b>fresh buffer</b> or a <b>real packet's</b> buffer, and the difference
+ * decides what it is for. The packet events hand one out for the packet in question, which is
+ * how a script reads a packet it has just seen, and {@code Client.createPacketByteBuffer()}
+ * makes an empty one for a script that wants to build a payload. Everything a script does to a
+ * real packet through this is a <i>local</i> change: the game is handed the packet object, not
+ * the buffer. To apply edits to an intercepted packet, decode the buffer and assign the result
+ * to the event's {@code packet} field.
+ * <p>
+ * The buffer remembers where it was when the helper was made, and {@link #reset()} puts it
+ * back. That is the pattern every read of a real packet should follow — read what you want,
+ * then reset, so the next read from this helper starts at the original position.
+ * <p>
+ * Supported standalone packets can be decoded using their registered codecs. Packet-backed
+ * helpers remember their network phase; overloads taking a protocol select a phase explicitly.
+ * Conversion reads from the current reader position, so reset after inspecting a packet before
+ * decoding its untouched bytes. {@link #receivePacket()} handles the original packet object,
+ * whereas its named and class overloads decode the buffer first.
+ * example:
+ * <pre class="language-typescript">
+ * // read a packet that has just arrived, in the order the packet writes it
+ * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event: EventRecvPacket) {
+ *   if (event.type !== "HealthUpdateS2CPacket") return;
+ *   if (!event.canGetPacketBuffer()) return;
+ *   const buffer = event.getPacketBuffer();
+ *   // HealthUpdateS2CPacket writes float health, VarInt food, then float saturation
+ *   Chat.log(`health ${buffer.readFloat()}`);
+ *   // put this helper back before another read or conversion
+ *   buffer.reset();
+ * }));
+ *
+ * // or build a payload of your own
+ * const payload = Client.createPacketByteBuffer();
+ * payload.writeString("hello").writeVarInt(42);
+ * Chat.log(`${payload.readString()} and ${payload.readVarInt()}`);
+ * </pre>
+ *
  * @author Etheradon
  * @since 1.8.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Misc Helpers")
 public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     private static final Minecraft mc = Minecraft.getInstance();
 
     /**
+     * the lookup table that turns a buffer back into a packet.
+     * <p>
      * Don't touch this here!
+     * <br>
+     * Populated during class initialization for packet classes with supported standalone codecs.
+     * {@link #toPacket(Class)} uses it for play-phase decoding; explicit phase decoding selects
+     * the matching codec directly.
      */
     public static final Map<Class<? extends Packet<?>>, Function<FriendlyByteBuf, ? extends Packet<?>>> BUFFER_TO_PACKET = new HashMap<>();
     private static final Object2BooleanMap<Class<? extends Packet<?>>> PACKET_SIDES = new Object2BooleanArrayMap<>();
@@ -101,7 +157,13 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         this(packet, preferredProtocol(packet, mc.getConnection() == null ? null : mc.getConnection().protocol()));
     }
 
-    /** Encode a packet using the codec for its network phase. */
+    /**
+     * Encodes a packet using the standalone codec for the specified network phase.
+     *
+     * @param packet the packet to encode
+     * @param protocol the network phase, such as {@code play} or {@code configuration}
+     * @throws IllegalArgumentException if no standalone codec is available
+     */
     public PacketByteBufferHelper(Packet<?> packet, String protocol) {
         super(getBuffer(packet));
         this.packet = packet;
@@ -132,8 +194,16 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * @return the packet for this buffer or {@code null} if no packet was used to create this
-     * helper.
+     * the packet this buffer came from, rebuilt from the buffer.
+     * <p>
+     * A fresh helper without an original packet returns {@code null}. A packet-backed helper
+     * decodes the original packet class using its saved network phase and the current reader
+     * position. This returns a decoded packet, not the original object carried by the event.
+     *
+     * @return the packet for this buffer, or {@code null} if no packet was used to create this
+     * helper
+     * @throws IllegalArgumentException if the packet class is not registered in the saved phase
+     * or has no supported codec
      * @since 1.8.4
      */
     @Nullable
@@ -142,9 +212,16 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * the packet named, built from this buffer.
+     * <p>
+     * Looks up the convenience name and decodes at the current reader position. Packet-backed
+     * helpers use their saved phase; fresh helpers default to play.
+     * <br>
+     * The names are the ones {@link #getPacketNames()} lists.
+     *
      * @param packetName the name of the packet's class that should be returned
      * @return the packet for this buffer.
-     * @see #getPacketNames()
+     * @throws IllegalArgumentException if the name is unknown or no supported codec is available
      * @since 1.8.4
      */
     @DocletReplaceParams("packetName: PacketName")
@@ -154,7 +231,15 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         return toPacket((Class<? extends Packet>) clazz);
     }
 
-    /** Decode a named packet using the codec registered for its network phase. */
+    /**
+     * Decodes a named packet at the current reader position using an explicit network phase.
+     *
+     * @param packetName a convenience name from {@link #getPacketNames()}
+     * @param protocol the network phase
+     * @return the decoded packet
+     * @throws IllegalArgumentException if the name or phase is unknown, the packet is not
+     * registered in that phase, or no supported codec is available
+     */
     public Packet<?> toPacket(String packetName, String protocol) {
         Class<? extends Packet<?>> clazz = PACKETS.get(packetName);
         if (clazz == null) throw new IllegalArgumentException("Unknown packet: " + packetName);
@@ -162,8 +247,14 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * the packet of the given class, built from this buffer.
+     * <p>
+     * Decodes at the current reader position. Non-play helpers use their saved phase; play
+     * helpers use the registered decoder lookup. The bytes must match the requested codec.
+     *
      * @param clazz the class of the packet to return
      * @return the packet for this buffer.
+     * @throws IllegalArgumentException if no supported codec is available
      * @since 1.8.4
      */
     public Packet<?> toPacket(Class<? extends Packet> clazz) {
@@ -173,7 +264,16 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         return decoder.apply(base);
     }
 
-    /** Decode using a phase-specific codec when one exists (notably configuration custom payloads). */
+    /**
+     * Decodes at the current reader position using a phase-specific codec, including configuration
+     * custom payloads. The bytes must match the requested codec.
+     *
+     * @param clazz the packet class
+     * @param protocol the network phase
+     * @return the decoded packet
+     * @throws IllegalArgumentException if the phase is unknown, the class is not registered in
+     * that phase, or no supported codec is available
+     */
     public Packet<?> toPacket(Class<? extends Packet> clazz, String protocol) {
         getPacketId((Class<? extends Packet<?>>) clazz, protocol);
         Field field = findCodecField(clazz, protocol);
@@ -188,8 +288,23 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * the id the game uses on the wire for a packet class.
+     * <p>
+     * This overload requires the packet class to occur in exactly one protocol. For a class
+     * shared between phases, use {@link #getPacketId(Class, String)} to disambiguate.
+     * <br>
+     * The event's own {@code type} string is the reliable way to tell what a packet is.
+     * example:
+     * <pre>
+     * // the event's type is the reliable identifier
+     * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event) {
+     *   Chat.log(event.type);
+     * }));
+     * </pre>
+     *
      * @param packetClass the class of the packet to get the id for
-     * @return the id of the packet.
+     * @return the registered packet id
+     * @throws IllegalArgumentException if the class is unknown or belongs to multiple protocols
      * @since 1.8.4
      */
     public int getPacketId(Class<? extends Packet<?>> packetClass) {
@@ -208,8 +323,17 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * which network state a packet class belongs to, in the game's own numbering.
+     * <p>
+     * This overload requires the packet class to occur in exactly one protocol. Use
+     * {@link #getNetworkStateId(Class, String)} for a class shared between phases.
+     * <br>
+     * The state is which part of the connection a packet belongs to — logging in, playing, or
+     * configuring — and it is why a packet cannot simply be read on the wrong one.
+     *
      * @param packetClass the class of the packet to get the id for
-     * @return the id of the network state the packet belongs to.
+     * @return the ordinal of the registered connection protocol
+     * @throws IllegalArgumentException if the class is unknown or belongs to multiple protocols
      * @since 1.8.4
      */
     public int getNetworkStateId(Class<? extends Packet<?>> packetClass) {
@@ -228,8 +352,17 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * whether a packet class is one the server sends to the client.
+     * <p>
+     * Reads the registered packet direction rather than inferring it from a convenience name.
+     * <br>
+     * A name is the practical test for this: {@link #getPacketNames()} ends almost every
+     * clientbound one with {@code S2C} and every serverbound one with {@code C2S}, and the
+     * event's {@code type} is that same name.
+     *
      * @param packetClass the class to get the side for
-     * @return {@code true} if the packet is clientbound, {@code false} if it is serverbound.
+     * @return {@code true} if the packet is clientbound, {@code false} if it is serverbound
+     * @throws IllegalArgumentException if the class is unknown
      * @since 1.8.4
      */
     public boolean isClientbound(Class<? extends Packet<?>> packetClass) {
@@ -238,8 +371,13 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * whether a packet class is one the client sends to the server.
+     * <p>
+     * This is the exact opposite of {@link #isClientbound(Class)} for a registered packet class.
+     *
      * @param packetClass the class to get the id for
-     * @return {@code true} if the packet is serverbound, {@code false} if it is clientbound.
+     * @return {@code true} if the packet is serverbound, {@code false} if it is clientbound
+     * @throws IllegalArgumentException if the class is unknown
      * @since 1.8.4
      */
     public boolean isServerbound(Class<? extends Packet<?>> packetClass) {
@@ -248,6 +386,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
 
     /**
      * Send a packet of the given type, created from this buffer, to the server.
+     * <p>
+     * Decodes through {@link #toPacket()} at the current reader position. A helper without an
+     * original packet is a no-op. Sending requires a connection and a suitable serverbound packet.
      *
      * @return self for chaining.
      * @since 1.8.4
@@ -260,6 +401,11 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * builds a packet of the named type from this buffer and sends it to the server.
+     * <p>
+     * Decodes through the class overload at the current reader position. Requires a connection,
+     * a supported codec and bytes matching a suitable serverbound packet.
+     *
      * @param packetName the name of the packet's class that should be sent
      * @return self for chaining.
      * @since 1.8.4
@@ -281,7 +427,24 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * handles a packet as though the client had received it, for testing a listener.
+     * <p>
+     * Nothing is converted here: this handles the original packet object, not modified buffer
+     * bytes. The named and class overloads decode instead. A helper without an original packet
+     * is a no-op in all three receive overloads.
+     * <br>
+     * Nothing is sent anywhere either, so this is the opposite direction from
+     * {@link #sendPacket()} and the send event's {@code replacePacket} has no bearing on it.
+     * <br>
+     * The packet is declared as one for a {@code ClientGamePacketListener} and that is the
+     * caveat, but a subtle one: the cast is erased, so this call itself performs no check and
+     * a packet belonging to some other listener, a configuration or login one for instance, is
+     * handed over unchecked. The failure then comes from inside the game's own handler for
+     * that packet rather than from here, which makes it look like something else went wrong.
+     *
      * @return self for chaining.
+     * @throws ClassCastException if the packet behind this buffer is not a client game packet,
+     * raised by that packet's own handler rather than by this call
      * @since 1.8.4
      */
     public PacketByteBufferHelper receivePacket() {
@@ -292,9 +455,14 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * handles a packet of the named type as though the client had received it.
+     * <p>
+     * If this helper has an original packet, decodes through {@link #toPacket(String)} and
+     * handles the result with the client game connection. Otherwise this is a no-op. The bytes
+     * must be correctly positioned and describe a compatible client game packet.
+     *
      * @param packetName the name of the packet's class that should be received
      * @return self for chaining.
-     * @see #getPacketNames()
      * @since 1.8.4
      */
     @DocletReplaceParams("packetName: PacketName")
@@ -306,6 +474,12 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * handles a packet of the given class as though the client had received it.
+     * <p>
+     * If this helper has an original packet, decodes through {@link #toPacket(Class)} and
+     * handles the result with the client game connection. Otherwise this is a no-op. The bytes
+     * must be correctly positioned and describe a compatible client game packet.
+     *
      * @param clazz the class of the packet to receive
      * @return self for chaining.
      * @since 1.8.4
@@ -318,8 +492,58 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * These names are subject to change and are only for an easier access. They will probably not
-     * change in the future, but it is not guaranteed.
+     * every packet name this class knows, as a shortcut for a packet's class name.
+     * <p>
+     * These names are subject to change and are only for an easier access. They will probably
+     * not change in the future, but it is not guaranteed.
+     * <br>
+     * The naming carries the direction: a name ending {@code S2CPacket} is one the server sends
+     * to the client and one ending {@code C2SPacket} is one the client sends. That suffix is
+     * a convenient naming convention; registered metadata from {@link #isClientbound(Class)}
+     * and {@link #isServerbound(Class)} is authoritative when the packet class is available.
+     * <br>
+     * It is a rule rather than a certainty, and a script that cares should not assume it holds
+     * for every entry. In the 1.21.8 build the table holds 200 names, of which 132 end in
+     * {@code S2CPacket} and 61 in {@code C2SPacket}; the other seven are the ones to know
+     * about, and all seven are named for the class they are a variant of with a {@code $}
+     * between the two parts, such as {@code EntityS2CPacket$Rotate} and
+     * {@code PlayerMoveC2SPacket$OnGroundOnly}, so the direction sits in the middle of the name
+     * and a {@code endsWith} test misses them. A test on the name is right for the 193 that
+     * follow the rule and only wrong for those seven.
+     * <br>
+     * Those counts are a snapshot of the 1.21.8 table rather than a property of the class, and
+     * they are worth reading that way: entries around the edges of the table sit in
+     * version-gated blocks of the source, so a build for another target compiles a different set
+     * and a packet that is a {@code Clientbound} one on 1.21.11 is an {@code S2CPacket} here.
+     * Nothing else on this class reads the numbers, so a count that has moved is a reason to
+     * recount rather than a reason to distrust {@link #getPacketName(Packet)}.
+     * <br>
+     * The list is also what a filterer's {@code setType} takes, and the same string the packet
+     * events report as their {@code type}.
+     * <br>
+     * Every name here stands for exactly one packet class, and the reverse map behind
+     * {@link #getPacketName(Packet)} is built from this same table, so for a packet that is in
+     * it the two agree. The one way a script can see a name that is not in this list is a
+     * packet class the table does not cover at all: {@link #getPacketName(Packet)} falls back to
+     * that class's real simple class name, which is the game's own rather than one of the
+     * shortcut names, so it will not be findable by matching against this list.
+     * example:
+     * <pre>
+     * const buffer = Client.createPacketByteBuffer();
+     * // a filterer picks a packet by one of these names
+     * const filterer = JsMacros.createEventFilterer("RecvPacket")
+     *   .setType("HealthUpdateS2CPacket");
+     *
+     * // the suffix is the practical direction test, and the seven names that
+     * // break it are the ones to spot by hand
+     * for (const name of buffer.getPacketNames()) {
+     *   if (name.endsWith("C2SPacket")) {
+     *     Chat.log(`${name} goes to the server`);
+     *   } else if (!name.endsWith("S2CPacket")) {
+     *     Chat.log(`${name} is the odd one out`);
+     *   }
+     * }
+     * </pre>
      *
      * @return a list of all packet names.
      * @since 1.8.4
@@ -331,6 +555,25 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
 
     /**
      * Resets the buffer to the state it was in when this helper was created.
+     * <p>
+     * The position and the contents both go back, so this undoes a read as well as a write.
+     * Use this after inspecting a packet if another read or conversion should start from the
+     * original position. Each packet-buffer helper owns its own bytes; resetting one does not
+     * replace the event's packet. Registry-backed buffers retain their registry access.
+     * <br>
+     * The state it restores is the one captured when the helper was <i>made</i>, which for a
+     * packet event's helper is the state as the packet wrote it, not an empty buffer.
+     * example:
+     * <pre class="language-typescript">
+     * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event: EventRecvPacket) {
+     *   if (event.type !== "HealthUpdateS2CPacket") return;
+     *   if (!event.canGetPacketBuffer()) return;
+     *   const buffer = event.getPacketBuffer();
+     *   // read health, then restore this helper for another read
+     *   Chat.log(`health ${buffer.readFloat()}`);
+     *   buffer.reset();
+     * }));
+     * </pre>
      *
      * @return self for chaining.
      * @since 1.8.4
@@ -1627,6 +1870,25 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         return String.format("PacketByteBufferHelper:{\"base\": %s}", base);
     }
 
+    /**
+     * the shortcut name of a packet object, or its class name if it has none.
+     * <p>
+     * The reverse of {@link #getPacketNames()} for a packet that is in hand: it gives the name
+     * a filterer would take and that the packet events report as their {@code type}, without
+     * the script having to reach the class itself. A packet class that is not in the table falls
+     * back to its simple class name, so the answer is always something usable.
+     * example:
+     * <pre>
+     * JsMacros.on("RecvPacket", JavaWrapper.methodToJava(function (event) {
+     *   // the event's own type is the same string
+     *   Chat.log(event.type);
+     * }));
+     * </pre>
+     *
+     * @param packet the packet to name
+     * @return the packet's shortcut name, or its simple class name if it has no entry
+     * @since 1.8.4
+     */
     public static String getPacketName(Packet<?> packet) {
         return PACKET_NAMES.getOrDefault(packet.getClass(), packet.getClass().getSimpleName());
     }

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.editor;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -7,6 +8,7 @@ import net.minecraft.util.Mth;
 
 import java.util.function.Consumer;
 
+@DocletIgnore
 public class SelectCursor {
     private final Minecraft mc = Minecraft.getInstance();
     public Consumer<SelectCursor> onChange;

@@ -19,6 +19,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.world.item.DyeColor;
 import org.slf4j.Logger;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.access.CustomClickEvent;
 import com.jsmacrosce.jsmacros.api.library.FJavaUtils;
 import com.jsmacrosce.jsmacros.api.library.FUtils;
@@ -42,6 +43,7 @@ import net.minecraft.advancements.critereon.BlockPredicate;
 import net.minecraft.advancements.critereon.NbtPredicate;
 import net.minecraft.advancements.critereon.StatePropertiesPredicate;
 
+@DocletCategory("Configuration/Profiles")
 public class ClientProfile extends BaseProfile {
     private static final Minecraft mc = Minecraft.getInstance();
 
@@ -222,7 +224,7 @@ public class ClientProfile extends BaseProfile {
         runner.registerHelper(AdvancementProgress.class, AdvancementProgressHelper.class);
         runner.registerHelper(BlockPredicate.class, BlockPredicateHelper.class);
 //        runner.registerHelper(CommandContext.class, CommandContextHelper.class);
-        runner.registerHelper(CommandNode.class, CommandNodeHelper.class);
+        runner.registerHelper((Class) CommandNode.class, CommandNodeHelper.class);
         runner.registerHelper(DyeColor.class, DyeColorHelper.class);
         runner.registerHelper(ChatFormatting.class, FormattingHelper.class);
         runner.registerHelper(MultiPlayerGameMode.class, InteractionManagerHelper.class);

@@ -5,13 +5,45 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.inventory.EnchantmentMenu;
 import net.minecraft.world.item.enchantment.Enchantment;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.EnchantmentHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
 /**
+ * the handle for an open enchanting table screen.
+ * <p>
+ * An enchanting table always has exactly three options to choose between, and nearly every
+ * method here is about them. Each option has a cost in experience levels and a level of the
+ * enchantment it would give, and the three are read as parallel arrays of length 3:
+ * {@link #getRequiredLevels()} for the costs, {@link #getEnchantmentIds()} for what the
+ * enchantments are, and {@link #getEnchantmentLevels()} for the levels they would be applied
+ * at. {@link #getEnchantmentHelpers()} and {@link #getEnchantments()} are the same three
+ * options wrapped up so a script can read a name without doing the lookup itself.
+ * <p>
+ * The index into those arrays is the same index {@link #doEnchant(int)} takes, so an option
+ * can be read and then bought by number. It is 0 to 2 and nothing else.
+ * <p>
+ * The two slots are the item being enchanted at slot 0 and the lapis lazuli at slot 1,
+ * which is the order the enchanting table's menu builds them. {@link #getMap()} names the same
+ * two regions {@code item} and {@code lapis}.
+ * example:
+ * <pre>
+ * const inv = Player.openInventory();
+ * if (inv.is("Enchanting Table")) {
+ *   if (!inv.getItemToEnchant().isEmpty()) {
+ *     const enchants = inv.getEnchantmentHelpers();
+ *     for (let i = 0; enchants.length > i; i++) {
+ *       if (enchants[i] === null) continue;
+ *       Chat.log(`${i}: ${enchants[i].getId()} ${enchants[i].getLevel()} for ${inv.getRequiredLevels()[i]} levels`);
+ *     }
+ *   }
+ * }
+ * </pre>
+ *
  * @since 1.3.1
  */
+@DocletCategory("Inventory")
 @SuppressWarnings("unused")
 public class EnchantInventory extends Inventory<EnchantmentScreen> {
 
@@ -20,7 +52,25 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
     }
 
     /**
-     * @return xp level required to do enchantments
+     * the experience level cost of each of the three options, as a three element array.
+     * <p>
+     * This is the menu's own array rather than a copy of it, and it is indexed the same way as
+     * {@link #doEnchant(int)}. Every entry is 0 while the table has no item to enchant, so an
+     * array of three zeroes means there is nothing on offer rather than that the options are
+     * free. The enchantment text, helper and id arrays also retain three slots, with null entries
+     * for unresolved clues.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * if (inv.is("Enchanting Table")) {
+     *   const costs = inv.getRequiredLevels();
+     *   if (costs[0] > 0) {
+     *     Chat.log(`the cheapest option costs ${costs[0]} levels`);
+     *   }
+     * }
+     * </pre>
+     *
+     * @return the level cost of each option, in order, 0 for an option the table is not offering
      * @since 1.3.1
      */
     public int[] getRequiredLevels() {
@@ -28,7 +78,29 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
     }
 
     /**
-     * @return list of enchantments text.
+     * the three options as display text, in order.
+     * <p>
+     * Each entry is the enchantment's full name at the level this table would apply it, which
+     * includes the roman numeral for the level, so a script that needs the enchantment's
+     * registry id or its level separately is better served by {@link #getEnchantmentIds()} and
+     * {@link #getEnchantmentLevels()}.
+     * <p>
+     * This reads each option out of the registry by numeric id. An unresolved clue leaves a
+     * {@code null} entry in the three-element array, including when the table has no item.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * if (inv.is("Enchanting Table")) {
+     *   if (!inv.getItemToEnchant().isEmpty()) {
+     *     for (const text of inv.getEnchantments()) {
+     *       if (text === null) continue;
+     *       Chat.log(text.getString());
+     *     }
+     *   }
+     * }
+     * </pre>
+     *
+     * @return the three options as text, in order, with {@code null} for unresolved clues
      * @since 1.3.1
      */
     public TextHelper[] getEnchantments() {
@@ -43,7 +115,30 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
     }
 
     /**
-     * @return the visible enchantment for each level.
+     * the three options as enchantment wrappers, in order, each carrying the level this table
+     * would apply it at.
+     * <p>
+     * This is the richest of the three views: {@link EnchantmentHelper} answers for the name,
+     * the registry id, the level and the minimum and maximum level the enchantment has in
+     * vanilla, so a script does not have to split the display text. The level on each wrapper
+     * is the one this table is offering, not the enchantment's maximum.
+     * <p>
+     * Like {@link #getEnchantments()}, this retains three entries and uses {@code null} for an
+     * option whose enchantment clue does not resolve.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * if (inv.is("Enchanting Table")) {
+     *   if (!inv.getItemToEnchant().isEmpty()) {
+     *     const first = inv.getEnchantmentHelpers()[0];
+     *     if (first !== null) {
+     *       Chat.log(`${first.getId()} ${first.getLevel()}, max level ${first.getMaxLevel()}`);
+     *     }
+     *   }
+     * }
+     * </pre>
+     *
+     * @return the three options as enchantment wrappers, in order, with {@code null} for unresolved clues
      * @since 1.8.4
      */
     public EnchantmentHelper[] getEnchantmentHelpers() {
@@ -59,7 +154,27 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
     }
 
     /**
-     * @return id for enchantments
+     * the registry id of the enchantment behind each of the three options, in order.
+     * <p>
+     * These are registry ids such as {@code "minecraft:sharpness"} rather than display names,
+     * and they line up index for index with {@link #getRequiredLevels()},
+     * {@link #getEnchantmentLevels()} and {@link #doEnchant(int)}. An unresolved clue leaves
+     * {@code null} in that option's slot rather than shortening the array.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * if (inv.is("Enchanting Table")) {
+     *   if (!inv.getItemToEnchant().isEmpty()) {
+     *     const ids = inv.getEnchantmentIds();
+     *     for (let i = 0; ids.length > i; i++) {
+     *       if (ids[i] === null) continue;
+     *       Chat.log(`${ids[i]} at level ${inv.getEnchantmentLevels()[i]}`);
+     *     }
+     *   }
+     * }
+     * </pre>
+     *
+     * @return the registry id of each option's enchantment, in order, with {@code null} for unresolved clues
      * @since 1.3.1
      */
     public String[] getEnchantmentIds() {
@@ -72,7 +187,23 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
     }
 
     /**
-     * @return level of enchantments
+     * the level each of the three options would apply its enchantment at, in order.
+     * <p>
+     * This is the menu's own array and an option the table is not offering reads back as -1
+     * rather than as 0, so it is the one of the three parallel arrays that can hold a negative
+     * and can still be read on an empty table without failing. Dropping the negative entries
+     * is a reasonable way to ask how many options there actually are.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * if (inv.is("Enchanting Table")) {
+     *   const levels = inv.getEnchantmentLevels();
+     *   const offered = levels.filter((l) => l > 0).length;
+     *   Chat.log(`${offered} of 3 options on offer`);
+     * }
+     * </pre>
+     *
+     * @return the level of each option, in order, -1 for an option the table is not offering
      * @since 1.3.1
      */
     public int[] getEnchantmentLevels() {
@@ -80,10 +211,32 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
     }
 
     /**
-     * clicks the button to enchant.
+     * buys one of the three options, which spends the levels and the lapis and applies the
+     * enchantment.
+     * <p>
+     * The index is the same one the three parallel arrays are indexed by, so it runs from 0 to
+     * 2; anything outside that range is refused and logged rather than bought. The click is
+     * checked locally before it is sent, so the table's own conditions decide: there has to be
+     * an item in slot 0, enough lapis for the option (option {@code index} costs
+     * {@code index + 1} lapis), and enough experience levels. A {@code false} return means one
+     * of those was not met and nothing happened, so it is the way to find out whether an
+     * option is affordable without attempting it.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * if (inv.is("Enchanting Table")) {
+     *   if (!inv.getItemToEnchant().isEmpty()) {
+     *     if (inv.doEnchant(0)) {
+     *       Chat.log(`took option 0: ${inv.getEnchantmentIds()[0]}`);
+     *     } else {
+     *       Chat.log(`option 0 refused, it costs ${inv.getRequiredLevels()[0]} levels`);
+     *     }
+     *   }
+     * }
+     * </pre>
      *
-     * @param index
-     * @return success
+     * @param index which of the three options to buy, 0 to 2
+     * @return {@code true} if the enchantment was applied, {@code false} if it was refused
      * @since 1.3.1
      */
     public boolean doEnchant(int index) {
@@ -96,7 +249,25 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
     }
 
     /**
-     * @return the item to be enchanted.
+     * the item on the table, which is slot 0.
+     * <p>
+     * Everything the table offers is worked out from this item, so it being empty is what
+     * makes {@link #getRequiredLevels()} come back as three zeroes and makes the three
+     * registry lookups fail. This reads the slot and nothing more, so an item the table would
+     * refuse still comes back as present; {@link #getRequiredLevels()} is what says whether
+     * there is anything on offer.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * if (inv.is("Enchanting Table")) {
+     *   const item = inv.getItemToEnchant();
+     *   if (!item.isEmpty()) {
+     *     Chat.log(`enchanting ${item.getName()}`);
+     *   }
+     * }
+     * </pre>
+     *
+     * @return the item being enchanted
      * @since 1.8.4
      */
     public ItemStackHelper getItemToEnchant() {
@@ -104,7 +275,20 @@ public class EnchantInventory extends Inventory<EnchantmentScreen> {
     }
 
     /**
-     * @return the slot containing the lapis lazuli.
+     * the lapis lazuli the table charges for an enchantment, which is slot 1.
+     * <p>
+     * The number the table will actually take is the option index plus one, so the cheapest
+     * option costs one lapis. Reading this does not reserve anything; taking the result is what
+     * consumes it.
+     * example:
+     * <pre>
+     * const inv = Player.openInventory();
+     * if (inv.is("Enchanting Table")) {
+     *   Chat.log(`${inv.getLapis().getCount()} lapis available`);
+     * }
+     * </pre>
+     *
+     * @return the lapis lazuli in the table
      * @since 1.8.4
      */
     public ItemStackHelper getLapis() {

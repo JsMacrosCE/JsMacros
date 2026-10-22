@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.core.service;
 
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
@@ -16,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 1.6.4
  */
 @SuppressWarnings("unused")
+@DocletCategory("Core")
 @Event("Service")
 public class EventService extends BaseEvent {
     public final String serviceName;

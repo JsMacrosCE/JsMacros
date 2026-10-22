@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.editor.highlighting;
 
 import com.google.common.collect.Sets;
+import com.jsmacrosce.doclet.DocletIgnore;
 import io.noties.prism4j.GrammarLocator;
 import io.noties.prism4j.Prism4j;
 import io.noties.prism4j.languages.*;
@@ -10,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Set;
 
+@DocletIgnore
 public class Prism implements GrammarLocator {
     private final static Prism4j prism4j = new Prism4j(new Prism());
 
@@ -25,30 +27,19 @@ public class Prism implements GrammarLocator {
     @Nullable
     @Override
     public Prism4j.Grammar grammar(@NotNull Prism4j prism4j, @NotNull String language) {
-        switch (language) {
-            case "javascript":
-                return Prism_javascript.create(prism4j);
-            case "lua":
-                return Prism_lua.create(prism4j);
-            case "python":
-                return Prism_python.create(prism4j);
-            case "clike":
-                return Prism_clike.create(prism4j);
-            case "regex":
-                return Prism_regex.create(prism4j);
-            case "json":
-                return Prism_json.create(prism4j);
-            case "ruby":
-                return Prism_ruby.create(prism4j);
-            case "typescript":
-                return Prism_typescript.create(prism4j);
-            case "groovy":
-                return Prism_groovy.create(prism4j);
-            case "kotlin":
-                return Prism_kotlin.create(prism4j);
-            default:
-                return null;
-        }
+        return switch (language) {
+            case "javascript" -> Prism_javascript.create(prism4j);
+            case "lua" -> Prism_lua.create(prism4j);
+            case "python" -> Prism_python.create(prism4j);
+            case "clike" -> Prism_clike.create(prism4j);
+            case "regex" -> Prism_regex.create(prism4j);
+            case "json" -> Prism_json.create(prism4j);
+            case "ruby" -> Prism_ruby.create(prism4j);
+            case "typescript" -> Prism_typescript.create(prism4j);
+            case "groovy" -> Prism_groovy.create(prism4j);
+            case "kotlin" -> Prism_kotlin.create(prism4j);
+            default -> null;
+        };
     }
 
     @NotNull

@@ -1,5 +1,8 @@
 package com.jsmacrosce;
 
+import com.jsmacrosce.doclet.DocletIgnore;
+
+@DocletIgnore
 public class Pair<T, U> {
     T key;
     U value;

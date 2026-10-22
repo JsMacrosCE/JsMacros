@@ -1,5 +1,7 @@
 package com.jsmacrosce.wagyourgui.containers;
 
+import com.jsmacrosce.doclet.DocletCategory;
+
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Renderable;
@@ -13,6 +15,7 @@ import java.util.List;
 
 import net.minecraft.client.gui.GuiGraphics;
 
+@DocletCategory("Screen and UI Elements")
 public abstract class MultiElementContainer<T extends IContainerParent> implements IContainerParent {
     protected List<AbstractWidget> buttons = new ArrayList<>();
     protected Font textRenderer;

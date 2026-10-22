@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.settings.settingcontainer;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+@DocletIgnore
 public abstract class AbstractMapSettingContainer<T, U extends AbstractMapSettingContainer.MapSettingEntry<T>> extends AbstractSettingContainer {
     public SettingsOverlay.SettingField<Map<String, T>> setting;
     public FormattedCharSequence settingName;

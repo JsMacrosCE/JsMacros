@@ -1,11 +1,13 @@
 package com.jsmacrosce.doclet.options;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import jdk.javadoc.doclet.Doclet;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+@DocletIgnore
 public class OutputDirectory implements Doclet.Option {
     public static File outputDir;
 

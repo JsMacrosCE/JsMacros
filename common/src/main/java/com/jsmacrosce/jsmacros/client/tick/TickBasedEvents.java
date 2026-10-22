@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.tick;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.gui.screens.KeyMacrosScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ServerStatusPinger;
@@ -26,6 +27,9 @@ public class TickBasedEvents {
     private static boolean previousFallFlyState = false;
     private static long counter = 0;
 
+    /**
+     * Interact with this through {@code FClient#ping}, {@code FClient#pingAsync}, {@code FClient#cancelAllPings}
+     */
     public static final ServerStatusPinger serverListPinger = new ServerStatusPinger();
 
     public static boolean areNotEqual(ItemStack a, ItemStack b) {
@@ -47,6 +51,7 @@ public class TickBasedEvents {
         return (a.isEmpty() && b.isEmpty()) || (!a.isEmpty() && !b.isEmpty() && ItemStack.isSameItem(a, b) && a.getCount() == b.getCount() && areTagsEqualIgnoreDamage(a, b));
     }
 
+    @DocletIgnore
     public static void onTick(Minecraft mc) {
         if (JsMacrosClient.keyBinding.consumeClick() && mc.screen == null) {
             if (JsMacrosClient.prevScreen == null) {

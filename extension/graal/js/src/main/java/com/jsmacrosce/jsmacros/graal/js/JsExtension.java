@@ -1,9 +1,11 @@
 package com.jsmacrosce.jsmacros.graal.js;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import org.graalvm.polyglot.Context;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.extensions.Extension;
 
+@DocletIgnore
 public class JsExtension implements Extension {
 
     @Override

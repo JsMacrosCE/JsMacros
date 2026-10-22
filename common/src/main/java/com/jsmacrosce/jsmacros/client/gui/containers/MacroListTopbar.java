@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.containers;
 
+import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -13,6 +14,7 @@ import com.jsmacrosce.wagyourgui.elements.Button;
 
 import java.nio.file.Path;
 
+@DocletIgnore
 public class MacroListTopbar extends MultiElementContainer<MacroScreen> {
     public ScriptTrigger.TriggerType deftype;
     private Button type;

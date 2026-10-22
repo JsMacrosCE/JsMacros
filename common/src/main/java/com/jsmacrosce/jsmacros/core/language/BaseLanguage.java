@@ -171,7 +171,7 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
      * @param macro
      * @param event
      * @throws Exception
-     * @since 1.2.7 [citation needed]
+     * @since 1.6.0
      */
     protected abstract void exec(EventContainer<T> ctx, ScriptTrigger macro, BaseEvent event) throws Exception;
 
