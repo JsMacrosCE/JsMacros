@@ -62,7 +62,7 @@ public abstract class MixinClientPlayNetworkHandler extends ClientCommonPacketLi
     }
 
     @Inject(at = @At(value = "INVOKE", target = "Ljava/util/Set;remove(Ljava/lang/Object;)Z", remap = false), method = "handlePlayerInfoRemove")
-    public void onPlayerListEnd(ClientboundPlayerInfoRemovePacket packet, CallbackInfo ci, @Local(name = "uuid") UUID uUID, @Local(name = "playerinfo") PlayerInfo playerListEntry) {
+    public void onPlayerListEnd(ClientboundPlayerInfoRemovePacket packet, CallbackInfo ci, @Local(ordinal = 0) UUID uUID, @Local(ordinal = 0) PlayerInfo playerListEntry) {
         new EventPlayerLeave(uUID, playerListEntry).trigger();
     }
 

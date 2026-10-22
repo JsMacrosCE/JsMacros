@@ -36,6 +36,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+//? if >=26.1 {
+/*import net.minecraft.core.Holder;
+import net.minecraft.world.clock.ClockManager;
+import net.minecraft.world.timeline.Timeline;
+*///?}
 import org.apache.logging.log4j.core.jmx.Server;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletReplaceParams;
@@ -1362,13 +1367,14 @@ public class FWorld extends BaseLibrary {
         //?}
     }
 
-    /**
+    //? if >=26.1 {
+    /*/^*
      * Returns the data-driven timelines active in the current dimension.
      * <p>
-     * In 26.1, this returns Mojang {@code Holder<Timeline>} objects directly. Each
-     * timeline supplies {@code getCurrentTicks}, {@code getTotalTicks}, and
-     * {@code getPeriodCount}; pass {@code World.getClockManager()} to those
-     * methods. The returned holders retain their registered timeline IDs.
+     * These are Mojang {@code Holder<Timeline>} objects. Each timeline supplies
+     * {@code getCurrentTicks}, {@code getTotalTicks}, and {@code getPeriodCount}; pass
+     * {@code World.getClockManager()} to those methods. The returned holders retain their
+     * registered timeline IDs.
      * <pre>
      * const clockManager = World.getClockManager();
      * for (const timelineHolder of World.getTimelines()) {
@@ -1377,40 +1383,32 @@ public class FWorld extends BaseLibrary {
      * }
      * </pre>
      *
-     * @return a snapshot of the current dimension's active timeline holders, or an empty list before 26.1 or when no world is loaded.
+     * @return a snapshot of the current dimension's active timeline holders, or an empty list when no world is loaded.
      * @since 2.0.0
-     */
-    public List<?> getTimelines() {
-        // TODO: When the docgen system is reworked, implement a proper way to version functions and their returns so we can mitigate cross-version docgen issues.
+     ^/
+    public List<Holder<Timeline>> getTimelines() {
         ClientLevel world = mc.level;
         if (world == null) return Collections.emptyList();
-        //? if >=26.1 {
-        /*return world.dimensionType().timelines().stream().toList();
-        *///? } else {
-        return Collections.emptyList();
-        //? }
+        return world.dimensionType().timelines().stream().toList();
     }
 
-    /**
+    /^*
      * Returns the current world's Mojang {@code ClockManager}.
      * <p>
      * Use this with the raw timelines returned by {@code World.getTimelines()} to read
-     * their current, total, and period-count tick values. It is available only on
-     * 26.1; earlier targets and an unloaded world return {@code null}.
+     * their current, total, and period-count tick values. It is {@code null} when no world
+     * is loaded.
      *
      * @return the active Mojang clock manager, or {@code null} when unavailable.
      * @since 2.0.0
-     */
+     ^/
     @Nullable
-    public Object getClockManager() {
+    public ClockManager getClockManager() {
         ClientLevel world = mc.level;
         if (world == null) return null;
-        //? if >=26.1 {
-        /*return world.clockManager();
-        *///? } else {
-        return null;
-        //? }
+        return world.clockManager();
     }
+    *///?}
 
     /**
      * @return {@code true} if it is daytime, {@code false} otherwise.

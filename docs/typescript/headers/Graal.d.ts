@@ -78,7 +78,6 @@ declare namespace Java {
     export function to<T>(jsArray: T[]): JavaArray<T>;
     export function to<T extends `${string}[]`>(jsArray: GetJava.GraalJsArr<T>, toType: T): GetJava.GraalTo<T>;
     export function to<T extends JavaArray<any>>(jsArray: GetJava.JavaToJsArr<T>, toType: JavaClass<T> | (new (length: int) => T)): T;
-    export function to<T extends `${JavaTypeList | keyof GetJava.Primitives}[]`>(jsArray: GetJava.GraalJsArr<T>, toType: T): GetJava.GraalTo<T>;
     export function isJavaObject(obj: any): boolean;
     export function isType<T>(obj: T): T extends { readonly class: JavaClass } ? true : false;
     export function typeName<T>(obj: T): T extends JavaClassArg ? string : undefined;
@@ -88,35 +87,38 @@ declare namespace Java {
 
 type JavaTypeList = ListPackages<typeof Packages>;
 
-type ListPackages<T extends object, P extends string = ''> =
+type ListPackages<T, P extends string = ''> =
     IsStrictAny<T> extends true ? never : T extends JavaClassArg ? P :
-    { [K in keyof T]: ListPackages<T[K], P extends '' ? K : `${P}.${K}`> }[keyof T];
+    { [K in keyof T]: ListPackages<T[K], P extends '' ? PackageSegment<K> : `${P}.${PackageSegment<K>}`> }[keyof T];
 
-namespace GetJava {
+/** The name a member of a type is reached by, when it has one that can be named. */
+type PackageSegment<K> = K extends string | number | bigint | boolean | null | undefined ? `${K}` : never;
 
-    type Type$Graal<P extends string, _K extends keyof Primitive<any> = 'type'> =
+declare namespace GetJava {
+
+    type Type$Graal<P, _K extends keyof Primitive<any> = 'type'> =
         IsStrictAny<P> extends true ? any :
         P extends `${string}[]` ? (ArrayType<P> extends JavaArray<infer T> ? typeof Packages.java.lang.Array<T> : never) :
         P extends keyof Primitives ? Primitives[P][_K] : Type<P>;
 
-    type ArrayType<P extends string, _K extends keyof Primitive<any> = 'type'> =
+    type ArrayType<P, _K extends keyof Primitive<any> = 'type'> =
         P extends `${infer C extends string}[]` ? JavaArray<ArrayType<C>> :
         Type$Graal<P, _K> extends { readonly class: JavaClass<infer T> } ? T : unknown;
 
-    type GraalTo<P extends string> = IsStrictAny<P> extends true ? any : ArrayType<P>;
-    type GraalJsArr<P extends string> = IsStrictAny<P> extends true ? any : JavaToJsArr<ArrayType<P, 'from'>>;
-    type JavaToJsArr<T> = IsStrictAny<P> extends true ? any : T extends JavaArray<infer C> ? JavaToJsArr<C>[] : T;
+    type GraalTo<P> = IsStrictAny<P> extends true ? any : ArrayType<P>;
+    type GraalJsArr<P> = IsStrictAny<P> extends true ? any : JavaToJsArr<ArrayType<P, 'from'>>;
+    type JavaToJsArr<T> = IsStrictAny<T> extends true ? any : T extends JavaArray<infer C> ? JavaToJsArr<C>[] : T;
 
-    type Type$Reflection<P extends string> =
+    type Type$Reflection<P> =
         P extends keyof Primitives ? Primitives[P]['type']['class'] : TypeClass<P>;
 
-    type TypeClass<T> = Type<T>['class'] extends infer C extends JavaClass<any> ?
+    type TypeClass<T> = Type<T> extends { readonly class: infer C extends JavaClass<any> } ?
         IsStrictAny<C> extends false ? C : unknown : unknown;
 
-    type Type<P extends string, T extends object = typeof Packages> =
+    type Type<P, T extends object = typeof Packages> =
         IsStrictAny<T> extends true ? unknown :
-        P extends `${infer K}.${infer R}` ? Type<R, T[K]> :
-        P extends '' ? T extends (abstract new (...args: any[]) => any) & { readonly class: JavaClass } ? T : unknown : Type<'', T[P]>;
+        P extends `${infer K}.${infer R}` ? Type<R, T[K & keyof T] & object> :
+        P extends '' ? T extends (abstract new (...args: any[]) => any) & { readonly class: JavaClass } ? T : unknown : Type<'', T[P & keyof T] & object>;
 
     type Primitives = {
         boolean: Primitive<boolean, boolean>;
@@ -156,7 +158,7 @@ type IsStrictAny<T> = 0 | 1 extends (T extends never ? 1 : 0) ? true : false;
 /** One of the root packages in java. */ declare var edu:    JavaPackage<'edu'>;
 /** One of the root packages in java. */ declare var org:    JavaPackage<'org'>;
 
-type JavaPackage<R extends string> = JavaPackageColoring & typeof Packages[R];
+type JavaPackage<R extends string> = JavaPackageColoring & typeof Packages[R & keyof typeof Packages];
 interface JavaPackageColoring extends SuppressFunctionProperties {
 
     /** java package, no constructor, just for coloring */
@@ -191,7 +193,7 @@ declare namespace Packages {
         namespace lang {
 
             // https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/Class.html
-            interface Class<T> extends io.Serializable, reflect.GenericDeclaration, reflect.Type, reflect.AnnotatedElement, invoke.TypeDescriptor$OfField<Class<T>>, constant.Constable {
+            interface Class<T> extends io.Serializable {
                 new (...args: any[]): T;
             }
             class Class<T> extends Object {
@@ -213,7 +215,7 @@ declare namespace Packages {
                 desiredAssertionStatus(): boolean;
                 getAnnotatedInterfaces(): JavaArray<reflect.AnnotatedType>;
                 getAnnotatedSuperclass(): reflect.AnnotatedType;
-                getAnnotation<A extends annotation.Annotation>(annotationClass: Class<A>): A?;
+                getAnnotation<A extends annotation.Annotation>(annotationClass: Class<A>): A | undefined;
                 getAnnotations(): JavaArray<annotation.Annotation>;
                 getAnnotationsByType<A extends annotation.Annotation>(annotationClass: Class<A>): JavaArray<A>;
                 getCanonicalName(): string;
@@ -222,7 +224,7 @@ declare namespace Packages {
                 getComponentType(): T extends JavaArray<infer C> ? Class<C> : null;
                 getConstructor(...parameterTypes: JavaVarArgs<JavaClassArg>): reflect.Constructor<T>;
                 getConstructors(): JavaArray<reflect.Constructor<any>>;
-                getDeclaredAnnotation<A extends annotation.Annotation>(annotationClass: Class<A>): A?;
+                getDeclaredAnnotation<A extends annotation.Annotation>(annotationClass: Class<A>): A | undefined;
                 getDeclaredAnnotations(): JavaArray<annotation.Annotation>;
                 getDeclaredAnnotationsByType<A extends annotation.Annotation>(annotationClass: Class<A>): JavaArray<A>;
                 getDeclaredClasses(): JavaArray<Class<any>>;
@@ -236,7 +238,7 @@ declare namespace Packages {
                 getEnclosingClass(): Class<any>;
                 getEnclosingConstructor(): reflect.Constructor<any>;
                 getEnclosingMethod(): reflect.Method;
-                getEnumConstants(): JavaArray<T>?;
+                getEnumConstants(): JavaArray<T> | undefined;
                 getField(name: string): reflect.Field;
                 getFields(): JavaArray<reflect.Field>;
                 getGenericInterfaces(): JavaArray<reflect.Type>;
@@ -253,14 +255,14 @@ declare namespace Packages {
                 getPackageName(): string;
                 getPermittedSubclasses(): JavaArray<Class<any>>;
                 getProtectionDomain(): security.ProtectionDomain;
-                getRecordComponents(): JavaArray<reflect.RecordComponent>?;
+                getRecordComponents(): JavaArray<any> | undefined;
                 getResource(name: string): net.URL;
                 getResourceAsStream(name: string): io.InputStream;
                 getSigners(): JavaArray<Object>;
                 getSimpleName(): string;
                 getSuperclass(): Class<any>;
                 getTypeName(): string;
-                getTypeParameters(): JavaArray<reflect.TypeVariable<Class<T>>>;
+                getTypeParameters(): JavaArray<reflect.TypeVariable>;
                 isAnnotation(): boolean;
                 isAnnotationPresent(annotationClass: Class<annotation.Annotation>): boolean;
                 isAnonymousClass(): boolean;
@@ -350,7 +352,7 @@ declare namespace Packages {
 
             }
 
-            interface Throwable extends io.Serializable, Error {}
+            interface Throwable extends io.Serializable {}
             class Throwable extends Object {
                 static readonly class: Class<Throwable>;
                 /** @deprecated */ static prototype: undefined;
@@ -428,6 +430,9 @@ declare namespace Packages {
                 static of<E>(...elements: JavaVarArgs<E>): JavaList<E>;
 
             }
+            // The list answers to some of the same names as the array a script expects, in the
+            // shapes the runtime actually uses. The difference is deliberate.
+            // @ts-ignore
             interface List<E> extends Collection<E>, lang.Iterable<E>, globalThis.Array<E> {
                 [n: int | `${bigint}`]: E;
 
@@ -472,11 +477,12 @@ declare namespace Packages {
                 static of<K, V>(k1: K, v1: V, k2: K, v2: V, k3: K, v3: V, k4: K, v4: V, k5: K, v5: V, k6: K, v6: V, k7: K, v7: V, k8: K, v8: V, k9: K, v9: V, k10: K, v10: V): Map<K, V>;
 
             }
+            // The map answers to some of the same names as the map a script expects, in the
+            // shapes the runtime actually uses. The difference is deliberate.
+            // @ts-ignore
             interface Map<K, V> extends globalThis.Map<K, V> {
-                [k: string | number]: V;
-
                 clear(): void;
-                compute(key: K, remappingFunction: MethodWrapper<K, V, V>): V?;
+                compute(key: K, remappingFunction: MethodWrapper<K, V, V>): V | undefined;
                 computeIfAbsent(key: K, mappingFunction: MethodWrapper<K, any, V>): V;
                 computeIfPresent(key: K, remappingFunction: MethodWrapper<K, NonNullable<V>, V>): V;
                 containsKey(key: K): boolean;
@@ -485,8 +491,8 @@ declare namespace Packages {
                 containsValue(value: any): boolean;
                 entrySet(): Set<Map$Entry<K, V>>;
                 forEach(action: MethodWrapper<K, V>): void;
-                get(key: K): V?;
-                get(key: any): V?;
+                get(key: K): V | undefined;
+                get(key: any): V | undefined;
                 getOrDefault(key: K, defaultValue: V): V;
                 getOrDefault(key: any, defaultValue: V): V;
                 isEmpty(): boolean;
@@ -494,9 +500,9 @@ declare namespace Packages {
                 merge(key: K, value: V, remappingFunction: MethodWrapper<V, V, V>): V;
                 put(key: K, value: V): V;
                 putAll(m: Map<K, V>): void;
-                putIfAbsent(key: K, value: V): V?;
-                remove(key: K): V?;
-                remove(key: any): V?;
+                putIfAbsent(key: K, value: V): V | undefined;
+                remove(key: K): V | undefined;
+                remove(key: any): V | undefined;
                 remove(key: K, value: V): boolean;
                 remove(key: any, value: any): boolean;
                 replace(key: K, value: V): V;
@@ -619,7 +625,7 @@ declare namespace Packages {
                 getQuery(): string;
                 getRef(): string;
                 getUserInfo(): string;
-                openConnection(proxy?: Proxy): URLConnection;
+                openConnection(proxy?: Proxy): any;
                 openStream(): io.InputStream;
                 sameFile(other: URL): boolean;
                 toExternalForm(): string;

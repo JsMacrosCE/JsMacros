@@ -26,7 +26,9 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.TypeParameterElement;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @DocletIgnore
 public class BasicDocCommentParser implements DocCommentParser {
@@ -127,7 +129,115 @@ public class BasicDocCommentParser implements DocCommentParser {
                 default -> nodes.add(new DocBodyNode.Html(tree.toString()));
             }
         }
-        return nodes;
+        return dedentExamples(nodes);
+    }
+
+    /**
+     * Takes the indentation that the comment's own marker gave the lines of an example off, so
+     * that the example reads the way it was written.
+     *
+     * <p>Every line of a javadoc comment carries the marker of the comment and the space that
+     * follows it, and an example keeps that space on each of its lines. The example would read
+     * as though it were shifted, so the space is taken off the lines that carry it.
+     */
+    private List<DocBodyNode> dedentExamples(List<DocBodyNode> nodes) {
+        List<DocBodyNode> result = new ArrayList<>(nodes);
+        for (int index = 0; index < result.size(); index++) {
+            if (!(result.get(index) instanceof DocBodyNode.Html html) || !html.raw().startsWith("<pre")) {
+                continue;
+            }
+            int end = index + 1;
+            while (end < result.size() && !isEndOfExample(result.get(end))) {
+                end++;
+            }
+            dedentExample(result, index + 1, end);
+            index = end;
+        }
+        return result;
+    }
+
+    private boolean isEndOfExample(DocBodyNode node) {
+        return node instanceof DocBodyNode.Html html && html.raw().startsWith("</pre");
+    }
+
+    /**
+     * Takes the common indentation off the lines of one example.
+     *
+     * <p>The example is written as a number of pieces: the text between the tags, the code
+     * spans, and the tags themselves. The lines are found in the text they make up, and the
+     * space that marks them is taken off where the text starts them.
+     */
+    private void dedentExample(List<DocBodyNode> nodes, int from, int to) {
+        StringBuilder text = new StringBuilder();
+        List<int[]> pieces = new ArrayList<>();
+        for (int index = from; index < to; index++) {
+            DocBodyNode node = nodes.get(index);
+            String value = switch (node) {
+                case DocBodyNode.Text(var body) -> body;
+                case DocBodyNode.Code(var body) -> body;
+                case DocBodyNode.Html(var body) -> body;
+                default -> "";
+            };
+            pieces.add(new int[] { index, text.length(), text.length() + value.length() });
+            text.append(value);
+        }
+        // The lines of the example, and the space each of them is marked with. The first line
+        // is written on the line of the marker itself, so it carries no space of its own.
+        int common = Integer.MAX_VALUE;
+        List<int[]> lines = new ArrayList<>();
+        int start = 0;
+        int number = 0;
+        while (start <= text.length()) {
+            int end = text.indexOf("\n", start);
+            if (end < 0) {
+                end = text.length();
+            }
+            int spaces = 0;
+            while (start + spaces < end && text.charAt(start + spaces) == ' ') {
+                spaces++;
+            }
+            if (number > 0 && !text.substring(start + spaces, end).isBlank()) {
+                lines.add(new int[] { start, spaces });
+                common = Math.min(common, spaces);
+            }
+            number++;
+            if (end == text.length()) {
+                break;
+            }
+            start = end + 1;
+        }
+        if (common == Integer.MAX_VALUE || common == 0) {
+            return;
+        }
+        // The lines each piece of the example starts, with the space each of them is marked
+        // with.
+        Map<Integer, List<int[]>> byPiece = new LinkedHashMap<>();
+        for (int[] line : lines) {
+            for (int[] piece : pieces) {
+                if (line[0] < piece[1] || line[0] >= piece[2]) {
+                    continue;
+                }
+                byPiece.computeIfAbsent(piece[0], key -> new ArrayList<>())
+                    .add(new int[] { line[0] - piece[1], line[1] });
+                break;
+            }
+        }
+        // The space is taken off from the last line backwards, so that the offsets of the lines
+        // before it stay the same.
+        for (Map.Entry<Integer, List<int[]>> entry : byPiece.entrySet()) {
+            int index = entry.getKey();
+            if (!(nodes.get(index) instanceof DocBodyNode.Text value)) {
+                continue;
+            }
+            String body = value.value();
+            List<int[]> offsets = entry.getValue();
+            offsets.sort((left, right) -> Integer.compare(right[0], left[0]));
+            for (int[] offset : offsets) {
+                int spaces = Math.min(common, offset[1]);
+                body = body.substring(0, offset[0]) + body.substring(offset[0] + spaces);
+            }
+            nodes.set(index, new DocBodyNode.Text(body));
+        }
     }
 
     private TypeRef resolveTargetType(LinkTree link, Element context) {
