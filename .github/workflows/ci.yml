@@ -145,9 +145,10 @@ jobs:
       # One target is enough to prove that the site is assembled and builds. Every
       # target is generated when the documentation is released.
       - name: Generate the documentation for one target
-        run: ./gradlew --console=plain --stacktrace \
-          -PdocsMinecraftVersions=26.1.2 \
-          generateVitepressDoc copyVitepressDoc
+        run: |
+          ./gradlew --console=plain --stacktrace \
+            -PdocsMinecraftVersions=26.1.2 \
+            :generateVitepressDoc :copyVitepressDoc
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
