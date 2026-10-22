@@ -99,6 +99,7 @@ public class Main implements Doclet {
             new FileHandler(new File(outDir, "package-list")).write(pkgList.toString());
 
             elements.stream().filter(e -> e instanceof TypeElement).map(e -> (TypeElement) e).forEach(e -> {
+                if (isIgnored(e)) return;
                 AnnotationMirror mirror = e.getAnnotationMirrors().stream().filter(a -> a.getAnnotationType().asElement().getSimpleName().toString().equals("Event")).findFirst().orElse(null);
                 //Event
                 if (mirror != null) {
@@ -143,6 +144,13 @@ public class Main implements Doclet {
             }
         }
         return null;
+    }
+
+    public static boolean isIgnored(Element element) {
+        for (Element current = element; current != null; current = current.getEnclosingElement()) {
+            if (current.getAnnotation(DocletIgnore.class) != null) return true;
+        }
+        return false;
     }
 
 }

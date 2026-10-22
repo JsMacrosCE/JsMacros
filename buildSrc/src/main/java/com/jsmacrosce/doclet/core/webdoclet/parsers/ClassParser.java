@@ -85,6 +85,7 @@ public class ClassParser {
         }
         s.append("\n");
         for (Element el : type.getEnclosedElements()) {
+            if (isIgnored(el)) continue;
             switch (el.getKind()) {
                 case ENUM_CONSTANT, FIELD -> s.append("F\t").append(cname).append("#").append(memberName(el))
                         .append("\t").append(getPathPart()).append("#").append(memberId(el)).append("\n");
@@ -119,7 +120,7 @@ public class ClassParser {
         builder.append(subClasses = new XMLBuilder("div").setId("subClasses"));
         for (Element subClass : Main.elements.stream().filter(e -> {
             if (e.getKind().isClass() || e.getKind().isInterface()) {
-                return Main.types.isAssignable(e.asType(), Main.types.getDeclaredType(type)) && !e.equals(type);
+                return !isIgnored(e) && Main.types.isAssignable(e.asType(), Main.types.getDeclaredType(type)) && !e.equals(type);
             }
             return false;
         }).toList()) {
@@ -161,12 +162,15 @@ public class ClassParser {
 
         builder.append(getSince(type));
         builder.append(getDescription(type));
+        builder.append(getTypeParameterDescriptions(type));
+        builder.append(getDeprecated(type));
 
         AtomicBoolean firstFlag = new AtomicBoolean(true);
         AtomicReference<XMLBuilder> constructors = new AtomicReference<>();
         //CONSTRUCTORS
         if (group != ClassGroup.Library) {
             type.getEnclosedElements().stream().filter(e -> e.getKind() == ElementKind.CONSTRUCTOR).forEach(el -> {
+                if (isIgnored(el)) return;
                 if (!el.getModifiers().contains(Modifier.PUBLIC)) {
                     return;
                 }
@@ -189,6 +193,7 @@ public class ClassParser {
 
         firstFlag.set(true);
         type.getEnclosedElements().stream().filter(e -> e.getKind() == ElementKind.FIELD || e.getKind() == ElementKind.ENUM_CONSTANT).forEach(el -> {
+            if (isIgnored(el)) return;
             if (!el.getModifiers().contains(Modifier.PUBLIC)) {
                 return;
             }
@@ -209,7 +214,7 @@ public class ClassParser {
             fields.get().append(parseField(el));
             fieldShorts.get().append(
                     new XMLBuilder("div").setClass("shortField shortClassItem").append(
-                            new XMLBuilder("a", true, true).addStringOption("href", getURL(el).getKey()).append(memberName(el)),
+                            new XMLBuilder("a", true, true).addStringOption("href", "#" + memberId(el)).append(memberName(el)),
                             createFlags(el, true)
                     )
             );
@@ -220,6 +225,7 @@ public class ClassParser {
 
         firstFlag.set(true);
         type.getEnclosedElements().stream().filter(e -> e.getKind() == ElementKind.METHOD).forEach(el -> {
+            if (isIgnored(el)) return;
             if (!el.getModifiers().contains(Modifier.PUBLIC)) {
                 return;
             }
@@ -257,6 +263,7 @@ public class ClassParser {
         ));
         constructor.append(createFlags(element, false));
         constructor.append(getSince(element));
+        constructor.append(getDeprecated(element));
 
         constructor.append(new XMLBuilder("div").setClass("constructorDesc classItemDesc")
                 .append(getDescription(element)));
@@ -264,6 +271,10 @@ public class ClassParser {
         XMLBuilder paramTable = createParamTable(element);
         if (paramTable != null) {
             constructor.append(paramTable);
+        }
+        XMLBuilder typeParameterDescriptions = getTypeParameterDescriptions(element);
+        if (typeParameterDescriptions != null) {
+            constructor.append(typeParameterDescriptions);
         }
 
         return constructor;
@@ -292,12 +303,17 @@ public class ClassParser {
         );
         method.append(createFlags(element, false));
         method.append(getSince(element));
+        method.append(getDeprecated(element));
 
         method.append(new XMLBuilder("div").setClass("methodDesc classItemDesc").append(getDescription(element)));
 
         XMLBuilder paramTable = createParamTable(element);
         if (paramTable != null) {
             method.append(paramTable);
+        }
+        XMLBuilder typeParameterDescriptions = getTypeParameterDescriptions(element);
+        if (typeParameterDescriptions != null) {
+            method.append(typeParameterDescriptions);
         }
 
         method.append(new XMLBuilder("div").setClass("methodReturn classItemType").append(
@@ -367,6 +383,7 @@ public class ClassParser {
         ));
         field.append(createFlags(element, false));
         field.append(getSince(element));
+        field.append(getDeprecated(element));
 
         field.append(new XMLBuilder("div").setClass("fieldDesc classItemDesc").append(getDescription(element)));
 
@@ -385,7 +402,11 @@ public class ClassParser {
         if (comment == null) {
             return paramMap;
         }
-        comment.getBlockTags().stream().filter(e -> e.getKind() == DocTree.Kind.PARAM).forEach(e -> paramMap.put(((ParamTree) e).getName().getName().toString(), createDescription(element, ((ParamTree) e).getDescription())));
+        comment.getBlockTags().stream()
+                .filter(e -> e.getKind() == DocTree.Kind.PARAM)
+                .map(ParamTree.class::cast)
+                .filter(param -> !param.isTypeParameter())
+                .forEach(param -> paramMap.put(param.getName().getName().toString(), createDescription(element, param.getDescription())));
         return paramMap;
     }
 
@@ -438,7 +459,90 @@ public class ClassParser {
         return createDescription(element, tree == null ? List.of() : tree.getFullBody());
     }
 
+    private XMLBuilder getTypeParameterDescriptions(TypeElement element) {
+        DocCommentTree comment = Main.treeUtils.getDocCommentTree(element);
+        if (comment == null || element.getTypeParameters().isEmpty()) return new XMLBuilder("div");
+        Map<String, List<? extends DocTree>> descriptions = new HashMap<>();
+        for (DocTree tag : comment.getBlockTags()) {
+            if (tag.getKind() == DocTree.Kind.PARAM) {
+                ParamTree param = (ParamTree) tag;
+                if (param.isTypeParameter()) {
+                    descriptions.put(param.getName().getName().toString(), param.getDescription());
+                }
+            }
+        }
+        XMLBuilder rows = new XMLBuilder("tbody");
+        boolean found = false;
+        for (TypeParameterElement parameter : element.getTypeParameters()) {
+            List<? extends DocTree> description = descriptions.get(parameter.getSimpleName().toString());
+            if (description == null || description.isEmpty()) continue;
+            found = true;
+            rows.append(new XMLBuilder("tr").append(
+                new XMLBuilder("td", true, true).append("&lt;" + parameter.getSimpleName() + "&gt;"),
+                new XMLBuilder("td", true, true).append(createDescription(element, description, true))
+            ));
+        }
+        if (!found) return new XMLBuilder("div");
+        return new XMLBuilder("section").setClass("typeParameterDocs").append(
+            new XMLBuilder("h3", true, true).append("Type Parameters"),
+            new XMLBuilder("table").setClass("typeParameterTable").append(
+                new XMLBuilder("thead").append(new XMLBuilder("tr").append(
+                    new XMLBuilder("th", true, true).append("Type Parameter"),
+                    new XMLBuilder("th", true, true).append("Description"))),
+                rows
+            )
+        );
+    }
+
+    private XMLBuilder getTypeParameterDescriptions(ExecutableElement element) {
+        DocCommentTree comment = Main.treeUtils.getDocCommentTree(element);
+        if (comment == null || element.getTypeParameters().isEmpty()) return null;
+        Map<String, List<? extends DocTree>> descriptions = new HashMap<>();
+        for (DocTree tag : comment.getBlockTags()) {
+            if (tag.getKind() == DocTree.Kind.PARAM) {
+                ParamTree param = (ParamTree) tag;
+                if (param.isTypeParameter()) {
+                    descriptions.put(param.getName().getName().toString(), param.getDescription());
+                }
+            }
+        }
+        XMLBuilder rows = new XMLBuilder("tbody");
+        boolean found = false;
+        for (TypeParameterElement parameter : element.getTypeParameters()) {
+            List<? extends DocTree> description = descriptions.get(parameter.getSimpleName().toString());
+            if (description == null || description.isEmpty()) continue;
+            found = true;
+            rows.append(new XMLBuilder("tr").append(
+                new XMLBuilder("td", true, true).append("&lt;" + parameter.getSimpleName() + "&gt;"),
+                new XMLBuilder("td", true, true).append(createDescription(element, description, true))
+            ));
+        }
+        if (!found) return null;
+        return new XMLBuilder("section").setClass("typeParameterDocs").append(
+            new XMLBuilder("h3", true, true).append("Type Parameters"),
+            new XMLBuilder("table").setClass("typeParameterTable").append(
+                new XMLBuilder("thead").append(new XMLBuilder("tr").append(
+                    new XMLBuilder("th", true, true).append("Type Parameter"),
+                    new XMLBuilder("th", true, true).append("Description"))),
+                rows
+            )
+        );
+    }
+
+    private XMLBuilder getDeprecated(Element element) {
+        DocCommentTree tree = Main.treeUtils.getDocCommentTree(element);
+        if (tree == null) return new XMLBuilder("p");
+        DeprecatedTree deprecated = (DeprecatedTree) tree.getBlockTags().stream()
+            .filter(tag -> tag.getKind() == DocTree.Kind.DEPRECATED).findFirst().orElse(null);
+        if (deprecated == null || deprecated.getBody().isEmpty()) return new XMLBuilder("p");
+        return createDescription(element, deprecated.getBody()).setClass("deprecatedDescription");
+    }
+
     private XMLBuilder createDescription(Element el, List<? extends DocTree> inlinedoc) {
+        return createDescription(el, inlinedoc, false);
+    }
+
+    private XMLBuilder createDescription(Element el, List<? extends DocTree> inlinedoc, boolean escapeCode) {
         XMLBuilder s = new XMLBuilder("p", true, true).setClass("description");
         for (DocTree docTree : inlinedoc) {
             switch (docTree.getKind()) {
@@ -447,21 +551,14 @@ public class ClassParser {
                     if (ele instanceof TypeElement || (ele != null && ele.getEnclosingElement() instanceof TypeElement)) {
                         XMLBuilder link;
                         Pair<String, Boolean> url = getURL(ele);
-
-                        s.append(link = new XMLBuilder("a", true).addStringOption("href", url.getKey()));
-
-                        if (ele instanceof TypeElement) {
-                            link.append(getClassName((TypeElement) ele));
+                        String label = ele instanceof TypeElement
+                            ? getClassName((TypeElement) ele)
+                            : getClassName((TypeElement) ele.getEnclosingElement()) + "#" + ele;
+                        if (url.getKey().isEmpty()) {
+                            s.append(new XMLBuilder("span", true).setClass("type deadType").append(label));
                         } else {
-                            link.append(getClassName((TypeElement) ele.getEnclosingElement()), "#", ele.toString());
-                        }
-
-                        if (url.getValue()) {
-                            link.addStringOption("target", "_blank");
-                        }
-                        if (link.options.get("href").equals("\"\"")) {
-                            link.setClass("type deadType");
-                        } else {
+                            s.append(link = new XMLBuilder("a", true).addStringOption("href", url.getKey()).append(label));
+                            if (url.getValue()) link.addStringOption("target", "_blank");
                             link.setClass("type");
                         }
 
@@ -469,8 +566,14 @@ public class ClassParser {
                         s.append(((LinkTree) docTree).getReference().getSignature());
                     }
                 }
-                case CODE ->
-                        s.append(new XMLBuilder("code", true).setClass("inlineCode").append(((LiteralTree) docTree).getBody()));
+                case CODE -> {
+                    String code = ((LiteralTree) docTree).getBody().getBody();
+                    if (escapeCode) {
+                        code = code.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+                    }
+                    s.append(new XMLBuilder("code", true).setClass("inlineCode").append(code));
+                }
+                case TEXT -> s.append(((TextTree) docTree).getBody());
                 default -> s.append(docTree);
             }
         }
@@ -491,20 +594,18 @@ public class ClassParser {
             }
             case DECLARED -> {
                 Pair<String, Boolean> url = getURL(((DeclaredType) type).asElement());
-                builder.append(typeLink = new XMLBuilder("a", true).addStringOption("href", url.getKey()).append(getClassName((TypeElement) ((DeclaredType) type).asElement())));
-
-                if (url.getValue()) {
-                    typeLink.addStringOption("target", "_blank");
-                }
-                if (typeLink.options.get("href").equals("\"\"")) {
-                    typeLink.setClass("type deadType");
+                String className = getClassName((TypeElement) ((DeclaredType) type).asElement());
+                if (url.getKey().isEmpty()) {
+                    builder.append(new XMLBuilder("span", true).setClass("type deadType").append(className));
                 } else {
+                    builder.append(typeLink = new XMLBuilder("a", true).addStringOption("href", url.getKey()).append(className));
+                    if (url.getValue()) typeLink.addStringOption("target", "_blank");
                     typeLink.setClass("type");
                 }
 
                 List<? extends TypeMirror> params = ((DeclaredType) type).getTypeArguments();
                 if (params != null && !params.isEmpty()) {
-                    builder.append("<");
+                    builder.append("&lt;");
                     for (TypeMirror param : params) {
                         if (param instanceof TypeVariable typeVariable && typeVariable.getUpperBound().equals(type)) {
                             builder.append(typeLink = new XMLBuilder("p", true));
@@ -516,7 +617,7 @@ public class ClassParser {
                         }
                     }
                     builder.pop();
-                    builder.append(">");
+                    builder.append("&gt;");
                 }
             }
             case TYPEVAR -> {
@@ -541,6 +642,7 @@ public class ClassParser {
     }
 
     private Pair<String, Boolean> getURL(Element type) {
+        if (isIgnored(type)) return new Pair<>("", false);
         if (type.asType().getKind().isPrimitive()) {
             return new Pair<>("", false);
         }
@@ -548,6 +650,7 @@ public class ClassParser {
         while (!(clazz instanceof TypeElement)) {
             clazz = clazz.getEnclosingElement();
         }
+        if (isIgnored(clazz)) return new Pair<>("", false);
         if (!clazz.equals(this.type)) {
             String pkg = getPackage((TypeElement) clazz);
             if (Main.internalClasses.containsKey(clazz)) {
@@ -570,6 +673,10 @@ public class ClassParser {
             }
             return new Pair<>(s.toString(), false);
         }
+    }
+
+    private static boolean isIgnored(Element element) {
+        return Main.isIgnored(element);
     }
 
     private static String memberId(Element member) {

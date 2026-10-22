@@ -351,6 +351,11 @@ public class MarkdownWriter {
         String desc = formatDescription(clz.docComment(), clz);
         String descText = desc.isEmpty() ? "TODO: No description supplied\n" : desc;
         md.paragraph(descText);
+        renderClassTypeParameters(md, clz);
+        String since = getTagText(clz.docComment(), DocTagKind.SINCE, clz);
+        if (!since.isBlank()) {
+            md.paragraph("**Since:** " + since);
+        }
         if (isGlobalLibrary(clz)) {
             md.paragraph("Accessible in scripts via the global " + MarkdownBuilder.codeSpan(clz.alias()) + " variable.");
         } else {
@@ -378,6 +383,27 @@ public class MarkdownWriter {
         renderMemberSection(md, clz, MemberKind.FIELD, "Fields");
         renderMemberSection(md, clz, MemberKind.METHOD, "Methods");
         return md.toString();
+    }
+
+    private void renderClassTypeParameters(MarkdownBuilder md, ClassDoc clz) {
+        if (clz.typeParams().isEmpty() || clz.docComment() == null) return;
+        Map<String, String> descriptions = new LinkedHashMap<>();
+        for (DocTag tag : clz.docComment().tags()) {
+            if (tag.kind() == DocTagKind.TEMPLATE && tag.name() != null) {
+                descriptions.put(tag.name(), DocBodyRenderer.toHtml(tag.body(), link -> resolveLinkAsHtml(link, clz), true));
+            }
+        }
+        List<String> rows = new ArrayList<>();
+        for (TypeRef typeParam : clz.typeParams()) {
+            String description = descriptions.get(typeParam.name());
+            if (description != null && !description.isBlank()) {
+                rows.add("- <code>" + typeParam.name() + "</code>: " + description);
+            }
+        }
+        if (!rows.isEmpty()) {
+            md.heading(2, "Type Parameters");
+            md.paragraph(String.join("\n", rows));
+        }
     }
 
     private boolean isGlobalLibrary(ClassDoc clz) {
@@ -500,11 +526,16 @@ public class MarkdownWriter {
                 .append("</div>\n");
         }
 
+        // A member that only carries the @Deprecated annotation (no @deprecated text) is
+        // already marked by the "deprecated" badge in the signature row. Emitting a
+        // "Deprecated:" label with nothing after it would just be noise.
         if (hasDeprecatedTag(member.docComment())) {
             String deprecated = getTagTextAsHtml(member.docComment(), DocTagKind.DEPRECATED, clz);
-            html.append("<p><strong>Deprecated:</strong> ")
-                .append(deprecated)
-                .append("</p>\n");
+            if (!deprecated.isBlank()) {
+                html.append("<p><strong>Deprecated:</strong> ")
+                    .append(deprecated)
+                    .append("</p>\n");
+            }
         }
 
         // Parameters — render @param tag bodies via DocBodyRenderer so {@link} tags become <a> links.
@@ -529,6 +560,17 @@ public class MarkdownWriter {
                 }
                 html.append("<li><code>").append(param.name()).append("</code>: ")
                     .append(desc2).append("</li>\n");
+            }
+            html.append("</ul>\n");
+        }
+
+        // Type parameters have their own section; TEMPLATE tags must not be
+        // folded into value-parameter documentation, even when names coincide.
+        List<String> typeParamDocs = renderMemberTypeParameters(member, clz);
+        if (!typeParamDocs.isEmpty()) {
+            html.append("<p><strong>Type Parameters:</strong></p>\n<ul>\n");
+            for (String typeParamDoc : typeParamDocs) {
+                html.append("<li>").append(typeParamDoc).append("</li>\n");
             }
             html.append("</ul>\n");
         }
@@ -577,6 +619,27 @@ public class MarkdownWriter {
         }
 
         return html.toString();
+    }
+
+    private List<String> renderMemberTypeParameters(MemberDoc member, ClassDoc clz) {
+        if (member.typeParams().isEmpty() || member.docComment() == null) {
+            return List.of();
+        }
+        Map<String, String> descriptions = new HashMap<>();
+        for (DocTag tag : member.docComment().tags()) {
+            if (tag.kind() == DocTagKind.TEMPLATE && tag.name() != null) {
+                descriptions.put(tag.name(),
+                    DocBodyRenderer.toHtml(tag.body(), link -> resolveLinkAsHtml(link, clz), true));
+            }
+        }
+        List<String> rows = new ArrayList<>();
+        for (TypeRef typeParam : member.typeParams()) {
+            String description = descriptions.get(typeParam.name());
+            if (description != null && !description.isBlank()) {
+                rows.add("<code>" + escapeHtml(typeParam.name()) + "</code>: " + description);
+            }
+        }
+        return rows;
     }
 
     /**
@@ -629,13 +692,23 @@ public class MarkdownWriter {
      * (no link resolution is attempted for opaque overrides).
      */
     private String renderSignatureAsHtml(MemberDoc member, ClassDoc context) {
+        boolean isStatic = member.modifiers().contains("static");
         if (member.kind() == MemberKind.FIELD) {
-            return member.name() + ": " + renderTypeAsHtml(member.returnType(), context);
+            StringBuilder field = new StringBuilder();
+            if (isStatic) {
+                field.append(Syntax.keyword("static")).append(Syntax.raw(" "));
+            }
+            return field.append(member.name()).append(": ")
+                .append(renderTypeAsHtml(member.returnType(), context))
+                .toString();
         }
 
         StringBuilder sb = new StringBuilder();
         if (member.kind() == MemberKind.CONSTRUCTOR) {
             sb.append(Syntax.keyword("new"));
+            sb.append(Syntax.raw(" "));
+        } else if (isStatic) {
+            sb.append(Syntax.keyword("static"));
             sb.append(Syntax.raw(" "));
         }
         sb.append(Syntax.method(member.name()));
@@ -647,9 +720,18 @@ public class MarkdownWriter {
             }
 
             ParamDoc param = params.get(i);
-            sb.append(renderTypeAsHtml(param.type(), context))
-                .append(Syntax.raw(" "))
-                .append(Syntax.parameter(param.name()));
+            if (param.varArgs() && param.type() != null && param.type().kind() == TypeKind.ARRAY) {
+                // A parameter that takes a number of arguments is written with the type of one
+                // of them and an ellipsis, so that it reads as the call that it is.
+                sb.append(renderTypeAsHtml(param.type().typeArgs().get(0), context))
+                    .append(Syntax.punctuation("..."))
+                    .append(Syntax.raw(" "))
+                    .append(Syntax.parameter(param.name()));
+            } else {
+                sb.append(renderTypeAsHtml(param.type(), context))
+                    .append(Syntax.raw(" "))
+                    .append(Syntax.parameter(param.name()));
+            }
         }
         sb.append(Syntax.punctuation(")"));
         if (member.kind() != MemberKind.CONSTRUCTOR) {
@@ -672,6 +754,18 @@ public class MarkdownWriter {
         for (DocTag tag : comment.tags()) {
             if (tag.kind() == kind) {
                 return DocBodyRenderer.toHtml(tag.body(), link -> resolveLinkAsHtml(link, context));
+            }
+        }
+        return "";
+    }
+
+    private String getTagText(DocComment comment, DocTagKind kind, ClassDoc context) {
+        if (comment == null) {
+            return "";
+        }
+        for (DocTag tag : comment.tags()) {
+            if (tag.kind() == kind) {
+                return DocBodyRenderer.toMarkdown(tag.body(), link -> resolveLink(link, context));
             }
         }
         return "";
@@ -783,7 +877,8 @@ public class MarkdownWriter {
             case ARRAY -> renderTypeAsText(type.typeArgs().get(0)) + "[]";
             case WILDCARD -> {
                 if (type.bounds() != null) {
-                    yield "? extends " + renderTypeAsText(type.bounds());
+                    String direction = type.wildcardBound() == TypeRef.WildcardBound.SUPER ? "super" : "extends";
+                    yield "? " + direction + " " + renderTypeAsText(type.bounds());
                 }
                 yield "?";
             }
@@ -852,7 +947,7 @@ public class MarkdownWriter {
                 
                 if (type.bounds() != null) {
                     sb.append(Syntax.raw(" "))
-                        .append(Syntax.keyword("extends"))
+                        .append(Syntax.keyword(type.wildcardBound() == TypeRef.WildcardBound.SUPER ? "super" : "extends"))
                         .append(Syntax.raw(" "))
                         .append(renderTypeAsHtml(type.bounds(), context));
                 }

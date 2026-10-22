@@ -2,10 +2,10 @@ package com.jsmacrosce.doclet;
 
 import java.lang.annotation.*;
 
+@DocletIgnore
 @Documented
 @Retention(RetentionPolicy.SOURCE)
 @Target({ElementType.METHOD, ElementType.PARAMETER, ElementType.CONSTRUCTOR})
-@DocletIgnore
 public @interface DocletReplaceTypeParams {
     String value();
 }

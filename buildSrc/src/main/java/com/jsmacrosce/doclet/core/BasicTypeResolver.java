@@ -3,6 +3,7 @@ package com.jsmacrosce.doclet.core;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.core.model.TypeKind;
 import com.jsmacrosce.doclet.core.model.TypeRef;
+import com.jsmacrosce.doclet.core.util.NestedTypeParams;
 
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -20,6 +21,7 @@ import javax.lang.model.type.WildcardType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,24 +46,57 @@ public class BasicTypeResolver implements TypeResolver {
         "java.lang.Double", "double",
         "java.lang.Number", "number"
     );
+    /**
+     * The Java functional interfaces a script meets, and the wrapper they are handed as. The
+     * wrapper takes the accepted types, the returned type and the context it belongs to, in
+     * that order.
+     */
     private static final Map<String, String> FUNCTIONAL_INTERFACES = Map.of(
-        "java.util.function.Consumer", "MethodWrapper<$0>",
-        "java.util.function.BiConsumer", "MethodWrapper<$0, $1>",
-        "java.util.function.Function", "MethodWrapper<$0, any, $1>",
-        "java.util.function.BiFunction", "MethodWrapper<$0, $1, $2>",
-        "java.util.function.Predicate", "MethodWrapper<$0, any, boolean>",
-        "java.util.function.BiPredicate", "MethodWrapper<$0, $1, boolean>",
-        "java.util.function.Supplier", "MethodWrapper<any, any, $0>",
-        "java.util.Comparator", "MethodWrapper<$0, $0, int>",
-        "java.lang.Runnable", "MethodWrapper"
+        "java.util.function.Consumer", "MethodWrapper<$0, any, any, any>",
+        "java.util.function.BiConsumer", "MethodWrapper<$0, $1, any, any>",
+        "java.util.function.Function", "MethodWrapper<$0, any, $1, any>",
+        "java.util.function.BiFunction", "MethodWrapper<$0, $1, $2, any>",
+        "java.util.function.Predicate", "MethodWrapper<$0, any, boolean, any>",
+        "java.util.function.BiPredicate", "MethodWrapper<$0, $1, boolean, any>",
+        "java.util.function.Supplier", "MethodWrapper<any, any, $0, any>",
+        "java.util.Comparator", "MethodWrapper<$0, $0, int, any>",
+        "java.lang.Runnable", "MethodWrapper<any, any, any, any>"
     );
 
     private Map<String, String> typeScriptAliases = Map.of();
     private boolean pythonAliasEnabled = true;
     private final Set<TypeMirror> resolving = Collections.newSetFromMap(new IdentityHashMap<>());
+    private final Map<String, TypeElement> referencedTypes = new LinkedHashMap<>();
+
+    /**
+     * The declared types the documented API mentions, by qualified name. A reference to one of
+     * them has to resolve in the generated definitions, so a type that is not documented itself
+     * still needs a declaration.
+     */
+    public Map<String, TypeElement> referencedTypes() {
+        return referencedTypes;
+    }
 
     public void setTypeScriptAliases(Map<String, String> typeScriptAliases) {
         this.typeScriptAliases = typeScriptAliases == null ? Map.of() : typeScriptAliases;
+    }
+
+    private Set<String> undeclaredTypes = Set.of();
+
+    /** The types the API refers to that are not declared, which are nothing but any. */
+    public void setUndeclaredTypes(Set<String> undeclaredTypes) {
+        this.undeclaredTypes = undeclaredTypes == null ? Set.of() : undeclaredTypes;
+    }
+
+    private boolean nestedTypeParams = false;
+
+    /**
+     * Whether a reference to a class written inside another one carries the type parameters
+     * that class takes from the one it is written inside. The definitions write such a class
+     * under a name of its own, so the parameters have to be written down with it.
+     */
+    public void setNestedTypeParamsEnabled(boolean enabled) {
+        this.nestedTypeParams = enabled;
     }
 
     public void setPythonAliasEnabled(boolean pythonAliasEnabled) {
@@ -109,11 +144,52 @@ public class BasicTypeResolver implements TypeResolver {
         Element el = type.asElement();
         String qualifiedName = getQualifiedName(el);
         String displayName = getDisplayName(el);
+        if (el instanceof TypeElement typeElement) {
+            referencedTypes.put(qualifiedName, typeElement);
+        }
         List<TypeRef> params = new ArrayList<>();
+        if (nestedTypeParams && el instanceof TypeElement typeElement) {
+            params.addAll(capturedArgs(type, typeElement));
+        }
         for (TypeMirror arg : type.getTypeArguments()) {
             params.add(resolve(arg));
         }
         return new TypeRef(TypeKind.DECLARED, displayName, qualifiedName, params, false, false, null, false);
+    }
+
+    /**
+     * The values of the type parameters a class written inside another one carries from the
+     * class it is written inside, as they are given where the class is used. A use that does
+     * not say what the parameters are is given nothing but any.
+     */
+    private List<TypeRef> capturedArgs(DeclaredType type, TypeElement typeElement) {
+        List<NestedTypeParams.Captured> captured = NestedTypeParams.capturedParams(typeElement);
+        if (captured.isEmpty()) {
+            return List.of();
+        }
+        List<DeclaredType> enclosing = new ArrayList<>();
+        TypeMirror current = type.getEnclosingType();
+        while (current != null && current.getKind() == javax.lang.model.type.TypeKind.DECLARED) {
+            DeclaredType declared = (DeclaredType) current;
+            enclosing.add(declared);
+            current = declared.getEnclosingType();
+        }
+        List<TypeRef> args = new ArrayList<>();
+        for (NestedTypeParams.Captured param : captured) {
+            TypeMirror value = null;
+            if (param.level() < enclosing.size()) {
+                List<? extends TypeMirror> typeArgs = enclosing.get(param.level()).getTypeArguments();
+                if (param.index() < typeArgs.size()) {
+                    value = typeArgs.get(param.index());
+                }
+            }
+            args.add(value == null ? anyType() : resolve(value));
+        }
+        return args;
+    }
+
+    private TypeRef anyType() {
+        return new TypeRef(TypeKind.UNKNOWN, "any", "any", List.of(), false, false, null, false);
     }
 
     private TypeRef resolveTypeVar(TypeVariable type) {
@@ -124,12 +200,14 @@ public class BasicTypeResolver implements TypeResolver {
     }
 
     private TypeRef resolveWildcard(WildcardType type) {
-        TypeMirror bound = type.getExtendsBound();
-        if (bound == null) {
-            bound = type.getSuperBound();
-        }
+        TypeMirror extendsBound = type.getExtendsBound();
+        TypeMirror superBound = type.getSuperBound();
+        TypeMirror bound = extendsBound != null ? extendsBound : superBound;
         TypeRef bounds = bound == null ? null : resolve(bound);
-        return new TypeRef(TypeKind.WILDCARD, "?", "?", List.of(), false, false, bounds, false);
+        TypeRef.WildcardBound direction = extendsBound != null
+            ? TypeRef.WildcardBound.EXTENDS
+            : superBound != null ? TypeRef.WildcardBound.SUPER : TypeRef.WildcardBound.NONE;
+        return new TypeRef(TypeKind.WILDCARD, "?", "?", List.of(), false, false, bounds, false, direction);
     }
 
     private TypeRef resolveIntersection(IntersectionType type) {
@@ -202,7 +280,24 @@ public class BasicTypeResolver implements TypeResolver {
         };
     }
 
+    @Override
+    public String formatHeritage(TypeRef type) {
+        if (type.kind() == TypeKind.DECLARED && JAVA_NUMBER_TYPES.containsKey(type.qualifiedName())) {
+            // A class cannot be built on a number, so the type it is built on is named.
+            return "Packages." + toTsQualified(type);
+        }
+        return formatTypeScript(type, false, false);
+    }
+
     private String formatTypeScript(TypeRef type, boolean paramType) {
+        return formatTypeScript(type, paramType, true);
+    }
+
+    /**
+     * Writes the type the way the definitions write it. The aliases are the ones a script
+     * uses, and a type the definitions build on is named by the type it is instead.
+     */
+    private String formatTypeScript(TypeRef type, boolean paramType, boolean aliases) {
         return switch (type.kind()) {
             case PRIMITIVE -> switch (type.name()) {
                 case "boolean" -> "boolean";
@@ -229,7 +324,7 @@ public class BasicTypeResolver implements TypeResolver {
                     yield formatFunctionalInterface(type, paramType);
                 }
 
-                String base = mapDeclaredTypeScript(type, paramType);
+                String base = mapDeclaredTypeScript(type, paramType, aliases);
                 if (!type.typeArgs().isEmpty()) {
                     base = base + "<" + joinTypes(type.typeArgs(), TargetLanguage.TYPESCRIPT, paramType) + ">";
                 }
@@ -243,8 +338,11 @@ public class BasicTypeResolver implements TypeResolver {
         };
     }
 
-    private String mapDeclaredTypeScript(TypeRef type, boolean paramType) {
+    private String mapDeclaredTypeScript(TypeRef type, boolean paramType, boolean aliases) {
         String qualifiedName = type.qualifiedName();
+        if (undeclaredTypes.contains(qualifiedName)) {
+            return "any";
+        }
         if ("com.jsmacrosce.jsmacros.core.event.BaseEvent".equals(qualifiedName)) {
             return "Events.BaseEvent";
         }
@@ -256,7 +354,7 @@ public class BasicTypeResolver implements TypeResolver {
             case "java.lang.Boolean" -> "boolean";
             case "java.lang.Object" -> "any";
             default -> {
-                if (JAVA_ALIASES.contains(qualifiedName)) {
+                if (aliases && JAVA_ALIASES.contains(qualifiedName)) {
                     String base = "Java" + simpleName(qualifiedName);
                     if (paramType && base.equals("JavaClass")) {
                         base = "JavaClassArg";

@@ -114,3 +114,59 @@ jobs:
             :extension:graal:js:testClasses \
             :extension:graal:python:classes \
             :extension:graal:python:testClasses
+
+  documentation:
+    name: Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-overwrite-existing: true
+
+      # The doclets write the shipped definitions and the website, so their own
+      # checks belong here rather than only on a machine that has the artifacts.
+      - name: Doclet checks
+        run: ./gradlew --console=plain --stacktrace -p buildSrc check
+
+      # One target is enough to prove that the site is assembled and builds. Every
+      # target is generated when the documentation is released.
+      - name: Generate the documentation for one target
+        run: |
+          ./gradlew --console=plain --stacktrace \
+            -PdocsMinecraftVersions=26.1.2 \
+            :generateVitepressDoc :copyVitepressDoc
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.25.0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: build/docs/vitepress/pnpm-lock.yaml
+
+      - name: Install the site dependencies
+        run: pnpm --dir build/docs/vitepress install --frozen-lockfile
+
+      - name: Test the site
+        run: pnpm --dir build/docs/vitepress test
+
+      - name: Build the site
+        run: pnpm --dir build/docs/vitepress build

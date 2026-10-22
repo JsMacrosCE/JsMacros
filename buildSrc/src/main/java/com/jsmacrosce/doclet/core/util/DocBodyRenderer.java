@@ -76,16 +76,23 @@ public final class DocBodyRenderer {
         }
         StringBuilder sb = new StringBuilder();
         List<int[]> codeRanges = new ArrayList<>();
+        List<int[]> preRanges = new ArrayList<>();
+        boolean[] inPre = { false };
+        int[] preStart = { -1 };
         for (DocBodyNode node : nodes) {
             switch (node) {
-                case DocBodyNode.Text(var value) -> sb.append(escapeAngles(value));
+                case DocBodyNode.Text(var value) -> sb.append(inPre[0] ? value : escapeAngles(value));
                 case DocBodyNode.Code(var value) -> {
                     int start = sb.length();
-                    sb.append(MarkdownBuilder.codeSpan(value));
-                    codeRanges.add(new int[] { start, sb.length() });
+                    if (inPre[0]) {
+                        sb.append(value);
+                    } else {
+                        sb.append(MarkdownBuilder.codeSpan(value));
+                        codeRanges.add(new int[] { start, sb.length() });
+                    }
                 }
                 case DocBodyNode.Link link -> sb.append(linkResolver.apply(link));
-                case DocBodyNode.Html(var raw) -> sb.append(processHtmlForMarkdown(raw));
+                case DocBodyNode.Html(var raw) -> appendMarkdownHtml(raw, sb, inPre, preStart, preRanges);
             }
         }
         String result = sb.toString();
@@ -94,7 +101,9 @@ public final class DocBodyRenderer {
         }
 
         // Post-process the accumulated string:
-        result = convertHtmlLinks(result, codeRanges);
+        List<int[]> protectedRanges = new ArrayList<>(codeRanges);
+        protectedRanges.addAll(preRanges);
+        result = convertHtmlLinks(result, protectedRanges);
         // Text and unsupported HTML were escaped at their AST nodes, not across
         // literal code spans: Markdown's code renderer escapes those exactly once.
         result = result.replaceAll("(?<=[.,:;>]) ?\n", "  \n");
@@ -158,6 +167,34 @@ public final class DocBodyRenderer {
         return text.replace("<", "&lt;").replace(">", "&gt;");
     }
 
+    private static void appendMarkdownHtml(
+        String raw, StringBuilder output, boolean[] inPre, int[] preStart, List<int[]> preRanges
+    ) {
+        if (raw == null || raw.isBlank()) return;
+        Pattern preMarker = Pattern.compile("(?i)<pre\\b([^>]*)>|</pre\\s*>");
+        Matcher markers = preMarker.matcher(raw);
+        int cursor = 0;
+        while (markers.find()) {
+            String content = raw.substring(cursor, markers.start());
+            output.append(inPre[0] ? content : processHtmlForMarkdown(content));
+            if (markers.group(1) != null) {
+                output.append("```").append(exampleLanguage(markers.group(1)).equals("typescript") ? "ts" : "js");
+                inPre[0] = true;
+                preStart[0] = output.length();
+            } else if (inPre[0]) {
+                preRanges.add(new int[] { preStart[0], output.length() });
+                output.append("```\n");
+                inPre[0] = false;
+                preStart[0] = -1;
+            } else {
+                output.append("&lt;/pre&gt;");
+            }
+            cursor = markers.end();
+        }
+        String tail = raw.substring(cursor);
+        output.append(inPre[0] ? tail : processHtmlForMarkdown(tail));
+    }
+
     /**
      * Renders nodes to an inline HTML string, suitable for embedding inside HTML
      * elements such as {@code <p>}, {@code <li>}, or {@code <td>}.
@@ -181,6 +218,15 @@ public final class DocBodyRenderer {
      *                     plain text/code fallback when the link cannot be resolved
      */
     public static String toHtml(List<DocBodyNode> nodes, Function<DocBodyNode.Link, String> linkResolver) {
+        return toHtml(nodes, linkResolver, false);
+    }
+
+    /** Renders inline HTML, optionally escaping ampersands inside code spans. */
+    public static String toHtml(
+        List<DocBodyNode> nodes,
+        Function<DocBodyNode.Link, String> linkResolver,
+        boolean escapeCodeAmpersands
+    ) {
         if (nodes == null || nodes.isEmpty()) {
             return "";
         }
@@ -190,8 +236,10 @@ public final class DocBodyRenderer {
                 case DocBodyNode.Text(var value) ->
                     // Escape angle brackets in plain text so they don't break surrounding HTML.
                     sb.append(value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"));
-                case DocBodyNode.Code(var value) ->
+                case DocBodyNode.Code(var value) -> {
+                    if (escapeCodeAmpersands) value = value.replace("&", "&amp;");
                     sb.append("<code>").append(value.replace("<", "&lt;").replace(">", "&gt;")).append("</code>");
+                }
                 case DocBodyNode.Link link -> sb.append(linkResolver.apply(link));
                 case DocBodyNode.Html(var raw) -> sb.append(processHtmlForInline(raw));
             }

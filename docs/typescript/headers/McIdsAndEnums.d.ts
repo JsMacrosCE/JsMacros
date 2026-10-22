@@ -11,6 +11,7 @@ type SoundId = string
 type FluidId = string
 type BlockId = string
 type BlockTag = string
+type MobTag = string
 type EntityId = string;
 type EntityTypeFromId<E> = EntityHelper;
 type EntityIdToTypeMap = { [id: string]: EntityHelper }

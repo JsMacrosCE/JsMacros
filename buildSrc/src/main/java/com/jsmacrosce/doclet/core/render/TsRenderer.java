@@ -38,6 +38,10 @@ public class TsRenderer implements Renderer {
     );
     private final TypeResolver typeResolver;
 
+    private Set<String> referencedTypes = Set.of();
+    /** The types the definitions write as interfaces, which a class implements rather than extends. */
+    private Set<String> interfaceTypes = Set.of();
+
     public TsRenderer(TypeResolver typeResolver) {
         this.typeResolver = typeResolver;
     }
@@ -46,9 +50,26 @@ public class TsRenderer implements Renderer {
     public String render(DocletModel model) {
         Map<String, String> tsAliases = buildTypeScriptAliases(model);
         applyTypeScriptAliases(tsAliases);
+        referencedTypes = new HashSet<>();
+        for (ClassDoc clz : model.referencedTypes()) {
+            referencedTypes.add(clz.qualifiedName());
+        }
 
         List<ClassDoc> events = collectByGroup(model, ClassGroup.Event);
         List<ClassDoc> libraries = collectByGroup(model, ClassGroup.Library);
+
+        if (typeResolver instanceof BasicTypeResolver basicTypeResolver) {
+            basicTypeResolver.setUndeclaredTypes(model.undeclaredTypes());
+        }
+        interfaceTypes = new HashSet<>();
+        for (ClassDoc clz : events) {
+            interfaceTypes.add(clz.qualifiedName());
+        }
+        for (ClassDoc clz : model.referencedTypes()) {
+            if (clz.kind() == ClassKind.INTERFACE) {
+                interfaceTypes.add(clz.qualifiedName());
+            }
+        }
 
         StringBuilder out = new StringBuilder();
         appendGlobalDeclarations(out);
@@ -84,7 +105,9 @@ public class TsRenderer implements Renderer {
 
     private void appendEvents(StringBuilder out, List<ClassDoc> events) {
         out.append("declare namespace Events {\n\n");
-        indent(out, 1).append("interface BaseEvent extends JavaObject {\n\n");
+        // The type every event builds on is written as a class, because the event classes
+        // build on it and inherit what it carries.
+        indent(out, 1).append("class BaseEvent extends Packages.java.lang.Object {\n\n");
         indent(out, 2).append("getEventName(): string;\n\n");
         indent(out, 1).append("}\n\n");
         indent(out, 1).append("interface Cancellable {\n\n");
@@ -138,19 +161,52 @@ public class TsRenderer implements Renderer {
 
     private void renderEventInterface(StringBuilder out, ClassDoc event, int indent) {
         appendDocComment(out, event.docComment(), List.of(), false, null, event, indent);
-        indent(out, indent).append("interface ").append(event.alias()).append(" extends BaseEvent");
+        indent(out, indent).append("interface ").append(event.alias());
+        appendTypeParams(out, typeParams(event), null, true);
+        out.append(" extends BaseEvent");
         if (event.eventCancellable()) {
             out.append(", Cancellable");
         }
         out.append(" {\n");
+        Set<String> merged = mergedMemberNames(event);
         for (MemberDoc member : event.members()) {
             if (member.kind() == MemberKind.FIELD && !hasModifier(member, "static")) {
-                renderField(out, member, indent + 1, false, event);
+                renderField(out, member, indent + 1, false, event, merged);
             } else if (member.kind() == MemberKind.METHOD && !hasModifier(member, "static")) {
+                if (merged.contains(member.name())) {
+                    continue;
+                }
                 renderMethod(out, member, indent + 1, false, event);
             }
         }
         indent(out, indent).append("}\n");
+    }
+
+    /**
+     * The names of members that are both a field and a method of the same class. TypeScript
+     * cannot declare both under one name, so such a pair is presented as a single member whose
+     * type carries both readings.
+     */
+    private Set<String> mergedMemberNames(ClassDoc clz) {
+        Set<String> fields = new HashSet<>();
+        Set<String> merged = new HashSet<>();
+        for (MemberDoc member : clz.members()) {
+            if (member.kind() == MemberKind.FIELD) {
+                fields.add(member.name());
+            } else if (member.kind() == MemberKind.METHOD && fields.contains(member.name())) {
+                merged.add(member.name());
+            }
+        }
+        return merged;
+    }
+
+    private MemberDoc mergedMethod(ClassDoc clz, String name) {
+        for (MemberDoc member : clz.members()) {
+            if (member.kind() == MemberKind.METHOD && member.name().equals(name)) {
+                return member;
+            }
+        }
+        return null;
     }
 
     private String renderPackages(DocletModel model) {
@@ -178,6 +234,11 @@ public class TsRenderer implements Renderer {
             for (ClassDoc clz : pkg.classes()) {
                 root.addClass(pkg.name(), clz);
             }
+        }
+        // A type the documented API mentions but does not document still has to exist, or a
+        // reference to it resolves to nothing.
+        for (ClassDoc clz : model.referencedTypes()) {
+            root.addClass(clz.packageName(), clz);
         }
         return root;
     }
@@ -209,19 +270,27 @@ public class TsRenderer implements Renderer {
     }
 
     private void renderClass(StringBuilder out, ClassDoc clz, int indent) {
+        Set<String> merged = mergedMemberNames(clz);
+        if (isReferencedType(clz)) {
+            renderReferencedClass(out, clz, indent, merged);
+            return;
+        }
         if (clz.kind() == ClassKind.INTERFACE) {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
-            indent(out, indent).append("export abstract class ").append(tsSafeName(clz.name()))
-                .append(" extends java.lang.Interface {\n");
+            appendShapeIgnore(out, clz, indent);
+            indent(out, indent).append("export abstract class ").append(tsSafeName(clz.name()));
+            appendTypeParams(out, typeParams(clz), null, true);
+            indent(out, indent).append(" extends java.lang.Interface {\n");
             appendClassHeader(out, clz, indent + 1);
-            renderStaticMembers(out, clz, indent + 1, clz);
+            renderStaticMembers(out, clz, indent + 1, clz, merged);
             indent(out, indent).append("}\n");
 
+            appendHeritageIgnore(out, clz, indent);
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
-            appendTypeParams(out, clz.typeParams(), null, false);
+            appendTypeParams(out, typeParams(clz), null, true);
             appendImplements(out, clz);
             out.append(" {\n");
-            renderInstanceMembers(out, clz, indent + 1, clz);
+            renderInstanceMembers(out, clz, indent + 1, clz, merged);
             indent(out, indent).append("}\n");
             return;
         }
@@ -229,8 +298,9 @@ public class TsRenderer implements Renderer {
         // Don't generate interface for Library classes (they're rendered as namespaces)
         if (!clz.implementsTypes().isEmpty() && clz.group() != ClassGroup.Library) {
             appendDocComment(out, clz.docComment(), List.of(), false, null, clz, indent);
+            appendHeritageIgnore(out, clz, indent);
             indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
-            appendTypeParams(out, clz.typeParams(), null, false);
+            appendTypeParams(out, typeParams(clz), null, true);
             appendImplements(out, clz);
             out.append(" {}\n");
         } else {
@@ -238,20 +308,80 @@ public class TsRenderer implements Renderer {
         }
 
         boolean hasConstructor = clz.members().stream().anyMatch(member -> member.kind() == MemberKind.CONSTRUCTOR);
+        appendShapeIgnore(out, clz, indent);
         indent(out, indent).append("export ").append(hasConstructor ? "class " : "abstract class ")
             .append(tsSafeName(clz.name()));
-        appendTypeParams(out, clz.typeParams(), null, false);
+        appendTypeParams(out, typeParams(clz), null, true);
         appendExtends(out, clz);
         out.append(" {\n");
         appendClassHeader(out, clz, indent + 1);
-        renderStaticMembers(out, clz, indent + 1, clz);
+        renderStaticMembers(out, clz, indent + 1, clz, merged);
         renderConstructors(out, clz, indent + 1);
-        renderInstanceMembers(out, clz, indent + 1, clz);
+        renderInstanceMembers(out, clz, indent + 1, clz, merged);
         indent(out, indent).append("}\n");
     }
 
-    private void renderField(StringBuilder out, MemberDoc member, int indent, boolean includeStatic, ClassDoc owner) {
+    /**
+     * A type the documented API mentions but does not document is declared on its own: an
+     * interface stays an interface and a class stays a class. The two halves the documented
+     * classes are given do not fit a type that is only there to be referred to.
+     */
+    private void renderReferencedClass(StringBuilder out, ClassDoc clz, int indent, Set<String> merged) {
+        appendInternalNotice(out, clz, indent);
+        if (clz.kind() == ClassKind.INTERFACE) {
+            appendHeritageIgnore(out, clz, indent);
+            appendShapeIgnore(out, clz, indent);
+            indent(out, indent).append("export interface ").append(tsSafeName(clz.name()));
+            appendTypeParams(out, typeParams(clz), null, true);
+            appendImplements(out, clz);
+            out.append(" {\n");
+            renderInstanceMembers(out, clz, indent + 1, clz, merged);
+            indent(out, indent).append("}\n");
+            return;
+        }
+        appendShapeIgnore(out, clz, indent);
+        indent(out, indent).append("export class ").append(tsSafeName(clz.name()));
+        appendTypeParams(out, typeParams(clz), null, true);
+        appendExtends(out, clz);
+        out.append(" {\n");
+        renderStaticMembers(out, clz, indent + 1, clz, merged);
+        renderInstanceMembers(out, clz, indent + 1, clz, merged);
+        indent(out, indent).append("}\n");
+    }
+
+    /**
+     * Marks a type that is not part of the API a script is given. It is declared only because
+     * a class of the API builds on it, and the marker keeps it out of the API of a script.
+     */
+    private void appendInternalNotice(StringBuilder out, ClassDoc clz, int indent) {
+        if (!clz.internal()) {
+            return;
+        }
+        indent(out, indent).append("/**\n");
+        indent(out, indent).append(" * Not part of the API a script is given. It is here because a class of\n");
+        indent(out, indent).append(" * the API builds on it, and that class cannot be written without it.\n");
+        indent(out, indent).append(" * @internal\n");
+        indent(out, indent).append(" */\n");
+    }
+
+    private boolean isReferencedType(ClassDoc clz) {
+        return referencedTypes.contains(clz.qualifiedName());
+    }
+
+    private void renderField(
+        StringBuilder out,
+        MemberDoc member,
+        int indent,
+        boolean includeStatic,
+        ClassDoc owner,
+        Set<String> merged
+    ) {
+        MemberDoc method = merged.contains(member.name()) ? mergedMethod(owner, member.name()) : null;
         appendDocComment(out, member.docComment(), List.of(), false, member, owner, indent);
+        if (method != null) {
+            appendDocComment(out, method.docComment(), List.of(), false, method, owner, indent);
+        }
+        appendShapeIgnore(out, member, indent);
         indent(out, indent);
         if (includeStatic && hasModifier(member, "static")) {
             out.append("static ");
@@ -259,7 +389,71 @@ public class TsRenderer implements Renderer {
         if (member.isReadOnly()) {
             out.append("readonly ");
         }
-        out.append(member.name()).append(": ").append(formatReturn(member, owner)).append(";\n");
+        out.append(member.name()).append(": ");
+        out.append(method == null
+            ? formatReturn(member, owner)
+            : mergedMemberType(member, method, owner));
+        out.append(";\n");
+    }
+
+    /**
+     * Marks the declaration of a type whose types it builds on cannot be written together, so
+     * that the mismatch they cause is not reported against the definitions.
+     */
+    private void appendHeritageIgnore(StringBuilder out, ClassDoc clz, int indent) {
+        if (clz.heritageConflict()) {
+            indent(out, indent).append("// @ts-ignore\n");
+        }
+    }
+
+    /**
+     * Marks the declaration of a type whose shape the definitions cannot write, so that the
+     * mismatch the shape causes is not reported against the definitions.
+     */
+    private void appendShapeIgnore(StringBuilder out, ClassDoc clz, int indent) {
+        if (hasStaticShapeConflict(clz)) {
+            indent(out, indent).append("// @ts-ignore\n");
+        }
+    }
+
+    /**
+     * Whether the static side of the type cannot be written the way the definitions write it,
+     * because a static member answers to the same name on the type it builds on with a
+     * different shape.
+     */
+    private boolean hasStaticShapeConflict(ClassDoc clz) {
+        return clz.staticConflict();
+    }
+
+    /**
+     * Marks a member whose shape the definitions cannot write, so that the mismatch the shape
+     * causes is not reported against the definitions. The member is still there, with its type.
+     */
+    private void appendShapeIgnore(StringBuilder out, MemberDoc member, int indent) {
+        if (member.shapeConflict()) {
+            indent(out, indent).append("// @ts-ignore\n");
+        }
+    }
+
+    /**
+     * The type of a member that is both a field and a method. Reading it gives the field's
+     * value and calling it gives the method's result, which is what the runtime does with such
+     * a pair, so the type carries both readings.
+     */
+    private String mergedMemberType(MemberDoc field, MemberDoc method, ClassDoc owner) {
+        StringBuilder builder = new StringBuilder(formatType(field.returnType(), false, true));
+        builder.append(" & ((");
+        List<ParamDoc> params = method.params();
+        for (int i = 0; i < params.size(); i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            ParamDoc param = params.get(i);
+            builder.append(escapeParamName(param.name())).append(": ")
+                .append(formatType(param.type(), true, true));
+        }
+        builder.append(") => ").append(formatReturn(method, owner)).append(")");
+        return builder.toString();
     }
 
     private void renderMethod(StringBuilder out, MemberDoc member, int indent, boolean includeStatic, ClassDoc owner) {
@@ -268,6 +462,7 @@ public class TsRenderer implements Renderer {
 
     private void renderMethod(StringBuilder out, MemberDoc member, int indent, boolean includeStatic, ClassDoc owner, boolean namespace) {
         appendDocComment(out, member.docComment(), member.params(), true, member, owner, indent);
+        appendShapeIgnore(out, member, indent);
         indent(out, indent);
         if (namespace) {
             out.append("function ");
@@ -320,14 +515,17 @@ public class TsRenderer implements Renderer {
         out.append(");\n");
     }
 
-    private void renderStaticMembers(StringBuilder out, ClassDoc clz, int indent, ClassDoc owner) {
+    private void renderStaticMembers(StringBuilder out, ClassDoc clz, int indent, ClassDoc owner, Set<String> merged) {
         for (MemberDoc member : clz.members()) {
             if (!hasModifier(member, "static")) {
                 continue;
             }
             if (member.kind() == MemberKind.FIELD) {
-                renderField(out, member, indent, true, owner);
+                renderField(out, member, indent, true, owner, merged);
             } else if (member.kind() == MemberKind.METHOD) {
+                if (merged.contains(member.name())) {
+                    continue;
+                }
                 renderMethod(out, member, indent, true, owner);
             }
         }
@@ -341,14 +539,17 @@ public class TsRenderer implements Renderer {
         }
     }
 
-    private void renderInstanceMembers(StringBuilder out, ClassDoc clz, int indent, ClassDoc owner) {
+    private void renderInstanceMembers(StringBuilder out, ClassDoc clz, int indent, ClassDoc owner, Set<String> merged) {
         for (MemberDoc member : clz.members()) {
             if (hasModifier(member, "static")) {
                 continue;
             }
             if (member.kind() == MemberKind.FIELD) {
-                renderField(out, member, indent, false, owner);
+                renderField(out, member, indent, false, owner, merged);
             } else if (member.kind() == MemberKind.METHOD) {
+                if (merged.contains(member.name())) {
+                    continue;
+                }
                 renderMethod(out, member, indent, false, owner);
             }
         }
@@ -465,10 +666,11 @@ public class TsRenderer implements Renderer {
 
     private String buildAliasName(ClassDoc clz, boolean defaultToAny) {
         StringBuilder out = new StringBuilder(clz.name().replace(".", "$"));
-        if (clz.typeParams() != null && !clz.typeParams().isEmpty()) {
+        List<TypeRef> params = typeParams(clz);
+        if (!params.isEmpty()) {
             out.append("<");
             boolean first = true;
-            for (TypeRef param : clz.typeParams()) {
+            for (TypeRef param : params) {
                 if (!first) {
                     out.append(", ");
                 }
@@ -485,13 +687,29 @@ public class TsRenderer implements Renderer {
             TypeKind.DECLARED,
             clz.name(),
             clz.qualifiedName(),
-            clz.typeParams(),
+            typeParams(clz),
             false,
             false,
             null,
             false
         );
         return typeResolver.format(classType, TargetLanguage.TYPESCRIPT, false);
+    }
+
+    /**
+     * The type parameters a class is written with: the ones it carries from the class it is
+     * written inside, and the ones it declares itself. The ones it carries come first, the way
+     * the class they come from is written inside the ones above it.
+     */
+    private List<TypeRef> typeParams(ClassDoc clz) {
+        List<TypeRef> params = new ArrayList<>();
+        if (clz.capturedTypeParams() != null) {
+            params.addAll(clz.capturedTypeParams());
+        }
+        if (clz.typeParams() != null) {
+            params.addAll(clz.typeParams());
+        }
+        return params;
     }
 
     private void appendEnumTypes(StringBuilder out, List<DeclaredTypeDoc> declaredTypes) {
@@ -602,7 +820,7 @@ public class TsRenderer implements Renderer {
 
     private String buildClassHeaderType(ClassDoc clz) {
         StringBuilder builder = new StringBuilder(tsSafeName(clz.name()));
-        int params = clz.typeParams().size();
+        int params = typeParams(clz).size();
         if (params > 0) {
             builder.append("<");
             builder.append("any, ".repeat(params));
@@ -614,19 +832,26 @@ public class TsRenderer implements Renderer {
 
     private void appendExtends(StringBuilder out, ClassDoc clz) {
         String extendsType;
+        boolean isInterface = false;
         if (clz.extendsTypes().isEmpty()) {
             extendsType = "java.lang.Object";
         } else {
-            extendsType = formatHeritageType(clz.extendsTypes().getFirst(), true);
+            TypeRef supertype = clz.extendsTypes().getFirst();
+            extendsType = formatHeritageType(supertype, true);
+            isInterface = interfaceTypes.contains(supertype.qualifiedName());
         }
-        out.append(" extends ").append(extendsType);
+        out.append(isInterface ? " implements " : " extends ").append(extendsType);
     }
 
     private void appendImplements(StringBuilder out, ClassDoc clz) {
+        appendHeritage(out, clz, " extends ");
+    }
+
+    private void appendHeritage(StringBuilder out, ClassDoc clz, String keyword) {
         if (clz.implementsTypes().isEmpty()) {
             return;
         }
-        out.append(" extends ");
+        out.append(keyword);
         boolean first = true;
         for (TypeRef type : clz.implementsTypes()) {
             if (!first) {
@@ -638,7 +863,7 @@ public class TsRenderer implements Renderer {
     }
 
     private String formatHeritageType(TypeRef type, boolean isExtends) {
-        String formatted = typeResolver.format(type, TargetLanguage.TYPESCRIPT, false);
+        String formatted = typeResolver.formatHeritage(type);
         if (isExtends) {
             if (formatted.equals("any") || formatted.equals("JavaObject") || formatted.equals("Object")
                 || formatted.equals("void")) {
@@ -656,7 +881,14 @@ public class TsRenderer implements Renderer {
     }
 
     private boolean shouldReturnThis(MemberDoc member, ClassDoc owner) {
-        if (owner == null || member.docComment() == null || member.kind() != MemberKind.METHOD) {
+        if (owner == null || member.kind() != MemberKind.METHOD) {
+            return false;
+        }
+        if (member.selfReturn()) {
+            // The member it builds on hands the type back, so this one does too.
+            return true;
+        }
+        if (member.docComment() == null) {
             return false;
         }
         String returnText = getTagText(member.docComment(), DocTagKind.RETURN);
@@ -691,6 +923,22 @@ public class TsRenderer implements Renderer {
         List<String> lines = new ArrayList<>();
         if (!desc.isBlank()) {
             lines.add(desc);
+        }
+
+        Set<DocTag> mismatchedTemplateTags = new HashSet<>();
+        for (DocTag tag : comment.tags()) {
+            if (tag.kind() == DocTagKind.TEMPLATE && tag.name() != null) {
+                String replacementName = simpleReplacementTypeParamName(
+                    member == null ? null : member.replaceTypeParams()
+                );
+                if (replacementName != null && !replacementName.equals(tag.name())) {
+                    String text = DocBodyRenderer.toPlainText(tag.body(), this::resolveLinkForJsDoc);
+                    if (!text.isBlank()) {
+                        lines.add("Java type parameter " + tag.name() + ": " + text);
+                        mismatchedTemplateTags.add(tag);
+                    }
+                }
+            }
         }
 
         Map<String, String> paramDocs = new HashMap<>();
@@ -735,7 +983,7 @@ public class TsRenderer implements Renderer {
             }
         }
         for (DocTag tag : comment.tags()) {
-            if (tag.kind() == DocTagKind.TEMPLATE && tag.name() != null) {
+            if (tag.kind() == DocTagKind.TEMPLATE && tag.name() != null && !mismatchedTemplateTags.contains(tag)) {
                 String text = DocBodyRenderer.toPlainText(tag.body(), this::resolveLinkForJsDoc);
                 if (!text.isBlank()) {
                     lines.add("@template " + tag.name() + " " + text);
@@ -763,6 +1011,19 @@ public class TsRenderer implements Renderer {
             }
         }
         indent(out, indent).append(" */\n");
+    }
+
+    private String simpleReplacementTypeParamName(String replacement) {
+        if (replacement == null || replacement.isBlank()) {
+            return null;
+        }
+        // Limit reconciliation to one identifier and an optional simple qualified-identifier bound.
+        String identifier = "[A-Za-z_$][A-Za-z0-9_$]*";
+        String qualifiedIdentifier = identifier + "(?:\\." + identifier + ")*";
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(
+            "\\s*(" + identifier + ")(?:\\s+extends\\s+" + qualifiedIdentifier + ")?\\s*"
+        ).matcher(replacement);
+        return matcher.matches() ? matcher.group(1) : null;
     }
 
     /**
