@@ -4,9 +4,12 @@ import com.jsmacrosce.doclet.DocletIgnore;
 import jdk.javadoc.doclet.Doclet;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +17,10 @@ import javax.lang.model.SourceVersion;
 
 @DocletIgnore
 public class Links implements Doclet.Option {
+    private static final int CONNECT_TIMEOUT_MILLIS = 5_000;
+    private static final int READ_TIMEOUT_MILLIS = 10_000;
+    private static final int FETCH_RETRIES = 3;
+
     public static Map<String, String> externalPackages = new HashMap<>();
 
     @Override
@@ -50,42 +57,63 @@ public class Links implements Doclet.Option {
 
         Exception lastException = null;
         for (String listFile : new String[] { "element-list", "package-list" }) {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(new URL(baseUrl + listFile).openStream()))) {
-                String line;
-                String modulePath = "";
-                Map<String, String> packages = new HashMap<>();
-                while ((line = reader.readLine()) != null) {
-                    line = line.trim();
+            for (int attempt = 0; attempt <= FETCH_RETRIES; attempt++) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(open(baseUrl + listFile), StandardCharsets.UTF_8))) {
+                    String line;
+                    String modulePath = "";
+                    Map<String, String> packages = new HashMap<>();
+                    while ((line = reader.readLine()) != null) {
+                        line = line.trim();
 
-                    if (line.isEmpty()) {
-                        continue;
-                    }
+                        if (line.isEmpty()) {
+                            continue;
+                        }
 
-                    // Modern Javadoc puts classes beneath their module directory.
-                    if (line.startsWith("module:")) {
-                        String module = line.substring("module:".length());
-                        if (!SourceVersion.isName(module)) throw new IOException("Invalid Javadoc module: " + line);
-                        modulePath = module + "/";
-                        continue;
+                        // Modern Javadoc puts classes beneath their module directory.
+                        if (line.startsWith("module:")) {
+                            String module = line.substring("module:".length());
+                            if (!SourceVersion.isName(module)) throw new IOException("Invalid Javadoc module: " + line);
+                            modulePath = module + "/";
+                            continue;
+                        }
+                        // Some hosts return a soft-404 HTML page with HTTP 200. Do not
+                        // mistake it for a successful package list and lose every link.
+                        if (!SourceVersion.isName(line)) throw new IOException("Invalid Javadoc package: " + line);
+                        packages.put(
+                                line,
+                                baseUrl + modulePath + line.replace(".", "/") + "/");
                     }
-                    // Some hosts return a soft-404 HTML page with HTTP 200. Do not
-                    // mistake it for a successful package list and lose every link.
-                    if (!SourceVersion.isName(line)) throw new IOException("Invalid Javadoc package: " + line);
-                    packages.put(
-                            line,
-                            baseUrl + modulePath + line.replace(".", "/") + "/");
+                    if (packages.isEmpty()) throw new IOException("Empty Javadoc package index: " + baseUrl + listFile);
+                    externalPackages.putAll(packages);
+                    return true;
+                } catch (Exception e) {
+                    lastException = e;
+                    // Retry a momentary blip; a persistent failure still fails generation.
+                    if (attempt < FETCH_RETRIES) pauseBetweenAttempts();
                 }
-                if (packages.isEmpty()) throw new IOException("Empty Javadoc package index: " + baseUrl + listFile);
-                externalPackages.putAll(packages);
-                return true;
-            } catch (Exception e) {
-                lastException = e;
             }
         }
 
-        if (lastException != null) {
-            lastException.printStackTrace();
-        }
+        // Javadoc reports a rejected option only as "an unknown error has occurred",
+        // so name the index and the cause before returning false.
+        System.err.println("error: cannot read external Javadoc index " + baseUrl
+                + " (" + (lastException == null ? "unknown error" : lastException) + ")");
         return false;
+    }
+
+    private static void pauseBetweenAttempts() {
+        try {
+            Thread.sleep(1_000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private static InputStream open(String url) throws IOException {
+        URLConnection connection = new URL(url).openConnection();
+        connection.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
+        connection.setReadTimeout(READ_TIMEOUT_MILLIS);
+        connection.setRequestProperty("User-Agent", "jsmacrosce-doclet");
+        return connection.getInputStream();
     }
 }

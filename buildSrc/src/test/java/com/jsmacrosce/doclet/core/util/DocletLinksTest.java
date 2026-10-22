@@ -1,17 +1,22 @@
 package com.jsmacrosce.doclet.core.util;
 
 import javax.tools.ToolProvider;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import com.jsmacrosce.doclet.core.model.TypeKind;
 import com.jsmacrosce.doclet.core.model.TypeRef;
+import com.jsmacrosce.doclet.options.Links;
 
 /** Runs the actual doclets on synthetic declarations, without downloading Minecraft or Javadoc. */
 public final class DocletLinksTest {
     public static void main(String[] args) throws Exception {
         Path root = Path.of(args[0]);
+        checkUnreadableIndexFails(root);
         Path stubs = root.resolve("stubs");
         Files.createDirectories(stubs);
         Path player = write(root.resolve("source/net/minecraft/client/multiplayer/PlayerInfo.java"),
@@ -1163,5 +1168,23 @@ public final class DocletLinksTest {
         int start = output.lastIndexOf("/**", sig);
         int end = output.indexOf("*/", start);
         if (sig < 0 || start < 0 || end < 0 || end > sig || output.substring(start, end).contains("@template")) throw new AssertionError("Unexpected TS template docs for " + signature);
+    }
+
+    /** An unreadable external index must fail the doclet, and name the URL that failed. */
+    private static void checkUnreadableIndexFails(Path root) {
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        PrintStream original = System.err;
+        boolean accepted;
+        System.setErr(new PrintStream(err, true, StandardCharsets.UTF_8));
+        try {
+            accepted = new Links().process("-link", List.of(root.resolve("missing-javadoc").toUri().toString()));
+        } finally {
+            System.setErr(original);
+        }
+        String message = err.toString(StandardCharsets.UTF_8);
+        if (accepted) throw new AssertionError("An unreadable external Javadoc index must fail the doclet");
+        if (!message.contains("cannot read external Javadoc index") || !message.contains("missing-javadoc")) {
+            throw new AssertionError("Unreadable index did not name its URL: " + message);
+        }
     }
 }

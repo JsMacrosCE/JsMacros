@@ -174,6 +174,11 @@ fallback; Authlib, Brigadier and DataFixerUpper are separate libraries.
 JDK Javadoc is selected using the target's Java toolchain version, and external
 `element-list` module prefixes are preserved rather than using legacy framed URLs.
 
+Configured external Javadoc indexes are fetched while generating with bounded
+timeouts and retries. An index that still cannot be read fails generation and
+names the URL and cause, so a release does not publish documentation whose
+external links silently went missing.
+
 The provider rule currently accepts release versions. An unknown/snapshot version
 does not acquire a guessed Minecraft URL. New supported targets should verify
 their provider and class URLs before publication.
