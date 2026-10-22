@@ -526,11 +526,16 @@ public class MarkdownWriter {
                 .append("</div>\n");
         }
 
+        // A member that only carries the @Deprecated annotation (no @deprecated text) is
+        // already marked by the "deprecated" badge in the signature row. Emitting a
+        // "Deprecated:" label with nothing after it would just be noise.
         if (hasDeprecatedTag(member.docComment())) {
             String deprecated = getTagTextAsHtml(member.docComment(), DocTagKind.DEPRECATED, clz);
-            html.append("<p><strong>Deprecated:</strong> ")
-                .append(deprecated)
-                .append("</p>\n");
+            if (!deprecated.isBlank()) {
+                html.append("<p><strong>Deprecated:</strong> ")
+                    .append(deprecated)
+                    .append("</p>\n");
+            }
         }
 
         // Parameters — render @param tag bodies via DocBodyRenderer so {@link} tags become <a> links.

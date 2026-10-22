@@ -21,6 +21,11 @@ public final class MarkdownWriterTest {
             new DocTag(DocTagKind.SINCE, null, List.of(new DocBodyNode.Text("member-release")))));
         var classSince = new DocComment(List.of(), List.of(), List.of(
             new DocTag(DocTagKind.SINCE, null, List.of(new DocBodyNode.Text("1.9.0")))));
+        // A member that is only marked with @Deprecated has no @deprecated text.
+        var deprecatedWithoutText = new DocComment(List.of(), List.of(), List.of(
+            new DocTag(DocTagKind.DEPRECATED, null, List.of())));
+        var deprecatedWithText = new DocComment(List.of(), List.of(), List.of(
+            new DocTag(DocTagKind.DEPRECATED, null, List.of(new DocBodyNode.Text("use other() instead")))));
         var constructor = new MemberDoc(MemberKind.CONSTRUCTOR, "Result", "Result_constructor", List.of(), List.of(),
             null, null, null, null, List.of("public"), false, memberSince);
         var stringType = new TypeRef(TypeKind.DECLARED, "String", "java.lang.String", List.of(), false, false, null, false);
@@ -28,6 +33,12 @@ public final class MarkdownWriterTest {
         var variadic = new MemberDoc(MemberKind.METHOD, "select", "select-String[]-",
             List.of(new ParamDoc("types", stringArray, true, "")), List.of(), stringType,
             null, null, null, List.of("public"), false, memberSince);
+        var deprecatedOnly = new MemberDoc(MemberKind.METHOD, "legacy", "legacy-",
+            List.of(), List.of(), stringType,
+            null, null, null, List.of("public"), false, deprecatedWithoutText);
+        var deprecatedExplained = new MemberDoc(MemberKind.METHOD, "older", "older-",
+            List.of(), List.of(), stringType,
+            null, null, null, List.of("public"), false, deprecatedWithText);
         var classes = List.of(
             clz("FExample", ClassGroup.Library, "Example", null, empty, List.of(variadic)),
             clz("FExample.Result", ClassGroup.Library, null, null,
@@ -36,7 +47,8 @@ public final class MarkdownWriterTest {
             clz("OptionsHelper", ClassGroup.Class, null, "Helpers", empty, List.of()),
             clz("OptionsHelper.Controls", ClassGroup.Class, null, null, empty, List.of()),
             clz("Other", ClassGroup.Class, null, null, empty, List.of()),
-            clz("Versioned", ClassGroup.Class, null, null, classSince, List.of())
+            clz("Versioned", ClassGroup.Class, null, null, classSince, List.of()),
+            clz("Retired", ClassGroup.Class, null, null, empty, List.of(deprecatedOnly, deprecatedExplained))
         );
         new MarkdownWriter().write(new DocletModel(List.of(new PackageDoc("example", classes)), List.of()),
             out.toFile(), "fixture", "26.1.2");
@@ -72,6 +84,17 @@ public final class MarkdownWriterTest {
         String nested = Files.readString(out.resolve("classes/example/Versioned.md"));
         contains(nested, "**Since:** 1.9.0");
         excludes(result, "&lt;a");
+        // A member that only carries the @Deprecated annotation is marked by the badge alone.
+        // A "Deprecated:" label with nothing after it would be noise.
+        String retired = Files.readString(out.resolve("classes/example/Retired.md"));
+        contains(retired, "<Badge type=\"danger\" text=\"deprecated\" />");
+        contains(retired, "<strong>Deprecated:</strong> use other() instead");
+        if (count(retired, "<strong>Deprecated:</strong>") != 1) {
+            throw new AssertionError("Deprecated label rendered more than once: " + retired);
+        }
+        String legacyLine = retired.lines().filter(l -> l.contains("syntax-token-method\">legacy<")).findFirst()
+            .orElseThrow(() -> new AssertionError("No legacy member rendered: " + retired));
+        excludes(legacyLine, "Deprecated:");
         String sidebar = Files.readString(out.resolve("sidebar-data.json"));
         contains(sidebar, "\"name\": \"Example\"");
         contains(sidebar, "\"name\": \"Result\"");
