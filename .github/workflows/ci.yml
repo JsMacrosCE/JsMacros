@@ -35,6 +35,7 @@ jobs:
           - '1.21.10'
           - '1.21.11'
           - '26.1.2'
+          - '26.2'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -72,8 +73,8 @@ jobs:
       # From 26.1 the Fabric widener must declare `official` while the AW->AT conversion
       # feeding NeoForge still needs a `named` one, so the version ships both files. They
       # are byte-identical below the header; guard against the two drifting apart.
-      - name: Check 26.1 access wideners are in sync
-        if: startsWith(matrix.mc_version, '26.1')
+      - name: Check 26.1+ access wideners are in sync
+        if: ${{ !startsWith(matrix.mc_version, '1.') }}
         run: |
           dir=common/src/main/resources/accesswideners
           diff <(tail -n +2 "$dir/${{ matrix.mc_version }}-jsmacrosce.accesswidener") \
@@ -156,7 +157,7 @@ jobs:
       - name: Build the documentation site for one target
         run: |
           ./gradlew --console=plain --stacktrace \
-            -PdocsMinecraftVersions=26.1.2 \
+            -PdocsMinecraftVersions=26.2 \
             :buildVitepressSite
 
       - name: Test the site
