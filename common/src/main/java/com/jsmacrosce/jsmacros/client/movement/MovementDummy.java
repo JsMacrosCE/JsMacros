@@ -44,7 +44,11 @@ public class MovementDummy extends LivingEntity {
     }
 
     public MovementDummy(Level world, Vec3 pos, Vec3 velocity, AABB hitBox, boolean onGround, boolean isSprinting, boolean isSneaking) {
+        //? if >=26.2 {
+        /*super(EntityTypes.PLAYER, world);
+        *///?} else {
         super(EntityType.PLAYER, world);
+        //?}
         this.setPosRaw(pos.x(), pos.y(), pos.z());
         this.setDeltaMovement(velocity);
         this.setBoundingBox(hitBox);
