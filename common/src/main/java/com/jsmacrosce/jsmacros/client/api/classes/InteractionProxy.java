@@ -100,7 +100,7 @@ public class InteractionProxy {
          * @param direction face recorded in the constructed block hit result; ignored when {@code pos} is null
          */
         public static void setTargetBlock(@Nullable BlockPos pos, Direction direction) {
-            setTarget(pos == null ? null : new BlockHitResult(pos.getCenter(), direction, pos, false));
+            setTarget(pos == null ? null : new BlockHitResult(Vec3.atCenterOf(pos), direction, pos, false));
         }
 
         /**
