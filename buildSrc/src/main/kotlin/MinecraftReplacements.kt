@@ -30,11 +30,6 @@ fun StonecutterBuildExtension.minecraftReplacements() {
     replacements.string(current.parsed >= "26.2") {
         replace("net.minecraft.advancements.criterion", "net.minecraft.advancements.predicates")
         replace("net.minecraft.world.entity.monster.Slime", "net.minecraft.world.entity.monster.cubemob.Slime")
-    }
-
-    // 0.8.4 supports opt-in file headers, not local replacement scopes. Only MacroContainer
-    // opts into this overload adaptation; do not rewrite unrelated OpenGL calls globally.
-    replacements.string("macro_icon_blend", current.parsed >= "26.2") {
         replace("GlStateManager._enableBlend()", "GlStateManager._enableBlend(0)")
         replace("GlStateManager._disableBlend()", "GlStateManager._disableBlend(0)")
     }
