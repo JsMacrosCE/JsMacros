@@ -63,7 +63,7 @@ version.
 ## Commands
 
 Run from the repository root. The familiar root tasks select the distribution's
-default Minecraft targets (currently 26.1.2 locally, all supported targets in CI).
+default Minecraft targets (latest locally, all supported targets in CI).
 An explicit property overrides documentation selection, without changing mod
 build targets:
 
