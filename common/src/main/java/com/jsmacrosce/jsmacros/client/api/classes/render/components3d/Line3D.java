@@ -1,4 +1,5 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
+import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 
 import com.jsmacrosce.doclet.DocletCategory;
 
@@ -7,7 +8,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 //? }
 
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderPipelines;
 
 import com.jsmacrosce.doclet.DocletIgnore;
@@ -304,7 +304,7 @@ public class Line3D implements RenderElement3D<Line3D> {
 
     @Override
     @DocletIgnore
-    public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
+    public void render(PoseStack matrixStack, RenderSink sink, float tickDelta) {
         boolean alwaysOnTop = !this.cull;
         //? if >=1.21.11 {
         /*GizmoProperties gizmo = Gizmos.addGizmo(new LineGizmo(
@@ -319,12 +319,10 @@ public class Line3D implements RenderElement3D<Line3D> {
         try {
             if (alwaysOnTop) {
                 // Flush anything already queued with the default depth state first.
-                if (consumers instanceof MultiBufferSource.BufferSource immediate) {
-                    immediate.endBatch();
-                }
+                sink.endBatch();
                 lineDepthTestFunction.set(RenderPipelines.LINES, DepthTestFunction.NO_DEPTH_TEST);
             }
-            VertexConsumer consumer = consumers.getBuffer(RenderType.lines());
+            VertexConsumer consumer = sink.getBuffer(RenderType.lines());
             PoseStack.Pose entry = matrixStack.last();
 
             // Draw 3 lines in each of the normals for consistency
@@ -335,8 +333,8 @@ public class Line3D implements RenderElement3D<Line3D> {
             addLine(consumer, entry, (float) pos.x1, (float) pos.y1, (float) pos.z1, color, 0, 0, 1);
             addLine(consumer, entry, (float) pos.x2, (float) pos.y2, (float) pos.z2, color, 0, 0, 1);
 
-            if (alwaysOnTop && consumers instanceof MultiBufferSource.BufferSource immediate) {
-                immediate.endBatch();
+            if (alwaysOnTop) {
+                sink.endBatch();
             }
         } catch (IllegalAccessException e) {
             e.printStackTrace();

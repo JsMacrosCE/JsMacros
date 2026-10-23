@@ -1,9 +1,9 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
+import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LightLayer;
 import org.jetbrains.annotations.Nullable;
@@ -614,26 +614,25 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
 
     @Override
     @DocletIgnore
-    public void render(PoseStack matrices, MultiBufferSource consumers, float tickDelta) {
+    public void render(PoseStack matrices, RenderSink sink, float tickDelta) {
         // On 1.21.11+ surfaces are drawn from renderDirect inside the Gizmos pass.
         //? if <1.21.11 {
-        /*renderSurface(matrices, consumers, tickDelta);
+        /*renderSurface(matrices, sink, tickDelta);
         *///? }
     }
 
     @Override
     @DocletIgnore
-    public void renderDirect(PoseStack matrices, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
+    public void renderDirect(PoseStack matrices, RenderSink sink, float tickDelta, boolean alwaysOnTop) {
         //? if >=1.21.11 {
-        /*// cull surfaces are depth-tested; non-cull surfaces draw after the depth clear.
-        if ((!this.cull) != alwaysOnTop) {
+        /*if ((!this.cull) != alwaysOnTop) {
             return;
         }
-        renderSurface(matrices, consumers, tickDelta);
+        renderSurface(matrices, sink, tickDelta);
         *///? }
     }
 
-    private void renderSurface(PoseStack matrices, MultiBufferSource consumers, float tickDelta) {
+    private void renderSurface(PoseStack matrices, RenderSink sink, float tickDelta) {
         boolean seeThrough = !this.cull;
         Pos3D renderPos = resolveRenderPos(tickDelta);
         updateRotateToPlayer(renderPos);
@@ -645,7 +644,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         matrices.pushPose();
         matrices.mulPose(transform);
         synchronized (elements) {
-            renderDirectElements(matrices, consumers, light, seeThrough, tickDelta, getElementsByZIndex());
+            renderDirectElements(matrices, sink, light, seeThrough, tickDelta, getElementsByZIndex());
         }
         matrices.popPose();
     }
@@ -685,7 +684,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         rotations.z = 0;
     }
 
-    private void renderDirectElements(PoseStack matrices, MultiBufferSource consumers, int light, boolean seeThrough, float tickDelta, Iterator<RenderElement> iter) {
+    private void renderDirectElements(PoseStack matrices, RenderSink sink, int light, boolean seeThrough, float tickDelta, Iterator<RenderElement> iter) {
         while (iter.hasNext()) {
             RenderElement element = iter.next();
             if (element instanceof Draw2DElement draw2DElement) {
@@ -695,7 +694,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
                 if (scale != 0) {
                     matrices.translate(0, 0, (float) ((zIndexScale / scale) * element.getZIndex()));
                 }
-                renderNestedDirect(matrices, consumers, light, seeThrough, tickDelta, draw2DElement);
+                renderNestedDirect(matrices, sink, light, seeThrough, tickDelta, draw2DElement);
                 matrices.popPose();
                 continue;
             }
@@ -703,18 +702,18 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
             if (scale != 0) {
                 matrices.translate(0, 0, (float) ((zIndexScale / scale) * element.getZIndex()));
             }
-            element.render3D(matrices, consumers, light, seeThrough, tickDelta);
+            element.render3D(matrices, sink, light, seeThrough, tickDelta);
             // debugQuads sorts quads by camera distance on upload, which ignores
             // zIndex order, so flush each element as its own batch and rely on
             // painter's order.
-            if (consumers instanceof MultiBufferSource.BufferSource bufferSource) {
-                bufferSource.endBatch();
-            }
+            //? if <26.2 {
+            sink.endBatch();
+            //?}
             matrices.popPose();
         }
     }
 
-    private void renderNestedDirect(PoseStack matrices, MultiBufferSource consumers, int light, boolean seeThrough, float tickDelta, Draw2DElement element) {
+    private void renderNestedDirect(PoseStack matrices, RenderSink sink, int light, boolean seeThrough, float tickDelta, Draw2DElement element) {
         matrices.pushPose();
         matrices.translate(element.x, element.y, 0);
         matrices.scale((float) element.scale, (float) element.scale, 1);
@@ -729,7 +728,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         }
         Draw2D draw2D = element.getDraw2D();
         synchronized (draw2D.getElements()) {
-            renderDirectElements(matrices, consumers, light, seeThrough, tickDelta, draw2D.getElementsByZIndex());
+            renderDirectElements(matrices, sink, light, seeThrough, tickDelta, draw2D.getElementsByZIndex());
         }
         matrices.popPose();
     }

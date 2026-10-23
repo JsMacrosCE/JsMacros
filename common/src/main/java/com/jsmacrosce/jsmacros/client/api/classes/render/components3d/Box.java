@@ -1,9 +1,9 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
+import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 
 import com.jsmacrosce.doclet.DocletCategory;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.MultiBufferSource;
 //? if <1.21.11 {
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.ShapeRenderer;
@@ -353,7 +353,7 @@ public class Box implements RenderElement3D<Box> {
 
     @Override
     @DocletIgnore
-    public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
+    public void render(PoseStack matrixStack, RenderSink sink, float tickDelta) {
         boolean seeThrough = !this.cull;
         //? if >=1.21.11 {
         /*AABB box = new AABB(pos.getStart().toMojangDoubleVector(), pos.getEnd().toMojangDoubleVector());
@@ -371,12 +371,11 @@ public class Box implements RenderElement3D<Box> {
         float y2 = (float) pos.y2;
         float z2 = (float) pos.z2;
 
-        MultiBufferSource.BufferSource immediate = (MultiBufferSource.BufferSource) consumers;
         try {
             if (seeThrough) {
                 // Flush anything already queued first, otherwise this box's endBatch
                 // would flush an earlier depth-tested box with NO_DEPTH_TEST too.
-                immediate.endBatch();
+                sink.endBatch();
                 lineDepthTestFunction.set(RenderPipelines.LINES, DepthTestFunction.NO_DEPTH_TEST);
                 boxDepthTestFunction.set(RenderPipelines.DEBUG_FILLED_BOX, DepthTestFunction.NO_DEPTH_TEST);
             }
@@ -389,7 +388,7 @@ public class Box implements RenderElement3D<Box> {
                 float fr = ((fillColor >> 16) & 0xFF) / 255.0F;
                 float fg = ((fillColor >> 8) & 0xFF) / 255.0F;
                 float fb = (fillColor & 0xFF) / 255.0F;
-                ShapeRenderer.addChainedFilledBoxVertices(matrixStack, consumers.getBuffer(fillLayer), x1, y1, z1, x2, y2, z2, fr, fg, fb, fa);
+                ShapeRenderer.addChainedFilledBoxVertices(matrixStack, sink.getBuffer(fillLayer), x1, y1, z1, x2, y2, z2, fr, fg, fb, fa);
             }
 
             float r = ((color >> 16) & 0xFF) / 255.0F;
@@ -401,7 +400,7 @@ public class Box implements RenderElement3D<Box> {
                     /*matrixStack.last(),
                     *///?} else
                     matrixStack,
-                    consumers.getBuffer(linesLayer),
+                    sink.getBuffer(linesLayer),
                     x1,
                     y1,
                     z1,
@@ -414,7 +413,7 @@ public class Box implements RenderElement3D<Box> {
                     a);
 
             if (seeThrough) {
-                immediate.endBatch();
+                sink.endBatch();
             }
         } catch (Exception e) {
             e.printStackTrace();

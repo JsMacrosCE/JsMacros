@@ -13,7 +13,6 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LevelTargetBundle;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.util.profiling.ProfilerFiller;
 
@@ -29,19 +28,33 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
+import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FHud;
+
+//? if <26.2 {
+import net.minecraft.client.renderer.MultiBufferSource;
+//?}
 
 // 1.21.11 introduced the Gizmos API. 3D components emit gizmos, so we collect them here and
 // render the standard/always-on-top groups ourselves. Injecting at addLateDebugPass HEAD puts the
 // pass immediately before the vanilla late_debug pass, i.e. after weather and before the depth
 // clear for vanilla always-on-top gizmos.
-//? if >=1.21.11 {
+//? if >=26.2 {
+/*import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.SubmitNodeStorage;
+*///? } else if >=1.21.11 {
 /*import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.renderer.gizmos.DrawableGizmoPrimitives;
 import net.minecraft.gizmos.Gizmos;
 import net.minecraft.gizmos.SimpleGizmoCollector;
 import net.minecraft.util.profiling.Profiler;
+*///? }
+
+//? if >=26.2 {
+/*import net.minecraft.client.renderer.gizmos.DrawableGizmoPrimitives;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.gizmos.SimpleGizmoCollector;
 *///? }
 
 import net.minecraft.Util;
@@ -75,7 +88,65 @@ public class MixinWorldRenderer {
     @Shadow
     private LevelTargetBundle targets;
 
-    //? if >=26.1 {
+    //? if >=26.2 {
+    /*@Final
+    @Shadow
+    private SubmitNodeStorage submitNodeStorage;
+    *///?}
+
+    // 26.2 replaced the render-buffer API with submitted render features. This is the last
+    // point with a SubmitNodeCollector for this frame.
+    //? if >=26.2 {
+    /*@Inject(method = "submitFeatures", at = @At("TAIL"))
+    private void jsmacrosce_submitFeatures(
+            LevelRenderState levelRenderState,
+            SubmitNodeCollector collector,
+            boolean renderOutline,
+            CallbackInfo ci
+    ) {
+        jsmacrosce_submitDraw3d(levelRenderState, this.submitNodeStorage);
+    }
+
+    @Unique
+    private void jsmacrosce_submitDraw3d(LevelRenderState levelRenderState, SubmitNodeStorage collector) {
+        try {
+            float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
+            PoseStack matrixStack = new PoseStack();
+            ImmutableSet<Draw3D> draws = ImmutableSet.copyOf(FHud.renders);
+
+            DrawableGizmoPrimitives standardGizmos = new DrawableGizmoPrimitives();
+            DrawableGizmoPrimitives alwaysOnTopGizmos = new DrawableGizmoPrimitives();
+            SimpleGizmoCollector frameGizmos = new SimpleGizmoCollector();
+
+            RenderSink depthSink = new RenderSink(collector, false);
+            try (Gizmos.TemporaryCollection ignored = Gizmos.withCollector(frameGizmos)) {
+                for (Draw3D d : draws) {
+                    d.render(matrixStack, depthSink, tickDelta);
+                }
+            }
+
+            long now = Util.getMillis();
+            for (SimpleGizmoCollector.GizmoInstance instance : frameGizmos.drainGizmos()) {
+                DrawableGizmoPrimitives target = instance.isAlwaysOnTop() ? alwaysOnTopGizmos : standardGizmos;
+                instance.gizmo().emit(target, instance.getAlphaMultiplier(now));
+            }
+
+            CameraRenderState cameraState = levelRenderState.cameraRenderState;
+            standardGizmos.submit(collector, cameraState, false);
+
+            // Depth-tested surface elements (cull=true) draw against the terrain depth buffer.
+            Draw3D.renderDirectSurfaces(draws, matrixStack, depthSink, tickDelta, false);
+
+            alwaysOnTopGizmos.submit(collector, cameraState, true);
+
+            // Non-cull surfaces join the always-on-top phase, which clears depth before drawing.
+            RenderSink topSink = new RenderSink(collector, true);
+            Draw3D.renderDirectSurfaces(draws, matrixStack, topSink, tickDelta, true);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+    }
+    *///? } else if >=26.1 {
     /*@Inject(method = "addLateDebugPass", at = @At("HEAD"))
     private void onAddLateDebugPass(
             FrameGraphBuilder frameGraphBuilder,
@@ -131,7 +202,7 @@ public class MixinWorldRenderer {
     }
     *///?}
 
-    //? if >=1.21.11 {
+    //? if >=1.21.11 <26.2 {
     /*@Unique
     private void jsmacrosce_addGizmoPass(FrameGraphBuilder frameGraphBuilder, CameraRenderState cameraState, Matrix4fc modelViewMatrix) {
         if (this.targets == null) {
@@ -149,6 +220,7 @@ public class MixinWorldRenderer {
                 MultiBufferSource.BufferSource consumers = Minecraft.getInstance().renderBuffers().bufferSource();
                 float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
                 PoseStack matrixStack = new PoseStack();
+                RenderSink sink = new RenderSink(consumers);
 
                 DrawableGizmoPrimitives standardGizmos = new DrawableGizmoPrimitives();
                 DrawableGizmoPrimitives alwaysOnTopGizmos = new DrawableGizmoPrimitives();
@@ -156,11 +228,11 @@ public class MixinWorldRenderer {
 
                 try (Gizmos.TemporaryCollection ignored = Gizmos.withCollector(frameGizmos)) {
                     for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
-                        d.render(matrixStack, consumers, tickDelta);
+                        d.render(matrixStack, sink, tickDelta);
                     }
                 }
 
-                consumers.endBatch();
+                sink.endBatch();
 
                 long now = Util.getMillis();
                 for (SimpleGizmoCollector.GizmoInstance instance : frameGizmos.drainGizmos()) {
@@ -183,8 +255,8 @@ public class MixinWorldRenderer {
 
                     // Depth-tested surface elements (cull=true) draw while the world
                     // depth buffer is still intact.
-                    Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, false);
-                    consumers.endBatch();
+                    Draw3D.renderDirectSurfaces(draws, matrixStack, sink, tickDelta, false);
+                    sink.endBatch();
 
                     if (!alwaysOnTopGizmos.isEmpty()) {
                         RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(mainTarget.getDepthTexture(), 1.0);
@@ -192,8 +264,8 @@ public class MixinWorldRenderer {
                         consumers.endLastBatch();
                     }
 
-                    Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, true);
-                    consumers.endBatch();
+                    Draw3D.renderDirectSurfaces(draws, matrixStack, sink, tickDelta, true);
+                    sink.endBatch();
                 } finally {
                     RenderSystem.outputColorTextureOverride = null;
                     RenderSystem.outputDepthTextureOverride = null;
@@ -225,17 +297,18 @@ public class MixinWorldRenderer {
                 MultiBufferSource.BufferSource consumers = Minecraft.getInstance().renderBuffers().bufferSource();
                 float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
                 PoseStack matrixStack = new PoseStack();
+                RenderSink sink = new RenderSink(consumers);
 
                 ImmutableSet<Draw3D> draws = ImmutableSet.copyOf(FHud.renders);
                 for (Draw3D d : draws) {
-                    d.renderDepthPass(matrixStack, consumers, tickDelta);
+                    d.renderDepthPass(matrixStack, sink, tickDelta);
                 }
-                consumers.endBatch();
-                Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, false);
-                consumers.endBatch();
+                sink.endBatch();
+                Draw3D.renderDirectSurfaces(draws, matrixStack, sink, tickDelta, false);
+                sink.endBatch();
 
-                Draw3D.renderDirectSurfaces(draws, matrixStack, consumers, tickDelta, true);
-                consumers.endBatch();
+                Draw3D.renderDirectSurfaces(draws, matrixStack, sink, tickDelta, true);
+                sink.endBatch();
             } catch (Throwable e) {
                 e.printStackTrace();
             }

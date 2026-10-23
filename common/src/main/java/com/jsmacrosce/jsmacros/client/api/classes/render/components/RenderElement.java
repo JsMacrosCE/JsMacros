@@ -1,10 +1,10 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
+import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Renderable;
-import net.minecraft.client.renderer.MultiBufferSource;
 import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
 import com.jsmacrosce.doclet.DocletCategory;
@@ -89,7 +89,7 @@ public interface RenderElement extends Renderable {
     * a no-op; elements that support this path override it.
     */
     @DocletIgnore
-    default void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+    default void render3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
     }
 
     /**

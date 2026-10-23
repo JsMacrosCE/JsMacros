@@ -3,7 +3,6 @@ package com.jsmacrosce.jsmacros.client.api.classes.render;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.phys.Vec3;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
@@ -995,7 +994,7 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     @DocletIgnore
-    public void render(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
+    public void render(PoseStack poseStack, RenderSink sink, float tickDelta) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         Vec3 cameraPos = CameraCompat.position(camera);
 
@@ -1008,7 +1007,7 @@ public class Draw3D implements Registrable<Draw3D> {
             Collections.sort(elements);
 
             for (RenderElement3D<?> element : elements) {
-                element.render(poseStack, consumers, tickDelta);
+                element.render(poseStack, sink, tickDelta);
             }
         }
 
@@ -1026,7 +1025,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * back-to-front across overlays.
      */
     @DocletIgnore
-    public void renderDepthPass(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
+    public void renderDepthPass(PoseStack poseStack, RenderSink sink, float tickDelta) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         Vec3 cameraPos = CameraCompat.position(camera);
 
@@ -1042,7 +1041,7 @@ public class Draw3D implements Registrable<Draw3D> {
                 if (element instanceof Surface) {
                     continue;
                 }
-                element.render(poseStack, consumers, tickDelta);
+                element.render(poseStack, sink, tickDelta);
             }
         }
 
@@ -1059,7 +1058,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * Renders only surfaces with depth culling disabled ({@code cull == false}).
      */
     @DocletIgnore
-    public void renderAlwaysOnTopSurfaces(PoseStack poseStack, MultiBufferSource consumers, float tickDelta) {
+    public void renderAlwaysOnTopSurfaces(PoseStack poseStack, RenderSink sink, float tickDelta) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         Vec3 cameraPos = CameraCompat.position(camera);
 
@@ -1071,7 +1070,7 @@ public class Draw3D implements Registrable<Draw3D> {
 
             for (RenderElement3D<?> element : elements) {
                 if (element instanceof Surface surface && !surface.cull) {
-                    element.render(poseStack, consumers, tickDelta);
+                    element.render(poseStack, sink, tickDelta);
                 }
             }
         }
@@ -1085,8 +1084,8 @@ public class Draw3D implements Registrable<Draw3D> {
      * output override, after gizmo passes, and flush the buffer source.
      */
     @DocletIgnore
-    public void renderDirect(PoseStack poseStack, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
-        renderDirectSurfaces(Collections.singleton(this), poseStack, consumers, tickDelta, alwaysOnTop);
+    public void renderDirect(PoseStack poseStack, RenderSink sink, float tickDelta, boolean alwaysOnTop) {
+        renderDirectSurfaces(Collections.singleton(this), poseStack, sink, tickDelta, alwaysOnTop);
     }
 
     /**
@@ -1095,7 +1094,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * together in one call; the caller manages the render pass and buffer flushing.
      */
     @DocletIgnore
-    public static void renderDirectSurfaces(Iterable<Draw3D> draws, PoseStack poseStack, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
+    public static void renderDirectSurfaces(Iterable<Draw3D> draws, PoseStack poseStack, RenderSink sink, float tickDelta, boolean alwaysOnTop) {
         Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
         Vec3 cameraPos = CameraCompat.position(camera);
 
@@ -1115,9 +1114,9 @@ public class Draw3D implements Registrable<Draw3D> {
         poseStack.translate(-cameraPos.x(), -cameraPos.y(), -cameraPos.z());
         for (Surface surface : surfaces) {
             //? if >=1.21.11 {
-            /*surface.renderDirect(poseStack, consumers, tickDelta, alwaysOnTop);
+            /*surface.renderDirect(poseStack, sink, tickDelta, alwaysOnTop);
             *///? } else {
-            surface.render(poseStack, consumers, tickDelta);
+            surface.render(poseStack, sink, tickDelta);
             //? }
         }
         poseStack.popPose();
