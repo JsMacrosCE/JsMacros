@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.world.entity;
 
 import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.ChatFormatting;
+import com.jsmacrosce.jsmacros.client.util.FormattingCompat;
 import net.minecraft.world.BossEvent;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.helper.FormattingHelper;
@@ -105,7 +106,7 @@ public class BossBarHelper extends BaseHelper<BossEvent> {
      */
     public int getColorValue() {
         ChatFormatting f = base.getColor().getFormatting();
-        return f.getColor() == null ? -1 : f.getColor();
+        return FormattingCompat.getColorValue(f);
     }
 
     /**

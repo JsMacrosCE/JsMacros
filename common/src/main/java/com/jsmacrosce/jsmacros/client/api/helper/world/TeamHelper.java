@@ -2,7 +2,9 @@ package com.jsmacrosce.jsmacros.client.api.helper.world;
 
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
+import net.minecraft.ChatFormatting;
 import net.minecraft.world.scores.PlayerTeam;
+import com.jsmacrosce.jsmacros.client.util.FormattingCompat;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.client.api.helper.FormattingHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
@@ -90,7 +92,7 @@ public class TeamHelper extends BaseHelper<PlayerTeam> {
      * @since 1.8.4
      */
     public FormattingHelper getColorFormat() {
-        return new FormattingHelper(base.getColor());
+        return new FormattingHelper(FormattingCompat.getTeamColor(base));
     }
 
     /**
@@ -114,7 +116,7 @@ public class TeamHelper extends BaseHelper<PlayerTeam> {
      * @since 1.8.4
      */
     public int getColorIndex() {
-        return base.getColor().getId();
+        return FormattingCompat.getId(FormattingCompat.getTeamColor(base));
     }
 
     /**
@@ -124,7 +126,7 @@ public class TeamHelper extends BaseHelper<PlayerTeam> {
      * @since 1.8.4
      */
     public int getColorValue() {
-        return base.getColor().getColor() == null ? -1 : base.getColor().getColor();
+        return FormattingCompat.getColorValue(FormattingCompat.getTeamColor(base));
     }
 
     /**
@@ -135,7 +137,7 @@ public class TeamHelper extends BaseHelper<PlayerTeam> {
      */
     @DocletReplaceReturn("FormattingColorName")
     public String getColorName() {
-        return base.getColor().getName();
+        return FormattingCompat.getName(FormattingCompat.getTeamColor(base));
     }
 
     /**
