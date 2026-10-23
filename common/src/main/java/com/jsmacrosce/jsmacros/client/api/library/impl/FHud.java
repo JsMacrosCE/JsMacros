@@ -66,19 +66,39 @@ public class FHud extends BaseLibrary {
         super(runner);
     }
 
-    // Before 1.20.5 vanilla used a dirt texture for this menu background; modern
-    // versions blur the world behind the screen instead.
+    // Before 1.20.5 vanilla tiled a dirt texture over the world for this menu background; on the
+    // supported versions it is a flat translucent black tile, and the world can also be blurred.
     /**
-     * Creates a script screen with the given title and background style. The title is drawn by
+     * Creates a script screen with the given title and both background effects enabled: the game's
+     * menu background overlay is drawn and the world behind it is blurred. The title is drawn by
      * default; set {@code drawTitle} on the returned screen to disable it.
      *
      * @param title the title shown at the top of the screen
-     * @param showBackground whether to draw the game's menu background
+     * @param menuBackground whether to draw the game's menu background overlay
      * @return the new screen, not opened automatically
      * @since 1.0.5
      */
-    public ScriptScreen createScreen(String title, boolean showBackground) {
-        return new ScriptScreen(title, showBackground);
+    public ScriptScreen createScreen(String title, boolean menuBackground) {
+        return createScreen(title, menuBackground, true);
+    }
+
+    /**
+     * Creates a script screen with the given title and background effects. The title is drawn by
+     * default; set {@code drawTitle} on the returned screen to disable it.
+     * <p>
+     * The two effects are independent. The menu background is vanilla's darkened background: on
+     * the supported versions it is a flat translucent black overlay rather than a picture, so it
+     * only darkens what is behind the screen. The blurred background applies vanilla's menu blur
+     * to the world behind the screen. With both off, the world is shown unmodified.
+     *
+     * @param title the title shown at the top of the screen
+     * @param menuBackground whether to draw the game's menu background overlay
+     * @param blurredBackground whether to blur the world behind the screen
+     * @return the new screen, not opened automatically
+     * @since 2.0.0
+     */
+    public ScriptScreen createScreen(String title, boolean menuBackground, boolean blurredBackground) {
+        return new ScriptScreen(title, menuBackground, blurredBackground);
     }
 
     /**
