@@ -5,6 +5,9 @@ import dev.kikugie.fletching_table.annotation.MixinEnvironment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
+//? if >=26.2 {
+/*import net.minecraft.client.gui.Gui;
+*///?}
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -19,13 +22,25 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.ScriptScreen;
 import net.minecraft.client.gui.GuiGraphics;
 
 @MixinEnvironment("fabric")
+//? if >=26.2 {
+/*@Mixin(Gui.class)
+*///?} else {
 @Mixin(value = GameRenderer.class)
+//?}
 public class MixinGameRenderer {
     @Shadow
     @Final
     private Minecraft minecraft;
 
-    //? if >=26.1 {
+    //? if >=26.2 {
+    /*@Redirect(method = "extractRenderState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;extractRenderStateWithTooltipAndSubtitles(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V"))
+    private void onExtractGui(Screen instance, GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
+        instance.extractRenderStateWithTooltipAndSubtitles(drawContext, mouseX, mouseY, delta);
+        if (!(GuiCompat.screen(minecraft) instanceof ScriptScreen)) {
+            ((IScreenInternal) instance).jsmacros_render(drawContext, mouseX, mouseY, delta);
+        }
+    }
+    *///? } else if >=26.1 {
     /*@Redirect(method = "extractGui", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;extractRenderStateWithTooltipAndSubtitles(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V"))
     private void onExtractGui(Screen instance, GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
         instance.extractRenderStateWithTooltipAndSubtitles(drawContext, mouseX, mouseY, delta);

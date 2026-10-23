@@ -13,7 +13,9 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.EventTitle;
 @DocletIgnore
 public class MixinMessageHandler {
 
-    //? if >=26.1 {
+    //? if >=26.2 {
+    /*@ModifyArg(method = "handleOverlay", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Hud;setOverlayMessage(Lnet/minecraft/network/chat/Component;Z)V"))
+    *///? } else if >=26.1 {
     /*@ModifyArg(method = "handleOverlay", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Gui;setOverlayMessage(Lnet/minecraft/network/chat/Component;Z)V"))
     *///? } else {
     @ModifyArg(method = "handleSystemMessage", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/Gui;setOverlayMessage(Lnet/minecraft/network/chat/Component;Z)V"))

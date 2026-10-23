@@ -43,8 +43,11 @@ class MixinMinecraftClient {
     @Shadow
     protected int missTime;
 
+    // See MixinGui.java for 26.2 implementation
+    //? if <26.2 {
     @Shadow
     public Screen screen;
+    //?}
 
     @Shadow
     private volatile boolean pause;
@@ -77,6 +80,8 @@ class MixinMinecraftClient {
         }
     }
 
+    // See MixinGui.java for 26.2 implementation
+    //? if <26.2 {
     @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;removed()V"), method = "setScreen")
     public void onCloseScreen(Screen closedScreen, CallbackInfo ci) {
         if (closedScreen == null) {
@@ -91,6 +96,7 @@ class MixinMinecraftClient {
             JsMacrosClient.clientCore.profile.logError(e);
         }
     }
+    //?}
 
     @Inject(at = @At("HEAD"), method = "setLevel")
     public void onJoinWorld(

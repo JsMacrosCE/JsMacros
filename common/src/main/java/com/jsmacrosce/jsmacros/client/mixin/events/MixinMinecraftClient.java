@@ -35,11 +35,14 @@ import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 @DocletIgnore
 public abstract class MixinMinecraftClient {
 
+    // See MixinGui.java for 26.2+ implementation
+    //? if <26.2 {
     @Shadow
     public Screen screen;
 
     @Shadow
     public abstract void setScreen(@Nullable Screen screen);
+    //?}
 
     @Shadow
     @Nullable
@@ -67,6 +70,8 @@ public abstract class MixinMinecraftClient {
         }
     }
 
+    // See MixinGui.java for 26.2+ implementation
+    //? if <26.2 {
     @Unique
     private Screen jsmacros$prevScreen;
 
@@ -98,6 +103,7 @@ public abstract class MixinMinecraftClient {
         }
         jsmacros$prevScreen = null;
     }
+    //?}
 
     @Inject(
             at = @At(
