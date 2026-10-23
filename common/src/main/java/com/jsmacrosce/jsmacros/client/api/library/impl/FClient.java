@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.library.impl;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import com.mojang.realmsclient.RealmsMainScreen;
 
 import net.minecraft.client.Minecraft;
@@ -325,7 +326,7 @@ public class FClient extends PerExecLibrary {
             } else {
                 mc.disconnect(null, false);
             }
-            mc.createWorldOpenFlows().openWorld(folderName, () -> mc.setScreen(new TitleScreen()));
+            mc.createWorldOpenFlows().openWorld(folderName, () -> GuiCompat.setScreen(mc, new TitleScreen()));
         });
     }
 
@@ -402,15 +403,15 @@ public class FClient extends PerExecLibrary {
                     );
                 }
                 mc.disconnect(new GenericMessageScreen(Component.translatable("menu.savingLevel")), false);
-                mc.setScreen(new TitleScreen());
+                GuiCompat.setScreen(mc, new TitleScreen());
             }
             if (isInSingleplayer) {
-                mc.setScreen(new TitleScreen());
+                GuiCompat.setScreen(mc, new TitleScreen());
             } else if (mc.getCurrentServer() != null) {
                 if (mc.getCurrentServer().isRealm()) {
-                    mc.setScreen(new RealmsMainScreen(new TitleScreen()));
+                    GuiCompat.setScreen(mc, new RealmsMainScreen(new TitleScreen()));
                 } else {
-                    mc.setScreen(new JoinMultiplayerScreen(new TitleScreen()));
+                    GuiCompat.setScreen(mc, new JoinMultiplayerScreen(new TitleScreen()));
                 }
             }
             try {

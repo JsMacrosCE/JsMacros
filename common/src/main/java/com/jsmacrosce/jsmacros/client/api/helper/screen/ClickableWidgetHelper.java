@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.screen;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -450,7 +451,7 @@ public class ClickableWidgetHelper<B extends ClickableWidgetHelper<B, T>, T exte
      */
     @Override
     public int getParentWidth() {
-        return Minecraft.getInstance().screen.width;
+        return GuiCompat.screen(Minecraft.getInstance()).width;
     }
 
     /**
@@ -473,7 +474,7 @@ public class ClickableWidgetHelper<B extends ClickableWidgetHelper<B, T>, T exte
      */
     @Override
     public int getParentHeight() {
-        return Minecraft.getInstance().screen.height;
+        return GuiCompat.screen(Minecraft.getInstance()).height;
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.library.impl;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import net.minecraft.client.Minecraft;
@@ -1273,7 +1274,7 @@ public class FWorld extends BaseLibrary {
      */
     public Map<String, BossBarHelper> getBossBars() {
         assert mc.gui != null;
-        Map<UUID, LerpingBossEvent> bars = ImmutableMap.copyOf(mc.gui.getBossOverlay().events);
+        Map<UUID, LerpingBossEvent> bars = ImmutableMap.copyOf(GuiCompat.hud(mc).getBossOverlay().events);
         Map<String, BossBarHelper> out = new HashMap<>();
         for (Map.Entry<UUID, LerpingBossEvent> e : ImmutableList.copyOf(bars.entrySet())) {
             out.put(e.getKey().toString(), new BossBarHelper(e.getValue()));
@@ -1407,7 +1408,7 @@ public class FWorld extends BaseLibrary {
      */
     @Nullable
     public TextHelper getTabListHeader() {
-        return TextHelper.wrap(((IPlayerListHud) mc.gui.getTabList()).jsmacros_getHeader());
+        return TextHelper.wrap(((IPlayerListHud) GuiCompat.hud(mc).getTabList()).jsmacros_getHeader());
     }
 
     /**
@@ -1420,7 +1421,7 @@ public class FWorld extends BaseLibrary {
      */
     @Nullable
     public TextHelper getTabListFooter() {
-        return TextHelper.wrap(((IPlayerListHud) mc.gui.getTabList()).jsmacros_getFooter());
+        return TextHelper.wrap(((IPlayerListHud) GuiCompat.hud(mc).getTabList()).jsmacros_getFooter());
     }
 
     /**

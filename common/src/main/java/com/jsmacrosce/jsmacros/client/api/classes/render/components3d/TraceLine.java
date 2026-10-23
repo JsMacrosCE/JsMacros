@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 
+import com.jsmacrosce.jsmacros.client.util.RenderCompat;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -300,7 +301,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
      */
     @Override
     public void render(PoseStack matrixStack, RenderSink sink, float tickDelta) {
-        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        Camera camera = RenderCompat.mainCamera(Minecraft.getInstance());
         Vec3 cameraPos = CameraCompat.position(camera);
 
         Vec3 lookDir = getCrosshairDirection(camera, tickDelta);

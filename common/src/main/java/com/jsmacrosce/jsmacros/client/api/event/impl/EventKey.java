@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
@@ -136,16 +137,16 @@ public class EventKey extends BaseEvent {
             FKeyBind.KeyTracker.unpress(keycode);
         }
 
-        if (mc.screen != null) {
+        if (GuiCompat.screen(mc) != null) {
             if (action != 0 || !wasNullOnDown.contains(key)) {
                 ClientConfigV2 config = JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class);
                 if (config.disableKeyWhenScreenOpen) {
                     return false;
                 }
-                if (mc.screen instanceof BaseScreen) {
+                if (GuiCompat.screen(mc) instanceof BaseScreen) {
                     return false;
                 }
-                GuiEventListener focused = mc.screen.getFocused();
+                GuiEventListener focused = GuiCompat.screen(mc).getFocused();
                 if (focused instanceof EditBox) {
                     return false;
                 }

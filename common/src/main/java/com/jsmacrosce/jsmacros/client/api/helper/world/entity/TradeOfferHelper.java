@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.trading.MerchantOffer;
@@ -136,7 +137,7 @@ public class TradeOfferHelper extends BaseHelper<MerchantOffer> {
      * @return self for chaining.
      */
     public TradeOfferHelper select() {
-        if (inv != null && Minecraft.getInstance().screen == inv.getRawContainer()) {
+        if (inv != null && GuiCompat.screen(Minecraft.getInstance()) == inv.getRawContainer()) {
             inv.selectTrade(index);
         }
         return this;

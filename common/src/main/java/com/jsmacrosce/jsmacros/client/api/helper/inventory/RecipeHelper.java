@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.inventory;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen;
@@ -101,8 +102,8 @@ public class RecipeHelper extends BaseHelper<RecipeDisplayEntry> {
     public RecipeHelper craft(boolean craftAll) {
         Minecraft mc = Minecraft.getInstance();
         assert mc.player != null;
-        if ((mc.screen instanceof AbstractContainerScreen && ((AbstractContainerScreen<?>) mc.screen).getMenu().containerId == syncId) ||
-                (mc.screen == null && syncId == mc.player.inventoryMenu.containerId)) {
+        if ((GuiCompat.screen(mc) instanceof AbstractContainerScreen && ((AbstractContainerScreen<?>) GuiCompat.screen(mc)).getMenu().containerId == syncId) ||
+                (GuiCompat.screen(mc) == null && syncId == mc.player.inventoryMenu.containerId)) {
             assert mc.gameMode != null;
             mc.gameMode.handlePlaceRecipe(syncId, base.id(), craftAll);
             return this;
@@ -163,7 +164,7 @@ public class RecipeHelper extends BaseHelper<RecipeDisplayEntry> {
     public boolean canCraft() {
         StackedItemContents recipeFinder = new StackedItemContents();
         mc.player.getInventory().fillStackedContents(recipeFinder);
-        if (mc.screen instanceof AbstractRecipeBookScreen<?> screen) {
+        if (GuiCompat.screen(mc) instanceof AbstractRecipeBookScreen<?> screen) {
             screen.getMenu().fillCraftSlotsStackedContents(recipeFinder);
         }
         return base.canCraft(recipeFinder);
@@ -192,7 +193,7 @@ public class RecipeHelper extends BaseHelper<RecipeDisplayEntry> {
     public int getCraftableAmount() {
         StackedItemContents recipeFinder = new StackedItemContents();
         mc.player.getInventory().fillStackedContents(recipeFinder);
-        if (mc.screen instanceof AbstractRecipeBookScreen<?> screen) {
+        if (GuiCompat.screen(mc) instanceof AbstractRecipeBookScreen<?> screen) {
             screen.getMenu().fillCraftSlotsStackedContents(recipeFinder);
         }
         return recipeFinder.raw.tryPickAll(base.craftingRequirements().get(), Integer.MAX_VALUE, null);

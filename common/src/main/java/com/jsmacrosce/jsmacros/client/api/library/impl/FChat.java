@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.library.impl;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import com.google.gson.JsonParseException;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -195,13 +196,13 @@ public class FChat extends BaseLibrary {
     private static void logInternal(String message) {
         if (message != null) {
             Component text = Component.literal(message);
-            ((IChatHud) mc.gui.getChat()).jsmacros_addMessageBypass(text);
+            ((IChatHud) GuiCompat.hud(mc).getChat()).jsmacros_addMessageBypass(text);
         }
     }
 
     private static void logInternal(TextHelper text) {
         Minecraft mc = Minecraft.getInstance();
-        ((IChatHud) mc.gui.getChat()).jsmacros_addMessageBypass(text.getRaw());
+        ((IChatHud) GuiCompat.hud(mc).getChat()).jsmacros_addMessageBypass(text.getRaw());
     }
 
     /**
@@ -322,9 +323,9 @@ public class FChat extends BaseLibrary {
             final Semaphore semaphore = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
                 //? if >1.21.8 {
-                /*mc.setScreen(new ChatScreen(finalMessage, true));
+                /*GuiCompat.setScreen(mc, new ChatScreen(finalMessage, true));
                 *///?} else {
-                mc.setScreen(new ChatScreen(finalMessage));
+                GuiCompat.setScreen(mc, new ChatScreen(finalMessage));
                 //?}
                 semaphore.release();
             });
@@ -360,16 +361,16 @@ public class FChat extends BaseLibrary {
             subtitlee = Component.literal(subtitle.toString());
         }
         if (title != null) {
-            mc.gui.setTitle(titlee);
+            GuiCompat.hud(mc).setTitle(titlee);
         }
         if (subtitle != null) {
-            mc.gui.setSubtitle(subtitlee);
+            GuiCompat.hud(mc).setSubtitle(subtitlee);
         }
         if (title == null && subtitle == null) {
-            mc.gui.setTitle(null);
-            mc.gui.setSubtitle(null);
+            GuiCompat.hud(mc).setTitle(null);
+            GuiCompat.hud(mc).setSubtitle(null);
         }
-        mc.gui.setTimes(fadeIn, remain, fadeOut);
+        GuiCompat.hud(mc).setTimes(fadeIn, remain, fadeOut);
     }
 
     /**
@@ -400,7 +401,7 @@ public class FChat extends BaseLibrary {
         } else if (text != null) {
             textt = Component.literal(text.toString());
         }
-        mc.gui.setOverlayMessage(textt, tinted);
+        GuiCompat.hud(mc).setOverlayMessage(textt, tinted);
     }
 
     /**
@@ -414,7 +415,7 @@ public class FChat extends BaseLibrary {
      * @since 1.2.5
      */
     public void toast(Object title, Object desc) {
-        ToastManager t = mc.getToastManager();
+        ToastManager t = GuiCompat.toastManager(mc);
         if (t != null) {
             Component titlee = (title instanceof TextHelper) ? ((TextHelper) title).getRaw() : title != null ? Component.literal(title.toString()) : null;
             Component descc = (desc instanceof TextHelper) ? ((TextHelper) desc).getRaw() : desc != null ? Component.literal(desc.toString()) : null;
@@ -438,7 +439,7 @@ public class FChat extends BaseLibrary {
      * @since 1.2.5
      */
     public void toast(Object title, Object desc, long displayTimeMs) {
-        ToastManager t = mc.getToastManager();
+        ToastManager t = GuiCompat.toastManager(mc);
         // TODO: Are scripts run before Minecraft is properly instantiated anyway? Even if not wouldn't the line above
         //  throw an error because mc is null?
         if (t == null) {
@@ -596,7 +597,7 @@ public class FChat extends BaseLibrary {
      * @since 1.7.0
      */
     public ChatHistoryManager getHistory() {
-        return new ChatHistoryManager(mc.gui.getChat());
+        return new ChatHistoryManager(GuiCompat.hud(mc).getChat());
     }
 
     /**

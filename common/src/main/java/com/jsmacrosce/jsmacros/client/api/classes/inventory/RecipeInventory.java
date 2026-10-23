@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.inventory;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.gui.screens.inventory.AbstractRecipeBookScreen;
 import net.minecraft.client.gui.screens.recipebook.RecipeBookComponent;
@@ -215,7 +216,7 @@ public abstract class RecipeInventory<T extends AbstractRecipeBookScreen<? exten
      * @since 1.8.4
      */
     public void toggleRecipeBook() {
-        if (mc.screen != inventory) {
+        if (GuiCompat.screen(mc) != inventory) {
             return;
         }
         RecipeBookComponent<?> recipeBookWidget = getRecipeBookWidget();
@@ -234,7 +235,7 @@ public abstract class RecipeInventory<T extends AbstractRecipeBookScreen<? exten
      * @since 1.8.4
      */
     public void setRecipeBook(boolean open) {
-        if (mc.screen != inventory) {
+        if (GuiCompat.screen(mc) != inventory) {
             return;
         }
         RecipeBookComponent<?> recipeBookWidget = getRecipeBookWidget();

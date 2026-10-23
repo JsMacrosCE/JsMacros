@@ -1,3 +1,4 @@
+//~ macro_icon_blend
 package com.jsmacrosce.jsmacros.client.gui.containers;
 
 import com.jsmacrosce.doclet.DocletIgnore;
@@ -354,5 +355,4 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
             }
         }
     }
-
 }

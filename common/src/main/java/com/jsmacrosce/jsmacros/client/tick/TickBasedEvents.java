@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.tick;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.gui.screens.KeyMacrosScreen;
 import net.minecraft.client.Minecraft;
@@ -87,11 +88,11 @@ public class TickBasedEvents {
 
     @DocletIgnore
     public static void onTick(Minecraft mc) {
-        if (JsMacrosClient.keyBinding.consumeClick() && mc.screen == null) {
+        if (JsMacrosClient.keyBinding.consumeClick() && GuiCompat.screen(mc) == null) {
             if (JsMacrosClient.prevScreen == null) {
                 JsMacrosClient.prevScreen = new KeyMacrosScreen(null);
             }
-            mc.setScreen(JsMacrosClient.prevScreen);
+            GuiCompat.setScreen(mc, JsMacrosClient.prevScreen);
         }
 
         FClient.tickSynchronizer.tick();

@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.library.impl;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
+import com.jsmacrosce.jsmacros.client.util.RenderCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.screens.inventory.SignEditScreen;
@@ -254,7 +256,7 @@ public class FPlayer extends BaseLibrary {
      * @since 1.2.2
      */
     public boolean writeSign(@Nullable String l1, @Nullable String l2, @Nullable String l3, @Nullable String l4) {
-        if (mc.screen instanceof SignEditScreen screen) {
+        if (GuiCompat.screen(mc) instanceof SignEditScreen screen) {
             if (l1 != null) ((ISignEditScreen) screen).jsmacros_setLine(0, l1);
             if (l2 != null) ((ISignEditScreen) screen).jsmacros_setLine(1, l2);
             if (l3 != null) ((ISignEditScreen) screen).jsmacros_setLine(2, l3);
@@ -281,7 +283,7 @@ public class FPlayer extends BaseLibrary {
         if ((index & ~3) != 0) {
             throw new IndexOutOfBoundsException("Index should be in between 0 and 3!!  provided: " + index);
         }
-        if (mc.screen instanceof SignEditScreen screen) {
+        if (GuiCompat.screen(mc) instanceof SignEditScreen screen) {
             ((ISignEditScreen) screen).jsmacros_setLine(index, message);
             return true;
         }
@@ -299,7 +301,7 @@ public class FPlayer extends BaseLibrary {
      */
     public void takeScreenshot(String folder, @Nullable MethodWrapper<TextHelper, Object, Object, ?> callback) {
         assert folder != null;
-        Screenshot.grab(new File(runner.config.macroFolder, folder), mc.getMainRenderTarget(),
+        Screenshot.grab(new File(runner.config.macroFolder, folder), RenderCompat.mainRenderTarget(mc),
                 (text) -> {
                     if (callback != null) {
                         callback.accept(TextHelper.wrap(text));
@@ -321,7 +323,7 @@ public class FPlayer extends BaseLibrary {
         Screenshot.grab(
                 new File(runner.config.macroFolder, folder),
                 file,
-                mc.getMainRenderTarget(),
+                RenderCompat.mainRenderTarget(mc),
                 //? if >1.21.5 {
                 0,
                 //?}

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render;
 
+import com.jsmacrosce.jsmacros.client.util.RenderCompat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -995,7 +996,7 @@ public class Draw3D implements Registrable<Draw3D> {
 
     @DocletIgnore
     public void render(PoseStack poseStack, RenderSink sink, float tickDelta) {
-        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        Camera camera = RenderCompat.mainCamera(Minecraft.getInstance());
         Vec3 cameraPos = CameraCompat.position(camera);
 
         poseStack.pushPose();
@@ -1026,7 +1027,7 @@ public class Draw3D implements Registrable<Draw3D> {
      */
     @DocletIgnore
     public void renderDepthPass(PoseStack poseStack, RenderSink sink, float tickDelta) {
-        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        Camera camera = RenderCompat.mainCamera(Minecraft.getInstance());
         Vec3 cameraPos = CameraCompat.position(camera);
 
         poseStack.pushPose();
@@ -1059,7 +1060,7 @@ public class Draw3D implements Registrable<Draw3D> {
      */
     @DocletIgnore
     public void renderAlwaysOnTopSurfaces(PoseStack poseStack, RenderSink sink, float tickDelta) {
-        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        Camera camera = RenderCompat.mainCamera(Minecraft.getInstance());
         Vec3 cameraPos = CameraCompat.position(camera);
 
         poseStack.pushPose();
@@ -1095,7 +1096,7 @@ public class Draw3D implements Registrable<Draw3D> {
      */
     @DocletIgnore
     public static void renderDirectSurfaces(Iterable<Draw3D> draws, PoseStack poseStack, RenderSink sink, float tickDelta, boolean alwaysOnTop) {
-        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        Camera camera = RenderCompat.mainCamera(Minecraft.getInstance());
         Vec3 cameraPos = CameraCompat.position(camera);
 
         List<Surface> surfaces = new ArrayList<>();

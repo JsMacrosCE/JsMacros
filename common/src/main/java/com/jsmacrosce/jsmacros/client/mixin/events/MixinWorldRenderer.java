@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.jsmacros.client.util.RenderCompat;
 import com.jsmacrosce.doclet.DocletIgnore;
 
 import com.google.common.collect.ImmutableSet;
@@ -243,7 +244,7 @@ public class MixinWorldRenderer {
                 // 1.21.11's DrawableGizmoPrimitives.render takes Matrix4f, 26.1's takes Matrix4fc.
                 Matrix4f viewMatrix = new Matrix4f(modelViewMatrix);
 
-                RenderTarget mainTarget = Minecraft.getInstance().getMainRenderTarget();
+                RenderTarget mainTarget = RenderCompat.mainRenderTarget(Minecraft.getInstance());
                 RenderSystem.outputColorTextureOverride = mainTarget.getColorTextureView();
                 RenderSystem.outputDepthTextureOverride = mainTarget.getDepthTextureView();
                 try {

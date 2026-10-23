@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 
+import com.jsmacrosce.jsmacros.client.util.RenderCompat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -653,7 +654,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
      * Returns whether the camera is on the negative local-Z side of the surface plane.
      */
     private static boolean isCameraOnBackSide(Matrix4f transform) {
-        Vec3 cameraPos = CameraCompat.position(Minecraft.getInstance().gameRenderer.getMainCamera());
+        Vec3 cameraPos = CameraCompat.position(RenderCompat.mainCamera(Minecraft.getInstance()));
         Vector3f origin = transform.transformPosition(new Vector3f(0, 0, 0));
         Vector3f facing = transform.transformPosition(new Vector3f(0, 0, 1)).sub(origin);
         return facing.x * (cameraPos.x - origin.x)
@@ -671,7 +672,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         if (!rotateToPlayer) {
             return;
         }
-        Vec3 cameraPos = CameraCompat.position(Minecraft.getInstance().gameRenderer.getMainCamera());
+        Vec3 cameraPos = CameraCompat.position(RenderCompat.mainCamera(Minecraft.getInstance()));
         double pivotX = rotateCenter ? renderPos.x + (sizes.x / 2.0) : renderPos.x;
         double pivotY = rotateCenter ? renderPos.y - (sizes.y / 2.0) : renderPos.y;
         double pivotZ = renderPos.z;

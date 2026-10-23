@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.fabric.client.mixins.access;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import dev.kikugie.fletching_table.annotation.MixinEnvironment;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -28,7 +29,7 @@ public class MixinGameRenderer {
     /*@Redirect(method = "extractGui", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;extractRenderStateWithTooltipAndSubtitles(Lnet/minecraft/client/gui/GuiGraphicsExtractor;IIF)V"))
     private void onExtractGui(Screen instance, GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta) {
         instance.extractRenderStateWithTooltipAndSubtitles(drawContext, mouseX, mouseY, delta);
-        if (!(minecraft.screen instanceof ScriptScreen)) {
+        if (!(GuiCompat.screen(minecraft) instanceof ScriptScreen)) {
             ((IScreenInternal) instance).jsmacros_render(drawContext, mouseX, mouseY, delta);
         }
     }
@@ -36,7 +37,7 @@ public class MixinGameRenderer {
     /*@Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;renderWithTooltipAndSubtitles(Lnet/minecraft/client/gui/GuiGraphics;IIF)V"))
     private void onRender(Screen instance, GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         instance.renderWithTooltipAndSubtitles(drawContext, mouseX, mouseY, delta);
-        if (!(minecraft.screen instanceof ScriptScreen)) {
+        if (!(GuiCompat.screen(minecraft) instanceof ScriptScreen)) {
             ((IScreenInternal) instance).jsmacros_render(drawContext, mouseX, mouseY, delta);
         }
     }
@@ -44,7 +45,7 @@ public class MixinGameRenderer {
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;renderWithTooltip(Lnet/minecraft/client/gui/GuiGraphics;IIF)V"))
     private void onRender(Screen instance, GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
         instance.renderWithTooltip(drawContext, mouseX, mouseY, delta);
-        if (!(minecraft.screen instanceof ScriptScreen)) {
+        if (!(GuiCompat.screen(minecraft) instanceof ScriptScreen)) {
             ((IScreenInternal) instance).jsmacros_render(drawContext, mouseX, mouseY, delta);
         }
     }
