@@ -123,6 +123,35 @@ tasks.named("check") {
     dependsOn(testStringHashTrie)
 }
 
+// These checks inspect native pipeline state and submit nodes without starting a client.
+sourceSets.named("test") {
+    compileClasspath += sourceSets.main.get().compileClasspath
+    runtimeClasspath += sourceSets.main.get().compileClasspath
+}
+val testSurfaceRenderTypes = tasks.register<JavaExec>("testSurfaceRenderTypes") {
+    group = "verification"
+    description = "Checks overlay shader inputs, vertex layouts and render state"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.SurfaceRenderTypesTest")
+}
+tasks.named("check") {
+    dependsOn(testSurfaceRenderTypes)
+}
+
+if (stonecutter.current.parsed >= "26.2") {
+    val testRenderSink = tasks.register<JavaExec>("testRenderSink") {
+        group = "verification"
+        description = "Checks native overlay submission order, depth phases and pose snapshots"
+        dependsOn(tasks.named("testClasses"))
+        classpath = sourceSets["test"].runtimeClasspath
+        mainClass.set("com.jsmacrosce.RenderSinkTest")
+    }
+    tasks.named("check") {
+        dependsOn(testRenderSink)
+    }
+}
+
 stonecutter {
     replacements.string(current.parsed >= "1.21.11") {
         replace("ResourceLocation", "Identifier")
