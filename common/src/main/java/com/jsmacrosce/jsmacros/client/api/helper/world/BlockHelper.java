@@ -2,8 +2,12 @@ package com.jsmacrosce.jsmacros.client.api.helper.world;
 
 import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.block.Block;
+import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
+import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
@@ -157,6 +161,21 @@ public class BlockHelper extends BaseHelper<Block> {
     @DocletReplaceReturn("JavaList<BlockTag>")
     public List<String> getTags() {
         return base.builtInRegistryHolder().tags().map(t -> t.location().toString()).collect(Collectors.toList());
+    }
+
+    /**
+     * Returns whether this block belongs to the supplied block tag. Tag membership is
+     * data-driven and can differ between loaded datapacks. Unknown tags and tags from other
+     * registries return {@code false}.
+     *
+     * @param tag the block tag id, optionally prefixed with {@code #} or missing its namespace
+     * @return {@code true} if this block is in the tag
+     * @since 2.0.0
+     */
+    @DocletReplaceParams("tag: CanOmitNamespace<BlockTag>")
+    public boolean hasTag(String tag) {
+        String id = tag.startsWith("#") ? tag.substring(1) : tag;
+        return base.builtInRegistryHolder().is(TagKey.create(Registries.BLOCK, RegistryHelper.parseIdentifier(id)));
     }
 
     /**

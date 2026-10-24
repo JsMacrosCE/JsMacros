@@ -1007,7 +1007,11 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
      * @since 1.8.4
      */
     public ClientPlayerEntityHelper<?> dropHeldItem(boolean dropStack) {
+        //? if >=26.3 {
+        /*mc.gameMode.dropItem(base, dropStack);
+        *///?} else {
         base.drop(dropStack);
+        //?}
         return this;
     }
 
@@ -1018,7 +1022,11 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
      * @since 1.8.4
      */
     public AdvancementManagerHelper getAdvancementManager() {
+        //? if >=26.3 {
+        /*return new AdvancementManagerHelper(base.connection.getAdvancements().tree());
+        *///?} else {
         return new AdvancementManagerHelper(base.connection.getAdvancements().getTree());
+        //?}
     }
 
     /**

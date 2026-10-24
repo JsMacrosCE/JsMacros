@@ -3,6 +3,9 @@ package com.jsmacrosce.jsmacros.client.api.helper.world;
 import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
@@ -51,6 +54,21 @@ public class BlockStateHelper extends StateHelper<BlockState> {
      */
     public BlockHelper getBlock() {
         return new BlockHelper(base.getBlock());
+    }
+
+    /**
+     * Returns whether this state's block belongs to the supplied block tag. Tag membership is
+     * per block, not per state, and is data-driven, so it can differ between loaded datapacks.
+     * Unknown tags and tags from other registries return {@code false}.
+     *
+     * @param tag the block tag id, optionally prefixed with {@code #} or missing its namespace
+     * @return {@code true} if this state's block is in the tag
+     * @since 2.0.0
+     */
+    @DocletReplaceParams("tag: CanOmitNamespace<BlockTag>")
+    public boolean hasTag(String tag) {
+        String id = tag.startsWith("#") ? tag.substring(1) : tag;
+        return base.is(TagKey.create(Registries.BLOCK, RegistryHelper.parseIdentifier(id)));
     }
 
     /**
@@ -176,6 +194,7 @@ public class BlockStateHelper extends StateHelper<BlockState> {
         return base.hasAnalogOutputSignal();
     }
 
+    // TODO(26.3): Decide how to handle this deprecation
     /**
      * Returns the piston push-reaction name for this state: {@code NORMAL}, {@code BLOCK},
      * {@code PUSH_ONLY}, {@code DESTROY}, or {@code IGNORE}.
@@ -185,30 +204,36 @@ public class BlockStateHelper extends StateHelper<BlockState> {
      */
     @DocletReplaceReturn("PistonBehaviour")
     public String getPistonBehaviour() {
-        switch (base.getPistonPushReaction()) {
-            case NORMAL:
-                return "NORMAL";
-            case BLOCK:
-                return "BLOCK";
-            case PUSH_ONLY:
-                return "PUSH_ONLY";
-            case DESTROY:
-                return "DESTROY";
-            case IGNORE:
-                return "IGNORE";
-            default:
-                throw new IllegalArgumentException();
-        }
+        //? if >=26.3 {
+        /*return switch (base.getPistonPushReaction()) {
+            case PUSH_PULL -> "NORMAL";
+            case IMMOVEABLE -> "BLOCK";
+            case PUSH -> "PUSH_ONLY";
+            case POPPED -> "DESTROY";
+            case IGNORE_ENTITY -> "IGNORE";
+        };
+        *///?} else {
+        return switch (base.getPistonPushReaction()) {
+            case NORMAL -> "NORMAL";
+            case BLOCK -> "BLOCK";
+            case PUSH_ONLY -> "PUSH_ONLY";
+            case DESTROY -> "DESTROY";
+            case IGNORE -> "IGNORE";
+        };
+        //?}
     }
 
     /**
-     * Returns the game's {@code blocksMotion()} result for this state.
+     * Returns the legacy movement-blocking flag, excluding cobwebs and bamboo saplings.
      *
      * @return {@code true} if the state blocks the movement of entities.
      * @since 1.6.5
      */
     public boolean blocksMovement() {
-        return base.blocksMotion();
+        // inlined, blocksMotion() is deprecated on older targets and removed in 26.3
+        return !base.is(Blocks.COBWEB)
+                && !base.is(Blocks.BAMBOO_SAPLING)
+                && base.isSolid();
     }
 
     /**

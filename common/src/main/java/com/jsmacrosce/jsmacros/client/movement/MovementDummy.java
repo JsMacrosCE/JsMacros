@@ -12,6 +12,10 @@ import net.minecraft.world.phys.Vec3;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.PlayerInput;
 
+//? if >= 26.3 {
+/*import net.minecraft.world.entity.MoveSimulationType;
+*///?}
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -150,10 +154,17 @@ public class MovementDummy extends LivingEntity {
         return !this.onGround() || !this.isShiftKeyDown();
     }
 
+    //? if >=26.3 {
+    /*@Override
+    public MoveSimulationType getMoveSimulationType() {
+        return MoveSimulationType.SERVER_AND_CLIENT;
+    }
+    *///?} else {
     @Override
     public boolean canSimulateMovement() {
         return true;
     }
+    //?}
 
     @Override
     public void setSprinting(boolean sprinting) {

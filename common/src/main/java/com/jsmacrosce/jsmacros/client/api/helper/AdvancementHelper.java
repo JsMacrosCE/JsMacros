@@ -145,11 +145,16 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
 
     /**
      * Returns the identifiers of loot tables granted by this advancement.
+     * Inline loot tables on Minecraft 26.3 and later have no registry identifier and are omitted.
      *
      * @return the loot table ids for this advancement's rewards.
      * @since 1.8.4
      */
     public String[] getLoot() {
+        //? if >=26.3 {
+        /*return base.advancement().rewards().loot().stream().flatMap(e -> e.unwrapKey().stream())
+                .map(e -> e.identifier().toString()).toArray(String[]::new);
+        *///?} else {
         return base.advancement().rewards().loot().stream().map(e -> e
                 //? if >=1.21.11 {
                 /*.identifier()
@@ -157,6 +162,7 @@ public class AdvancementHelper extends BaseHelper<AdvancementNode> {
                 .location()
                 //? }
                 .toString()).toArray(String[]::new);
+        //?}
     }
 
     /**

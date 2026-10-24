@@ -441,7 +441,11 @@ public class RegistryHelper {
      */
     @DocletReplaceReturn("JavaList<FeatureId>")
     public List<String> getFeatureIds() {
+        //? if >=26.3 {
+        /*return BuiltInRegistries.FEATURE_TYPE.keySet().stream().map(ResourceLocation::toString).collect(Collectors.toList());
+        *///?} else {
         return BuiltInRegistries.FEATURE.keySet().stream().map(ResourceLocation::toString).collect(Collectors.toList());
+        //?}
     }
 
     /**
