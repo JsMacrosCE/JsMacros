@@ -9,6 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 //? if >=26.3 {
 /*import com.mojang.renderpearl.api.pipeline.ShaderType;
 import com.mojang.renderpearl.api.pipeline.UniformType;
+import net.minecraft.client.renderer.RenderPipelines;
 *///?}
 
 //? if >=26.2 {
@@ -153,16 +154,17 @@ public final class SurfaceRenderTypesTest {
         for (var uniform : uniforms) actual.put(uniform.name(), uniform.type().name());
         check(actual.size() == uniforms.size(), "no duplicate uniform declarations");
         check(actual.equals(expected), "complete shader uniform names and types: " + actual + " expected " + expected);
-        //? if >=26.3 {
-        /*check(Set.copyOf(samplers).equals(image ? Set.of("Sampler0", "Sampler2") : Set.of()), "shader sampler declarations");
-        check(samplers.size() == (image ? 2 : 0), "no duplicate samplers");
-        *///?} else {
         check(Set.copyOf(samplers).equals(image ? Set.of("Sampler0", "Sampler1", "Sampler2") : Set.of()), "shader sampler declarations");
         check(samplers.size() == (image ? 3 : 0), "no duplicate samplers");
-        //?}
         if (image) {
             check(Float.parseFloat(pipeline.getShaderDefines().values().get("ALPHA_CUTOUT")) == 0.1F, "image alpha cutoff");
             check(pipeline.getShaderDefines().flags().equals(Set.of("PER_FACE_LIGHTING")), "image lighting define");
+            //? if >=26.3 {
+            /*var vanillaSamplers = BindGroupLayout.flattenUniforms(RenderPipelines.ENTITY_SOLID.getBindGroupLayouts()).stream()
+                    .filter(uniform -> uniform.type() == UniformType.COMBINED_IMAGE_SAMPLER)
+                    .map(BindGroupLayout.UniformDescription::name).toList();
+            check(Set.copyOf(samplers).equals(Set.copyOf(vanillaSamplers)), "overlay-enabled entity shader samplers match vanilla");
+            *///?}
         } else {
             check(pipeline.getShaderDefines().isEmpty(), "untextured shader defines");
         }

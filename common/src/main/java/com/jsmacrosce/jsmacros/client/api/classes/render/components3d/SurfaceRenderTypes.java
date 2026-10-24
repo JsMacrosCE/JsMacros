@@ -174,10 +174,7 @@ public final class SurfaceRenderTypes {
                 .withCull(false);
         addFog(builder);
 
-        //? if >=26.3 {
-        /*builder.withBindGroupLayout(BindGroupLayouts.LIGHTING)
-                .withBindGroupLayout(BindGroupLayouts.SAMPLER0_SAMPLER2);
-        *///? } else if >=26.2 {
+        //? if >=26.2 {
         /*builder.withBindGroupLayout(BindGroupLayouts.LIGHTING)
                 .withBindGroupLayout(BindGroupLayouts.SAMPLER0_SAMPLER1_SAMPLER2);
         *///? } else {
