@@ -30,7 +30,21 @@ fun StonecutterBuildExtension.minecraftReplacements() {
     replacements.string(current.parsed >= "26.2") {
         replace("net.minecraft.advancements.criterion", "net.minecraft.advancements.predicates")
         replace("net.minecraft.world.entity.monster.Slime", "net.minecraft.world.entity.monster.cubemob.Slime")
-        replace("GlStateManager._enableBlend()", "GlStateManager._enableBlend(0)")
-        replace("GlStateManager._disableBlend()", "GlStateManager._disableBlend(0)")
+    }
+
+    replacements.string(current.parsed >= "26.3") {
+        replace("com.mojang.blaze3d.pipeline.RenderPipeline", "com.mojang.renderpearl.api.pipeline.RenderPipeline")
+        replace("com.mojang.blaze3d.pipeline.BlendFunction", "com.mojang.renderpearl.api.pipeline.BlendFunction")
+        replace("com.mojang.blaze3d.pipeline.ColorTargetState", "com.mojang.renderpearl.api.pipeline.ColorTargetState")
+        replace("com.mojang.blaze3d.pipeline.DepthStencilState", "com.mojang.renderpearl.api.pipeline.DepthStencilState")
+        replace("com.mojang.blaze3d.pipeline.BindGroupLayout", "com.mojang.renderpearl.api.pipeline.BindGroupLayout")
+        replace("com.mojang.blaze3d.platform.CompareOp", "com.mojang.renderpearl.api.pipeline.CompareOp")
+        replace("com.mojang.blaze3d.PrimitiveTopology", "com.mojang.renderpearl.api.pipeline.PrimitiveTopology")
+        replace("com.mojang.blaze3d.vertex.VertexFormat", "com.mojang.renderpearl.api.vertex.VertexFormat")
+        replace("com.mojang.blaze3d.buffers.GpuBufferSlice", "com.mojang.renderpearl.api.buffers.GpuBufferSlice")
+        replace("net.minecraft.world.entity.monster.EnderMan", "net.minecraft.world.entity.monster.Enderman")
+        replace("EndermanEntityHelper", "EndermanEntityHelper")
+        replace("EnderMan", "Enderman")
+        replace("InputConstants.Type.KEYSYM", "InputConstants.Type.KEYBOARD")
     }
 }

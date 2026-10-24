@@ -163,6 +163,21 @@ tasks.named("check") {
     dependsOn(testFormattingCompat)
 }
 
+// Bootstrap on 1.21.x expects the client language assets, which this test classpath does not
+// carry. The 1.21.x targets are covered by compilation; runtime checks run on 26.1+.
+if (stonecutter.current.parsed >= "26.1") {
+    val testBlockStateHelper = tasks.register<JavaExec>("testBlockStateHelper") {
+        group = "verification"
+        description = "Checks the legacy movement-blocking predicate without starting a client"
+        dependsOn(tasks.named("testClasses"))
+        classpath = sourceSets["test"].runtimeClasspath
+        mainClass.set("com.jsmacrosce.BlockStateHelperTest")
+    }
+    tasks.named("check") {
+        dependsOn(testBlockStateHelper)
+    }
+}
+
 listOf("InputCompat", "PacketBufferCompat").forEach { checkName ->
     val adapterCheck = tasks.register<JavaExec>("test$checkName") {
         group = "verification"
