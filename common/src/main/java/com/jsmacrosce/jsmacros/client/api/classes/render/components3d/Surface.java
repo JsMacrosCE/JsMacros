@@ -618,8 +618,8 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     public void render(PoseStack matrices, RenderSink sink, float tickDelta) {
         // On 1.21.11+ surfaces are drawn from renderDirect inside the Gizmos pass.
         //? if <1.21.11 {
-        /*renderSurface(matrices, sink, tickDelta);
-        *///? }
+        renderSurface(matrices, sink, tickDelta);
+        //? }
     }
 
     @Override
