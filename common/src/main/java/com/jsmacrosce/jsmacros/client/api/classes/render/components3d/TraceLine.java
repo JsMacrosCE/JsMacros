@@ -1,11 +1,12 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
+import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 
+import com.jsmacrosce.jsmacros.client.util.RenderCompat;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
@@ -293,21 +294,21 @@ public class TraceLine implements RenderElement3D<TraceLine> {
      * renders the line. Called by the renderer, not by scripts.
      *
      * @param matrixStack the world transform, already translated so the camera is at the origin
-     * @param consumers the buffer source the geometry goes into
+     * @param sink the buffer source the geometry goes into
      * @param tickDelta how far into the current tick this frame is, from 0 to 1
      * @author aMelonRind
      * @since 1.9.0
      */
     @Override
-    public void render(PoseStack matrixStack, MultiBufferSource consumers, float tickDelta) {
-        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+    public void render(PoseStack matrixStack, RenderSink sink, float tickDelta) {
+        Camera camera = RenderCompat.mainCamera(Minecraft.getInstance());
         Vec3 cameraPos = CameraCompat.position(camera);
 
         Vec3 lookDir = getCrosshairDirection(camera, tickDelta);
         Vec3 p1 = cameraPos.add(lookDir);
 
         render.setPos(p1.x, p1.y, p1.z, render.pos.x2, render.pos.y2, render.pos.z2);
-        render.render(matrixStack, consumers, tickDelta);
+        render.render(matrixStack, sink, tickDelta);
     }
 
     /**

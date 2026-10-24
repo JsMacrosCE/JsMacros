@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.config;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import com.mojang.brigadier.tree.CommandNode;
 import net.minecraft.ChatFormatting;
 import net.minecraft.advancements.AdvancementNode;
@@ -67,8 +68,8 @@ public class ClientProfile extends BaseProfile {
     protected boolean loadProfile(String profileName) {
         boolean val = super.loadProfile(profileName);
         final Minecraft mc = Minecraft.getInstance();
-        if (mc.screen instanceof MacroScreen) {
-            mc.execute(() -> ((MacroScreen) mc.screen).reload());
+        if (mc.gui != null && GuiCompat.screen(mc) instanceof MacroScreen) {
+            mc.execute(() -> ((MacroScreen) GuiCompat.screen(mc)).reload());
         }
         return val;
     }
@@ -110,15 +111,15 @@ public class ClientProfile extends BaseProfile {
                 e = runner.wrapException(ex);
             } catch (Throwable t) {
                 t.printStackTrace();
-                mc.execute(() -> ((IChatHud) mc.gui.getChat()).jsmacros_addMessageBypass(Component.translatable("jsmacrosce.errorerror").setStyle(Style.EMPTY.withColor(ChatFormatting.DARK_RED))));
+                mc.execute(() -> ((IChatHud) GuiCompat.hud(mc).getChat()).jsmacros_addMessageBypass(Component.translatable("jsmacrosce.errorerror").setStyle(Style.EMPTY.withColor(ChatFormatting.DARK_RED))));
                 return;
             }
             Component text = compileError(e);
             mc.execute(() -> {
                 try {
-                    ((IChatHud) mc.gui.getChat()).jsmacros_addMessageBypass(text);
+                    ((IChatHud) GuiCompat.hud(mc).getChat()).jsmacros_addMessageBypass(text);
                 } catch (Throwable t) {
-                    ((IChatHud) mc.gui.getChat()).jsmacros_addMessageBypass(Component.translatable("jsmacrosce.errorerror").setStyle(Style.EMPTY.withColor(ChatFormatting.DARK_RED)));
+                    ((IChatHud) GuiCompat.hud(mc).getChat()).jsmacros_addMessageBypass(Component.translatable("jsmacrosce.errorerror").setStyle(Style.EMPTY.withColor(ChatFormatting.DARK_RED)));
                     t.printStackTrace();
                 }
             });

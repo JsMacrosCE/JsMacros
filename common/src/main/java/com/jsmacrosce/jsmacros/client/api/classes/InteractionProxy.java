@@ -25,8 +25,10 @@ import java.util.function.Consumer;
  * Scripts access these overrides through the player's interaction manager:
  * <pre>
  * const interactions = Player.getInteractionManager();
- * if (interactions !== null && interactions.hasTargetOverride()) {
- *   interactions.clearTargetOverride();
+ * if (interactions !== null) {
+ *   if (interactions.hasTargetOverride()) {
+ *     interactions.clearTargetOverride();
+ *   }
  * }
  * </pre>
  * @author aMelonRind
@@ -55,8 +57,10 @@ public class InteractionProxy {
      * manager:
      * <pre>
      * const interactions = Player.getInteractionManager();
-     * if (interactions !== null && interactions.hasTargetOverride()) {
-     *   interactions.clearTargetOverride();
+     * if (interactions !== null) {
+     *   if (interactions.hasTargetOverride()) {
+     *     interactions.clearTargetOverride();
+     *   }
      * }
      * </pre>
      * Target checks may clear an override or render a miss while retaining the stored target.
@@ -100,7 +104,7 @@ public class InteractionProxy {
          * @param direction face recorded in the constructed block hit result; ignored when {@code pos} is null
          */
         public static void setTargetBlock(@Nullable BlockPos pos, Direction direction) {
-            setTarget(pos == null ? null : new BlockHitResult(pos.getCenter(), direction, pos, false));
+            setTarget(pos == null ? null : new BlockHitResult(Vec3.atCenterOf(pos), direction, pos, false));
         }
 
         /**
@@ -230,8 +234,10 @@ public class InteractionProxy {
      * player's interaction manager:
      * <pre>
      * const interactions = Player.getInteractionManager();
-     * if (interactions !== null && interactions.hasBreakBlockOverride()) {
-     *   interactions.cancelBreakBlock();
+     * if (interactions !== null) {
+     *   if (interactions.hasBreakBlockOverride()) {
+     *     interactions.cancelBreakBlock();
+     *   }
      * }
      * </pre>
       * The query can itself end an invalid override and invoke callbacks. Cancelling reports
@@ -414,8 +420,10 @@ public class InteractionProxy {
      * interaction manager:
      * <pre>
      * const interactions = Player.getInteractionManager();
-     * if (interactions !== null && interactions.hasInteractOverride()) {
-     *   interactions.holdInteract(false);
+     * if (interactions !== null) {
+     *   if (interactions.hasInteractOverride()) {
+     *     interactions.holdInteract(false);
+     *   }
      * }
      * </pre>
      * Disabling requests a later release check; it does not guarantee a server-side cancellation.

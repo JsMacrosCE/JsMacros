@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.library.impl;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -168,7 +169,7 @@ public class FKeyBind extends BaseLibrary {
      * @param keyState {@code true} to mark the key down, {@code false} to mark it up
      */
     protected void key(Key keyBind, boolean keyState) {
-        if (Minecraft.getInstance().screen != null) return;
+        if (GuiCompat.screen(Minecraft.getInstance()) != null) return;
         KeyMapping.set(keyBind, keyState);
         if (keyState) {
             KeyMapping.click(keyBind);
@@ -192,7 +193,7 @@ public class FKeyBind extends BaseLibrary {
      */
     @DocletReplaceParams("keyBind: Bind, keyState: boolean")
     public void keyBind(String keyBind, boolean keyState) {
-        if (Minecraft.getInstance().screen != null) return;
+        if (GuiCompat.screen(Minecraft.getInstance()) != null) return;
         for (KeyMapping key : mc.options.keyMappings) {
             if (key.getName().equals(keyBind)) {
                 key.setDown(keyState);
@@ -244,7 +245,7 @@ public class FKeyBind extends BaseLibrary {
      * @param keyState {@code true} to mark the keybind down, {@code false} to mark it up
      */
     protected void key(KeyMapping keyBind, boolean keyState) {
-        if (Minecraft.getInstance().screen != null) return;
+        if (GuiCompat.screen(Minecraft.getInstance()) != null) return;
         keyBind.setDown(keyState);
         if (keyState) {
             KeyMapping.click(InputConstants.getKey(keyBind.saveString()));

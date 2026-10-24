@@ -354,5 +354,4 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
             }
         }
     }
-
 }

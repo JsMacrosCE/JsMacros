@@ -2,29 +2,29 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.resources.ResourceLocation;
-
-//? if >=26.1 {
-/*import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.ColorTargetState;
-import com.mojang.blaze3d.pipeline.DepthStencilState;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.CompareOp;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
-import net.minecraft.client.renderer.rendertype.RenderType;
-*///? } else if >=1.21.11 {
-/*import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DepthTestFunction;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
-import net.minecraft.client.renderer.rendertype.RenderType;
-*///? } else {
 import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import net.minecraft.resources.ResourceLocation;
+
+//? if >=26.2 {
+/*import com.mojang.blaze3d.PrimitiveTopology;
+import net.minecraft.client.renderer.BindGroupLayouts;
+*///? } else {
+import com.mojang.blaze3d.shaders.UniformType;
+//? }
+
+//? if >=26.1 {
+/*import com.mojang.blaze3d.pipeline.ColorTargetState;
+import com.mojang.blaze3d.pipeline.DepthStencilState;
+import com.mojang.blaze3d.platform.CompareOp;
+*///? } else {
 import com.mojang.blaze3d.platform.DepthTestFunction;
-import net.minecraft.client.renderer.RenderPipelines;
+//? }
+
+//? if >=1.21.11 {
+/*import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
+*///? } else {
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 //? }
@@ -53,8 +53,7 @@ public final class SurfaceRenderTypes {
     private static final Map<ResourceLocation, RenderType> imageDepth = new HashMap<>();
     private static final Map<ResourceLocation, RenderType> imageNoDepth = new HashMap<>();
 
-    // Colored quad geometry (rects). Depth writes are off so painter's order
-    // within a surface is preserved. cull: back-face culling; depthTest: depth test.
+    // Colored quad geometry (rects), with independent back-face culling and depth testing.
     /**
      * Returns the cached render type for colored quads with the requested culling
      * and depth-test settings. Each of the four combinations is created on first use;
@@ -134,64 +133,66 @@ public final class SurfaceRenderTypes {
     private static RenderType createQuads(boolean cull, boolean depthTest) {
         String name = "jsmacrosce_surface_quads_" + (cull ? "cull" : "nocull") + (depthTest ? "" : "_nodepth");
 
-        //? if >=1.21.11 {
-        /*RenderPipeline.Builder builder = RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
-                .withVertexShader("core/position_color")
-                .withFragmentShader("core/position_color")
-                .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS);
-        *///? } else {
-        RenderPipeline.Builder builder = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET);
-        //? }
-
-        builder
-                .withLocation("pipeline/jsmacrosce/" + name)
+        RenderPipeline.Builder builder = basePipeline(name, "core/position_color")
                 .withCull(cull);
+        setVertexLayout(builder, DefaultVertexFormat.POSITION_COLOR, false);
 
-        //? if >=1.21.11 {
-        /*return RenderType.create(
-                name,
-                RenderSetup.builder(finishPipeline(builder, depthTest)).createRenderSetup()
-        );
-        *///? } else {
-        return RenderType.create(
-                name,
-                1536,
-                finishPipeline(builder, depthTest),
-                RenderType.CompositeState.builder().createCompositeState(false)
-        );
-        //? }
+        return untexturedRenderType(name, finishPipeline(builder, depthTest));
     }
 
     private static RenderType createLines(boolean depthTest) {
         String name = "jsmacrosce_surface_lines" + (depthTest ? "" : "_nodepth");
 
-        RenderPipeline.Builder builder = RenderPipeline.builder(RenderPipelines.LINES_SNIPPET)
-                .withLocation("pipeline/jsmacrosce/" + name);
+        RenderPipeline.Builder builder = basePipeline(name, "core/rendertype_lines")
+                .withCull(false);
+        addFog(builder);
+
+        //? if >=26.2 {
+        /*builder.withBindGroupLayout(BindGroupLayouts.GLOBALS);
+        *///? } else if >1.21.5 {
+        builder.withUniform("Globals", UniformType.UNIFORM_BUFFER);
+        //? } else {
+        /*builder.withUniform("LineWidth", UniformType.FLOAT)
+                .withUniform("ScreenSize", UniformType.VEC2);
+        *///? }
 
         //? if >=1.21.11 {
-        /*return RenderType.create(
-                name,
-                RenderSetup.builder(finishPipeline(builder, depthTest)).createRenderSetup()
-        );
+        /*setVertexLayout(builder, DefaultVertexFormat.POSITION_COLOR_NORMAL_LINE_WIDTH, true);
         *///? } else {
-        return RenderType.create(
-                name,
-                1536,
-                finishPipeline(builder, depthTest),
-                RenderType.CompositeState.builder().createCompositeState(false)
-        );
+        setVertexLayout(builder, DefaultVertexFormat.POSITION_COLOR_NORMAL, true);
         //? }
+
+        return untexturedRenderType(name, finishPipeline(builder, depthTest));
     }
 
     private static RenderType createImage(ResourceLocation texture, boolean depthTest) {
         String name = "jsmacrosce_surface_image" + (depthTest ? "" : "_nodepth");
 
-        RenderPipeline.Builder builder = RenderPipeline.builder(RenderPipelines.ENTITY_SNIPPET)
-                .withLocation("pipeline/jsmacrosce/" + name)
+        RenderPipeline.Builder builder = basePipeline(name, "core/entity")
                 .withShaderDefine("ALPHA_CUTOUT", 0.1F)
                 .withShaderDefine("PER_FACE_LIGHTING")
-                .withSampler("Sampler1")
                 .withCull(false);
+        addFog(builder);
+
+        //? if >=26.2 {
+        /*builder.withBindGroupLayout(BindGroupLayouts.LIGHTING)
+                .withBindGroupLayout(BindGroupLayouts.SAMPLER0_SAMPLER1_SAMPLER2);
+        *///? } else {
+        builder.withSampler("Sampler0").withSampler("Sampler1").withSampler("Sampler2");
+        //? }
+
+        //? if >1.21.5 <26.2 {
+        builder.withUniform("Lighting", UniformType.UNIFORM_BUFFER);
+        //? } else if <=1.21.5 {
+        /*builder.withUniform("Light0_Direction", UniformType.VEC3)
+                .withUniform("Light1_Direction", UniformType.VEC3);
+        *///? }
+
+        //? if >=26.1 {
+        /*setVertexLayout(builder, DefaultVertexFormat.ENTITY, false);
+        *///? } else {
+        setVertexLayout(builder, DefaultVertexFormat.NEW_ENTITY, false);
+        //? }
 
         //? if >=1.21.11 {
         /*return RenderType.create(
@@ -228,8 +229,65 @@ public final class SurfaceRenderTypes {
     }
     //? }
 
+    // 1.21.5 uses individual uniforms; later targets use UBOs, then bind groups in 26.2.
+    private static RenderPipeline.Builder basePipeline(String name, String shader) {
+        RenderPipeline.Builder builder = RenderPipeline.builder()
+                .withLocation("pipeline/jsmacrosce/" + name)
+                .withVertexShader(shader)
+                .withFragmentShader(shader);
+        //? if >=26.2 {
+        /*builder.withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION);
+        *///? } else if >1.21.5 {
+        builder.withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)
+                .withUniform("Projection", UniformType.UNIFORM_BUFFER);
+        //? } else {
+        /*builder.withUniform("ModelViewMat", UniformType.MATRIX4X4)
+                .withUniform("ProjMat", UniformType.MATRIX4X4)
+                .withUniform("ColorModulator", UniformType.VEC4);
+        *///? }
+        return builder;
+    }
+
+    private static void addFog(RenderPipeline.Builder builder) {
+        //? if >=26.2 {
+        /*builder.withBindGroupLayout(BindGroupLayouts.FOG);
+        *///? } else if >1.21.5 {
+        builder.withUniform("Fog", UniformType.UNIFORM_BUFFER);
+        //? } else {
+        /*builder.withUniform("FogStart", UniformType.FLOAT)
+                .withUniform("FogEnd", UniformType.FLOAT)
+                .withUniform("FogShape", UniformType.INT)
+                .withUniform("FogColor", UniformType.VEC4);
+        *///? }
+    }
+
+    private static void setVertexLayout(RenderPipeline.Builder builder, VertexFormat format, boolean lines) {
+        //? if >=26.2 {
+        /*builder.withVertexBinding(0, format)
+                .withPrimitiveTopology(lines ? PrimitiveTopology.LINES : PrimitiveTopology.QUADS);
+        *///? } else {
+        builder.withVertexFormat(format, lines ? VertexFormat.Mode.LINES : VertexFormat.Mode.QUADS);
+        //? }
+    }
+
+    private static RenderType untexturedRenderType(String name, RenderPipeline pipeline) {
+        //? if >=1.21.11 {
+        /*return RenderType.create(name, RenderSetup.builder(pipeline).createRenderSetup());
+        *///? } else {
+        return RenderType.create(name, 1536, pipeline, RenderType.CompositeState.builder().createCompositeState(false));
+        //? }
+    }
+
+    // Preserve legacy depth writes; 26.1+ overlays already disable them explicitly.
     private static RenderPipeline finishPipeline(RenderPipeline.Builder builder, boolean depthTest) {
-        //? if >=26.1 {
+        //? if >=26.2 {
+        /*return builder
+                .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+                // 26.2 switched to reversed-Z
+                .withDepthStencilState(new DepthStencilState(
+                        depthTest ? CompareOp.GREATER_THAN_OR_EQUAL : CompareOp.ALWAYS_PASS, false))
+                .build();
+        *///? } else if >=26.1 {
         /*return builder
                 .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
                 .withDepthStencilState(new DepthStencilState(
@@ -239,6 +297,7 @@ public final class SurfaceRenderTypes {
         return builder
                 .withBlend(BlendFunction.TRANSLUCENT)
                 .withDepthTestFunction(depthTest ? DepthTestFunction.LEQUAL_DEPTH_TEST : DepthTestFunction.NO_DEPTH_TEST)
+                .withDepthWrite(true)
                 .build();
         //? }
     }

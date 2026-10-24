@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -15,7 +16,13 @@ import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
-//? if >=26.1 {
+//? if >=26.2 {
+/*import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.world.item.ItemDisplayContext;
+import org.joml.Quaternionf;
+*///? } else if >=26.1 {
 /*import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.SubmitNodeCollection;
@@ -76,7 +83,7 @@ public class Item implements RenderElement, Alignable<Item> {
     private static final float OVERLAY_TEXT_Z_OFFSET = 0.001f;
     private static final Minecraft mc = Minecraft.getInstance();
 
-    //? if >=26.1 {
+    //? if >=26.1 <26.2 {
     /*private static SubmitNodeStorage directItemStorage;
     private static final ItemFeatureRenderer DIRECT_ITEM_RENDERER = new ItemFeatureRenderer();
     *///? }
@@ -460,7 +467,7 @@ public class Item implements RenderElement, Alignable<Item> {
         render(drawContext, mouseX, mouseY, delta, true);
     }
 
-    private void renderDamageBar3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+    private void renderDamageBar3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
         if (!item.isDamageableItem()) {
             return;
         }
@@ -483,9 +490,9 @@ public class Item implements RenderElement, Alignable<Item> {
         //? if >=26.1 {
         /*matrixStack.translate(0, 0, OVERLAY_TEXT_Z_OFFSET);
         *///? }
-        new Rect(2, 13, 15, 15, 0xFF000000, 0, 0).render3D(matrixStack, consumers, light, seeThrough, delta);
+        new Rect(2, 13, 15, 15, 0xFF000000, 0, 0).render3D(matrixStack, sink, light, seeThrough, delta);
         if (barWidth > 0) {
-            new Rect(2, 13, 2 + barWidth, 14, barColor, 0, 0).render3D(matrixStack, consumers, light, seeThrough, delta);
+            new Rect(2, 13, 2 + barWidth, 14, barColor, 0, 0).render3D(matrixStack, sink, light, seeThrough, delta);
         }
         matrixStack.popPose();
     }
@@ -559,7 +566,7 @@ public class Item implements RenderElement, Alignable<Item> {
     // cancel the surface's Y-flip, map the unit model to a 16px slot, flatten depth.
     @DocletIgnore
     @Override
-    public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+    public void render3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
         if (item == null || item.isEmpty()) {
             return;
         }
@@ -574,8 +581,20 @@ public class Item implements RenderElement, Alignable<Item> {
             matrixStack.translate(-DEFAULT_ITEM_SIZE / 2d, -DEFAULT_ITEM_SIZE / 2d, 0);
         }
 
-        //? if >=26.1 {
-        /*if (consumers instanceof MultiBufferSource.BufferSource bufferSource) {
+        //? if >=26.2 {
+        /*ItemStackRenderState renderState = new ItemStackRenderState();
+        mc.getItemModelResolver().updateForTopItem(renderState, item, ItemDisplayContext.GUI, mc.level, mc.player, 0);
+
+        matrixStack.pushPose();
+        matrixStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
+        matrixStack.scale(1, -1, 1);
+        matrixStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
+        matrixStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
+        sink.submitItem(matrixStack, renderState, light);
+        matrixStack.popPose();
+        *///? } else if >=26.1 {
+        /*MultiBufferSource.BufferSource bufferSource = sink.getSource() instanceof MultiBufferSource.BufferSource source ? source : null;
+        if (bufferSource != null) {
             ItemStackRenderState renderState = new ItemStackRenderState();
             mc.getItemModelResolver().updateForTopItem(renderState, item, ItemDisplayContext.GUI, mc.level, mc.player, 0);
 
@@ -624,7 +643,7 @@ public class Item implements RenderElement, Alignable<Item> {
             List<BakedQuad> quads = layerAccessor.jsmacros$getQuads();
             if (renderType != null && quads != null && !quads.isEmpty()) {
                 ItemStackRenderState.FoilType foilType = layerAccessor.jsmacros$getFoilType();
-                itemRenderer.jsmacros$renderItem(ItemDisplayContext.GUI, matrixStack, consumers, light, OverlayTexture.NO_OVERLAY,
+                itemRenderer.jsmacros$renderItem(ItemDisplayContext.GUI, matrixStack, sink.getSource(), light, OverlayTexture.NO_OVERLAY,
                         layerAccessor.jsmacros$getTintLayers(), quads, renderType,
                         foilType != null ? foilType : ItemStackRenderState.FoilType.NONE);
             }
@@ -636,12 +655,12 @@ public class Item implements RenderElement, Alignable<Item> {
         matrixStack.scale(1, -1, 1);
         matrixStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
         matrixStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
-        mc.getItemRenderer().renderStatic(item, ItemDisplayContext.GUI, light, OverlayTexture.NO_OVERLAY, matrixStack, consumers, null, 0);
+        mc.getItemRenderer().renderStatic(item, ItemDisplayContext.GUI, light, OverlayTexture.NO_OVERLAY, matrixStack, sink.getSource(), null, 0);
         matrixStack.popPose();
         //? }
 
         if (overlay) {
-            renderDamageBar3D(matrixStack, consumers, light, seeThrough, delta);
+            renderDamageBar3D(matrixStack, sink, light, seeThrough, delta);
             String text = ovText != null ? ovText : (item.getCount() > 1 ? String.valueOf(item.getCount()) : null);
             if (text != null) {
                 float tx = DEFAULT_ITEM_SIZE + 1 - mc.font.width(text);
@@ -650,7 +669,12 @@ public class Item implements RenderElement, Alignable<Item> {
                 //? if >=26.1 {
                 /*matrixStack.translate(0, 0, OVERLAY_TEXT_Z_OFFSET);
                 *///? }
-                mc.font.drawInBatch(text, tx, ty, 0xFFFFFFFF, true, matrixStack.last().pose(), consumers, Font.DisplayMode.POLYGON_OFFSET, 0, light);
+                //? if >=26.2 {
+                /*sink.drawText(matrixStack, net.minecraft.network.chat.Component.literal(text).getVisualOrderText(),
+                        tx, ty, 0xFFFFFFFF, true, Font.DisplayMode.POLYGON_OFFSET, light);
+                *///?} else {
+                mc.font.drawInBatch(text, tx, ty, 0xFFFFFFFF, true, matrixStack.last().pose(), sink.getSource(), Font.DisplayMode.POLYGON_OFFSET, 0, light);
+                //?}
                 matrixStack.popPose();
             }
         }

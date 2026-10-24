@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 //? if >1.21.8 {
@@ -29,7 +30,7 @@ class MixinMouse {
         if (window != minecraft.getWindow().getWindow()) return;
         //?}
         
-        if (minecraft.getOverlay() != null || minecraft.screen != null || minecraft.player == null) return;
+        if (GuiCompat.overlay(minecraft) != null || GuiCompat.screen(minecraft) != null || minecraft.player == null) return;
         if (vertical == 0.0 && horizontal == 0.0) return;
         EventMouseScroll event = new EventMouseScroll(horizontal, vertical);
         event.trigger();

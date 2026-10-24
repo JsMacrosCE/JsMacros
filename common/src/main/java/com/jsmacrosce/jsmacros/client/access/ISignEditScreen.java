@@ -5,9 +5,13 @@ package com.jsmacrosce.jsmacros.client.access;
  * screen type to construct or a global API.
  * <pre>
  * const screen = Hud.getOpenScreen();
- * if (screen && typeof screen.jsmacros_setLine === "function" && typeof screen.jsmacros_fixSelection === "function") {
- *   screen.jsmacros_setLine(0, "Hello");
- *   screen.jsmacros_fixSelection(); // moves the cursor on the current line
+ * if (screen) {
+ *   if (typeof screen.jsmacros_setLine === "function") {
+ *     if (typeof screen.jsmacros_fixSelection === "function") {
+ *       screen.jsmacros_setLine(0, "Hello");
+ *       screen.jsmacros_fixSelection(); // moves the cursor on the current line
+ *     }
+ *   }
  * }
  * </pre>
  */

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.inventory;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -94,7 +95,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
      * @since 1.0.8
      */
     public static Inventory<?> create() {
-        Inventory<?> inv = create(mc.screen);
+        Inventory<?> inv = create(GuiCompat.screen(mc));
         // TODO: What to do with horses? The horse inventory would need to be opened with a packet
         if (inv == null) {
             assert mc.player != null;
@@ -584,7 +585,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
      * @since 1.2.8
      */
     public void openGui() {
-        mc.execute(() -> mc.setScreen(this.inventory));
+        mc.execute(() -> GuiCompat.setScreen(mc, this.inventory));
     }
 
     /**
@@ -595,7 +596,7 @@ public class Inventory<T extends AbstractContainerScreen<?>> {
         Minecraft mc = Minecraft.getInstance();
         double x = mc.mouseHandler.xpos() * (double) mc.getWindow().getGuiScaledWidth() / (double) mc.getWindow().getScreenWidth();
         double y = mc.mouseHandler.ypos() * (double) mc.getWindow().getGuiScaledHeight() / (double) mc.getWindow().getScreenHeight();
-        if (this.inventory != mc.screen) {
+        if (this.inventory != GuiCompat.screen(mc)) {
             throw new RuntimeException("Inventory screen is not open.");
         }
         Slot s = ((IInventory) this.inventory).jsmacros_getSlotUnder(x, y);

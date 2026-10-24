@@ -6,6 +6,8 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.minecraft.commands.CommandBuildContext;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.*;
@@ -15,9 +17,11 @@ import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.commands.arguments.coordinates.ColumnPosArgument;
 import net.minecraft.commands.arguments.item.ItemArgument;
 import net.minecraft.commands.arguments.item.ItemPredicateArgument;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.jsmacros.client.util.FormattingCompat;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.CommandContextHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.SuggestionsBuilderHelper;
@@ -32,6 +36,7 @@ import com.jsmacrosce.jsmacros.core.language.EventContainer;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -337,9 +342,36 @@ public abstract class CommandBuilder implements Registrable<CommandBuilder> {
      * @return self for chaining.
      */
     public CommandBuilder colorArg(String name) {
+        //? if >=26.2 {
+        /*argument(name, CommandBuilder::colorArgument);
+        *///?} else {
         argument(name, ColorArgument::color);
+        //?}
         return this;
     }
+
+    //? if >=26.2 {
+    /*private static ArgumentType<ChatFormatting> colorArgument() {
+        return new ArgumentType<>() {
+            private final TeamColorArgument delegate = TeamColorArgument.teamColor();
+
+            @Override
+            public ChatFormatting parse(StringReader reader) throws CommandSyntaxException {
+                return FormattingCompat.fromTeamColor(delegate.parse(reader));
+            }
+
+            @Override
+            public <S> CompletableFuture<Suggestions> listSuggestions(CommandContext<S> context, SuggestionsBuilder builder) {
+                return delegate.listSuggestions(context, builder);
+            }
+
+            @Override
+            public Collection<String> getExamples() {
+                return delegate.getExamples();
+            }
+        };
+    }
+    *///?}
 
     /**
      * Adds an angle argument; the parsed value is resolved against the command source and

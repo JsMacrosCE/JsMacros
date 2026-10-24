@@ -14,8 +14,10 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * <pre>
  * JsMacros.on("ItemPickup", JavaWrapper.methodToJava(function (event) {
  *   const item = event.item;
- *   if (item.getItemID() === "minecraft:diamond" && item.getCount() >= 5) {
- *     Chat.log(`picked up ${item.getCount()} diamonds`);
+ *   if (item.getItemID() === "minecraft:diamond") {
+ *     if (item.getCount() >= 5) {
+ *       Chat.log(`picked up ${item.getCount()} diamonds`);
+ *     }
  *   }
  * }))
  * </pre>

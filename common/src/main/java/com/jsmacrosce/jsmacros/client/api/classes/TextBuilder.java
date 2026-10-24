@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes;
 
 import net.minecraft.ChatFormatting;
+import com.jsmacrosce.jsmacros.client.util.FormattingCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
@@ -118,7 +119,7 @@ public class TextBuilder {
      * @since 1.3.0
      */
     public TextBuilder withColor(int color) {
-        self.withStyle(style -> style.withColor(ChatFormatting.getById(color)));
+        self.withStyle(style -> style.withColor(FormattingCompat.getById(color)));
         return this;
     }
 

@@ -70,8 +70,8 @@ public class ClassBuilder<T> {
     /**
      * Handlers called by generated guest-body code, indexed by generated class name, method name,
      * and JVM descriptor. {@code BodyBuilder} adds a call-specific suffix when a method contains
-     * multiple guest calls. Handlers are registered as {@link MethodBuilder#guestBody(MethodWrapper)
-     * guestBody} or {@link BodyBuilder#appendGuestCode(MethodWrapper, String, String) appendGuestCode}
+     * multiple guest calls. Handlers are registered as {@link ClassBuilder.MethodBuilder#guestBody(MethodWrapper)
+     * guestBody} or {@link ClassBuilder.BodyBuilder#appendGuestCode(MethodWrapper, String, String) appendGuestCode}
      * builds the guest-call code.
      */
     public static final Map<String, MethodWrapper<Object, Object, Object, ?>> methodWrappers = new ConcurrentHashMap<>();

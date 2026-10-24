@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.gui.screens;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.jsmacrosce.doclet.DocletIgnore;
@@ -167,7 +168,7 @@ public class EditorScreen extends BaseScreen {
                 }
                 screen.cursor.updateStartIndex(startIndex, screen.history.current);
                 screen.cursor.updateEndIndex(finalEndIndex, screen.history.current);
-                mc.setScreen(screen);
+                GuiCompat.setScreen(mc, screen);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -204,7 +205,7 @@ public class EditorScreen extends BaseScreen {
                     startIndex = lineIndex + Math.min(lines[max].length(), endCol);
                 }
                 screen.cursor.updateEndIndex(startIndex, screen.history.current);
-                mc.setScreen(screen);
+                GuiCompat.setScreen(mc, screen);
             } catch (IOException e) {
                 e.printStackTrace();
             }

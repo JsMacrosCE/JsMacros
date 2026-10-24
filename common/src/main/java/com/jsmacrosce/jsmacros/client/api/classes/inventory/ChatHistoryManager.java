@@ -14,9 +14,11 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Manages received chat scrollback and sent-message history. Received-history reads called off
- * the joined client thread queue work on that thread and always wait for it to finish; mutations
- * queue work there but wait only when their {@code await} argument is {@code true}.
+ * Manages received chat scrollback and sent-message history. Reads and list mutations run inline on
+ * the client thread or from a thread joined to it; otherwise they queue on the client thread.
+ * Value-returning reads and most mutations wait for their queued work, but a joined caller cannot
+ * wait without deadlocking. Inserting a received line and rebuilding the visible chat touch the
+ * font, so they run inline only on the client thread and are queued without waiting elsewhere.
  * {@link #getSent()} returns the live sent-history list, so changes to it affect the chat
  * component directly.
  * <pre>
@@ -71,6 +73,9 @@ public class ChatHistoryManager {
      * @since 1.8.4
      */
     public int getRecvCount() throws InterruptedException {
+        if (JsMacrosClient.clientCore.profile.checkJoinedThreadStack()) {
+            return hud.allMessages.size();
+        }
         final Semaphore semaphore = new Semaphore(0);
         AtomicInteger count = new AtomicInteger(0);
         mc.execute(() -> {
@@ -87,6 +92,11 @@ public class ChatHistoryManager {
      * @since 1.8.4
      */
     public List<ChatHudLineHelper> getRecvLines() throws InterruptedException {
+        if (JsMacrosClient.clientCore.profile.checkJoinedThreadStack()) {
+            List<ChatHudLineHelper> recvLines = new ArrayList<>();
+            hud.allMessages.stream().map(textChatHudLine -> new ChatHudLineHelper(textChatHudLine, hud)).forEach(recvLines::add);
+            return recvLines;
+        }
         List<ChatHudLineHelper> recvLines = new ArrayList<>();
         final Semaphore semaphore = new Semaphore(0);
         mc.execute(() -> {
@@ -98,8 +108,8 @@ public class ChatHistoryManager {
     }
 
     /**
-     * Inserts a chat line at the specified history index. Calls on the joined client thread insert
-     * immediately; other calls queue the insertion without waiting for it to finish.
+     * Inserts a chat line at the specified history index. On the client thread the insertion
+     * happens immediately; other calls queue it on that thread without waiting.
      *
      * @param index history position at which to insert the line
      * @param line the chat line to insert
@@ -111,8 +121,8 @@ public class ChatHistoryManager {
     }
 
     /**
-     * Inserts a chat line at the specified history index. Calls on the joined client thread insert
-     * immediately; other calls queue the insertion without waiting for it to finish. The
+     * Inserts a chat line at the specified history index. On the client thread the insertion
+     * happens immediately; other calls queue it on that thread without waiting. The
      * {@code timeTicks} argument is currently unused. Call {@link #refreshVisible()} to update
      * the visible chat after the insertion.
      *
@@ -127,28 +137,36 @@ public class ChatHistoryManager {
     }
 
     /**
-     * Inserts a chat line at the specified history index. Calls on the joined client thread insert
-     * immediately; other calls queue the insertion and wait for it to finish only when
-     * {@code await} is {@code true}. The {@code timeTicks} argument is currently unused.
+     * Inserts a chat line at the specified history index. On the client thread the insertion
+     * happens immediately. Other calls queue the insertion on the client thread and wait only
+     * when {@code await} is {@code true}; a thread that the client is already waiting on, such as
+     * a joined callback, cannot wait without deadlocking, so the insertion is queued and this
+     * call returns. The {@code timeTicks} argument is currently unused.
      *
      * @param index history position at which to insert the line
      * @param line the chat line to insert
      * @param timeTicks currently unused
-     * @param await whether to wait for a queued insertion to finish when called off the joined client thread
+     * @param await whether to wait for a queued insertion to finish
      * @throws InterruptedException if waiting is interrupted
      * @since 1.6.0
      */
     public void insertRecvText(int index, TextHelper line, int timeTicks, boolean await) throws InterruptedException {
-        if (JsMacrosClient.clientCore.profile.checkJoinedThreadStack()) {
+        if (mc.isSameThread()) {
             ((IChatHud) hud).jsmacros_addMessageAtIndexBypass(line.getRaw(), index, timeTicks);
             return;
         }
-        final Semaphore semaphore = new Semaphore(await ? 0 : 1);
+        final boolean wait = await && !JsMacrosClient.clientCore.profile.checkJoinedThreadStack();
+        final Semaphore semaphore = new Semaphore(wait ? 0 : 1);
         mc.execute(() -> {
-            ((IChatHud) hud).jsmacros_addMessageAtIndexBypass(line.getRaw(), index, timeTicks);
-            semaphore.release();
+            try {
+                ((IChatHud) hud).jsmacros_addMessageAtIndexBypass(line.getRaw(), index, timeTicks);
+            } finally {
+                semaphore.release();
+            }
         });
-        semaphore.acquire();
+        if (wait) {
+            semaphore.acquire();
+        }
     }
 
     /**
@@ -256,8 +274,8 @@ public class ChatHistoryManager {
     }
 
     /**
-     * Rebuilds the visible chat view from the received-message history. Off-thread work is queued
-     * without waiting for it to finish.
+     * Rebuilds the visible chat view from the received-message history. On the client thread the
+     * rebuild happens immediately; other calls queue it without waiting.
      *
      * @since 1.6.0
      */
@@ -266,25 +284,32 @@ public class ChatHistoryManager {
     }
 
     /**
-     * Rebuilds the visible chat view from the received-message history. Off-thread work is queued;
-     * set {@code await} to {@code true} to wait for it to finish.
+     * Rebuilds the visible chat view from the received-message history. On the client thread the
+     * rebuild happens immediately. Other calls queue it and wait only when {@code await} is
+     * {@code true}; a thread that the client is already waiting on, such as a joined callback,
+     * cannot wait without deadlocking, so the rebuild is queued and this call returns.
      *
      * @param await whether to wait for queued work to finish
      * @throws InterruptedException if waiting is interrupted
      * @since 1.6.0
      */
     public void refreshVisible(boolean await) throws InterruptedException {
-        if (JsMacrosClient.clientCore.profile.checkJoinedThreadStack()) {
+        if (mc.isSameThread()) {
             hud.rescaleChat();
             return;
         }
-        final Semaphore semaphore = new Semaphore(await ? 0 : 1);
+        final boolean wait = await && !JsMacrosClient.clientCore.profile.checkJoinedThreadStack();
+        final Semaphore semaphore = new Semaphore(wait ? 0 : 1);
         mc.execute(() -> {
-            hud.rescaleChat();
-            semaphore.release();
+            try {
+                hud.rescaleChat();
+            } finally {
+                semaphore.release();
+            }
         });
-        semaphore.acquire();
-
+        if (wait) {
+            semaphore.acquire();
+        }
     }
 
     /**

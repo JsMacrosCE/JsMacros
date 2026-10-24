@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import com.google.common.collect.ImmutableList;
 
 import net.minecraft.client.Minecraft;
@@ -869,7 +870,7 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
 
     @Override
     public IScreen reloadScreen() {
-        minecraft.execute(() -> minecraft.setScreen((Screen) (Object) this));
+        minecraft.execute(() -> GuiCompat.setScreen(minecraft, (Screen) (Object) this));
         return this;
     }
 

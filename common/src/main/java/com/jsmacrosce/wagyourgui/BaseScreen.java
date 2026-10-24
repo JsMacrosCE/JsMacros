@@ -1,5 +1,6 @@
 package com.jsmacrosce.wagyourgui;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import com.jsmacrosce.doclet.DocletCategory;
 
 import net.minecraft.client.gui.Font;
@@ -354,7 +355,7 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
             openParent();
         } else {
             setFocused(null);
-            minecraft.setScreen(null);
+            GuiCompat.setScreen(minecraft, null);
         }
     }
 
@@ -363,7 +364,7 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
      */
     public void openParent() {
         assert minecraft != null;
-        minecraft.setScreen(parent);
+        GuiCompat.setScreen(minecraft, parent);
     }
 
 }

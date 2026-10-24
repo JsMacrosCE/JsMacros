@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -15,25 +16,13 @@ import com.jsmacrosce.jsmacros.client.util.ColorUtil;
 import com.jsmacrosce.doclet.DocletIgnore;
 
 //? if <=1.21.5 {
-/*import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.RenderType;
+/*import net.minecraft.client.renderer.RenderType;
 *///? }
 
-//? if >=1.21.11 {
-/*import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import org.joml.Quaternionf;
-import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
-*///? } else {
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import org.joml.Quaternionf;
 import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
-//? }
 
  /**
   * Draws a texture region at a position and destination size. {@code width} and
@@ -562,7 +551,7 @@ public class Image implements RenderElement, Alignable<Image> {
     // images cannot be represented as gizmos, so this is the direct path.
     @DocletIgnore
     @Override
-    public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+    public void render3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
         matrixStack.pushPose();
         matrixStack.translate(x, y, 0);
         if (rotateCenter) {
@@ -583,12 +572,16 @@ public class Image implements RenderElement, Alignable<Image> {
         float u1 = (imageX + regionWidth) / (float) textureWidth;
         float v1 = (imageY + regionHeight) / (float) textureHeight;
 
-        VertexConsumer vc = consumers.getBuffer(SurfaceRenderTypes.images(imageid, !seeThrough));
-        PoseStack.Pose pose = matrixStack.last();
-        vc.addVertex(pose, x, y, 0).setColor(r, g, b, a).setUv(u0, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
-        vc.addVertex(pose, x, y + height, 0).setColor(r, g, b, a).setUv(u0, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
-        vc.addVertex(pose, x + width, y + height, 0).setColor(r, g, b, a).setUv(u1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
-        vc.addVertex(pose, x + width, y, 0).setColor(r, g, b, a).setUv(u1, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
+        float left = x;
+        float top = y;
+        float right = x + width;
+        float bottom = y + height;
+        sink.submitGeometry(matrixStack, SurfaceRenderTypes.images(imageid, !seeThrough), (pose, vc) -> {
+            vc.addVertex(pose, left, top, 0).setColor(r, g, b, a).setUv(u0, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
+            vc.addVertex(pose, left, bottom, 0).setColor(r, g, b, a).setUv(u0, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
+            vc.addVertex(pose, right, bottom, 0).setColor(r, g, b, a).setUv(u1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
+            vc.addVertex(pose, right, top, 0).setColor(r, g, b, a).setUv(u1, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
+        });
         matrixStack.popPose();
     }
 

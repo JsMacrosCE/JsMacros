@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.util.Mth;
@@ -11,15 +12,7 @@ import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.util.ColorUtil;
 
-//? if >=1.21.11 {
-/*import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.MultiBufferSource;
 import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
-*///? } else {
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
-//? }
 
  /**
  * A filled rectangle defined by two corner positions. Corners may be given in either
@@ -485,7 +478,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
 
     @Override
     @DocletIgnore
-    public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+    public void render3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
         matrixStack.pushPose();
         matrixStack.translate(x1, y1, 0);
         if (rotateCenter) {
@@ -502,13 +495,16 @@ public class Rect implements RenderElement, Alignable<Rect> {
         float r = ((color >> 16) & 0xFF) / 255.0f * brightness;
         float g = ((color >> 8) & 0xFF) / 255.0f * brightness;
         float b = (color & 0xFF) / 255.0f * brightness;
-        PoseStack.Pose pose = matrixStack.last();
-
-        VertexConsumer vc = consumers.getBuffer(SurfaceRenderTypes.quads(false, !seeThrough));
-        vc.addVertex(pose, x1, y1, 0).setColor(r, g, b, a);
-        vc.addVertex(pose, x2, y1, 0).setColor(r, g, b, a);
-        vc.addVertex(pose, x2, y2, 0).setColor(r, g, b, a);
-        vc.addVertex(pose, x1, y2, 0).setColor(r, g, b, a);
+        float left = x1;
+        float top = y1;
+        float right = x2;
+        float bottom = y2;
+        sink.submitGeometry(matrixStack, SurfaceRenderTypes.quads(false, !seeThrough), (pose, vc) -> {
+            vc.addVertex(pose, left, top, 0).setColor(r, g, b, a);
+            vc.addVertex(pose, right, top, 0).setColor(r, g, b, a);
+            vc.addVertex(pose, right, bottom, 0).setColor(r, g, b, a);
+            vc.addVertex(pose, left, bottom, 0).setColor(r, g, b, a);
+        });
 
         matrixStack.popPose();
     }

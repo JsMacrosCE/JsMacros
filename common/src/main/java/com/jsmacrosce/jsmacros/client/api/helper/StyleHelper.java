@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
 import net.minecraft.ChatFormatting;
+import com.jsmacrosce.jsmacros.client.util.FormattingCompat;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
@@ -94,7 +95,7 @@ public class StyleHelper extends BaseHelper<Style> {
      */
     @Nullable
     public FormattingHelper getFormatting() {
-        ChatFormatting f = ChatFormatting.getByName(base.getColor().serialize());
+        ChatFormatting f = FormattingCompat.getByName(base.getColor().serialize());
         return f == null ? null : new FormattingHelper(f);
     }
 
@@ -109,8 +110,8 @@ public class StyleHelper extends BaseHelper<Style> {
         if (base.getColor() == null) {
             return -1;
         }
-        ChatFormatting f = ChatFormatting.getByName(base.getColor().serialize());
-        return f == null ? -1 : f.getId();
+        ChatFormatting f = FormattingCompat.getByName(base.getColor().serialize());
+        return f == null ? -1 : FormattingCompat.getId(f);
     }
 
     /**
@@ -124,8 +125,8 @@ public class StyleHelper extends BaseHelper<Style> {
         if (base.getColor() == null) {
             return -1;
         }
-        ChatFormatting f = ChatFormatting.getByName(base.getColor().serialize());
-        return f == null || f.getColor() == null ? -1 : f.getColor();
+        ChatFormatting f = FormattingCompat.getByName(base.getColor().serialize());
+        return f == null ? -1 : FormattingCompat.getColorValue(f);
     }
 
     /**

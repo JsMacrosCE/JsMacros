@@ -1,8 +1,8 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
+import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 
 import com.jsmacrosce.doclet.DocletCategory;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.MultiBufferSource;
 import org.jetbrains.annotations.NotNull;
 import com.jsmacrosce.doclet.DocletIgnore;
 
@@ -32,17 +32,17 @@ public interface RenderElement3D<T extends RenderElement3D<?>> extends Comparabl
      * Draws this element into the world.
      *
      * @param matrices the world transform, already translated so the camera is at the origin
-     * @param consumers the buffer source the geometry goes into
+     * @param sink the buffer source the geometry goes into
      * @param tickDelta partial-tick value used to interpolate moving elements
      */
     @DocletIgnore
-    void render(PoseStack matrices, MultiBufferSource consumers, float tickDelta);
+    void render(PoseStack matrices, RenderSink sink, float tickDelta);
 
     /**
      * Optionally renders this element directly into the buffer source; the default implementation does nothing.
      */
     @DocletIgnore
-    default void renderDirect(PoseStack matrices, MultiBufferSource consumers, float tickDelta, boolean alwaysOnTop) {
+    default void renderDirect(PoseStack matrices, RenderSink sink, float tickDelta, boolean alwaysOnTop) {
     }
 
     /**

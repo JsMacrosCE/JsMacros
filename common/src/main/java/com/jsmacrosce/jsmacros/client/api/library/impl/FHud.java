@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.library.impl;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -110,7 +111,7 @@ public class FHud extends BaseLibrary {
      */
     public void openScreen(@Nullable IScreen s) {
         net.minecraft.client.gui.screens.Screen screen = (net.minecraft.client.gui.screens.Screen) s;
-        mc.execute(() -> mc.setScreen(screen));
+        mc.execute(() -> GuiCompat.setScreen(mc, screen));
     }
 
     /**
@@ -121,7 +122,7 @@ public class FHud extends BaseLibrary {
      */
     @Nullable
     public IScreen getOpenScreen() {
-        return (IScreen) mc.screen;
+        return (IScreen) GuiCompat.screen(mc);
     }
 
     /**
@@ -209,7 +210,7 @@ public class FHud extends BaseLibrary {
     )
     @Nullable
     public String getOpenScreenName() {
-        return JsMacrosClient.getScreenName(mc.screen);
+        return JsMacrosClient.getScreenName(GuiCompat.screen(mc));
     }
 
     /**
@@ -219,7 +220,7 @@ public class FHud extends BaseLibrary {
      * @since 1.1.2
      */
     public boolean isContainer() {
-        return mc.screen instanceof AbstractContainerScreen;
+        return GuiCompat.screen(mc) instanceof AbstractContainerScreen;
     }
 
     /**

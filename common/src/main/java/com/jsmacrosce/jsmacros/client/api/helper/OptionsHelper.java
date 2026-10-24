@@ -1683,22 +1683,44 @@ public class OptionsHelper extends BaseHelper<Options> {
 
         /**
          * Returns whether touchscreen mode is enabled.
+         * <p>
+         * Minecraft 26.2 removed touchscreen mode with no replacement. On 26.2 and later,
+         * this method is deprecated and always returns {@code false} for compatibility.
+         *
          * @return {@code true} if enabled; {@code false} otherwise.
          * @since 1.8.4
          */
+        //? if >=26.2 {
+        /*@Deprecated
+        *///?}
         public boolean isTouchscreenEnabled() {
+            //? if >=26.2 {
+            /*return false;
+            *///?} else {
             return base.touchscreen().get();
+            //?}
         }
 
         /**
          * Sets whether touchscreen mode is enabled.
-         * @param val {@code true} to enable touchscreen mode
-         * @return this helper for chaining.
+         * <p>
+         * Minecraft 26.2 removed touchscreen mode with no replacement. On 26.2 and later,
+         * this method is deprecated and has no effect; it is retained for script compatibility.
+         *
+         * @param val {@code true} to enable touchscreen mode; ignored on Minecraft 26.2 and later
+         * @return self for chaining
          * @since 1.8.4
          */
+        //? if >=26.2 {
+        /*@Deprecated
+        *///?}
         public ControlOptionsHelper enableTouchscreen(boolean val) {
+            //? if >=26.2 {
+            /*return this;
+            *///?} else {
             base.touchscreen().set(val);
             return this;
+            //?}
         }
 
         /**

@@ -8,8 +8,10 @@ import net.minecraft.world.entity.Entity;
  * <pre>
  * if (Player.getPlayer()) {
  *   const screen = Player.openInventory().getRawContainer();
- *   if (screen && typeof screen.jsmacros_getEntity === "function") {
- *     Chat.log(screen.jsmacros_getEntity());
+ *   if (screen) {
+ *     if (typeof screen.jsmacros_getEntity === "function") {
+ *       Chat.log(screen.jsmacros_getEntity());
+ *     }
  *   }
  * }
  * </pre>

@@ -1,11 +1,14 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+//? if <26.2 {
 import net.minecraft.client.renderer.MultiBufferSource;
+//?}
 import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3x2fStack;
@@ -464,6 +467,9 @@ public class Text implements RenderElement, Alignable<Text> {
             matrix4f = new Matrix4f().set(buf);
         }
         //?}
+        //? if >=26.2 {
+        /*drawContext.text(mc.font, text, (int) x, (int) y, color, shadow);
+        *///?} else {
         MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(new ByteBufferBuilder(1536));
         mc.font.drawInBatch(
             text,
@@ -482,6 +488,7 @@ public class Text implements RenderElement, Alignable<Text> {
             0xFFF000F0
         );
         buffer.endBatch();
+        //?}
 
         //? if >1.21.5 {
         matrices.popMatrix();
@@ -492,7 +499,7 @@ public class Text implements RenderElement, Alignable<Text> {
 
     @Override
     @DocletIgnore
-    public void render3D(PoseStack matrixStack, MultiBufferSource consumers, int light, boolean seeThrough, float delta) {
+    public void render3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
         matrixStack.pushPose();
         matrixStack.translate(x, y, 0);
         matrixStack.scale((float) scale, (float) scale, 1);
@@ -507,8 +514,13 @@ public class Text implements RenderElement, Alignable<Text> {
 
         // The font renderer applies the packed light via its lightmap; keep the
         // requested text color unchanged so lighting is not applied twice.
-        mc.font.drawInBatch(text, (float) x, (float) y, color, shadow, matrixStack.last().pose(), consumers,
+        //? if >=26.2 {
+        /*sink.drawText(matrixStack, text.getVisualOrderText(), (float) x, (float) y, color, shadow,
+                seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL, light);
+        *///?} else {
+        mc.font.drawInBatch(text, (float) x, (float) y, color, shadow, matrixStack.last().pose(), sink.getSource(),
                 seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL, 0, light);
+        //?}
 
         matrixStack.popPose();
     }

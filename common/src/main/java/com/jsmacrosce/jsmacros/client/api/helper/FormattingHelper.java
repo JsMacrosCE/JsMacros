@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.helper;
 
 import net.minecraft.ChatFormatting;
+import com.jsmacrosce.jsmacros.client.util.FormattingCompat;
 
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
@@ -51,8 +52,7 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
      * @since 1.8.4
      */
     public int getColorValue() {
-        Integer color = base.getColor();
-        return color == null ? -1 : color;
+        return FormattingCompat.getColorValue(base);
     }
 
     /**
@@ -61,7 +61,7 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
      * @since 1.8.4
      */
     public int getColorIndex() {
-        return base.getId();
+        return FormattingCompat.getId(base);
     }
 
     /**
@@ -69,7 +69,7 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
      * @since 1.8.4
      */
     public String getName() {
-        return base.getName();
+        return FormattingCompat.getName(base);
     }
 
     /**
@@ -81,7 +81,7 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
      * @since 1.8.4
      */
     public char getCode() {
-        return base.getChar();
+        return FormattingCompat.getCode(base);
     }
 
     /**
@@ -90,7 +90,7 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
      * @since 1.8.4
      */
     public boolean isColor() {
-        return base.isColor();
+        return FormattingCompat.isColor(base);
     }
 
     /**
@@ -99,7 +99,7 @@ public class FormattingHelper extends BaseHelper<ChatFormatting> {
      * @since 1.8.4
      */
     public boolean isModifier() {
-        return base.isFormat();
+        return FormattingCompat.isModifier(base);
     }
 
     /**

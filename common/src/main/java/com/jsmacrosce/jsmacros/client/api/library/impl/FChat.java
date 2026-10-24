@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.library.impl;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import com.google.gson.JsonParseException;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -69,8 +70,8 @@ public class FChat extends BaseLibrary {
     /**
      * Adds a message to the client's chat without sending it to the server. A {@code null} is
      * ignored; text helpers preserve rich formatting and other values are converted with
-     * {@code toString()}. This overload does not wait for the chat task to run when called outside
-     * a thread joined to Minecraft's main thread.
+     * {@code toString()}. The message is added immediately on Minecraft's thread and queued there
+     * from any other thread; this overload never waits for the queued task.
      *
      * @param message the message to log, or {@code null} to do nothing
      * @throws InterruptedException if the script is interrupted while waiting for the message
@@ -83,12 +84,16 @@ public class FChat extends BaseLibrary {
     /**
      * Adds a message to the client's chat without sending it to the server. A {@code null} is
      * ignored; text helpers preserve rich formatting and other values are converted with
-     * {@code toString()}. Outside a thread joined to Minecraft's main thread, {@code await=true}
-     * waits for the scheduled task to finish; {@code await=false} returns without waiting for
-     * that task to run.
+     * {@code toString()}.
+     * <p>
+     * On Minecraft's thread the message is added immediately. From another thread it is queued on
+     * Minecraft's thread; {@code await=true} waits for that queued task to finish. A thread that
+     * Minecraft is already waiting on, such as a joined callback, cannot wait for it without
+     * deadlocking, so the message is queued and this call returns without waiting.
      *
      * @param message the message to log, or {@code null} to do nothing
-     * @param await   should wait for message to actually be sent to chat to continue.
+     * @param await   whether to wait for the message to be added to chat; has no effect on a
+     *                thread that Minecraft is already waiting on
      * @throws InterruptedException if the script is interrupted while waiting
      * @since 1.1.3
      */
@@ -100,23 +105,32 @@ public class FChat extends BaseLibrary {
                 message instanceof TextBuilder ? ((TextBuilder) message).build() :
                         message.toString();
 
-        if (runner.profile.checkJoinedThreadStack()) {
-            if (message2 instanceof TextHelper) {
-                logInternal((TextHelper) message2);
-            } else {
-                logInternal((String) message2);
-            }
-        } else {
-            final Semaphore semaphore = new Semaphore(await ? 0 : 1);
-            mc.execute(() -> {
-                if (message2 instanceof TextHelper) {
-                    logInternal((TextHelper) message2);
-                } else {
-                    logInternal((String) message2);
-                }
+        if (mc.isSameThread()) {
+            logInternal(message2);
+            return;
+        }
+
+        // Minecraft's thread is already blocked waiting for a joined caller, so waiting for this
+        // task would deadlock. Queue it and let the joined callback return.
+        final boolean wait = await && !runner.profile.checkJoinedThreadStack();
+        final Semaphore semaphore = new Semaphore(wait ? 0 : 1);
+        mc.execute(() -> {
+            try {
+                logInternal(message2);
+            } finally {
                 semaphore.release();
-            });
+            }
+        });
+        if (wait) {
             semaphore.acquire();
+        }
+    }
+
+    private static void logInternal(Object message) {
+        if (message instanceof TextHelper) {
+            logInternal((TextHelper) message);
+        } else {
+            logInternal((String) message);
         }
     }
 
@@ -195,13 +209,13 @@ public class FChat extends BaseLibrary {
     private static void logInternal(String message) {
         if (message != null) {
             Component text = Component.literal(message);
-            ((IChatHud) mc.gui.getChat()).jsmacros_addMessageBypass(text);
+            ((IChatHud) GuiCompat.hud(mc).getChat()).jsmacros_addMessageBypass(text);
         }
     }
 
     private static void logInternal(TextHelper text) {
         Minecraft mc = Minecraft.getInstance();
-        ((IChatHud) mc.gui.getChat()).jsmacros_addMessageBypass(text.getRaw());
+        ((IChatHud) GuiCompat.hud(mc).getChat()).jsmacros_addMessageBypass(text.getRaw());
     }
 
     /**
@@ -322,9 +336,9 @@ public class FChat extends BaseLibrary {
             final Semaphore semaphore = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
                 //? if >1.21.8 {
-                /*mc.setScreen(new ChatScreen(finalMessage, true));
+                /*GuiCompat.setScreen(mc, new ChatScreen(finalMessage, true));
                 *///?} else {
-                mc.setScreen(new ChatScreen(finalMessage));
+                GuiCompat.setScreen(mc, new ChatScreen(finalMessage));
                 //?}
                 semaphore.release();
             });
@@ -360,16 +374,16 @@ public class FChat extends BaseLibrary {
             subtitlee = Component.literal(subtitle.toString());
         }
         if (title != null) {
-            mc.gui.setTitle(titlee);
+            GuiCompat.hud(mc).setTitle(titlee);
         }
         if (subtitle != null) {
-            mc.gui.setSubtitle(subtitlee);
+            GuiCompat.hud(mc).setSubtitle(subtitlee);
         }
         if (title == null && subtitle == null) {
-            mc.gui.setTitle(null);
-            mc.gui.setSubtitle(null);
+            GuiCompat.hud(mc).setTitle(null);
+            GuiCompat.hud(mc).setSubtitle(null);
         }
-        mc.gui.setTimes(fadeIn, remain, fadeOut);
+        GuiCompat.hud(mc).setTimes(fadeIn, remain, fadeOut);
     }
 
     /**
@@ -400,7 +414,7 @@ public class FChat extends BaseLibrary {
         } else if (text != null) {
             textt = Component.literal(text.toString());
         }
-        mc.gui.setOverlayMessage(textt, tinted);
+        GuiCompat.hud(mc).setOverlayMessage(textt, tinted);
     }
 
     /**
@@ -414,13 +428,13 @@ public class FChat extends BaseLibrary {
      * @since 1.2.5
      */
     public void toast(Object title, Object desc) {
-        ToastManager t = mc.getToastManager();
+        ToastManager t = GuiCompat.toastManager(mc);
         if (t != null) {
             Component titlee = (title instanceof TextHelper) ? ((TextHelper) title).getRaw() : title != null ? Component.literal(title.toString()) : null;
             Component descc = (desc instanceof TextHelper) ? ((TextHelper) desc).getRaw() : desc != null ? Component.literal(desc.toString()) : null;
             // There doesn't seem to be a difference in the appearance or the functionality except for the UNSECURE_SERVER_WARNING with a longer duration
             if (titlee != null) {
-                t.addToast(SystemToast.multiline(mc, SystemToast.SystemToastId.PERIODIC_NOTIFICATION, titlee, descc));
+                showSystemToast(t, SystemToast.SystemToastId.PERIODIC_NOTIFICATION, titlee, descc);
             }
         }
     }
@@ -438,10 +452,10 @@ public class FChat extends BaseLibrary {
      * @since 1.2.5
      */
     public void toast(Object title, Object desc, long displayTimeMs) {
-        ToastManager t = mc.getToastManager();
+        ToastManager tm = GuiCompat.toastManager(mc);
         // TODO: Are scripts run before Minecraft is properly instantiated anyway? Even if not wouldn't the line above
         //  throw an error because mc is null?
-        if (t == null) {
+        if (tm == null) {
             // TODO: Throw?
             return;
         }
@@ -450,13 +464,26 @@ public class FChat extends BaseLibrary {
         Component descComp = (desc instanceof TextHelper) ? ((TextHelper) desc).getRaw() : desc != null ? Component.literal(desc.toString()) : null;
         // There doesn't seem to be a difference in the appearance or the functionality except for the UNSECURE_SERVER_WARNING with a longer duration
         if (titleComp != null) {
-            t.addToast(SystemToast.multiline(
-                    mc,
-                    new SystemToast.SystemToastId(displayTimeMs),
-                    titleComp,
-                    descComp
-            ));
+            showSystemToast(tm, new SystemToast.SystemToastId(displayTimeMs), titleComp, descComp);
         }
+    }
+
+    /**
+     * Queues a system toast, keeping long descriptions multi-line on versions that still support
+     * that layout.
+     */
+    private static void showSystemToast(ToastManager manager, SystemToast.SystemToastId id,
+                                        Component title, @Nullable Component desc) {
+        // 26.2 removed SystemToast.multiline; its constructor now splits the title and description itself.
+        //? if >=26.2 {
+        SystemToast.add(manager, id, title, desc);
+        //?} else {
+        if (desc == null) {
+            SystemToast.add(manager, id, title, null);
+        } else {
+            manager.addToast(SystemToast.multiline(mc, id, title, desc));
+        }
+        //?}
     }
 
     /**
@@ -596,7 +623,7 @@ public class FChat extends BaseLibrary {
      * @since 1.7.0
      */
     public ChatHistoryManager getHistory() {
-        return new ChatHistoryManager(mc.gui.getChat());
+        return new ChatHistoryManager(GuiCompat.hud(mc).getChat());
     }
 
     /**

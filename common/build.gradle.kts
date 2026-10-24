@@ -39,6 +39,8 @@ dependencies {
 
     // ASM for bytecode manipulation
     compileOnly(libs.asm.tree)
+    // The adapter checks also inspect Java 25 class files; production ASM is unchanged.
+    testImplementation("org.ow2.asm:asm-tree:9.10.1")
 
     // Common library dependencies
     compileOnly(libs.prism4j)
@@ -123,32 +125,57 @@ tasks.named("check") {
     dependsOn(testStringHashTrie)
 }
 
+// These checks inspect compiled adapters and native render state without starting a client.
+sourceSets.named("test") {
+    compileClasspath += sourceSets.main.get().compileClasspath
+    runtimeClasspath += sourceSets.main.get().compileClasspath
+}
+val testSurfaceRenderTypes = tasks.register<JavaExec>("testSurfaceRenderTypes") {
+    group = "verification"
+    description = "Checks overlay shader inputs, vertex layouts and render state"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.SurfaceRenderTypesTest")
+}
+tasks.named("check") {
+    dependsOn(testSurfaceRenderTypes)
+}
+
+val testClientCompat = tasks.register<JavaExec>("testClientCompat") {
+    group = "verification"
+    description = "Checks version-specific GUI/render adapter dispatch and scoped replacements"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.ClientCompatTest")
+}
+tasks.named("check") {
+    dependsOn(testClientCompat)
+}
+
+val testFormattingCompat = tasks.register<JavaExec>("testFormattingCompat") {
+    group = "verification"
+    description = "Checks legacy formatting IDs and color lookup boundaries"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.FormattingCompatTest")
+}
+tasks.named("check") {
+    dependsOn(testFormattingCompat)
+}
+
+if (stonecutter.current.parsed >= "26.2") {
+    val testRenderSink = tasks.register<JavaExec>("testRenderSink") {
+        group = "verification"
+        description = "Checks native overlay submission order, depth phases and pose snapshots"
+        dependsOn(tasks.named("testClasses"))
+        classpath = sourceSets["test"].runtimeClasspath
+        mainClass.set("com.jsmacrosce.RenderSinkTest")
+    }
+    tasks.named("check") {
+        dependsOn(testRenderSink)
+    }
+}
+
 stonecutter {
-    replacements.string(current.parsed >= "1.21.11") {
-        replace("ResourceLocation", "Identifier")
-
-        replace("net.minecraft.Util", "net.minecraft.util.Util")
-        replace("net.minecraft.advancements.critereon", "net.minecraft.advancements.criterion")
-
-        // Conflicts
-        replace("parseIdentifier", "parseIdentifier")
-        replace("getAdvancementsForIdentifiers", "getAdvancementsForIdentifiers")
-        replace("suggestIdentifier", "suggestIdentifier")
-        replace("mapIdentifiers", "mapIdentifiers")
-        replace("getIdentifier", "getIdentifier")
-        replace("writeIdentifier", "writeIdentifier")
-        replace("readIdentifier", "readIdentifier")
-        replace("getWorldIdentifier", "getWorldIdentifier")
-        replace("base.readResourceLocation", "base.readIdentifier")
-        replace("base.writeResourceLocation", "base.writeIdentifier")
-        replace("@return the raw minecraft Identifier.", "@return the raw minecraft Identifier.")
-    }
-
-    replacements.string(current.parsed >= "26.1") {
-        replace("GuiGraphics", "GuiGraphicsExtractor")
-
-        // Conflicts
-        // NeoForge's ScreenEvent.Render.Post accessor, which is still spelled this way
-        replace("getGuiGraphics", "getGuiGraphics")
-    }
+    minecraftReplacements()
 }

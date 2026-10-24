@@ -380,31 +380,5 @@ tasks.register("printVersion") {
 }
 
 stonecutter {
-    replacements.string(current.parsed >= "1.21.11") {
-        replace("ResourceLocation", "Identifier")
-
-        replace("net.minecraft.Util", "net.minecraft.util.Util")
-        replace("net.minecraft.advancements.critereon", "net.minecraft.advancements.criterion")
-
-        // Conflicts
-        replace("parseIdentifier", "parseIdentifier")
-        replace("getAdvancementsForIdentifiers", "getAdvancementsForIdentifiers")
-        replace("suggestIdentifier", "suggestIdentifier")
-        replace("mapIdentifiers", "mapIdentifiers")
-        replace("getIdentifier", "getIdentifier")
-        replace("writeIdentifier", "writeIdentifier")
-        replace("readIdentifier", "readIdentifier")
-        replace("getWorldIdentifier", "getWorldIdentifier")
-        replace("base.readResourceLocation", "base.readIdentifier")
-        replace("base.writeResourceLocation", "base.writeIdentifier")
-        replace("@return the raw minecraft Identifier.", "@return the raw minecraft Identifier.")
-    }
-
-    replacements.string(current.parsed >= "26.1") {
-        replace("GuiGraphics", "GuiGraphicsExtractor")
-
-        // Conflicts
-        // NeoForge's ScreenEvent.Render.Post accessor, which is still spelled this way
-        replace("getGuiGraphics", "getGuiGraphics")
-    }
+    minecraftReplacements()
 }

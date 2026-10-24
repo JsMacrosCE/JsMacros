@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.helper.world;
 
 import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.ChatFormatting;
+import com.jsmacrosce.jsmacros.client.util.FormattingCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.scores.DisplaySlot;
@@ -156,7 +157,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
      */
     public int getTeamColor(PlayerEntityHelper<Player> player) {
         ChatFormatting team = getPlayerTeamColor(player.getRaw());
-        return team == null || team.getColor() == null ? -1 : team.getColor();
+        return team == null ? -1 : FormattingCompat.getColorValue(team);
     }
 
     /**
@@ -167,7 +168,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
      */
     public int getTeamColor() {
         ChatFormatting team = getPlayerTeamColor(Minecraft.getInstance().player);
-        return team == null || team.getColor() == null ? -1 : team.getColor();
+        return team == null ? -1 : FormattingCompat.getColorValue(team);
     }
 
     /**
@@ -181,7 +182,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     @Nullable
     public String getTeamColorName(PlayerEntityHelper<Player> player) {
         ChatFormatting team = getPlayerTeamColor(player.getRaw());
-        return team == null ? null : team.getName();
+        return team == null ? null : FormattingCompat.getName(team);
     }
 
     /**
@@ -193,7 +194,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     @Nullable
     public String getTeamColorName() {
         ChatFormatting team = getPlayerTeamColor(Minecraft.getInstance().player);
-        return team == null ? null : team.getName();
+        return team == null ? null : FormattingCompat.getName(team);
     }
 
     /**
@@ -255,7 +256,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
      */
     protected int getPlayerTeamColorIndex(Player entity) {
         ChatFormatting color = getPlayerTeamColor(entity);
-        return color == null ? -1 : color.getId();
+        return color == null ? -1 : FormattingCompat.getId(color);
     }
 
     /**
@@ -272,7 +273,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
         if (t == null) {
             return null;
         }
-        return t.getColor();
+        return FormattingCompat.getTeamColor(t);
     }
 
     /**

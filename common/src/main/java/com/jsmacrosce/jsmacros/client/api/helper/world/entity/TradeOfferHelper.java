@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.helper.world.entity;
 
+import com.jsmacrosce.jsmacros.client.util.GuiCompat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.trading.MerchantOffer;
@@ -24,7 +25,6 @@ import java.util.List;
  * <p>
  * Trades read from an inventory screen can be selected with {@link #select()} while
  * that screen remains open; trades read from an entity cannot be selected.
- * <pre>
  * <pre>
  * const Inventory = Java.type("com.jsmacrosce.jsmacros.client.api.classes.inventory.Inventory");
  * const VillagerInventory = Java.type("com.jsmacrosce.jsmacros.client.api.classes.inventory.VillagerInventory");
@@ -136,7 +136,7 @@ public class TradeOfferHelper extends BaseHelper<MerchantOffer> {
      * @return self for chaining.
      */
     public TradeOfferHelper select() {
-        if (inv != null && Minecraft.getInstance().screen == inv.getRawContainer()) {
+        if (inv != null && GuiCompat.screen(Minecraft.getInstance()) == inv.getRawContainer()) {
             inv.selectTrade(index);
         }
         return this;
