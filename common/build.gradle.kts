@@ -163,6 +163,17 @@ tasks.named("check") {
     dependsOn(testFormattingCompat)
 }
 
+listOf("InputCompat", "PacketBufferCompat").forEach { checkName ->
+    val adapterCheck = tasks.register<JavaExec>("test$checkName") {
+        group = "verification"
+        description = "Checks $checkName compatibility contracts without starting a client"
+        dependsOn(tasks.named("testClasses"))
+        classpath = sourceSets["test"].runtimeClasspath
+        mainClass.set("com.jsmacrosce.${checkName}Test")
+    }
+    tasks.named("check") { dependsOn(adapterCheck) }
+}
+
 if (stonecutter.current.parsed >= "26.2") {
     val testRenderSink = tasks.register<JavaExec>("testRenderSink") {
         group = "verification"
@@ -174,6 +185,25 @@ if (stonecutter.current.parsed >= "26.2") {
     tasks.named("check") {
         dependsOn(testRenderSink)
     }
+}
+
+if (stonecutter.current.parsed >= "26.3") {
+    val mixinCheck = tasks.register<JavaExec>("testMixinBindings") {
+        group = "verification"
+        description = "Checks common Mixin member descriptors and injection selectors against the exact target"
+        dependsOn(tasks.named("testClasses"))
+        classpath = sourceSets["test"].runtimeClasspath
+        mainClass.set("com.jsmacrosce.MixinBindingsTest")
+        args(sourceSets.main.get().output.classesDirs.files.map { it.absolutePath })
+    }
+    val defaultsCheck = tasks.register<JavaExec>("testVanillaDataDefaults") {
+        group = "verification"
+        description = "Checks vanilla brewing and fuel fallback data without starting a client or server"
+        dependsOn(tasks.named("testClasses"))
+        classpath = sourceSets["test"].runtimeClasspath
+        mainClass.set("com.jsmacrosce.VanillaDataDefaultsTest")
+    }
+    tasks.named("check") { dependsOn(defaultsCheck, mixinCheck) }
 }
 
 stonecutter {
