@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.overlays;
 
+import com.jsmacrosce.jsmacros.client.util.PlatformCompat;
+
 import com.google.common.collect.ImmutableList;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -196,7 +198,7 @@ public class FileChooser extends OverlayContainer {
         }))));
 
         this.addRenderableWidget(new Button(x + 2, y + height - 14, w / 6, 12, textRenderer, 0, 0, 0x7FFFFFFF, 0xFFFFFFFF, Component.translatable("jsmacrosce.openfolder"), (btn) -> {
-            Util.getPlatform().openFile(directory);
+            PlatformCompat.openFile(directory);
         }));
 
         this.setDir(directory);

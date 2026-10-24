@@ -135,7 +135,11 @@ public class AdvancementManagerHelper extends BaseHelper<AdvancementTree> {
      * @since 1.8.4
      */
     public List<AdvancementHelper> getSubAdvancements() {
+        //? if >=26.3 {
+        /*return StreamSupport.stream(base.tasks().spliterator(), false).map(AdvancementHelper::new).collect(Collectors.toList());
+        *///?} else {
         return ((MixinAdvancementManager) base).getDependents().stream().map(AdvancementHelper::new).collect(Collectors.toList());
+        //?}
     }
 
     /**

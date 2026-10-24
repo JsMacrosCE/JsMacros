@@ -1,7 +1,7 @@
 # Suite harness
 
 `suite.js` is a single long-lived script. This page describes how the runner
-works and the contract a new test follows, including the reserved `event` mode.
+works and the contract a new test follows, including the `event` mode.
 
 ## Modes
 
@@ -65,9 +65,9 @@ Every test declares `id`, `category`, `mode`, `title`; `screen` tests may add
 - `state.cleanup` (screen tests) or `teardown(state)` (observe/event tests) runs
   when a test ends, when the page closes, or when a retry restarts the test.
 
-## Future `event` tests
+## `event` tests
 
-The runner already supports the shape an event test needs:
+Event tests use this shape:
 
 ```js
 {

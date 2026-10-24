@@ -74,7 +74,11 @@ public final class ClientCompatTest {
                 }
             }
         }
-        check(blendCalls == 6, "all icon blend calls are adapted");
+        //? if <=1.21.5 {
+        /*check(blendCalls == 6, "legacy immediate icon rendering retains blend state");
+        *///?} else {
+        check(blendCalls == 0, "deferred icons use pipeline blend state, not backend-specific GL calls");
+        //?}
         System.out.println("ClientCompat: 7 adapters, " + checks + " bytecode checks passed");
     }
 

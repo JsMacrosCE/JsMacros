@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.screens;
 
+import com.jsmacrosce.jsmacros.client.util.InputCompat;
+
 import com.google.common.collect.ImmutableList;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.mojang.blaze3d.platform.InputConstants;
@@ -55,7 +57,7 @@ public class KeyMacrosScreen extends MacroScreen {
     @Override
     //? if >1.21.8 {
     /*public boolean keyReleased(KeyEvent keyEvent) {
-    int modifiers = keyEvent.modifiers();
+    int modifiers = InputCompat.modifiers(keyEvent.modifiers());
     *///?} else {
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
     //?}

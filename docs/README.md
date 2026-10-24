@@ -169,7 +169,7 @@ Both website renderers use `ExternalTypeLinks`:
 These are class-level links. No guessed member anchors or decompiler line numbers
 are emitted. Nested Minecraft classes use `$`; external Javadoc uses its dotted
 nested-class filenames. Configured external Javadoc takes precedence. Only
-Minecraft's own `net.minecraft`, Blaze3D, math and Realms packages get the game
+Minecraft's own `net.minecraft`, Blaze3D, RenderPearl, math and Realms packages get the game
 fallback; Authlib, Brigadier and DataFixerUpper are separate libraries.
 JDK Javadoc is selected using the target's Java toolchain version, and external
 `element-list` module prefixes are preserved rather than using legacy framed URLs.

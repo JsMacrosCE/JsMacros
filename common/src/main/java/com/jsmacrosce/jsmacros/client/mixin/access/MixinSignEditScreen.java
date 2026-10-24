@@ -28,8 +28,14 @@ public abstract class MixinSignEditScreen implements ISignEditScreen {
 //    @Final
 //    private boolean front;
 
+    //? if >=26.3 {
+    /*@Shadow
+    @Final
+    private SignText.Mutable text;
+    *///?} else {
     @Shadow
     private SignText text;
+    //?}
 
     @Shadow
     @Nullable
@@ -45,7 +51,11 @@ public abstract class MixinSignEditScreen implements ISignEditScreen {
         }
 
         this.messages[line] = text; // actual
+        //? if >=26.3 {
+        /*this.text.setLine(line, Component.nullToEmpty(text));
+        *///?} else {
         this.text = this.text.setMessage(line, Component.nullToEmpty(text)); // gui visual
+        //?}
         // TODO: On sodium, this needs to be called on the main thread
         // this.blockEntity.setText(this.text, this.front); // block visual
     }

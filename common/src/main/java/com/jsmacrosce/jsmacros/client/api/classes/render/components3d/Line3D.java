@@ -304,7 +304,7 @@ public class Line3D implements RenderElement3D<Line3D> {
 
     @Override
     @DocletIgnore
-    public void render(PoseStack matrixStack, RenderSink sink, float tickDelta) {
+    public void render(PoseStack poseStack, RenderSink sink, float tickDelta) {
         boolean alwaysOnTop = !this.cull;
         //? if >=1.21.11 {
         /*GizmoProperties gizmo = Gizmos.addGizmo(new LineGizmo(
@@ -323,7 +323,7 @@ public class Line3D implements RenderElement3D<Line3D> {
                 lineDepthTestFunction.set(RenderPipelines.LINES, DepthTestFunction.NO_DEPTH_TEST);
             }
             VertexConsumer consumer = sink.getBuffer(RenderType.lines());
-            PoseStack.Pose entry = matrixStack.last();
+            PoseStack.Pose entry = poseStack.last();
 
             // Draw 3 lines in each of the normals for consistency
             addLine(consumer, entry, (float) pos.x1, (float) pos.y1, (float) pos.z1, color, 1, 0, 0);

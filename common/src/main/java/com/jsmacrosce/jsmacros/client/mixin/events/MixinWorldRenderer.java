@@ -1,6 +1,16 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
 import com.jsmacrosce.jsmacros.client.util.RenderCompat;
+//? if >=26.3 {
+/*import com.jsmacrosce.jsmacros.client.access.IOverlayPreparedFrame;
+import com.jsmacrosce.jsmacros.client.api.classes.render.OverlaySubmitNodeCollection;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.renderpearl.api.commands.RenderPass;
+import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import java.util.Optional;
+import java.util.OptionalDouble;
+*///?}
 import com.jsmacrosce.doclet.DocletIgnore;
 
 import com.google.common.collect.ImmutableSet;
@@ -85,6 +95,33 @@ import net.minecraft.world.phys.Vec3;
 @DocletIgnore
 public class MixinWorldRenderer {
 
+    // order-independent transparency keeps transparent fragments in multiple rendertargets and
+    // composites them in a separate pass. Custom alpha overlays must run after classic and OIT
+    // composition, not inside those MRT passes.
+    // A prepared frame groups submitted features by phase; JsMacros adds dedicated depth and top
+    // phases so its overlays run with the intended depth state.
+    //? if >=26.3 {
+    /*@Unique private boolean jsmacros_hasTopOverlays;
+
+    @Inject(method = "frameHasAlwaysOnTopGizmos", at = @At("RETURN"), cancellable = true)
+    private void jsmacros_requireTopPass(CallbackInfoReturnable<Boolean> cir) {
+        if (jsmacros_hasTopOverlays) cir.setReturnValue(true);
+    }
+
+    @Inject(method = "executeOutline", at = @At("HEAD"))
+    private void jsmacros_renderDepthOverlays(FeatureRenderDispatcher.PreparedFrame features, CallbackInfo ci) {
+        IOverlayPreparedFrame overlays = (IOverlayPreparedFrame) features;
+        if (!overlays.jsmacros_hasOverlays(false)) return;
+        var target = targets.main.get();
+        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+                () -> "JsMacros depth overlays", target.getColorTextureView(), Optional.empty(),
+                target.getDepthTextureView(), OptionalDouble.empty())) {
+            RenderSystem.bindDefaultUniforms(pass);
+            overlays.jsmacros_renderOverlays(pass, false);
+        }
+    }
+    *///?}
+
     @Final
     @Shadow
     private LevelTargetBundle targets;
@@ -106,13 +143,16 @@ public class MixinWorldRenderer {
             CallbackInfo ci
     ) {
         jsmacrosce_submitDraw3d(levelRenderState, this.submitNodeStorage);
+        //? if >=26.3 {
+        /^jsmacros_hasTopOverlays = OverlaySubmitNodeCollection.hasTopSubmits(this.submitNodeStorage);
+        ^///?}
     }
 
     @Unique
     private void jsmacrosce_submitDraw3d(LevelRenderState levelRenderState, SubmitNodeStorage collector) {
         try {
             float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
-            PoseStack matrixStack = new PoseStack();
+            PoseStack poseStack = new PoseStack();
             ImmutableSet<Draw3D> draws = ImmutableSet.copyOf(FHud.renders);
 
             DrawableGizmoPrimitives standardGizmos = new DrawableGizmoPrimitives();
@@ -122,7 +162,7 @@ public class MixinWorldRenderer {
             RenderSink depthSink = new RenderSink(collector, false);
             try (Gizmos.TemporaryCollection ignored = Gizmos.withCollector(frameGizmos)) {
                 for (Draw3D d : draws) {
-                    d.render(matrixStack, depthSink, tickDelta);
+                    d.render(poseStack, depthSink, tickDelta);
                 }
             }
 
@@ -136,13 +176,13 @@ public class MixinWorldRenderer {
             standardGizmos.submit(collector, cameraState, false);
 
             // Depth-tested surface elements (cull=true) draw against the terrain depth buffer.
-            Draw3D.renderDirectSurfaces(draws, matrixStack, depthSink, tickDelta, false);
+            Draw3D.renderDirectSurfaces(draws, poseStack, depthSink, tickDelta, false);
 
             alwaysOnTopGizmos.submit(collector, cameraState, true);
 
             // Non-cull surfaces join the always-on-top phase, which clears depth before drawing.
             RenderSink topSink = new RenderSink(collector, true);
-            Draw3D.renderDirectSurfaces(draws, matrixStack, topSink, tickDelta, true);
+            Draw3D.renderDirectSurfaces(draws, poseStack, topSink, tickDelta, true);
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -220,7 +260,7 @@ public class MixinWorldRenderer {
             try {
                 MultiBufferSource.BufferSource consumers = Minecraft.getInstance().renderBuffers().bufferSource();
                 float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
-                PoseStack matrixStack = new PoseStack();
+                PoseStack poseStack = new PoseStack();
                 RenderSink sink = new RenderSink(consumers);
 
                 DrawableGizmoPrimitives standardGizmos = new DrawableGizmoPrimitives();
@@ -229,7 +269,7 @@ public class MixinWorldRenderer {
 
                 try (Gizmos.TemporaryCollection ignored = Gizmos.withCollector(frameGizmos)) {
                     for (Draw3D d : ImmutableSet.copyOf(FHud.renders)) {
-                        d.render(matrixStack, sink, tickDelta);
+                        d.render(poseStack, sink, tickDelta);
                     }
                 }
 
@@ -250,22 +290,22 @@ public class MixinWorldRenderer {
                 try {
                     ImmutableSet<Draw3D> draws = ImmutableSet.copyOf(FHud.renders);
                     if (!standardGizmos.isEmpty()) {
-                        standardGizmos.render(matrixStack, consumers, cameraState, viewMatrix);
+                        standardGizmos.render(poseStack, consumers, cameraState, viewMatrix);
                         consumers.endLastBatch();
                     }
 
                     // Depth-tested surface elements (cull=true) draw while the world
                     // depth buffer is still intact.
-                    Draw3D.renderDirectSurfaces(draws, matrixStack, sink, tickDelta, false);
+                    Draw3D.renderDirectSurfaces(draws, poseStack, sink, tickDelta, false);
                     sink.endBatch();
 
                     if (!alwaysOnTopGizmos.isEmpty()) {
                         RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(mainTarget.getDepthTexture(), 1.0);
-                        alwaysOnTopGizmos.render(matrixStack, consumers, cameraState, viewMatrix);
+                        alwaysOnTopGizmos.render(poseStack, consumers, cameraState, viewMatrix);
                         consumers.endLastBatch();
                     }
 
-                    Draw3D.renderDirectSurfaces(draws, matrixStack, sink, tickDelta, true);
+                    Draw3D.renderDirectSurfaces(draws, poseStack, sink, tickDelta, true);
                     sink.endBatch();
                 } finally {
                     RenderSystem.outputColorTextureOverride = null;
@@ -297,18 +337,18 @@ public class MixinWorldRenderer {
             try {
                 MultiBufferSource.BufferSource consumers = Minecraft.getInstance().renderBuffers().bufferSource();
                 float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
-                PoseStack matrixStack = new PoseStack();
+                PoseStack poseStack = new PoseStack();
                 RenderSink sink = new RenderSink(consumers);
 
                 ImmutableSet<Draw3D> draws = ImmutableSet.copyOf(FHud.renders);
                 for (Draw3D d : draws) {
-                    d.renderDepthPass(matrixStack, sink, tickDelta);
+                    d.renderDepthPass(poseStack, sink, tickDelta);
                 }
                 sink.endBatch();
-                Draw3D.renderDirectSurfaces(draws, matrixStack, sink, tickDelta, false);
+                Draw3D.renderDirectSurfaces(draws, poseStack, sink, tickDelta, false);
                 sink.endBatch();
 
-                Draw3D.renderDirectSurfaces(draws, matrixStack, sink, tickDelta, true);
+                Draw3D.renderDirectSurfaces(draws, poseStack, sink, tickDelta, true);
                 sink.endBatch();
             } catch (Throwable e) {
                 e.printStackTrace();

@@ -80,3 +80,18 @@ pluginManager.withPlugin("net.neoforged.moddev") {
         exclude("accesswideners/**")
     }
 }
+
+if (stonecutterBuild.eval(minecraft_version, ">=26.3")) {
+    val bindingLibraries = configurations.create("mixinBindingCheckLibraries")
+    dependencies.add(bindingLibraries.name, "org.ow2.asm:asm-tree:9.10.1")
+    val bindingCheck = tasks.register<JavaExec>("testMixinBindings") {
+        group = "verification"
+        description = "Checks common and loader Mixin bindings on this loader's exact Minecraft classpath"
+        dependsOn(tasks.named("classes"), "${commonProject.path}:compileTestJava")
+        classpath = bindingLibraries + sourceSets.main.get().runtimeClasspath +
+                files(commonProject.layout.buildDirectory.dir("classes/java/test"))
+        mainClass.set("com.jsmacrosce.MixinBindingsTest")
+        args(sourceSets.main.get().output.classesDirs.files.map { it.absolutePath })
+    }
+    tasks.named("check") { dependsOn(bindingCheck) }
+}

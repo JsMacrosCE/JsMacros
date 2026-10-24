@@ -5,7 +5,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.function.Consumer;
 
@@ -32,6 +32,20 @@ import com.jsmacrosce.doclet.DocletCategory;
  */
 @DocletCategory("Screen and UI Elements")
 public class TextInput extends Button {
+    //? if >=26.3 {
+    /*@com.jsmacrosce.doclet.DocletIgnore
+    @Override
+    public void setFocused(boolean focused) {
+        super.setFocused(focused);
+        Minecraft.getInstance().onTextInputFocusChange(this, focused);
+    }
+
+    @com.jsmacrosce.doclet.DocletIgnore
+    @Override
+    public boolean capturesInput() {
+        return isFocused();
+    }
+    *///?}
     /** Optional mutable callback receiving stored content after accepted character input, paste, cut, or deletion; null suppresses notification.
      * Some boundary deletions notify even when content is unchanged. Constructor initialization, direct field writes, {@code setMessage(String)}, selection changes, and focus changes do not notify. The callback runs before later selection updates.
      */
@@ -266,7 +280,7 @@ public class TextInput extends Button {
                 arrowCursor = selStartIndex;
             }
             switch (keyCode) {
-                case GLFW.GLFW_KEY_BACKSPACE:
+                case InputConstants.KEY_BACKSPACE:
                     if (selStartIndex == selEndIndex && selStartIndex > 0) {
                         updateSelStart(selStartIndex - 1);
                     }
@@ -277,7 +291,7 @@ public class TextInput extends Button {
                     updateSelEnd(selStartIndex);
                     arrowCursor = selStartIndex;
                     break;
-                case GLFW.GLFW_KEY_DELETE:
+                case InputConstants.KEY_DELETE:
                     if (selStartIndex == selEndIndex && selStartIndex < content.length()) {
                         updateSelEnd(selEndIndex + 1);
                     }
@@ -288,15 +302,15 @@ public class TextInput extends Button {
                     updateSelEnd(selStartIndex);
                     arrowCursor = selStartIndex;
                     break;
-                case GLFW.GLFW_KEY_HOME:
+                case InputConstants.KEY_HOME:
                     updateSelStart(0);
                     updateSelEnd(0);
                     break;
-                case GLFW.GLFW_KEY_END:
+                case InputConstants.KEY_END:
                     this.updateSelStart(content.length());
                     this.updateSelEnd(content.length());
                     break;
-                case GLFW.GLFW_KEY_LEFT:
+                case InputConstants.KEY_LEFT:
                     if (arrowCursor > 0) {
                         if (arrowCursor < selEndIndex) {
                             updateSelStart(--arrowCursor);
@@ -311,7 +325,7 @@ public class TextInput extends Button {
                         }
                     }
                     break;
-                case GLFW.GLFW_KEY_RIGHT:
+                case InputConstants.KEY_RIGHT:
                     if (arrowCursor < content.length()) {
                         if (arrowCursor < selEndIndex) {
                             updateSelStart(++arrowCursor);

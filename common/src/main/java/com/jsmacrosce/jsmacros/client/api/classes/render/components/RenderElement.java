@@ -89,7 +89,7 @@ public interface RenderElement extends Renderable {
     * a no-op; elements that support this path override it.
     */
     @DocletIgnore
-    default void render3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
+    default void render3D(PoseStack poseStack, RenderSink sink, int light, boolean seeThrough, float delta) {
     }
 
     /**

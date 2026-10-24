@@ -59,7 +59,9 @@ public class FakeServerCommandSource extends CommandSourceStack {
      */
     public FakeServerCommandSource(ClientSuggestionProvider source, LocalPlayer player) {
         // TODO: (1.21.11) These are specified as NotNull, will this fail?
-        //? if >=1.21.11 {
+        //? if >=26.3 {
+        /*super(null, player.position(), player.getRotationVector(), null, PermissionSet.ALL_PERMISSIONS, null, player);
+        *///? } else if >=1.21.11 {
         /*super(null, player.position(), player.getRotationVector(), null, PermissionSet.ALL_PERMISSIONS, player.getName().getString(), player.getDisplayName(), null, player);
         *///? } else {
         super(null, player.position(), player.getRotationVector(), null, 100, player.getName().getString(), player.getDisplayName(), null, player);

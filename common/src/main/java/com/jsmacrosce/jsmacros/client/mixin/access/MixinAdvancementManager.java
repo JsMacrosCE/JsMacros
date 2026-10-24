@@ -23,7 +23,9 @@ public interface MixinAdvancementManager {
     @Accessor("nodes")
     Map<ResourceLocation, AdvancementNode> getAdvancements();
 
+    //? if <26.3 {
     @Accessor("tasks")
     Set<AdvancementNode> getDependents();
+    //?}
 
 }

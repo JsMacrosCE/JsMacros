@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
+import com.jsmacrosce.jsmacros.client.util.PoseCompat;
+
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -451,17 +453,17 @@ public class Line implements RenderElement, Alignable<Line> {
 
     @Override
     @DocletIgnore
-    public void render3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
-        matrixStack.pushPose();
-        matrixStack.translate(x1, y1, 0);
+    public void render3D(PoseStack poseStack, RenderSink sink, int light, boolean seeThrough, float delta) {
+        poseStack.pushPose();
+        poseStack.translate(x1, y1, 0);
         if (rotateCenter) {
-            matrixStack.translate(getScaledWidth() / 2d, getScaledHeight() / 2d, 0);
+            poseStack.translate(getScaledWidth() / 2d, getScaledHeight() / 2d, 0);
         }
-        matrixStack.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        PoseCompat.rotate(poseStack, new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
         if (rotateCenter) {
-            matrixStack.translate(-getScaledWidth() / 2d, -getScaledHeight() / 2d, 0);
+            poseStack.translate(-getScaledWidth() / 2d, -getScaledHeight() / 2d, 0);
         }
-        matrixStack.translate(-x1, -y1, 0);
+        poseStack.translate(-x1, -y1, 0);
 
         float brightness = RenderElement.lightBrightness(light);
         float a = ((color >> 24) & 0xFF) / 255.0f;
@@ -473,7 +475,7 @@ public class Line implements RenderElement, Alignable<Line> {
         float dy = y2 - y1;
         float length = (float) Math.sqrt(dx * dx + dy * dy);
         if (length == 0 || width <= 0) {
-            matrixStack.popPose();
+            poseStack.popPose();
             return;
         }
 
@@ -487,14 +489,14 @@ public class Line implements RenderElement, Alignable<Line> {
         float startY = y1;
         float endX = x2;
         float endY = y2;
-        sink.submitGeometry(matrixStack, SurfaceRenderTypes.quads(false, !seeThrough), (pose, vc) -> {
+        sink.submitGeometry(poseStack, SurfaceRenderTypes.quads(false, !seeThrough), (pose, vc) -> {
             vc.addVertex(pose, startX + offsetX, startY + offsetY, 0).setColor(r, g, b, a);
             vc.addVertex(pose, startX - offsetX, startY - offsetY, 0).setColor(r, g, b, a);
             vc.addVertex(pose, endX - offsetX, endY - offsetY, 0).setColor(r, g, b, a);
             vc.addVertex(pose, endX + offsetX, endY + offsetY, 0).setColor(r, g, b, a);
         });
 
-        matrixStack.popPose();
+        poseStack.popPose();
     }
 
     /**

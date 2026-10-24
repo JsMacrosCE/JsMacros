@@ -9,7 +9,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.*;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
 import com.jsmacrosce.jsmacros.client.api.event.impl.EventQuitGame;
 import com.jsmacrosce.jsmacros.client.api.helper.PacketByteBufferHelper;
 import com.jsmacrosce.jsmacros.client.config.ClientConfigV2;
@@ -47,7 +46,7 @@ public class JsMacrosClient extends JsMacros {
     public static String keyBindingCategory = I18n.get("jsmacrosce.title");
     //?}
     /** Menu key mapping, initially bound to {@code K} in {@code keyBindingCategory}; assigning this field does not itself register a mapping. */
-    public static KeyMapping keyBinding = new KeyMapping("jsmacrosce.menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_K, keyBindingCategory);
+    public static KeyMapping keyBinding = new KeyMapping("jsmacrosce.menu", InputConstants.Type.KEYSYM, InputConstants.KEY_K, keyBindingCategory);
     /** Client scripting core, with configuration rooted at the client config directory and scripts in its {@code Macros} child. */
     public static final Core<ClientProfile, EventRegistry> clientCore = new Core<>(EventRegistry::new, ClientProfile::new, configFolder.getAbsoluteFile(), new File(configFolder, "Macros"), LOGGER);
 

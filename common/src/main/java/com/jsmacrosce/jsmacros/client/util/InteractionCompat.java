@@ -5,6 +5,11 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import com.jsmacrosce.doclet.DocletIgnore;
+import net.minecraft.client.player.LocalPlayer;
+//? if >=26.3 {
+/*import net.minecraft.network.protocol.game.ServerboundPunchPacket;
+*///?}
 //? if >=26.1 {
 /*import net.minecraft.world.phys.EntityHitResult;
 *///?}
@@ -18,6 +23,25 @@ import net.minecraft.world.entity.player.Player;
 public final class InteractionCompat {
 
     private InteractionCompat() {
+    }
+
+    @DocletIgnore
+    public static void swingAttack(LocalPlayer player) {
+        //? if >=26.3 {
+        /*player.swing(InteractionHand.MAIN_HAND, player.getMainHandItem().getAttackAnimation(), false);
+        player.connection.send(ServerboundPunchPacket.INSTANCE);
+        *///?} else {
+        player.swing(InteractionHand.MAIN_HAND);
+        //?}
+    }
+
+    @DocletIgnore
+    public static void swingInteraction(LocalPlayer player, InteractionHand hand) {
+        //? if >=26.3 {
+        /*player.swing(hand, player.getItemInHand(hand).getInteractAnimation(), false);
+        *///?} else {
+        player.swing(hand);
+        //?}
     }
 
     /**

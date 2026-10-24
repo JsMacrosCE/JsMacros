@@ -23,7 +23,7 @@ import net.minecraft.world.entity.player.PlayerModelPart;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.Nullable;
 
-import org.lwjgl.glfw.GLFW;
+import com.jsmacrosce.jsmacros.client.util.WindowCompat;
 
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletDeclareType;
@@ -398,16 +398,6 @@ public class OptionsHelper extends BaseHelper<Options> {
         return mc.getWindow().getScreenHeight();
     }
 
-    private long getWindowHandle() {
-        Window win = mc.getWindow();
-        //? if >1.21.8 {
-         /*long handle = win.handle(); 
-        *///?} else {
-        long handle = win.getWindow();
-        //?}
-        return handle;
-    }
-
     /**
      * Sets the window's screen width, preserving its current screen height.
      * @param w the width in pixels
@@ -416,7 +406,7 @@ public class OptionsHelper extends BaseHelper<Options> {
      */
     public OptionsHelper setWidth(int w) {
         Window win = mc.getWindow();
-        GLFW.glfwSetWindowSize(getWindowHandle(), w, win.getScreenHeight());
+        WindowCompat.setSize(win, w, win.getScreenHeight());
         return this;
     }
 
@@ -428,7 +418,7 @@ public class OptionsHelper extends BaseHelper<Options> {
      */
     public OptionsHelper setHeight(int h) {
         Window win = mc.getWindow();
-        GLFW.glfwSetWindowSize(getWindowHandle(), win.getScreenWidth(), h);
+        WindowCompat.setSize(win, win.getScreenWidth(), h);
         return this;
     }
 
@@ -441,7 +431,7 @@ public class OptionsHelper extends BaseHelper<Options> {
      */
     public OptionsHelper setSize(int w, int h) {
         Window win = mc.getWindow();
-        GLFW.glfwSetWindowSize(getWindowHandle(), w, h);
+        WindowCompat.setSize(win, w, h);
         return this;
     }
 
@@ -1725,21 +1715,31 @@ public class OptionsHelper extends BaseHelper<Options> {
 
         /**
          * Returns whether raw mouse input is enabled.
+         * Minecraft 26.3 removed the setting; its SDL relative mouse mode uses raw input by
+         * default, so this returns {@code true} on that target and cannot be changed there.
          * @return {@code true} if enabled; {@code false} otherwise.
          * @since 1.8.4
          */
         public boolean isRawMouseInputEnabled() {
+            //? if >=26.3 {
+            /*return true;
+            *///?} else {
             return base.rawMouseInput().get();
+            //?}
         }
 
         /**
          * Sets whether raw mouse input is enabled.
+         * Has no effect on Minecraft 26.3 and later, where the setting no longer exists and
+         * SDL relative mouse mode uses raw input by default.
          * @param val {@code true} to enable raw mouse input
          * @return this helper for chaining.
          * @since 1.8.4
          */
         public ControlOptionsHelper enableRawMouseInput(boolean val) {
+            //? if <26.3 {
             base.rawMouseInput().set(val);
+            //?}
             return this;
         }
 
