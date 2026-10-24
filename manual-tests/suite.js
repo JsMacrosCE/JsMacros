@@ -1881,8 +1881,7 @@ const TESTS = [
         prepare(state) {
             state.frontEvent = null;
             state.backEvent = null;
-            state.listener = JsMacros.on("SignEdit", false, wrap((event, ctx) => {
-                ctx.releaseLock();
+            state.listener = JsMacros.on("SignEdit", wrap((event, ctx) => {
                 const lines = [];
                 if (event.signText != null) {
                     for (let i = 0; i < listSize(event.signText); i++) {
@@ -1936,8 +1935,7 @@ const TESTS = [
         prepare(state) {
             state.seen = null;
             state.cancelled = false;
-            state.listener = JsMacros.on("DropSlot", false, wrap((event, ctx) => {
-                ctx.releaseLock();
+            state.listener = JsMacros.on("DropSlot", wrap((event, ctx) => {
                 if (state.seen != null || event.slot < 36 || event.slot > 44) return;
                 const inventory = event.getInventory();
                 state.seen = {

@@ -29,7 +29,8 @@ class MixinKeyboard {
         if (window != minecraft.getWindow().handle()) {
             return;
         }
-        if (InputConstants.getKey(keyEvent) == InputConstants.UNKNOWN
+        if (keyEvent.key() == -1
+                || InputConstants.getKey(keyEvent) == InputConstants.UNKNOWN
                 || (action != InputConstants.PRESS && action != InputConstants.RELEASE)) {
             return;
         }

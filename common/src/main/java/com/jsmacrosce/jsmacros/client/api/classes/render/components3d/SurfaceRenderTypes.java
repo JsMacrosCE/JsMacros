@@ -147,11 +147,12 @@ public final class SurfaceRenderTypes {
                 .withCull(false);
         addFog(builder);
 
-        //? if >=26.2 {
+        // 26.3 supplies Globals in basePipeline for every shader.
+        //? if >=26.2 <26.3 {
         /*builder.withBindGroupLayout(BindGroupLayouts.GLOBALS);
-        *///? } else if >1.21.5 {
+        *///? } else if >1.21.5 <26.2 {
         builder.withUniform("Globals", UniformType.UNIFORM_BUFFER);
-        //? } else {
+        //? } else if <=1.21.5 {
         /*builder.withUniform("LineWidth", UniformType.FLOAT)
                 .withUniform("ScreenSize", UniformType.VEC2);
         *///? }
