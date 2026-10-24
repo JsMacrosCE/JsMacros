@@ -280,7 +280,14 @@ public final class SurfaceRenderTypes {
 
     // Preserve legacy depth writes; 26.1+ overlays already disable them explicitly.
     private static RenderPipeline finishPipeline(RenderPipeline.Builder builder, boolean depthTest) {
-        //? if >=26.1 {
+        //? if >=26.2 {
+        /*return builder
+                .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+                // 26.2 switched to reversed-Z
+                .withDepthStencilState(new DepthStencilState(
+                        depthTest ? CompareOp.GREATER_THAN_OR_EQUAL : CompareOp.ALWAYS_PASS, false))
+                .build();
+        *///? } else if >=26.1 {
         /*return builder
                 .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
                 .withDepthStencilState(new DepthStencilState(

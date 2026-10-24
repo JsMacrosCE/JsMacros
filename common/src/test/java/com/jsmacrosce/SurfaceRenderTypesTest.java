@@ -74,7 +74,7 @@ public final class SurfaceRenderTypesTest {
         //? if >=26.1 {
         /*check(pipeline.getColorTargetState().blendFunction().orElseThrow().equals(BlendFunction.TRANSLUCENT), "translucent blend");
         check(pipeline.getColorTargetState().writeMask() == 15, "all color channels written");
-        check(pipeline.getDepthStencilState().depthTest() == (depth ? CompareOp.LESS_THAN_OR_EQUAL : CompareOp.ALWAYS_PASS), "depth comparison");
+        check(pipeline.getDepthStencilState().depthTest() == expectedDepthTest(depth), "depth comparison");
         check(!pipeline.getDepthStencilState().writeDepth(), "modern overlay depth writes remain disabled");
         *///?} else {
         check(pipeline.getBlendFunction().orElseThrow().equals(BlendFunction.TRANSLUCENT), "translucent blend");
@@ -138,6 +138,17 @@ public final class SurfaceRenderTypesTest {
             check(pipeline.getShaderDefines().isEmpty(), "untextured shader defines");
         }
     }
+
+    // 26.2 switched to reversed-Z, so the comparison is the opposite of 26.1's.
+    //? if >=26.2 {
+    /*private static CompareOp expectedDepthTest(boolean depth) {
+        return depth ? CompareOp.GREATER_THAN_OR_EQUAL : CompareOp.ALWAYS_PASS;
+    }
+    *///? } else if >=26.1 {
+    /*private static CompareOp expectedDepthTest(boolean depth) {
+        return depth ? CompareOp.LESS_THAN_OR_EQUAL : CompareOp.ALWAYS_PASS;
+    }
+    *///? }
 
     private static RenderPipeline pipeline(RenderType type) throws Exception {
         //? if >=1.21.11 {
