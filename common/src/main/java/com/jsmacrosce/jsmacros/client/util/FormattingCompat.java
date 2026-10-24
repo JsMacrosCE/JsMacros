@@ -35,7 +35,7 @@ public final class FormattingCompat {
     }
 
     public static int getId(ChatFormatting formatting) {
-        return formatting.ordinal();
+        return isColor(formatting) ? formatting.ordinal() : -1;
     }
 
     public static String getName(ChatFormatting formatting) {
@@ -69,8 +69,10 @@ public final class FormattingCompat {
 
     public static ChatFormatting getById(int id) {
         //? if >=26.2 {
-        /*ChatFormatting[] values = ChatFormatting.values();
-        return id >= 0 && id < values.length ? values[id] : null;
+        /*if (id < 0) {
+            return ChatFormatting.RESET;
+        }
+        return id < 16 ? ChatFormatting.values()[id] : null;
         *///?} else {
         return ChatFormatting.getById(id);
         //?}

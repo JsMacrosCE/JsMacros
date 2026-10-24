@@ -152,6 +152,17 @@ tasks.named("check") {
     dependsOn(testClientCompat)
 }
 
+val testFormattingCompat = tasks.register<JavaExec>("testFormattingCompat") {
+    group = "verification"
+    description = "Checks legacy formatting IDs and color lookup boundaries"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.FormattingCompatTest")
+}
+tasks.named("check") {
+    dependsOn(testFormattingCompat)
+}
+
 if (stonecutter.current.parsed >= "26.2") {
     val testRenderSink = tasks.register<JavaExec>("testRenderSink") {
         group = "verification"

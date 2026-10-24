@@ -30,9 +30,10 @@ public final class RenderSinkTest {
         mixedLayers(true);
         existingOrders();
         frameReuse();
+        frameCleanup();
         poseSnapshots();
         itemFeatures();
-        System.out.println("RenderSink: 6 scenarios, " + checks + " checks passed");
+        System.out.println("RenderSink: 7 scenarios, " + checks + " checks passed");
     }
 
     private static void mixedLayers(boolean alwaysOnTop) {
@@ -59,18 +60,22 @@ public final class RenderSinkTest {
     private static void existingOrders() {
         SubmitNodeStorage storage = new SubmitNodeStorage();
         storage.order(1).submitText(new PoseStack(), 0, 0, text(), false, Font.DisplayMode.NORMAL, 0, -1, 0, 0);
+        storage.order(2).outline.submit(new TextFeatureRenderer.Submit(new PoseStack().last().pose(),
+                0, 0, text(), false, Font.DisplayMode.NORMAL, 0, -1, 0, 0));
         RenderSink first = new RenderSink(storage, false);
         RenderSink second = new RenderSink(storage, false);
         first.drawText(new PoseStack(), text(), 0, 0, -1, false, Font.DisplayMode.NORMAL, 0);
         second.drawText(new PoseStack(), text(), 0, 0, -1, false, Font.DisplayMode.NORMAL, 0);
-        check(storage.getSubmitsPerOrder().containsKey(2), "does not reuse vanilla's occupied order");
-        check(storage.getSubmitsPerOrder().containsKey(3), "separate sinks do not share layers");
+        check(storage.getSubmitsPerOrder().containsKey(3), "checks all phases before reusing an order");
+        check(storage.getSubmitsPerOrder().containsKey(4), "separate sinks do not share layers");
         storage.order(1).texts.sortInto((node, sorted) -> {});
+        storage.order(2).outline.sortInto((node, sorted) -> {});
         check(drain(storage, false).size() == 2, "existing empty orders add no nodes");
     }
 
     private static void frameReuse() {
         SubmitNodeStorage storage = new SubmitNodeStorage();
+        var firstLayer = storage.order(1);
         for (int frame = 0; frame < 3; frame++) {
             RenderSink sink = new RenderSink(storage, false);
             for (int i = 0; i < 3; i++) {
@@ -78,6 +83,21 @@ public final class RenderSinkTest {
             }
             check(drain(storage, false).size() == 3, "frame contains only its own nodes");
             check(storage.getSubmitsPerOrder().lastIntKey() == 3, "empty native layers are reused next frame");
+            check(storage.getSubmitsPerOrder().get(1) == firstLayer, "reuses the existing layer instance");
+        }
+    }
+
+    private static void frameCleanup() {
+        for (boolean alwaysOnTop : new boolean[]{false, true}) {
+            SubmitNodeStorage storage = new SubmitNodeStorage();
+            for (int count : new int[]{256, 3, 0, 64, 1, 0}) {
+                RenderSink sink = new RenderSink(storage, alwaysOnTop);
+                for (int i = 0; i < count; i++) {
+                    sink.drawText(new PoseStack(), text(), 0, 0, -1, false, Font.DisplayMode.NORMAL, 0);
+                }
+                check(drain(storage, alwaysOnTop).size() == count, "native drain keeps only this frame's nodes");
+                check(storage.getSubmitsPerOrder().size() == count, "native drain removes unused empty layers");
+            }
         }
     }
 
@@ -137,11 +157,18 @@ public final class RenderSinkTest {
         List<SubmitNode> nodes = new ArrayList<>();
         for (var layer : storage.getSubmitsPerOrder().values()) {
             var target = alwaysOnTop ? layer.alwaysOnTop : layer.afterTerrain;
-            int before = nodes.size();
-            target.sortInto((node, sorted) -> nodes.add(node));
-            check(nodes.size() - before <= 1, "each layer contains at most one node");
             for (var phase : layer.allPhases()) {
-                check(phase.isEmpty(), "no nodes leak into another depth or feature phase");
+                check(phase == target || phase.isEmpty(), "no nodes leak into another depth or feature phase");
+            }
+        }
+        storage.drainPhases(phase -> {
+            int before = nodes.size();
+            phase.sortInto((node, sorted) -> nodes.add(node));
+            check(nodes.size() - before <= 1, "each layer contains at most one node");
+        });
+        for (var layer : storage.getSubmitsPerOrder().values()) {
+            for (var phase : layer.allPhases()) {
+                check(phase.isEmpty(), "native drain consumes every node");
             }
         }
         return nodes;

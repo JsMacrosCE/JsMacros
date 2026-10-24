@@ -71,8 +71,18 @@ public final class RenderSink {
         do {
             layer = storage.order(nextOrder);
             nextOrder = Math.incrementExact(nextOrder);
-        } while (layer.allPhases().stream().anyMatch(phase -> !phase.isEmpty()));
+        } while (isOccupied(layer));
         (alwaysOnTop ? layer.alwaysOnTop : layer.afterTerrain).submit(node);
+    }
+
+    private static boolean isOccupied(SubmitNodeCollection layer) {
+        var phases = layer.allPhases();
+        for (int i = 0; i < phases.size(); i++) {
+            if (!phases.get(i).isEmpty()) {
+                return true;
+            }
+        }
+        return false;
     }
     *///?} else {
     private final MultiBufferSource source;
