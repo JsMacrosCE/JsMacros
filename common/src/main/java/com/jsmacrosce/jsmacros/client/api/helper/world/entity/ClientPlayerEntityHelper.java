@@ -508,13 +508,13 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
         if (joinedMain) {
             mc.gameMode.attack(mc.player, entity.getRaw());
             assert mc.player != null;
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            InteractionCompat.swingAttack(mc.player);
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
                 mc.gameMode.attack(mc.player, entity.getRaw());
                 assert mc.player != null;
-                mc.player.swing(InteractionHand.MAIN_HAND);
+                InteractionCompat.swingAttack(mc.player);
                 wait.release();
             });
             wait.acquire();
@@ -596,13 +596,13 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
         if (joinedMain) {
             mc.gameMode.startDestroyBlock(new BlockPos(x, y, z), direction);
             assert mc.player != null;
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            InteractionCompat.swingAttack(mc.player);
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
                 mc.gameMode.startDestroyBlock(new BlockPos(x, y, z), direction);
                 assert mc.player != null;
-                mc.player.swing(InteractionHand.MAIN_HAND);
+                InteractionCompat.swingAttack(mc.player);
                 wait.release();
             });
             wait.acquire();
@@ -644,7 +644,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
             InteractionResult result = InteractionCompat.interact(mc.gameMode, mc.player, entity.getRaw(), hand);
             assert mc.player != null;
             if (result.consumesAction()) {
-                mc.player.swing(hand);
+                InteractionCompat.swingInteraction(mc.player, hand);
             }
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
@@ -652,7 +652,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
                 InteractionResult result = InteractionCompat.interact(mc.gameMode, mc.player, entity.getRaw(), hand);
                 assert mc.player != null;
                 if (result.consumesAction()) {
-                    mc.player.swing(hand);
+                    InteractionCompat.swingInteraction(mc.player, hand);
                 }
                 wait.release();
             });
@@ -690,7 +690,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
             InteractionResult result = mc.gameMode.useItem(mc.player, hand);
             assert mc.player != null;
             if (result.consumesAction()) {
-                mc.player.swing(hand);
+                InteractionCompat.swingInteraction(mc.player, hand);
             }
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
@@ -698,7 +698,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
                 InteractionResult result = mc.gameMode.useItem(mc.player, hand);
                 assert mc.player != null;
                 if (result.consumesAction()) {
-                    mc.player.swing(hand);
+                    InteractionCompat.swingInteraction(mc.player, hand);
                 }
                 wait.release();
             });
@@ -795,7 +795,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
                     new BlockHitResult(new Vec3(x, y, z), direction, new BlockPos(x, y, z), false));
             assert mc.player != null;
             if (result.consumesAction()) {
-                mc.player.swing(hand);
+                InteractionCompat.swingInteraction(mc.player, hand);
             }
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
@@ -804,7 +804,7 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
                         new BlockHitResult(new Vec3(x, y, z), direction, new BlockPos(x, y, z), false));
                 assert mc.player != null;
                 if (result.consumesAction()) {
-                    mc.player.swing(hand);
+                    InteractionCompat.swingInteraction(mc.player, hand);
                 }
                 wait.release();
             });
