@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
+import com.jsmacrosce.jsmacros.client.util.PoseCompat;
+
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -478,17 +480,17 @@ public class Rect implements RenderElement, Alignable<Rect> {
 
     @Override
     @DocletIgnore
-    public void render3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
-        matrixStack.pushPose();
-        matrixStack.translate(x1, y1, 0);
+    public void render3D(PoseStack poseStack, RenderSink sink, int light, boolean seeThrough, float delta) {
+        poseStack.pushPose();
+        poseStack.translate(x1, y1, 0);
         if (rotateCenter) {
-            matrixStack.translate(getWidth() / 2d, getHeight() / 2d, 0);
+            poseStack.translate(getWidth() / 2d, getHeight() / 2d, 0);
         }
-        matrixStack.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        PoseCompat.rotate(poseStack, new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
         if (rotateCenter) {
-            matrixStack.translate(-getWidth() / 2d, -getHeight() / 2d, 0);
+            poseStack.translate(-getWidth() / 2d, -getHeight() / 2d, 0);
         }
-        matrixStack.translate(-x1, -y1, 0);
+        poseStack.translate(-x1, -y1, 0);
 
         float brightness = RenderElement.lightBrightness(light);
         float a = ((color >> 24) & 0xFF) / 255.0f;
@@ -499,14 +501,14 @@ public class Rect implements RenderElement, Alignable<Rect> {
         float top = y1;
         float right = x2;
         float bottom = y2;
-        sink.submitGeometry(matrixStack, SurfaceRenderTypes.quads(false, !seeThrough), (pose, vc) -> {
+        sink.submitGeometry(poseStack, SurfaceRenderTypes.quads(false, !seeThrough), (pose, vc) -> {
             vc.addVertex(pose, left, top, 0).setColor(r, g, b, a);
             vc.addVertex(pose, right, top, 0).setColor(r, g, b, a);
             vc.addVertex(pose, right, bottom, 0).setColor(r, g, b, a);
             vc.addVertex(pose, left, bottom, 0).setColor(r, g, b, a);
         });
 
-        matrixStack.popPose();
+        poseStack.popPose();
     }
 
     /**

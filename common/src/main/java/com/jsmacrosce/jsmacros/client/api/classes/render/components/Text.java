@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
+import com.jsmacrosce.jsmacros.client.util.PoseCompat;
+
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
@@ -499,30 +501,30 @@ public class Text implements RenderElement, Alignable<Text> {
 
     @Override
     @DocletIgnore
-    public void render3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
-        matrixStack.pushPose();
-        matrixStack.translate(x, y, 0);
-        matrixStack.scale((float) scale, (float) scale, 1);
+    public void render3D(PoseStack poseStack, RenderSink sink, int light, boolean seeThrough, float delta) {
+        poseStack.pushPose();
+        poseStack.translate(x, y, 0);
+        poseStack.scale((float) scale, (float) scale, 1);
         if (rotateCenter) {
-            matrixStack.translate(getWidth() / 2d, getHeight() / 2d, 0);
+            poseStack.translate(getWidth() / 2d, getHeight() / 2d, 0);
         }
-        matrixStack.mulPose(new org.joml.Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        PoseCompat.rotate(poseStack, new org.joml.Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
         if (rotateCenter) {
-            matrixStack.translate(-getWidth() / 2d, -getHeight() / 2d, 0);
+            poseStack.translate(-getWidth() / 2d, -getHeight() / 2d, 0);
         }
-        matrixStack.translate(-x, -y, 0);
+        poseStack.translate(-x, -y, 0);
 
         // The font renderer applies the packed light via its lightmap; keep the
         // requested text color unchanged so lighting is not applied twice.
         //? if >=26.2 {
-        /*sink.drawText(matrixStack, text.getVisualOrderText(), (float) x, (float) y, color, shadow,
+        /*sink.drawText(poseStack, text.getVisualOrderText(), (float) x, (float) y, color, shadow,
                 seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL, light);
         *///?} else {
-        mc.font.drawInBatch(text, (float) x, (float) y, color, shadow, matrixStack.last().pose(), sink.getSource(),
+        mc.font.drawInBatch(text, (float) x, (float) y, color, shadow, poseStack.last().pose(), sink.getSource(),
                 seeThrough ? Font.DisplayMode.SEE_THROUGH : Font.DisplayMode.NORMAL, 0, light);
         //?}
 
-        matrixStack.popPose();
+        poseStack.popPose();
     }
 
     /**

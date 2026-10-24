@@ -150,14 +150,14 @@ public class EntityTraceLine extends TraceLine {
      * level, marks the line for removal and returns without rendering. Called by the
      * renderer.
      *
-     * @param matrixStack the world transform, already translated so the camera is at the origin
+     * @param poseStack the world transform, already translated so the camera is at the origin
      * @param sink the buffer source the geometry goes into
      * @param tickDelta how far into the current tick this frame is, from 0 to 1
      * @author aMelonRind
      * @since 1.9.0
      */
     @Override
-    public void render(PoseStack matrixStack, RenderSink sink, float tickDelta) {
+    public void render(PoseStack poseStack, RenderSink sink, float tickDelta) {
         if (shouldRemove || entity == null || entity.isRemoved() || entity.level() != mc.level) {
             shouldRemove = true;
             dirty = true;
@@ -166,7 +166,7 @@ public class EntityTraceLine extends TraceLine {
 
         Vec3 vec = entity.getPosition(tickDelta);
         setPos(vec.x, vec.y + yOffset, vec.z);
-        super.render(matrixStack, sink, tickDelta);
+        super.render(poseStack, sink, tickDelta);
     }
 
     /**
