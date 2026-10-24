@@ -3,9 +3,14 @@ package com.jsmacrosce.jsmacros.client.api.classes.inventory;
 import net.minecraft.client.gui.screens.inventory.BrewingStandScreen;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.ItemStack;
+//? if <26.3 {
 import net.minecraft.world.item.alchemy.PotionBrewing;
+//?}
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.level.block.entity.BrewingStandBlockEntity;
+//? if >=26.3 {
+/*import com.jsmacrosce.jsmacros.client.util.LocalServerData;
+*///?}
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
@@ -17,6 +22,8 @@ import java.util.stream.Collectors;
 /**
  * Exposes a brewing stand's potion, ingredient, and fuel slots by name, with helpers to check
  * recipes and preview brewing results without changing the stand.
+ * On Minecraft 26.3 and later, recipe queries use the integrated server when available;
+ * on remote servers they use local vanilla recipes and cannot account for remote datapacks.
  * <pre>
  * const inv = Player.openInventory();
  * if (inv.is("Brewing Stand")) {
@@ -55,11 +62,15 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
      * @since 1.8.4
      */
     public boolean isBrewablePotion(ItemStackHelper potion) {
+        //? if >=26.3 {
+        /*return LocalServerData.isBrewablePotion(potion.getRaw());
+        *///?} else {
         PotionContents pot = potion.getRaw().get(DataComponents.POTION_CONTENTS);
         if (pot != null && pot.potion().isPresent()) {
             return Objects.requireNonNull(mc.getConnection()).potionBrewing().isBrewablePotion(pot.potion().get());
         }
         return false;
+        //?}
     }
 
     /**
@@ -68,7 +79,11 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
      * @since 1.8.4
      */
     public boolean isValidIngredient(ItemStackHelper ingredient) {
+        //? if >=26.3 {
+        /*return LocalServerData.isBrewingIngredient(ingredient.getRaw());
+        *///?} else {
         return Objects.requireNonNull(mc.getConnection()).potionBrewing().isIngredient(ingredient.getRaw());
+        //?}
     }
 
     /**
@@ -79,7 +94,11 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
      * @since 1.8.4
      */
     public boolean isValidRecipe(ItemStackHelper potion, ItemStackHelper ingredient) {
+        //? if >=26.3 {
+        /*return LocalServerData.canBrew(potion.getRaw(), ingredient.getRaw());
+        *///?} else {
         return Objects.requireNonNull(mc.getConnection()).potionBrewing().hasMix(potion.getRaw(), ingredient.getRaw());
+        //?}
     }
 
     /**
@@ -91,11 +110,15 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return the maximum fuel-use count (20).
+     * @return the maximum fuel-use count; on Minecraft 26.3 and later, the menu's synchronized total
      * @since 1.8.4
      */
     public int getMaxFuelUses() {
+        //? if >=26.3 {
+        /*return inventory.getMenu().getTotalFuel();
+        *///?} else {
         return BrewingStandBlockEntity.FUEL_USES;
+        //?}
     }
 
     /**
@@ -120,12 +143,16 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
     }
 
     /**
-     * @return elapsed brewing ticks, calculated as the standard brewing duration minus the menu's
-     * remaining ticks.
+     * @return elapsed brewing ticks, calculated from the menu's synchronized total on Minecraft
+     * 26.3 and later, or the standard duration on older versions, minus the remaining ticks
      * @since 1.8.4
      */
     public int getBrewTime() {
+        //? if >=26.3 {
+        /*return inventory.getMenu().getTotalBrewingTicks() - inventory.getMenu().getBrewingTicks();
+        *///?} else {
         return PotionBrewing.BREWING_TIME_SECONDS * 20 - inventory.getMenu().getBrewingTicks();
+        //?}
     }
 
     /**
@@ -144,7 +171,11 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
      * @since 1.8.4
      */
     public ItemStackHelper previewPotion(ItemStackHelper potion, ItemStackHelper ingredient) {
+        //? if >=26.3 {
+        /*return new ItemStackHelper(LocalServerData.brew(potion.getRaw(), ingredient.getRaw()));
+        *///?} else {
         return new ItemStackHelper(Objects.requireNonNull(mc.getConnection()).potionBrewing().mix(ingredient.getRaw(), potion.getRaw()));
+        //?}
     }
 
     /**
@@ -154,8 +185,8 @@ public class BrewingStandInventory extends Inventory<BrewingStandScreen> {
      * @since 1.8.4
      */
     public List<ItemStackHelper> previewPotions() {
-        ItemStack ingredient = getIngredient().getRaw();
-        return getPotions().stream().map(stack -> new ItemStackHelper(Objects.requireNonNull(mc.getConnection()).potionBrewing().mix(ingredient, stack.getRaw()))).collect(Collectors.toList());
+        ItemStackHelper ingredient = getIngredient();
+        return getPotions().stream().map(stack -> previewPotion(stack, ingredient)).collect(Collectors.toList());
     }
 
     /**

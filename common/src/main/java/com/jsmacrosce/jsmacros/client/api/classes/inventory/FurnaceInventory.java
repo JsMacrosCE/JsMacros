@@ -11,6 +11,9 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinAbstractFurnaceScreenHandler;
 
 import java.util.Map;
+//? if >=26.3 {
+/*import com.jsmacrosce.jsmacros.client.util.LocalServerData;
+*///?}
 
 /**
  * Inventory wrapper for a furnace screen, exposing its input, fuel, result, and smelting state.
@@ -119,16 +122,23 @@ public class FurnaceInventory extends RecipeInventory<AbstractFurnaceScreen<?>> 
     }
 
     /**
-     * Returns item registry IDs mapped to their burn times in ticks, using the current world's fuel values.
+     * Returns item registry IDs mapped to their burn times in ticks. On Minecraft 26.3 and later,
+     * uses the open furnace's integrated-server context when available; remote servers use local
+     * vanilla ordinary-furnace defaults, which do not reflect remote datapack providers.
+     * Items referencing providers unknown to the local defaults are omitted on remote servers.
      * @return the fuel-value map
      * @since 1.8.4
      */
     public Map<String, Integer> getFuelValues() {
+        //? if >=26.3 {
+        /*return LocalServerData.fuelValues(inventory.getMenu().containerId);
+        *///?} else {
         Object2IntMap<String> fuelMap = new Object2IntOpenHashMap<>();
         for (Map.Entry<Item, Integer> entry : mc.level.fuelValues().values.entrySet()) {
             fuelMap.put(BuiltInRegistries.ITEM.getKey(entry.getKey()).toString(), entry.getValue().intValue());
         }
         return fuelMap;
+        //?}
     }
 
     /**
