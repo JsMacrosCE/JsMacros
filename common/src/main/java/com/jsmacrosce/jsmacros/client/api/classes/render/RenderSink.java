@@ -57,8 +57,13 @@ public final class RenderSink {
 
     public void drawText(PoseStack matrices, FormattedCharSequence text, float x, float y, int color,
                          boolean shadow, Font.DisplayMode displayMode, int light) {
+        //? if >=26.3 {
+        /^submit(new TextFeatureRenderer.Submit(new Matrix4f(matrices.last().pose()), displayMode, light,
+                new TextFeatureRenderer.Content.Text(x, y, text, shadow, color, 0, 0)));
+        ^///?} else {
         submit(new TextFeatureRenderer.Submit(new Matrix4f(matrices.last().pose()), x, y, text,
                 shadow, displayMode, light, color, 0, 0));
+        //?}
     }
 
     public void submitItem(PoseStack matrices, ItemStackRenderState state, int light) {
@@ -68,11 +73,22 @@ public final class RenderSink {
 
     private void submit(SubmitNode node) {
         SubmitNodeCollection layer;
+        int order;
         do {
-            layer = storage.order(nextOrder);
+            order = nextOrder;
+            layer = storage.order(order);
             nextOrder = Math.incrementExact(nextOrder);
         } while (isOccupied(layer));
+        //? if >=26.3 {
+        /^if (!(layer instanceof OverlaySubmitNodeCollection)) {
+            layer = new OverlaySubmitNodeCollection(storage.seeThrough());
+            storage.getSubmitsPerOrder().put(order, layer);
+        }
+        OverlaySubmitNodeCollection overlay = (OverlaySubmitNodeCollection) layer;
+        (alwaysOnTop ? overlay.overlayTop : overlay.overlayDepth).submit(node);
+        ^///?} else {
         (alwaysOnTop ? layer.alwaysOnTop : layer.afterTerrain).submit(node);
+        //?}
     }
 
     private static boolean isOccupied(SubmitNodeCollection layer) {

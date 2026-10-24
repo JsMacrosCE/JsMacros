@@ -1,6 +1,16 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
 import com.jsmacrosce.jsmacros.client.util.RenderCompat;
+//? if >=26.3 {
+/*import com.jsmacrosce.jsmacros.client.access.IOverlayPreparedFrame;
+import com.jsmacrosce.jsmacros.client.api.classes.render.OverlaySubmitNodeCollection;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.renderpearl.api.commands.RenderPass;
+import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import java.util.Optional;
+import java.util.OptionalDouble;
+*///?}
 import com.jsmacrosce.doclet.DocletIgnore;
 
 import com.google.common.collect.ImmutableSet;
@@ -85,6 +95,33 @@ import net.minecraft.world.phys.Vec3;
 @DocletIgnore
 public class MixinWorldRenderer {
 
+    // order-independent transparency keeps transparent fragments in multiple rendertargets and
+    // composites them in a separate pass. Custom alpha overlays must run after classic and OIT
+    // composition, not inside those MRT passes.
+    // A prepared frame groups submitted features by phase; JsMacros adds dedicated depth and top
+    // phases so its overlays run with the intended depth state.
+    //? if >=26.3 {
+    /*@Unique private boolean jsmacros_hasTopOverlays;
+
+    @Inject(method = "frameHasAlwaysOnTopGizmos", at = @At("RETURN"), cancellable = true)
+    private void jsmacros_requireTopPass(CallbackInfoReturnable<Boolean> cir) {
+        if (jsmacros_hasTopOverlays) cir.setReturnValue(true);
+    }
+
+    @Inject(method = "executeOutline", at = @At("HEAD"))
+    private void jsmacros_renderDepthOverlays(FeatureRenderDispatcher.PreparedFrame features, CallbackInfo ci) {
+        IOverlayPreparedFrame overlays = (IOverlayPreparedFrame) features;
+        if (!overlays.jsmacros_hasOverlays(false)) return;
+        var target = targets.main.get();
+        try (RenderPass pass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+                () -> "JsMacros depth overlays", target.getColorTextureView(), Optional.empty(),
+                target.getDepthTextureView(), OptionalDouble.empty())) {
+            RenderSystem.bindDefaultUniforms(pass);
+            overlays.jsmacros_renderOverlays(pass, false);
+        }
+    }
+    *///?}
+
     @Final
     @Shadow
     private LevelTargetBundle targets;
@@ -106,6 +143,9 @@ public class MixinWorldRenderer {
             CallbackInfo ci
     ) {
         jsmacrosce_submitDraw3d(levelRenderState, this.submitNodeStorage);
+        //? if >=26.3 {
+        /^jsmacros_hasTopOverlays = OverlaySubmitNodeCollection.hasTopSubmits(this.submitNodeStorage);
+        ^///?}
     }
 
     @Unique
