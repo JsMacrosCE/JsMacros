@@ -7,8 +7,10 @@ package com.jsmacrosce.jsmacros.client.access;
  * if (Player.getPlayer()) {
  *   const inv = Player.openInventory();
  *   const screen = inv.getRawContainer();
- *   if (screen && typeof screen.jsmacros_canApplyDyePattern === "function") {
- *     Chat.log(screen.jsmacros_canApplyDyePattern());
+ *   if (screen) {
+ *     if (typeof screen.jsmacros_canApplyDyePattern === "function") {
+ *       Chat.log(screen.jsmacros_canApplyDyePattern());
+ *     }
  *   }
  * }
  * </pre>

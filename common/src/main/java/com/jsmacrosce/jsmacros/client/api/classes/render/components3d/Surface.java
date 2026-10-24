@@ -1017,7 +1017,6 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
          * configured offset determines the render position; otherwise the configured
          * builder position is used. Passing {@code null} leaves the surface unbound.
          * <pre>
-         * <pre>
          * const player = Player.getPlayer();
          * if (player !== null) {
          *   const draw = Hud.createDraw3D();
@@ -1054,7 +1053,6 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
          * Sets the entity-following offset in blocks, retained by reference and shared
          * with surfaces built by this builder. It has no effect while unbound.
          * <pre>
-         * <pre>
          * const player = Player.getPlayer();
          * if (player !== null) {
          *   const draw = Hud.createDraw3D();
@@ -1078,7 +1076,6 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
         /**
          * Sets the entity-following offset in blocks, creating a new position object
          * rather than sharing one supplied by the caller.
-         * <pre>
          * <pre>
          * const player = Player.getPlayer();
          * if (player !== null) {

@@ -16,7 +16,7 @@ import net.minecraft.world.scores.TeamColor;
  * <p>
  * Up to 26.1 the enum carried its colour value, id, name, code character and colour/modifier
  * flags. 26.2 reduced it to the colour names and a code lookup, moving colour values to
- * {@link TextColor} and team colours to {@link TeamColor}. These helpers derive the old values
+ * {@code TextColor} and team colours to {@code TeamColor}. These helpers derive the old values
  * from the enum's ordinal, name and code so the script API keeps reporting the same data.
  */
 @DocletIgnore

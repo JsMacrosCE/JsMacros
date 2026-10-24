@@ -502,7 +502,7 @@ public interface IScreen extends IDraw2D<IScreen> {
     /**
      * Runs when a key is pressed over this screen, receiving the game's key code and the
      * modifier-key bitmask. The key code identifies a key, not a typed character; use
-     * {@link KeyBind} to refer to named keys.
+     * {@code KeyBind} to refer to named keys.
      * <p>
      * This callback does not consume the key; game handling may still occur.
      * <pre>

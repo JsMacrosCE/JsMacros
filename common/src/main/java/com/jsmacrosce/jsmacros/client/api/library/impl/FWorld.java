@@ -296,7 +296,7 @@ public class FWorld extends BaseLibrary {
      * string representation contains {@code chest} or {@code barrel}; building does not scan.
      * <pre>
      * World.getWorldScanner()
-     *     .withBlockFilter("getHardness").is("<=", 10)
+     *     .withBlockFilter("getHardness").is("\x3C=", 10)
      *     .andStringBlockFilter().contains("chest", "barrel")
      *     .withStringStateFilter().contains("facing=south")
      *     .andStateFilter("isToolRequired").is(false)

@@ -149,8 +149,10 @@ public class AdvancementManagerHelper extends BaseHelper<AdvancementTree> {
      * // both spellings work, the namespace is optional
      * const a = manager.getAdvancement("minecraft:story/root");
      * const b = manager.getAdvancement("story/root");
-     * if (a.getRaw() !== null && b.getRaw() !== null) {
-     *   Chat.log(`${a.getId()} is ${b.getId()}`);
+     * if (a.getRaw() !== null) {
+     *   if (b.getRaw() !== null) {
+     *     Chat.log(`${a.getId()} is ${b.getId()}`);
+     *   }
      * }
      * </pre>
      *

@@ -7,10 +7,14 @@ import net.minecraft.client.gui.screens.recipebook.RecipeBookPage;
  * Accesses recipe-book state on a focused screen component.
  * <pre>
  * const screen = Hud.getOpenScreen();
- * if (screen && typeof screen.getFocused === "function") {
- *   const widget = screen.getFocused();
- *   if (widget && typeof widget.jsmacros_isSearching === "function") {
- *     Chat.log(widget.jsmacros_isSearching());
+ * if (screen) {
+ *   if (typeof screen.getFocused === "function") {
+ *     const widget = screen.getFocused();
+ *     if (widget) {
+ *       if (typeof widget.jsmacros_isSearching === "function") {
+ *         Chat.log(widget.jsmacros_isSearching());
+ *       }
+ *     }
  *   }
  * }
  * </pre>

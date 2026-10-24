@@ -26,7 +26,6 @@ import java.util.List;
  * Trades read from an inventory screen can be selected with {@link #select()} while
  * that screen remains open; trades read from an entity cannot be selected.
  * <pre>
- * <pre>
  * const Inventory = Java.type("com.jsmacrosce.jsmacros.client.api.classes.inventory.Inventory");
  * const VillagerInventory = Java.type("com.jsmacrosce.jsmacros.client.api.classes.inventory.VillagerInventory");
  * const inv = Inventory.create(Hud.getOpenScreen());
