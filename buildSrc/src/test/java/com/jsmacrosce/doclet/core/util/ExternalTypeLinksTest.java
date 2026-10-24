@@ -9,7 +9,7 @@ public final class ExternalTypeLinksTest {
             equal(link("net.minecraft.client.multiplayer", "PlayerInfo", version),
                 "https://mappings.dev/" + version + "/net/minecraft/client/multiplayer/PlayerInfo.html");
         }
-        for (String version : new String[] {"26.1", "26.1.2", "26.2", "27.1"}) {
+        for (String version : new String[] {"26.1", "26.1.2", "26.2", "26.3", "27.1"}) {
             equal(link("net.minecraft.client.multiplayer", "PlayerInfo", version),
                 "https://mcsrc.dev/2/" + version + "/net/minecraft/client/multiplayer/PlayerInfo");
         }
@@ -17,6 +17,10 @@ public final class ExternalTypeLinksTest {
             "https://mappings.dev/1.21.8/net/minecraft/world/phys/HitResult$Type.html");
         equal(link("net.minecraft.world.phys", "HitResult$Type", "26.1.2"),
             "https://mcsrc.dev/2/26.1.2/net/minecraft/world/phys/HitResult$Type");
+        equal(link("com.mojang.renderpearl.api.pipeline", "RenderPipeline.Builder", "26.3"),
+            "https://mcsrc.dev/2/26.3/com/mojang/renderpearl/api/pipeline/RenderPipeline$Builder");
+        equal(link("com.mojang.renderpearl.api.vertex", "VertexFormat", "26.3"),
+            "https://mcsrc.dev/2/26.3/com/mojang/renderpearl/api/vertex/VertexFormat");
         for (String pkg : new String[] {"com.mojang.blaze3d.systems", "com.mojang.math", "com.mojang.realmsclient.dto"}) {
             equal(link(pkg, "Example", "26.1.2"), "https://mcsrc.dev/2/26.1.2/" + pkg.replace('.', '/') + "/Example");
         }
@@ -38,7 +42,7 @@ public final class ExternalTypeLinksTest {
         equal(ExternalTypeLinks.resolve("net.minecraft.client.multiplayer", "PlayerInfo", "26.1.2",
             Map.of("net.minecraft.client.multiplayer", "https://example.org/explicit/")),
             "https://example.org/explicit/PlayerInfo.html");
-        System.out.println("ExternalTypeLinks: 26 regression checks passed");
+        System.out.println("ExternalTypeLinks: 29 regression checks passed");
     }
 
     private static String link(String pkg, String name, String version) {

@@ -143,7 +143,11 @@ public abstract class MixinClientPlayNetworkHandler extends ClientCommonPacketLi
 
     @Inject(at = @At("TAIL"), method = "handleLevelChunkWithLight")
     public void onChunkData(ClientboundLevelChunkWithLightPacket packet, CallbackInfo info) {
+        //? if >=26.3 {
+        /*new EventChunkLoad(packet.x(), packet.z(), true).trigger();
+        *///?} else {
         new EventChunkLoad(packet.getX(), packet.getZ(), true).trigger();
+        //?}
     }
 
     @Inject(at = @At("TAIL"), method = "handleBlockUpdate")
@@ -153,7 +157,7 @@ public abstract class MixinClientPlayNetworkHandler extends ClientCommonPacketLi
 
     @Inject(at = @At("TAIL"), method = "handleChunkBlocksUpdate")
     public void onChunkDeltaUpdate(ClientboundSectionBlocksUpdatePacket packet, CallbackInfo info) {
-        packet.runUpdates((blockPos, blockState) -> new EventBlockUpdate(blockState, level.getBlockEntity(blockPos), new BlockPos(blockPos), "STATE").trigger());
+        packet.runUpdates((blockPos, blockState) -> new EventBlockUpdate(blockState, level.getBlockEntity(blockPos), blockPos.immutable(), "STATE").trigger());
     }
 
     @Inject(at = @At("TAIL"), method = "handleBlockEntityData")

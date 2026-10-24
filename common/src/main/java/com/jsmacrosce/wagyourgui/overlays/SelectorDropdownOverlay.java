@@ -6,7 +6,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import com.jsmacrosce.wagyourgui.elements.Button;
 import com.jsmacrosce.wagyourgui.elements.Scrollbar;
@@ -172,17 +172,17 @@ public class SelectorDropdownOverlay extends OverlayContainer {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         switch (keyCode) {
     //?}
-            case GLFW.GLFW_KEY_UP:
+            case InputConstants.KEY_UP:
                 if (selected == -1) {
                     return false;
                 }
                 setSelected(selected - 1);
                 return true;
-            case GLFW.GLFW_KEY_DOWN:
+            case InputConstants.KEY_DOWN:
                 setSelected(selected + 1);
                 return true;
-            case GLFW.GLFW_KEY_ENTER:
-            case GLFW.GLFW_KEY_TAB:
+            case InputConstants.KEY_RETURN:
+            case InputConstants.KEY_TAB:
                 if (onChoice != null) {
                     onChoice.accept(selected);
                 }

@@ -26,4 +26,9 @@ public interface MixinAbstractFurnaceScreenHandler {
     @Accessor("data")
     ContainerData getPropertyDelegate();
 
+    //? if >=26.3 {
+    /*@Accessor("container")
+    net.minecraft.world.Container jsmacros_getContainer();
+    *///?}
+
 }

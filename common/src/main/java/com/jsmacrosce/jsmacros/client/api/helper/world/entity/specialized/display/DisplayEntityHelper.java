@@ -18,9 +18,9 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinDisplayEntity;
  * if (displays !== null) {
  *   for (const entity of displays) {
  *     const display = DisplayEntityHelper.class.cast(entity);
- *     // the box the client is using to decide whether to draw it at all
+ *     // the display's culling bounds at its current position
  *     const box = display.getVisibilityBoundingBox();
- *     Chat.log(`${entity.getType()} at ${entity.getPos()}, culled against ${box.getDeltaX()} by ${box.getDeltaY()}`);
+ *     Chat.log(`${entity.getType()} at ${entity.getPos()}, culling bounds ${box.getDeltaX()} by ${box.getDeltaY()}`);
  *   }
  * }
  * </pre>
@@ -91,17 +91,19 @@ public class DisplayEntityHelper<T extends Display> extends EntityHelper<T> {
     }
 
     /**
-     * Returns the entity's culling box as a {@link Vec3D} whose {@code x1}, {@code y1}, and
-     * {@code z1} are the minimum corner and {@code x2}, {@code y2}, and {@code z2} the maximum.
-     * Its horizontal half-extents come from display width and its vertical extent from display
-     * height; the content transformation is not included. A zero width or height disables
-     * culling, though the returned box is still collapsed on that dimension.
+     * Returns the display's culling box at its current position, sized by its display width and height.
+     * Content transformations are excluded. A zero width or height disables culling but leaves
+     * that dimension of the returned box collapsed.
      *
      * @return the culling box, from its minimum corner to its maximum corner
      * @since 1.9.1
      */
     public Vec3D getVisibilityBoundingBox() {
+        //? if >=26.3 {
+        /*AABB box = base.getInterpolatedBoundingBox(1.0F);
+        *///?} else {
         AABB box = base.getBoundingBoxForCulling();
+        //?}
         return new Vec3D(box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ);
     }
 
@@ -188,7 +190,7 @@ public class DisplayEntityHelper<T extends Display> extends EntityHelper<T> {
 
     /**
      * Returns the width used to construct the display's culling box; zero by default. It is a
-     * half-extent on each horizontal axis, and a zero width disables culling.
+     * full extent on each horizontal axis, and a zero width disables culling.
      *
      * @return the display width, 0.0 by default
      * @since 1.9.1

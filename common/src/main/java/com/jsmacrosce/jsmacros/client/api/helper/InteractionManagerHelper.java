@@ -401,13 +401,13 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
         if (joinedMain) {
             base.attack(mc.player, entity.getRaw());
             assert mc.player != null;
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            InteractionCompat.swingAttack(mc.player);
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
                 base.attack(mc.player, entity.getRaw());
                 assert mc.player != null;
-                mc.player.swing(InteractionHand.MAIN_HAND);
+                InteractionCompat.swingAttack(mc.player);
                 wait.release();
             });
             wait.acquire();
@@ -479,13 +479,13 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
         if (joinedMain) {
             base.startDestroyBlock(new BlockPos(x, y, z), direction);
             assert mc.player != null;
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            InteractionCompat.swingAttack(mc.player);
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
             mc.execute(() -> {
                 base.startDestroyBlock(new BlockPos(x, y, z), direction);
                 assert mc.player != null;
-                mc.player.swing(InteractionHand.MAIN_HAND);
+                InteractionCompat.swingAttack(mc.player);
                 wait.release();
             });
             wait.acquire();
@@ -718,7 +718,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
             InteractionResult result = InteractionCompat.interact(base, mc.player, entity.getRaw(), hand);
             assert mc.player != null;
             if (result.consumesAction()) {
-                mc.player.swing(hand);
+                InteractionCompat.swingInteraction(mc.player, hand);
             }
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
@@ -726,7 +726,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
                 InteractionResult result = InteractionCompat.interact(base, mc.player, entity.getRaw(), hand);
                 assert mc.player != null;
                 if (result.consumesAction()) {
-                    mc.player.swing(hand);
+                    InteractionCompat.swingInteraction(mc.player, hand);
                 }
                 wait.release();
             });
@@ -758,7 +758,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
             InteractionResult result = base.useItem(mc.player, hand);
             assert mc.player != null;
             if (result.consumesAction()) {
-                mc.player.swing(hand);
+                InteractionCompat.swingInteraction(mc.player, hand);
             }
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
@@ -766,7 +766,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
                 InteractionResult result = base.useItem(mc.player, hand);
                 assert mc.player != null;
                 if (result.consumesAction()) {
-                    mc.player.swing(hand);
+                    InteractionCompat.swingInteraction(mc.player, hand);
                 }
                 wait.release();
             });
@@ -847,7 +847,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
             );
             assert mc.player != null;
             if (result.consumesAction()) {
-                mc.player.swing(hand);
+                InteractionCompat.swingInteraction(mc.player, hand);
             }
         } else {
             Semaphore wait = new Semaphore(await ? 0 : 1);
@@ -857,7 +857,7 @@ public class InteractionManagerHelper extends BaseHelper<MultiPlayerGameMode> {
                 );
                 assert mc.player != null;
                 if (result.consumesAction()) {
-                    mc.player.swing(hand);
+                    InteractionCompat.swingInteraction(mc.player, hand);
                 }
                 wait.release();
             });

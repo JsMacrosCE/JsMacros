@@ -51,6 +51,7 @@ public final class ExternalTypeLinks {
     private static boolean isGamePackage(String packageName) {
         return inPackage(packageName, "net.minecraft")
             || inPackage(packageName, "com.mojang.blaze3d")
+            || inPackage(packageName, "com.mojang.renderpearl")
             || inPackage(packageName, "com.mojang.math")
             || inPackage(packageName, "com.mojang.realmsclient");
     }

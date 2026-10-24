@@ -503,6 +503,8 @@ public interface IScreen extends IDraw2D<IScreen> {
      * Runs when a key is pressed over this screen, receiving the game's key code and the
      * modifier-key bitmask. The key code identifies a key, not a typed character; use
      * {@code KeyBind} to refer to named keys.
+     * Codes are GLFW key codes on older targets and SDL physical key codes on Minecraft 26.3
+     * and later. Modifier bits remain shift=1, control=2, alt=4, and super=8 on every target.
      * <p>
      * This callback does not consume the key; game handling may still occur.
      * <pre>

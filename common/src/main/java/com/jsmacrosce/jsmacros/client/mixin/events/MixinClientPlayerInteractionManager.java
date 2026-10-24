@@ -25,6 +25,9 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.player.EventAttackEntity;
 import com.jsmacrosce.jsmacros.client.api.event.impl.player.EventInteractBlock;
 import com.jsmacrosce.jsmacros.client.api.event.impl.player.EventInteractEntity;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockDataHelper;
+//? if >=26.3 {
+/*import com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventDropSlot;
+*///?}
 
 @Mixin(MultiPlayerGameMode.class)
 @DocletIgnore
@@ -33,6 +36,15 @@ public class MixinClientPlayerInteractionManager {
     @Shadow
     @Final
     private Minecraft minecraft;
+
+    //? if >=26.3 {
+    /*@Inject(method = "dropItem", at = @At("HEAD"), cancellable = true)
+    private void jsmacros_dropSelected(LocalPlayer player, boolean entireStack, CallbackInfo ci) {
+        EventDropSlot event = new EventDropSlot(null, 36 + player.getInventory().getSelectedSlot(), entireStack);
+        event.trigger();
+        if (event.isCanceled()) ci.cancel();
+    }
+    *///?}
 
     @Inject(at = @At("RETURN"), method = "useItemOn")
     public void onInteractBlock(LocalPlayer player, InteractionHand hand, BlockHitResult hitResult, CallbackInfoReturnable<InteractionResult> cir) {

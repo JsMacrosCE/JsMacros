@@ -1,6 +1,8 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
 import com.jsmacrosce.jsmacros.client.util.GuiCompat;
+import com.jsmacrosce.jsmacros.client.util.InputCompat;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.MouseHandler;
 //? if >1.21.8 {
@@ -46,7 +48,8 @@ class MixinMouse {
         if (mouseButtonInfo.button() == -1 || action == 2) {
             return;
         }
-        if (EventKey.parse(mouseButtonInfo.button(), -1, action, mouseButtonInfo.modifiers())) {
+        if (EventKey.parse(InputConstants.Type.MOUSE.getOrCreate(mouseButtonInfo.button()), action,
+                InputCompat.modifiers(mouseButtonInfo.modifiers()))) {
             info.cancel();
         }
     }

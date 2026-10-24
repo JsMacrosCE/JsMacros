@@ -9,7 +9,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.jsmacrosce.doclet.DocletCategory;
 
 import java.util.function.Consumer;
@@ -105,10 +105,10 @@ public class Slider extends AbstractWidget {
     *///?} else {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
     //?}
-        if (keyCode == GLFW.GLFW_KEY_LEFT) {
+        if (keyCode == InputConstants.KEY_LEFT) {
             setValue(value - 1D / steps);
             return true;
-        } else if (keyCode == GLFW.GLFW_KEY_RIGHT) {
+        } else if (keyCode == InputConstants.KEY_RIGHT) {
             setValue(value + 1D / steps);
             return true;
         }

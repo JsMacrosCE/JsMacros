@@ -1,5 +1,10 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.jsmacros.client.util.SignCompat;
+//? if >=26.3 {
+/*import net.minecraft.world.level.block.entity.SignTextSlot;
+*///?}
+
 import com.mojang.authlib.GameProfile;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -68,11 +73,13 @@ abstract class MixinClientPlayerEntity extends AbstractClientPlayer {
     }
 
     @Inject(at = @At("HEAD"), method = "openTextEdit", cancellable = true)
+    //? if >=26.3 {
+    /*public void onOpenEditSignScreen(SignBlockEntity sign, SignTextSlot slot, CallbackInfo ci) {
+        boolean front = slot == SignTextSlot.FRONT;
+    *///?} else {
     public void onOpenEditSignScreen(SignBlockEntity sign, boolean front, CallbackInfo ci) {
-        var originalLines = Arrays.stream(sign.getText(front)
-                .getMessages(minecraft.isTextFilteringEnabled()))
-                .map(Component::getString)
-                .toList();
+    //?}
+        var originalLines = SignCompat.messages(sign, front, minecraft.isTextFilteringEnabled());
 
         final EventSignEdit event = new EventSignEdit(new ArrayList<>(originalLines),
                 sign.getBlockPos().getX(), sign.getBlockPos().getY(), sign.getBlockPos().getZ(), front);
@@ -89,17 +96,12 @@ abstract class MixinClientPlayerEntity extends AbstractClientPlayer {
 
         // Replace text only if needed
         if (!Objects.equals(originalLines, lines)) {
-            SignText text = new SignText();
-            for (int i = 0; i < 4; ++i) {
-                text = text.setMessage(i, Component.nullToEmpty(lines.get(i)));
-            }
-            sign.setText(text, front);
-            sign.setChanged();
+            SignCompat.setMessages(sign, front, lines);
         }
 
         // Cancel only if needed
         if (event.closeScreen || event.isCanceled()) {
-            connection.send(new ServerboundSignUpdatePacket(sign.getBlockPos(), front, lines.get(0), lines.get(1), lines.get(2), lines.get(3)));
+            connection.send(SignCompat.update(sign, front, lines));
             ci.cancel();
         }
     }
@@ -144,6 +146,7 @@ abstract class MixinClientPlayerEntity extends AbstractClientPlayer {
         }
     }
 
+    //? if <26.3 {
     @Inject(method = "drop", at = @At("HEAD"), cancellable = true)
     public void onDropSelected(boolean entireStack, CallbackInfoReturnable<Boolean> cir) {
         int selectedHotbarIndex = getInventory().getSelectedSlot();
@@ -153,5 +156,6 @@ abstract class MixinClientPlayerEntity extends AbstractClientPlayer {
             cir.setReturnValue(false);
         }
     }
+    //?}
 
 }

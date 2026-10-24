@@ -8,6 +8,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.SubmitNodeCollection;
 import net.minecraft.client.renderer.SubmitNodeStorage;
 import net.minecraft.client.renderer.feature.CustomFeatureRenderer;
 import net.minecraft.client.renderer.feature.ItemFeatureRenderer;
@@ -22,6 +23,10 @@ import net.minecraft.world.item.ItemDisplayContext;
 import java.util.ArrayList;
 import java.util.List;
 
+//? if >=26.3 {
+/^import com.jsmacrosce.jsmacros.client.api.classes.render.OverlaySubmitNodeCollection;
+^///?}
+
 public final class RenderSinkTest {
     private static int checks;
 
@@ -33,7 +38,14 @@ public final class RenderSinkTest {
         frameCleanup();
         poseSnapshots();
         itemFeatures();
+        //? if >=26.3 {
+        /^improvedTransparency();
+        ^///?}
+        //? if >=26.3 {
+        /^System.out.println("RenderSink: 8 scenarios, " + checks + " checks passed");
+        ^///?} else {
         System.out.println("RenderSink: 7 scenarios, " + checks + " checks passed");
+        //?}
     }
 
     private static void mixedLayers(boolean alwaysOnTop) {
@@ -60,8 +72,7 @@ public final class RenderSinkTest {
     private static void existingOrders() {
         SubmitNodeStorage storage = new SubmitNodeStorage();
         storage.order(1).submitText(new PoseStack(), 0, 0, text(), false, Font.DisplayMode.NORMAL, 0, -1, 0, 0);
-        storage.order(2).outline.submit(new TextFeatureRenderer.Submit(new PoseStack().last().pose(),
-                0, 0, text(), false, Font.DisplayMode.NORMAL, 0, -1, 0, 0));
+        storage.order(2).outline.submit(textSubmit());
         RenderSink first = new RenderSink(storage, false);
         RenderSink second = new RenderSink(storage, false);
         first.drawText(new PoseStack(), text(), 0, 0, -1, false, Font.DisplayMode.NORMAL, 0);
@@ -75,7 +86,7 @@ public final class RenderSinkTest {
 
     private static void frameReuse() {
         SubmitNodeStorage storage = new SubmitNodeStorage();
-        var firstLayer = storage.order(1);
+        SubmitNodeCollection firstLayer = null;
         for (int frame = 0; frame < 3; frame++) {
             RenderSink sink = new RenderSink(storage, false);
             for (int i = 0; i < 3; i++) {
@@ -83,6 +94,7 @@ public final class RenderSinkTest {
             }
             check(drain(storage, false).size() == 3, "frame contains only its own nodes");
             check(storage.getSubmitsPerOrder().lastIntKey() == 3, "empty native layers are reused next frame");
+            if (firstLayer == null) firstLayer = storage.getSubmitsPerOrder().get(1);
             check(storage.getSubmitsPerOrder().get(1) == firstLayer, "reuses the existing layer instance");
         }
     }
@@ -139,8 +151,13 @@ public final class RenderSinkTest {
         return new ItemStackRenderState() {
             @Override
             public void submit(PoseStack pose, SubmitNodeCollector collector, int light, int overlay, int outline) {
+                //? if >=26.3 {
+                /^((SubmitNodeCollection) collector.order(0)).solid.submit(new ItemFeatureRenderer.Submit(pose.last().copy(), ItemDisplayContext.GUI,
+                        light, overlay, outline, new int[0], List.of(), FoilType.NONE));
+                ^///?} else {
                 collector.submitItem(pose, ItemDisplayContext.GUI, light, overlay, outline,
                         new int[0], List.of(), FoilType.NONE);
+                //?}
                 if (special) {
                     collector.order(7).submitText(pose, 0, 0, text(), false, Font.DisplayMode.NORMAL,
                             light, -1, 0, 0);
@@ -156,7 +173,12 @@ public final class RenderSinkTest {
     private static List<SubmitNode> drain(SubmitNodeStorage storage, boolean alwaysOnTop) {
         List<SubmitNode> nodes = new ArrayList<>();
         for (var layer : storage.getSubmitsPerOrder().values()) {
+            //? if >=26.3 {
+            /^var target = layer instanceof OverlaySubmitNodeCollection overlay
+                    ? (alwaysOnTop ? overlay.overlayTop : overlay.overlayDepth) : null;
+            ^///?} else {
             var target = alwaysOnTop ? layer.alwaysOnTop : layer.afterTerrain;
+            //?}
             for (var phase : layer.allPhases()) {
                 check(phase == target || phase.isEmpty(), "no nodes leak into another depth or feature phase");
             }
@@ -173,6 +195,35 @@ public final class RenderSinkTest {
         }
         return nodes;
     }
+
+    private static TextFeatureRenderer.Submit textSubmit() {
+        //? if >=26.3 {
+        /^return new TextFeatureRenderer.Submit(new PoseStack().last().pose(), Font.DisplayMode.NORMAL, 0,
+                new TextFeatureRenderer.Content.Text(0, 0, text(), false, -1, 0, 0));
+        ^///?} else {
+        return new TextFeatureRenderer.Submit(new PoseStack().last().pose(),
+                0, 0, text(), false, Font.DisplayMode.NORMAL, 0, -1, 0, 0);
+        //?}
+    }
+
+    //? if >=26.3 {
+    /^private static void improvedTransparency() {
+        for (boolean improved : new boolean[]{false, true}) {
+            for (boolean top : new boolean[]{false, true}) {
+                SubmitNodeStorage storage = new SubmitNodeStorage();
+                storage.setUseImprovedTransparency(improved);
+                RenderSink sink = new RenderSink(storage, top);
+                sink.drawText(new PoseStack(), text(), 0, 0, -1, false, Font.DisplayMode.NORMAL, 0);
+                OverlaySubmitNodeCollection layer = (OverlaySubmitNodeCollection) storage.order(1);
+                check(layer.oitTranslucent.isEmpty(), "normal-alpha overlays never enter OIT's MRT passes");
+                check(OverlaySubmitNodeCollection.hasTopSubmits(storage) == top, "top pass is requested before preparation drains submits");
+                check(drain(storage, top).size() == 1, "overlays survive both transparency modes");
+                storage.setUseImprovedTransparency(!improved);
+                check(storage.getSubmitsPerOrder().isEmpty(), "mode changes clear drained overlay layers");
+            }
+        }
+    }
+    ^///?}
 
     private static void check(boolean condition, String message) {
         checks++;
@@ -200,6 +251,9 @@ public final class RenderSinkTest {
         public VertexConsumer setUv(float u, float v) { return this; }
         public VertexConsumer setUv1(int u, int v) { return this; }
         public VertexConsumer setUv2(int u, int v) { return this; }
+        //? if >=26.3 {
+        /^public VertexConsumer setUv3(float u, float v) { return this; }
+        ^///?}
         public VertexConsumer setNormal(float x, float y, float z) { return this; }
         public VertexConsumer setLineWidth(float width) { return this; }
     }

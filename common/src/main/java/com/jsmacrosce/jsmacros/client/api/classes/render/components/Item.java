@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
+import com.jsmacrosce.jsmacros.client.util.PoseCompat;
+
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 import net.minecraft.client.Minecraft;
@@ -467,7 +469,7 @@ public class Item implements RenderElement, Alignable<Item> {
         render(drawContext, mouseX, mouseY, delta, true);
     }
 
-    private void renderDamageBar3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
+    private void renderDamageBar3D(PoseStack poseStack, RenderSink sink, int light, boolean seeThrough, float delta) {
         if (!item.isDamageableItem()) {
             return;
         }
@@ -486,15 +488,15 @@ public class Item implements RenderElement, Alignable<Item> {
         int barWidth = Mth.clamp(Math.round(13.0F * durability), 0, 13);
         int barColor = 0xFF000000 | Mth.hsvToRgb(durability / 3.0F, 1.0F, 1.0F);
 
-        matrixStack.pushPose();
+        poseStack.pushPose();
         //? if >=26.1 {
-        /*matrixStack.translate(0, 0, OVERLAY_TEXT_Z_OFFSET);
+        /*poseStack.translate(0, 0, OVERLAY_TEXT_Z_OFFSET);
         *///? }
-        new Rect(2, 13, 15, 15, 0xFF000000, 0, 0).render3D(matrixStack, sink, light, seeThrough, delta);
+        new Rect(2, 13, 15, 15, 0xFF000000, 0, 0).render3D(poseStack, sink, light, seeThrough, delta);
         if (barWidth > 0) {
-            new Rect(2, 13, 2 + barWidth, 14, barColor, 0, 0).render3D(matrixStack, sink, light, seeThrough, delta);
+            new Rect(2, 13, 2 + barWidth, 14, barColor, 0, 0).render3D(poseStack, sink, light, seeThrough, delta);
         }
-        matrixStack.popPose();
+        poseStack.popPose();
     }
 
     @DocletIgnore
@@ -566,32 +568,32 @@ public class Item implements RenderElement, Alignable<Item> {
     // cancel the surface's Y-flip, map the unit model to a 16px slot, flatten depth.
     @DocletIgnore
     @Override
-    public void render3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
+    public void render3D(PoseStack poseStack, RenderSink sink, int light, boolean seeThrough, float delta) {
         if (item == null || item.isEmpty()) {
             return;
         }
-        matrixStack.pushPose();
-        matrixStack.translate(x, y, 0);
-        matrixStack.scale((float) scale, (float) scale, 1);
+        poseStack.pushPose();
+        poseStack.translate(x, y, 0);
+        poseStack.scale((float) scale, (float) scale, 1);
         if (rotateCenter) {
-            matrixStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
+            poseStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
         }
-        matrixStack.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        PoseCompat.rotate(poseStack, new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
         if (rotateCenter) {
-            matrixStack.translate(-DEFAULT_ITEM_SIZE / 2d, -DEFAULT_ITEM_SIZE / 2d, 0);
+            poseStack.translate(-DEFAULT_ITEM_SIZE / 2d, -DEFAULT_ITEM_SIZE / 2d, 0);
         }
 
         //? if >=26.2 {
         /*ItemStackRenderState renderState = new ItemStackRenderState();
         mc.getItemModelResolver().updateForTopItem(renderState, item, ItemDisplayContext.GUI, mc.level, mc.player, 0);
 
-        matrixStack.pushPose();
-        matrixStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
-        matrixStack.scale(1, -1, 1);
-        matrixStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
-        matrixStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
-        sink.submitItem(matrixStack, renderState, light);
-        matrixStack.popPose();
+        poseStack.pushPose();
+        poseStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
+        poseStack.scale(1, -1, 1);
+        poseStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
+        poseStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
+        sink.submitItem(poseStack, renderState, light);
+        poseStack.popPose();
         *///? } else if >=26.1 {
         /*MultiBufferSource.BufferSource bufferSource = sink.getSource() instanceof MultiBufferSource.BufferSource source ? source : null;
         if (bufferSource != null) {
@@ -605,13 +607,13 @@ public class Item implements RenderElement, Alignable<Item> {
                 storage.clear();
             }
 
-            matrixStack.pushPose();
-            matrixStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
-            matrixStack.scale(1, -1, 1);
-            matrixStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
-            matrixStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
-            renderState.submit(matrixStack, storage, light, OverlayTexture.NO_OVERLAY, 0);
-            matrixStack.popPose();
+            poseStack.pushPose();
+            poseStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
+            poseStack.scale(1, -1, 1);
+            poseStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
+            poseStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
+            renderState.submit(poseStack, storage, light, OverlayTexture.NO_OVERLAY, 0);
+            poseStack.popPose();
 
             SubmitNodeCollection collection = storage.order(0);
             // outlineColor is 0 above, so the feature renderer never dereferences this.
@@ -630,55 +632,55 @@ public class Item implements RenderElement, Alignable<Item> {
         int layerCount = stateAccessor.jsmacros$getActiveLayerCount();
         for (int i = 0; i < layerCount; i++) {
             MixinItemStackRenderStateLayer layerAccessor = (MixinItemStackRenderStateLayer) (Object) layers[i];
-            matrixStack.pushPose();
-            matrixStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
-            matrixStack.scale(1, -1, 1);
-            matrixStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
-            matrixStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
+            poseStack.pushPose();
+            poseStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
+            poseStack.scale(1, -1, 1);
+            poseStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
+            poseStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
             ItemTransform transform = layerAccessor.jsmacros$getTransform();
             if (transform != null) {
-                transform.apply(false, matrixStack.last());
+                transform.apply(false, poseStack.last());
             }
             RenderType renderType = layerAccessor.jsmacros$getRenderType();
             List<BakedQuad> quads = layerAccessor.jsmacros$getQuads();
             if (renderType != null && quads != null && !quads.isEmpty()) {
                 ItemStackRenderState.FoilType foilType = layerAccessor.jsmacros$getFoilType();
-                itemRenderer.jsmacros$renderItem(ItemDisplayContext.GUI, matrixStack, sink.getSource(), light, OverlayTexture.NO_OVERLAY,
+                itemRenderer.jsmacros$renderItem(ItemDisplayContext.GUI, poseStack, sink.getSource(), light, OverlayTexture.NO_OVERLAY,
                         layerAccessor.jsmacros$getTintLayers(), quads, renderType,
                         foilType != null ? foilType : ItemStackRenderState.FoilType.NONE);
             }
-            matrixStack.popPose();
+            poseStack.popPose();
         }
         *///? } else {
-        matrixStack.pushPose();
-        matrixStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
-        matrixStack.scale(1, -1, 1);
-        matrixStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
-        matrixStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
-        mc.getItemRenderer().renderStatic(item, ItemDisplayContext.GUI, light, OverlayTexture.NO_OVERLAY, matrixStack, sink.getSource(), null, 0);
-        matrixStack.popPose();
+        poseStack.pushPose();
+        poseStack.translate(DEFAULT_ITEM_SIZE / 2d, DEFAULT_ITEM_SIZE / 2d, 0);
+        poseStack.scale(1, -1, 1);
+        poseStack.scale(DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE, DEFAULT_ITEM_SIZE);
+        poseStack.scale(1, 1, FLAT_ITEM_DEPTH_SCALE);
+        mc.getItemRenderer().renderStatic(item, ItemDisplayContext.GUI, light, OverlayTexture.NO_OVERLAY, poseStack, sink.getSource(), null, 0);
+        poseStack.popPose();
         //? }
 
         if (overlay) {
-            renderDamageBar3D(matrixStack, sink, light, seeThrough, delta);
+            renderDamageBar3D(poseStack, sink, light, seeThrough, delta);
             String text = ovText != null ? ovText : (item.getCount() > 1 ? String.valueOf(item.getCount()) : null);
             if (text != null) {
                 float tx = DEFAULT_ITEM_SIZE + 1 - mc.font.width(text);
                 float ty = 9;
-                matrixStack.pushPose();
+                poseStack.pushPose();
                 //? if >=26.1 {
-                /*matrixStack.translate(0, 0, OVERLAY_TEXT_Z_OFFSET);
+                /*poseStack.translate(0, 0, OVERLAY_TEXT_Z_OFFSET);
                 *///? }
                 //? if >=26.2 {
-                /*sink.drawText(matrixStack, net.minecraft.network.chat.Component.literal(text).getVisualOrderText(),
+                /*sink.drawText(poseStack, net.minecraft.network.chat.Component.literal(text).getVisualOrderText(),
                         tx, ty, 0xFFFFFFFF, true, Font.DisplayMode.POLYGON_OFFSET, light);
                 *///?} else {
-                mc.font.drawInBatch(text, tx, ty, 0xFFFFFFFF, true, matrixStack.last().pose(), sink.getSource(), Font.DisplayMode.POLYGON_OFFSET, 0, light);
+                mc.font.drawInBatch(text, tx, ty, 0xFFFFFFFF, true, poseStack.last().pose(), sink.getSource(), Font.DisplayMode.POLYGON_OFFSET, 0, light);
                 //?}
-                matrixStack.popPose();
+                poseStack.popPose();
             }
         }
-        matrixStack.popPose();
+        poseStack.popPose();
     }
 
     /**

@@ -6,6 +6,11 @@ import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.resources.ResourceLocation;
+//? if >=26.3 {
+/*import com.mojang.renderpearl.api.pipeline.ShaderType;
+import com.mojang.renderpearl.api.pipeline.UniformType;
+import net.minecraft.client.renderer.RenderPipelines;
+*///?}
 
 //? if >=26.2 {
 /*import com.mojang.blaze3d.PrimitiveTopology;
@@ -68,10 +73,21 @@ public final class SurfaceRenderTypesTest {
     private static void configuration(RenderPipeline pipeline, String shader, boolean cull, boolean depth, VertexFormat format) {
         boolean lines = shader.equals("rendertype_lines");
         boolean image = shader.equals("entity");
+        //? if >=26.3 {
+        /*check(pipeline.getShaders().get(ShaderType.VERTEX).toString().equals("minecraft:core/" + shader), "vertex shader");
+        check(pipeline.getShaders().get(ShaderType.FRAGMENT).equals(pipeline.getShaders().get(ShaderType.VERTEX)), "fragment shader");
+        *///?} else {
         check(pipeline.getVertexShader().toString().equals("minecraft:core/" + shader), "vertex shader");
         check(pipeline.getFragmentShader().equals(pipeline.getVertexShader()), "fragment shader");
+        //?}
         check(pipeline.isCull() == cull, "explicit face culling");
-        //? if >=26.1 {
+        //? if >=26.3 {
+        /*check(pipeline.getColorTargetStates().size() == 1, "one overlay color target");
+        check(pipeline.getColorTargetStates().getFirst().blendFunction().orElseThrow().equals(BlendFunction.TRANSLUCENT), "translucent blend");
+        check(pipeline.getColorTargetStates().getFirst().writeMask() == 15, "all color channels written");
+        check(pipeline.getDepthStencilState().depthTest() == expectedDepthTest(depth), "depth comparison");
+        check(!pipeline.getDepthStencilState().writeDepth(), "modern overlay depth writes remain disabled");
+        *///?} else if >=26.1 {
         /*check(pipeline.getColorTargetState().blendFunction().orElseThrow().equals(BlendFunction.TRANSLUCENT), "translucent blend");
         check(pipeline.getColorTargetState().writeMask() == 15, "all color channels written");
         check(pipeline.getDepthStencilState().depthTest() == expectedDepthTest(depth), "depth comparison");
@@ -118,8 +134,17 @@ public final class SurfaceRenderTypesTest {
         }
         *///?}
 
+        //? if >=26.3 {
+        /*expected.put("Globals", "UNIFORM_BUFFER");
+        *///?}
+
         Map<String, String> actual = new HashMap<>();
-        //? if >=26.2 {
+        //? if >=26.3 {
+        /*var bindings = BindGroupLayout.flattenUniforms(pipeline.getBindGroupLayouts());
+        var uniforms = bindings.stream().filter(uniform -> uniform.type() != UniformType.COMBINED_IMAGE_SAMPLER).toList();
+        List<String> samplers = bindings.stream().filter(uniform -> uniform.type() == UniformType.COMBINED_IMAGE_SAMPLER)
+                .map(BindGroupLayout.UniformDescription::name).toList();
+        *///?} else if >=26.2 {
         /*var uniforms = BindGroupLayout.flattenUniforms(pipeline.getBindGroupLayouts());
         List<String> samplers = BindGroupLayout.flattenSamplers(pipeline.getBindGroupLayouts());
         *///?} else {
@@ -134,6 +159,12 @@ public final class SurfaceRenderTypesTest {
         if (image) {
             check(Float.parseFloat(pipeline.getShaderDefines().values().get("ALPHA_CUTOUT")) == 0.1F, "image alpha cutoff");
             check(pipeline.getShaderDefines().flags().equals(Set.of("PER_FACE_LIGHTING")), "image lighting define");
+            //? if >=26.3 {
+            /*var vanillaSamplers = BindGroupLayout.flattenUniforms(RenderPipelines.ENTITY_SOLID.getBindGroupLayouts()).stream()
+                    .filter(uniform -> uniform.type() == UniformType.COMBINED_IMAGE_SAMPLER)
+                    .map(BindGroupLayout.UniformDescription::name).toList();
+            check(Set.copyOf(samplers).equals(Set.copyOf(vanillaSamplers)), "overlay-enabled entity shader samplers match vanilla");
+            *///?}
         } else {
             check(pipeline.getShaderDefines().isEmpty(), "untextured shader defines");
         }

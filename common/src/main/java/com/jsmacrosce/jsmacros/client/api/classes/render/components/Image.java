@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render.components;
 
+import com.jsmacrosce.jsmacros.client.util.PoseCompat;
+
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 import net.minecraft.client.Minecraft;
@@ -551,17 +553,17 @@ public class Image implements RenderElement, Alignable<Image> {
     // images cannot be represented as gizmos, so this is the direct path.
     @DocletIgnore
     @Override
-    public void render3D(PoseStack matrixStack, RenderSink sink, int light, boolean seeThrough, float delta) {
-        matrixStack.pushPose();
-        matrixStack.translate(x, y, 0);
+    public void render3D(PoseStack poseStack, RenderSink sink, int light, boolean seeThrough, float delta) {
+        poseStack.pushPose();
+        poseStack.translate(x, y, 0);
         if (rotateCenter) {
-            matrixStack.translate(width / 2d, height / 2d, 0);
+            poseStack.translate(width / 2d, height / 2d, 0);
         }
-        matrixStack.mulPose(new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
+        PoseCompat.rotate(poseStack, new Quaternionf().rotateLocalZ((float) Math.toRadians(rotation)));
         if (rotateCenter) {
-            matrixStack.translate(-width / 2d, -height / 2d, 0);
+            poseStack.translate(-width / 2d, -height / 2d, 0);
         }
-        matrixStack.translate(-x, -y, 0);
+        poseStack.translate(-x, -y, 0);
 
         float a = ((color >> 24) & 0xFF) / 255.0f;
         float r = ((color >> 16) & 0xFF) / 255.0f;
@@ -576,13 +578,13 @@ public class Image implements RenderElement, Alignable<Image> {
         float top = y;
         float right = x + width;
         float bottom = y + height;
-        sink.submitGeometry(matrixStack, SurfaceRenderTypes.images(imageid, !seeThrough), (pose, vc) -> {
+        sink.submitGeometry(poseStack, SurfaceRenderTypes.images(imageid, !seeThrough), (pose, vc) -> {
             vc.addVertex(pose, left, top, 0).setColor(r, g, b, a).setUv(u0, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
             vc.addVertex(pose, left, bottom, 0).setColor(r, g, b, a).setUv(u0, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
             vc.addVertex(pose, right, bottom, 0).setColor(r, g, b, a).setUv(u1, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
             vc.addVertex(pose, right, top, 0).setColor(r, g, b, a).setUv(u1, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(pose, 0, 0, 1);
         });
-        matrixStack.popPose();
+        poseStack.popPose();
     }
 
     /**

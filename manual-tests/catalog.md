@@ -1,7 +1,7 @@
 # Manual client test catalog
 
 Modes: `auto` (headless, chat report), `screen` (suite page controls),
-`observe` (world visible, chat verdict), `event` (reserved). See
+`observe` (world visible, chat verdict), `event` (listener-driven). See
 [harness.md](harness.md).
 
 | ID | Title | Mode | Behavior | Script | Status |
@@ -13,6 +13,7 @@ Modes: `auto` (headless, chat report), `screen` (suite page controls),
 | `SCREEN-ESC-001` | Escape and Pause | `screen` | Title visibility, Escape suppression, and non-pausing behavior. | [suite.js](suite.js) | Manual |
 | `SCREEN-INPUT-001` | Screen Input | `screen` | Mouse, drag, scroll, key, and character callbacks. | [suite.js](suite.js) | Manual |
 | `SCREEN-INPUT-002` | Input Modifiers | `screen` | Key callbacks report Shift/Ctrl/Alt/Super; character callbacks report the delivered modifiers. | [suite.js](suite.js) | Manual |
+| `OPTIONS-RAWMOUSE-001` | Raw Mouse Option | `auto` | Raw-mouse getter/setter contract, including the fixed-on 26.3 behavior. | [suite.js](suite.js) | Automatic |
 | `WIDGETS-DIRECT-001` | Direct Widgets | `screen` | Direct widget construction, callbacks, setters, tooltips, and programmatic click. | [suite.js](suite.js) | Manual |
 | `WIDGETS-BUILDER-001` | Widget Builders | `screen` | Builder-created button, checkbox, slider, lock, text field, and cycling button. | [suite.js](suite.js) | Manual |
 | `WIDGETS-PREDICATE-001` | Text Field Predicate | `screen` | `setTextPredicate`/`resetTextPredicate` filter typed and programmatic text. | [suite.js](suite.js) | Manual |
@@ -23,12 +24,16 @@ Modes: `auto` (headless, chat report), `screen` (suite page controls),
 | `SCREEN-RENDER-001` | Screen Render Callback | `screen` | Screen render callback execution without raw draw-context coupling. | [suite.js](suite.js) | Manual |
 | `SCREEN-HOST-001` | Host Screen | `screen` | Captured vanilla-screen wrapping and return navigation. | [suite.js](suite.js) | Manual, requires launch from host screen |
 | `INTERACT-TARGET-001` | Target Override | `observe` | `setTarget` overrides the crosshair target and survives client picks. | [suite.js](suite.js) | Visual, chat verdict, requires world |
+| `BLOCK-TAGS-001` | Block Tags | `auto` | `BlockHelper`/`BlockStateHelper.hasTag` membership, namespace and `#` handling. | [suite.js](suite.js) | Automatic, requires world |
+| `BLOCK-MOVEMENT-001` | Movement Blocking | `auto` | `blocksMovement()` legacy predicate for stone, air, cobweb and bamboo sapling. | [suite.js](suite.js) | Automatic |
 | `DRAW3D-LIFECYCLE-001` | Draw3D Lifecycle | `auto` | `Hud.createDraw3D()`, register/unregister chaining, list membership, `clear()` across all lists, and `Hud.clearDraw3Ds()`. | [suite.js](suite.js) | Automatic |
 | `DRAW3D-PRIMITIVES-001` | Draw3D Primitives | `auto` | Box, line, trace line, entity trace line (including the five-argument overload), point (xyz and `Pos3D`), `forBlock`, add/remove/re-add, and entity-trace state. | [suite.js](suite.js) | Automatic |
 | `COLOR-ALPHA-001` | Default Color Alpha | `auto` | `fixAlpha` semantics for RGB, ARGB and zero in 2D elements and GUI buttons; builder default and packed alpha, explicit alpha override. | [suite.js](suite.js) | Automatic |
 | `DRAW3D-STYLE-001` | Draw3D Style and Builders | `auto` | ARGB color/alpha, opaque bare-RGB outline/fill and line/trace builder defaults (including box fill), packed and explicit alpha, position helpers and builder getters. | [suite.js](suite.js) | Automatic |
 | `DRAW3D-SURFACE-001` | Draw3D Surface | `auto` | Surface size/subdivision/transform, nested element API, `renderBack` field/builder, and resize preserving children. | [suite.js](suite.js) | Automatic |
-| `INVENTORY-ITEMTAGS-001` | Item Tags | `auto` | `ItemStackHelper.getTags()` returns namespaced tag ids. | [suite.js](suite.js) | Automatic |
+| `INVENTORY-ITEMTAGS-001` | Item Tags | `auto` | `ItemStackHelper.getTags()` returns namespaced tag ids. | [suite.js](suite.js) | Automatic, requires world |
+| `INVENTORY-BREWING-001` | Brewing Recipe Helpers | `observe` | Open a brewing stand with water and nether wart; validate recipe, preview, ingredient and fuel helpers. | [suite.js](suite.js) | Visual, chat verdict, requires world |
+| `INVENTORY-FUEL-001` | Furnace Fuel Values | `observe` | Open a furnace with coal; validate fuel values and burn-time helpers. | [suite.js](suite.js) | Visual, chat verdict, requires world |
 | `DRAW3D-VISUAL-001` | Draw3D Visual | `observe` | Box/line/trace/surface rendering and always-on-top depth behavior. | [suite.js](suite.js) | Visual, chat verdict, requires world |
 | `DRAW3D-ENTITY-001` | Entity Trace Line | `observe` | Entity trace `yOffset` tracking and automatic removal when the entity is gone. | [suite.js](suite.js) | Visual, chat verdict, requires a nearby mob |
 | `DRAW3D-SURFACE-002` | Surface Render Regression | `observe` | Surface direct rendering of rect/line/text/image/item, `zIndex` draw order, `setRotateCenter`, nested Draw2D, and a head-locked panel. | [suite.js](suite.js) | Visual, requires world |
@@ -40,6 +45,8 @@ Modes: `auto` (headless, chat report), `screen` (suite page controls),
 | `DRAW3D-SURFACE-008` | Cross-Draw Surface Order | `observe` | Two opposite near/far surface pairs in separate Draw3Ds both render near-over-far. | [suite.js](suite.js) | Visual, requires world |
 | `DRAW3D-ITEM-001` | Item Overlay Text | `observe` | 2D HUD item `overlayVisible`/`overlayText`, plus the same item on a 3D surface. | [suite.js](suite.js) | Visual, requires world |
 | `HUD-DEBUG-001` | Debug Screen Overlay | `observe` | The registered `Draw2D` overlay renders on top of the F3 debug screen (Fabric-only `MixinDebugHud`). | [suite.js](suite.js) | Visual, chat verdict, Fabric only |
+| `EVENT-SIGNEDIT-001` | Sign Edit Event | `event` | Front and back sign editors fire `SignEdit` with position, side and four text lines. | [suite.js](suite.js) | Event, requires world and a sign |
+| `EVENT-DROP-001` | Drop Slot Event | `event` | Hotbar drop fires `DropSlot` with a player-inventory slot and can be cancelled. | [suite.js](suite.js) | Event, requires a hotbar item |
 
 > Surfaces render on every supported version: rects, lines, text, images and items.
 > On 1.21.11+ they draw from the Gizmos pass; on 1.21.5-1.21.10 from the direct
@@ -48,4 +55,4 @@ Modes: `auto` (headless, chat report), `screen` (suite page controls),
 Add new tests by behavior area (for example, `SCREEN-*`, `DRAW2D-*`,
 `DRAW3D-*`, `INVENTORY-*`, or `EVENT-*`) rather than by Minecraft version. A
 target-specific exception belongs in that test's documentation. Future event
-tests use the reserved `event` mode described in [harness.md](harness.md).
+tests use the `event` mode described in [harness.md](harness.md).

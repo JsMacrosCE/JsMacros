@@ -57,7 +57,7 @@ public final class SurfaceRenderTypes {
     /**
      * Returns the cached render type for colored quads with the requested culling
      * and depth-test settings. Each of the four combinations is created on first use;
-     * depth testing uses less-or-equal when enabled and is disabled otherwise.
+     * depth testing follows the game's depth convention when enabled and is disabled otherwise.
      *
      * @param cull whether back faces are discarded
      * @param depthTest whether the geometry is depth tested against what is already drawn
@@ -147,11 +147,12 @@ public final class SurfaceRenderTypes {
                 .withCull(false);
         addFog(builder);
 
-        //? if >=26.2 {
+        // 26.3 supplies Globals in basePipeline for every shader.
+        //? if >=26.2 <26.3 {
         /*builder.withBindGroupLayout(BindGroupLayouts.GLOBALS);
-        *///? } else if >1.21.5 {
+        *///? } else if >1.21.5 <26.2 {
         builder.withUniform("Globals", UniformType.UNIFORM_BUFFER);
-        //? } else {
+        //? } else if <=1.21.5 {
         /*builder.withUniform("LineWidth", UniformType.FLOAT)
                 .withUniform("ScreenSize", UniformType.VEC2);
         *///? }
@@ -235,7 +236,11 @@ public final class SurfaceRenderTypes {
                 .withLocation("pipeline/jsmacrosce/" + name)
                 .withVertexShader(shader)
                 .withFragmentShader(shader);
-        //? if >=26.2 {
+        //? if >=26.3 {
+        /*builder.withBindGroupLayout(BindGroupLayouts.DYNAMIC_TRANSFORMS)
+                .withBindGroupLayout(BindGroupLayouts.PROJECTION)
+                .withBindGroupLayout(BindGroupLayouts.GLOBALS);
+        *///? } else if >=26.2 {
         /*builder.withBindGroupLayout(BindGroupLayouts.MATRICES_PROJECTION);
         *///? } else if >1.21.5 {
         builder.withUniform("DynamicTransforms", UniformType.UNIFORM_BUFFER)

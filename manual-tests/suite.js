@@ -16,6 +16,8 @@
  * context stays alive while no screen is open.
  */
 
+context.releaseLock();
+
 const wrap = callback => JavaWrapper.methodToJava(callback);
 
 const session = {
@@ -455,6 +457,31 @@ const TESTS = [
         }
     },
     {
+        id: "OPTIONS-RAWMOUSE-001",
+        category: "Input",
+        mode: "auto",
+        title: "Raw Mouse Option",
+        run(state) {
+            const options = Client.getGameOptions().getControlOptions();
+            const version = String(Client.mcVersion());
+            const before = options.isRawMouseInputEnabled();
+            check(state, typeof before === "boolean", "The raw-mouse getter returns a boolean");
+            if (version.indexOf("26.3") === 0) {
+                check(state, before, "26.3 reports raw input enabled by default");
+                options.enableRawMouseInput(false);
+                check(state, options.isRawMouseInputEnabled(), "26.3 keeps raw input enabled because the setting is fixed");
+            } else {
+                try {
+                    options.enableRawMouseInput(!before);
+                    check(state, options.isRawMouseInputEnabled() === !before, "The raw-mouse setting is writable before 26.3");
+                } finally {
+                    options.enableRawMouseInput(before);
+                }
+                check(state, options.isRawMouseInputEnabled() === before, "The original raw-mouse setting is restored");
+            }
+        }
+    },
+    {
         id: "WIDGETS-DIRECT-001",
         category: "Widgets",
         mode: "screen",
@@ -735,6 +762,37 @@ const TESTS = [
                 }
                 state.interactions = null;
             }
+        }
+    },
+    {
+        id: "BLOCK-TAGS-001",
+        category: "World",
+        mode: "auto",
+        title: "Block Tags",
+        run(state) {
+            const registry = Client.getRegistryManager();
+            const stone = registry.getBlockState("minecraft:stone");
+            const leaves = registry.getBlockState("minecraft:oak_leaves");
+            check(state, stone.hasTag("minecraft:base_stone_overworld"), "Stone has the base_stone_overworld tag");
+            check(state, stone.hasTag("base_stone_overworld"), "A missing namespace defaults to minecraft");
+            check(state, stone.hasTag("#minecraft:base_stone_overworld"), "A leading # is accepted");
+            check(state, !stone.hasTag("minecraft:leaves"), "Stone does not have the leaves tag");
+            check(state, leaves.hasTag("minecraft:leaves"), "Oak leaves have the leaves tag");
+            check(state, stone.getBlock().hasTag("minecraft:base_stone_overworld"), "BlockHelper.hasTag() matches the state helper");
+            check(state, !stone.hasTag("jsmacrosce:missing_tag"), "Unknown tags return false");
+        }
+    },
+    {
+        id: "BLOCK-MOVEMENT-001",
+        category: "World",
+        mode: "auto",
+        title: "Movement Blocking",
+        run(state) {
+            const registry = Client.getRegistryManager();
+            check(state, registry.getBlockState("minecraft:stone").blocksMovement(), "Stone blocks movement");
+            check(state, !registry.getBlockState("minecraft:air").blocksMovement(), "Air does not block movement");
+            check(state, !registry.getBlockState("minecraft:cobweb").blocksMovement(), "Cobwebs do not block movement");
+            check(state, !registry.getBlockState("minecraft:bamboo_sapling").blocksMovement(), "Bamboo saplings do not block movement");
         }
     },
     {
@@ -1084,6 +1142,87 @@ const TESTS = [
             check(state, names.length > 0, "The diamond item reports at least one tag");
             check(state, names.every(name => name.indexOf(":") > 0), "Tag ids are namespaced");
         }
+    },
+    {
+        id: "INVENTORY-BREWING-001",
+        category: "Inventory",
+        mode: "observe",
+        title: "Brewing Recipe Helpers",
+        instructions: [
+            "Close chat, then open a brewing stand containing a water bottle in one potion slot and nether wart in the ingredient slot.",
+            "The test reads recipe and preview helpers; it does not brew or modify the stand.",
+            "Run once in singleplayer and once on a remote server to cover live and fallback recipe data."
+        ],
+        prepare(state) {
+            state.checked = false;
+            return true;
+        },
+        tick(state) {
+            if (state.checked) return;
+            const inv = Player.openInventory();
+            if (!inv.is("Brewing Stand")) return;
+            const potions = inv.getPotions();
+            let potion = null;
+            for (let i = 0; i < listSize(potions); i++) {
+                if (!potions.get(i).isEmpty()) {
+                    potion = potions.get(i);
+                    break;
+                }
+            }
+            const ingredient = inv.getIngredient();
+            if (potion == null || ingredient.isEmpty()) return;
+            const preview = inv.previewPotion(potion, ingredient);
+            check(state, !preview.isEmpty(), "previewPotion() returns the brewed item");
+            check(state, inv.isValidIngredient(ingredient), "Nether wart is a valid brewing ingredient");
+            check(state, inv.isValidRecipe(potion, ingredient), "Water and nether wart form a valid recipe");
+            check(state, inv.isBrewablePotion(preview), "The preview output is a brewable potion");
+            check(state, inv.getMaxFuelUses() >= 0, "The menu reports a non-negative fuel-use total");
+            check(state, inv.getBrewTime() >= 0, "Elapsed brew time is non-negative");
+            state.checked = true;
+        },
+        done(state) {
+            return state.checked;
+        },
+        verify(state) {
+            check(state, state.checked, "A brewing stand with water and nether wart was opened");
+        },
+        timeoutSeconds: 120
+    },
+    {
+        id: "INVENTORY-FUEL-001",
+        category: "Inventory",
+        mode: "observe",
+        title: "Furnace Fuel Values",
+        instructions: [
+            "Close chat, then open a furnace containing at least one coal in the fuel slot.",
+            "The test reads fuel values and burn-time helpers; it does not smelt or modify the furnace.",
+            "Run once in singleplayer and once on a remote server to cover live and fallback fuel data."
+        ],
+        prepare(state) {
+            state.checked = false;
+            return true;
+        },
+        tick(state) {
+            if (state.checked) return;
+            const inv = Player.openInventory();
+            if (!inv.is("Furnace")) return;
+            const fuel = inv.getFuel();
+            if (fuel.isEmpty()) return;
+            const values = inv.getFuelValues();
+            check(state, values != null, "getFuelValues() returns a map");
+            const coal = values == null ? null : values.get("minecraft:coal");
+            check(state, coal != null && coal > 0, "Coal has a positive fuel value");
+            check(state, inv.canUseAsFuel(fuel), "The fuel-slot item is usable as fuel");
+            check(state, inv.getTotalFuelTime() >= 0 && inv.getRemainingFuelTime() >= 0, "Fuel-time readouts are non-negative");
+            state.checked = true;
+        },
+        done(state) {
+            return state.checked;
+        },
+        verify(state) {
+            check(state, state.checked, "A furnace with coal was opened");
+        },
+        timeoutSeconds: 120
     },
     {
         id: "DRAW3D-VISUAL-001",
@@ -1729,6 +1868,104 @@ const TESTS = [
                 state.overlay = null;
             }
         }
+    },
+    {
+        id: "EVENT-SIGNEDIT-001",
+        category: "Events",
+        mode: "event",
+        title: "Sign Edit Event",
+        instructions: [
+            "Close chat, then use a sign and open its front editor, then close it.",
+            "Open the same sign's back editor, then close it. The test does not modify the sign."
+        ],
+        prepare(state) {
+            state.frontEvent = null;
+            state.backEvent = null;
+            state.listener = JsMacros.on("SignEdit", wrap((event, ctx) => {
+                const lines = [];
+                if (event.signText != null) {
+                    for (let i = 0; i < listSize(event.signText); i++) {
+                        lines.push(String(event.signText.get(i)));
+                    }
+                }
+                const entry = {
+                    x: event.pos.x,
+                    y: event.pos.y,
+                    z: event.pos.z,
+                    front: event.front,
+                    lines: lines
+                };
+                if (event.front) {
+                    state.frontEvent = entry;
+                } else {
+                    state.backEvent = entry;
+                }
+            }));
+            return true;
+        },
+        done(state) {
+            return state.frontEvent != null && state.backEvent != null;
+        },
+        verify(state) {
+            check(state, state.frontEvent != null, "The front sign editor fired SignEdit");
+            check(state, state.backEvent != null, "The back sign editor fired SignEdit");
+            if (state.frontEvent == null || state.backEvent == null) return;
+            check(state, state.frontEvent.x === state.backEvent.x
+                && state.frontEvent.y === state.backEvent.y
+                && state.frontEvent.z === state.backEvent.z, "Both events report the same sign position");
+            check(state, state.frontEvent.lines.length === 4 && state.backEvent.lines.length === 4, "Both events expose four text lines");
+        },
+        teardown(state) {
+            if (state.listener != null) {
+                state.listener.off();
+                state.listener = null;
+            }
+        },
+        timeoutSeconds: 120
+    },
+    {
+        id: "EVENT-DROP-001",
+        category: "Events",
+        mode: "event",
+        title: "Drop Slot Event",
+        instructions: [
+            "Close chat, then hold any item and press Q in the selected hotbar slot with no container open.",
+            "The test records and cancels the drop; the item stays in your inventory."
+        ],
+        prepare(state) {
+            state.seen = null;
+            state.cancelled = false;
+            state.listener = JsMacros.on("DropSlot", wrap((event, ctx) => {
+                if (state.seen != null || event.slot < 36 || event.slot > 44) return;
+                const inventory = event.getInventory();
+                state.seen = {
+                    slot: event.slot,
+                    all: event.all,
+                    stack: inventory.getSlot(event.slot)
+                };
+                event.cancel();
+                state.cancelled = true;
+            }));
+            return true;
+        },
+        done(state) {
+            return state.seen != null;
+        },
+        verify(state) {
+            check(state, state.seen != null, "Pressing Q fired DropSlot");
+            if (state.seen == null) return;
+            check(state, state.seen.slot >= 36 && state.seen.slot <= 44, "The hotbar drop reports a player-inventory slot");
+            check(state, typeof state.seen.all === "boolean", "The event reports whether the whole stack was dropped");
+            check(state, state.seen.stack != null && !state.seen.stack.isEmpty(), "The source slot still contains the item after cancellation");
+            check(state, state.cancelled, "Cancelling the event prevented the drop");
+        },
+        teardown(state) {
+            if (state.listener != null) {
+                state.listener.off();
+                state.listener = null;
+            }
+        },
+        timeoutSeconds: 60
     }
 ];
 
@@ -2210,7 +2447,8 @@ function shutdown() {
         } catch (error) {
             session.hostCaptureError = String(error);
         }
-        session.keyListener = JsMacros.on("Key", wrap(event => {
+        session.keyListener = JsMacros.on("Key", false, wrap((event, ctx) => {
+            ctx.releaseLock();
             // H has no vanilla binding and EventKey already ignores keys while a
             // suite screen is open, so no cancel is needed here.
             if (event.action === 1 && event.key === "key.keyboard.h") {

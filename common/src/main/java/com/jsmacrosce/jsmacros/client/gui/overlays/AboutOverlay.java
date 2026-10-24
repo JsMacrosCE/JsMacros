@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.gui.overlays;
 
+import com.jsmacrosce.jsmacros.client.util.PlatformCompat;
+
 import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -56,11 +58,11 @@ public class AboutOverlay extends OverlayContainer {
         int w = width - 4;
         this.addRenderableWidget(new Button(x + width - 12, y + 2, 10, 10, textRenderer, 0, 0x7FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("X"), (btn) -> this.close()));
 
-        this.addRenderableWidget(new Button(x + 2, y + height - 14, w / 3, 12, textRenderer, 0, 0x7FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("Website"), (btn) -> Util.getPlatform().openUri("https://jsmacrosce.com")));
+        this.addRenderableWidget(new Button(x + 2, y + height - 14, w / 3, 12, textRenderer, 0, 0x7FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("Website"), (btn) -> PlatformCompat.openUri("https://jsmacrosce.com")));
 
-        this.addRenderableWidget(new Button(x + w / 3 + 2, y + height - 14, w / 3, 12, textRenderer, 0, 0x7FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("Discord"), (btn) -> Util.getPlatform().openUri("https://discord.gg/UaB82D59Fu")));
+        this.addRenderableWidget(new Button(x + w / 3 + 2, y + height - 14, w / 3, 12, textRenderer, 0, 0x7FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("Discord"), (btn) -> PlatformCompat.openUri("https://discord.gg/UaB82D59Fu")));
 
-        this.addRenderableWidget(new Button(x + w * 2 / 3 + 2, y + height - 14, w / 3, 12, textRenderer, 0, 0x7FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("Modrinth"), (btn) -> Util.getPlatform().openUri("https://modrinth.com/mod/jsmacrosce")));
+        this.addRenderableWidget(new Button(x + w * 2 / 3 + 2, y + height - 14, w / 3, 12, textRenderer, 0, 0x7FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal("Modrinth"), (btn) -> PlatformCompat.openUri("https://modrinth.com/mod/jsmacrosce")));
 
         this.setMessage(Component.translatable("jsmacrosce.aboutinfo"));
     }

@@ -1,7 +1,9 @@
 package com.jsmacrosce.jsmacros.client.gui.containers;
 
 import com.jsmacrosce.doclet.DocletIgnore;
-import com.mojang.blaze3d.opengl.GlStateManager;
+//? if <=1.21.5 {
+/*import com.mojang.blaze3d.opengl.GlStateManager;
+*///?}
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -255,7 +257,9 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
                 } else {
                     tex = script_fork_tex;
                 }
-                GlStateManager._enableBlend();
+                //? if <=1.21.5 {
+                /*GlStateManager._enableBlend();
+                *///?}
                 drawContext.blit(
                         renderType,
                         tex,
@@ -270,7 +274,9 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
                         32,
                         32
                 );
-                GlStateManager._disableBlend();
+                //? if <=1.21.5 {
+                /*GlStateManager._disableBlend();
+                *///?}
                 switch (macro.triggerType) {
                     default:
                     case KEY_FALLING:
@@ -283,7 +289,9 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
                         tex = key_both_tex;
                         break;
                 }
-                GlStateManager._enableBlend();
+                //? if <=1.21.5 {
+                /*GlStateManager._enableBlend();
+                *///?}
                 drawContext.blit(
                         renderType,
                         tex,
@@ -298,14 +306,18 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
                         32,
                         32
                 );
-                GlStateManager._disableBlend();
+                //? if <=1.21.5 {
+                /*GlStateManager._disableBlend();
+                *///?}
             } else {
                 if (macro.joined) {
                     tex = script_join_tex;
                 } else {
                     tex = script_fork_tex;
                 }
-                GlStateManager._enableBlend();
+                //? if <=1.21.5 {
+                /*GlStateManager._enableBlend();
+                *///?}
                 drawContext.blit(
                         renderType,
                         tex,
@@ -320,7 +332,9 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
                         32,
                         32
                 );
-                GlStateManager._disableBlend();
+                //? if <=1.21.5 {
+                /*GlStateManager._disableBlend();
+                *///?}
             }
 
             // border

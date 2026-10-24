@@ -36,6 +36,7 @@ jobs:
           - '1.21.11'
           - '26.1.2'
           - '26.2'
+          - '26.3'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -65,8 +66,11 @@ jobs:
           mc_version='${{ matrix.mc_version }}'
           ./gradlew --console=plain --stacktrace \
             :common:${{ matrix.mc_version }}:classes \
+            :common:${{ matrix.mc_version }}:check \
             :fabric:${{ matrix.mc_version }}:classes \
+            :fabric:${{ matrix.mc_version }}:check \
             :neoforge:${{ matrix.mc_version }}:classes \
+            :neoforge:${{ matrix.mc_version }}:check \
             :fabric:${{ matrix.mc_version }}:validateAccessWidener \
             ":packageFabricModJar${mc_version//./}"
 
@@ -157,7 +161,7 @@ jobs:
       - name: Build the documentation site for one target
         run: |
           ./gradlew --console=plain --stacktrace \
-            -PdocsMinecraftVersions=26.2 \
+            -PdocsMinecraftVersions=26.3 \
             :buildVitepressSite
 
       - name: Test the site

@@ -293,14 +293,14 @@ public class TraceLine implements RenderElement3D<TraceLine> {
      * Updates the camera-side endpoint to the screen-centre crosshair direction, then
      * renders the line. Called by the renderer, not by scripts.
      *
-     * @param matrixStack the world transform, already translated so the camera is at the origin
+     * @param poseStack the world transform, already translated so the camera is at the origin
      * @param sink the buffer source the geometry goes into
      * @param tickDelta how far into the current tick this frame is, from 0 to 1
      * @author aMelonRind
      * @since 1.9.0
      */
     @Override
-    public void render(PoseStack matrixStack, RenderSink sink, float tickDelta) {
+    public void render(PoseStack poseStack, RenderSink sink, float tickDelta) {
         Camera camera = RenderCompat.mainCamera(Minecraft.getInstance());
         Vec3 cameraPos = CameraCompat.position(camera);
 
@@ -308,7 +308,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         Vec3 p1 = cameraPos.add(lookDir);
 
         render.setPos(p1.x, p1.y, p1.z, render.pos.x2, render.pos.y2, render.pos.z2);
-        render.render(matrixStack, sink, tickDelta);
+        render.render(poseStack, sink, tickDelta);
     }
 
     /**

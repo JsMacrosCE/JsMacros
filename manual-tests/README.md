@@ -22,9 +22,9 @@ See [harness.md](harness.md) for the runner architecture and how future
     prints instructions plus clickable `[Pass] [Fail] [Skip] [Retry] [Menu]` in
     chat, and shows a small HUD hint while it runs. The chat screen must be open
     (`T`) to click.
-  - `event` — reserved for future listener-based tests. Follow the `observe`
-    contract, register `JsMacros.on(...)` in `prepare`, and optionally provide
-    `done(state)`/`timeoutSeconds`.
+  - `event` — listener-based tests. Follow the `observe` contract, register
+    `JsMacros.on(...)` in `prepare`, and optionally provide
+    `done(state)`/`timeoutSeconds`; remove listeners in `teardown`.
 - A test uses only public JsMacros APIs. Version-specific behavior belongs in
   the implementation, not in a test macro unless the version difference is the
   behavior being checked.
