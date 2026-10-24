@@ -23,13 +23,7 @@ public interface MixinAdvancementManager {
     @Accessor("nodes")
     Map<ResourceLocation, AdvancementNode> getAdvancements();
 
-    //? if >=26.3 {
-    /*default Set<AdvancementNode> getDependents() {
-        Set<AdvancementNode> result = new java.util.LinkedHashSet<>();
-        ((AdvancementTree) (Object) this).tasks().forEach(result::add);
-        return result;
-    }
-    *///?} else {
+    //? if <26.3 {
     @Accessor("tasks")
     Set<AdvancementNode> getDependents();
     //?}
