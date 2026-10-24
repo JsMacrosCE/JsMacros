@@ -42,7 +42,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.Consumer;
 
 /**
  * Functions for getting and modifying the player's state.
@@ -291,37 +290,46 @@ public class FPlayer extends BaseLibrary {
     }
 
     /**
-     * Captures the current render target to a game-named file under the macro folder. The callback,
-     * if supplied, receives the game's result as text.
+     * Captures the current render target to a game-named PNG under
+     * {@code <macro folder>/<folder>/screenshots/}. The file is written asynchronously, so this
+     * method returns before it exists; use the callback rather than the method's return to know
+     * when the capture has finished. Use the overload with a {@code file} parameter to choose the
+     * file name.
      *
-     * @param folder the folder to save into, relative to the macro folder
-     * @param callback called with the game's result as text, or {@code null} for no callback
-     * @see #takeScreenshot(String, String, MethodWrapper)
+     * @param folder the folder under the profile's macro folder to save into; it must already
+     *               exist, and its {@code screenshots} child is created
+     * @param callback called with the game's success or failure message after the write attempt,
+     *                 or {@code null} for no callback
      * @since 1.2.6
      */
     public void takeScreenshot(String folder, @Nullable MethodWrapper<TextHelper, Object, Object, ?> callback) {
         assert folder != null;
-        Screenshot.grab(new File(runner.config.macroFolder, folder), RenderCompat.mainRenderTarget(mc),
+        File target = new File(runner.config.macroFolder, folder);
+        runOnClientThread(() -> Screenshot.grab(target, RenderCompat.mainRenderTarget(mc),
                 (text) -> {
                     if (callback != null) {
                         callback.accept(TextHelper.wrap(text));
                     }
-                });
+                }));
     }
 
     /**
-     * Captures the current render target to the specified file under the macro folder. The callback,
-     * if supplied, receives the game's result as text.
+     * Captures the current render target to {@code <macro folder>/<folder>/screenshots/<file>}.
+     * The file is written asynchronously, so this method returns before it exists; use the
+     * callback rather than the method's return to know when the capture has finished.
      *
-     * @param folder the folder to save into, relative to the macro folder
-     * @param file the file name to save under, within that folder
-     * @param callback called with the game's result as text, or {@code null} for no callback
+     * @param folder the folder under the profile's macro folder to save into; it must already
+     *               exist, and its {@code screenshots} child is created
+     * @param file the file name to save under that {@code screenshots} directory
+     * @param callback called with the game's success or failure message after the write attempt,
+     *                 or {@code null} for no callback
      * @since 1.2.6
      */
     public void takeScreenshot(String folder, String file, @Nullable MethodWrapper<TextHelper, Object, Object, ?> callback) {
         assert folder != null && file != null;
-        Screenshot.grab(
-                new File(runner.config.macroFolder, folder),
+        File target = new File(runner.config.macroFolder, folder);
+        runOnClientThread(() -> Screenshot.grab(
+                target,
                 file,
                 RenderCompat.mainRenderTarget(mc),
                 //? if >1.21.5 {
@@ -331,34 +339,66 @@ public class FPlayer extends BaseLibrary {
                     if (callback != null) {
                         callback.accept(TextHelper.wrap(text));
                     }
-                });
+                }));
     }
 
     /**
-     * Captures a panorama of the current world.
+     * Captures a panorama of the current world as six PNGs, {@code panorama_0.png} through
+     * {@code panorama_5.png}, under {@code <macro folder>/<folder>/screenshots/}.
      * <p>
-     * The image is saved under {@code folder}, relative to the profile's macro folder, with a
-     * game-chosen name. On Minecraft 1.21.8, {@code width} and {@code height} are ignored. The
-     * optional callback receives the message returned by the game's capture method.
+     * On the client thread the six directions are rendered before this method returns; from any
+     * other thread the capture is queued and the method returns immediately. The optional callback
+     * receives the game's success or failure message for the capture routine; on success that
+     * message names the folder. The six files are written asynchronously after each grab, so the
+     * callback does not guarantee that they exist.
      *
-     * @param folder   the folder to save the panorama to, relative to the macro folder
-     * @param width    retained for compatibility; ignored on Minecraft 1.21.8
-     * @param height   retained for compatibility; ignored on Minecraft 1.21.8
-     * @param callback calls your method as a {@link Consumer}{@code <}{@link TextHelper}{@code >} with
-     *                 the message naming the saved file, or {@code null} for none
+     * @param folder   the folder under the profile's macro folder to save into; it must already
+     *                 exist, and its {@code screenshots} child is created
+     * @param width    retained for compatibility; ignored on 1.21.8 and later
+     * @param height   retained for compatibility; ignored on 1.21.8 and later
+     * @param callback called with the capture routine's message as a text helper, or {@code null}
+     *                 for none
      * @since 1.8.4
      */
     public void takePanorama(String folder, int width, int height, @Nullable MethodWrapper<TextHelper, Object, Object, ?> callback) {
         assert folder != null;
-        Component result = mc.grabPanoramixScreenshot(
-                new File(runner.config.macroFolder, folder)
-                //? if <=1.21.5 {
-                /*, width,
-                height
-                *///?}
-        );
-        if (callback != null) {
-            callback.accept(TextHelper.wrap(result));
+        File target = new File(runner.config.macroFolder, folder);
+        runOnClientThread(() -> {
+            Component result = mc.grabPanoramixScreenshot(
+                    target
+                    //? if <=1.21.5 {
+                    /*, width,
+                    height
+                    *///?}
+            );
+            if (callback != null) {
+                callback.accept(TextHelper.wrap(result));
+            }
+        });
+    }
+
+    /**
+     * Captures a panorama with both dimensions set to the 4096 default. Behaves like the
+     * four-argument overload with {@code 4096} for both dimensions, including its callback and
+     * asynchronous file writes.
+     *
+     * @param folder   the folder under the profile's macro folder to save into; it must already
+     *                 exist, and its {@code screenshots} child is created
+     * @param callback called with the capture routine's message as a text helper, or {@code null}
+     *                 for none
+     * @since 2.0.0
+     */
+    public void takePanorama(String folder, @Nullable MethodWrapper<TextHelper, Object, Object, ?> callback) {
+        takePanorama(folder, 4096, 4096, callback);
+    }
+
+    /** Runs capture work on the client thread without blocking a caller that the client is
+     * already waiting on. */
+    private static void runOnClientThread(Runnable task) {
+        if (mc.isSameThread()) {
+            task.run();
+        } else {
+            mc.execute(task);
         }
     }
 

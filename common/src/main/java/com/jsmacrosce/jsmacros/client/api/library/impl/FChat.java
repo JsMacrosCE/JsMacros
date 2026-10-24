@@ -70,8 +70,8 @@ public class FChat extends BaseLibrary {
     /**
      * Adds a message to the client's chat without sending it to the server. A {@code null} is
      * ignored; text helpers preserve rich formatting and other values are converted with
-     * {@code toString()}. This overload does not wait for the chat task to run when called outside
-     * a thread joined to Minecraft's main thread.
+     * {@code toString()}. The message is added immediately on Minecraft's thread and queued there
+     * from any other thread; this overload never waits for the queued task.
      *
      * @param message the message to log, or {@code null} to do nothing
      * @throws InterruptedException if the script is interrupted while waiting for the message
@@ -84,12 +84,16 @@ public class FChat extends BaseLibrary {
     /**
      * Adds a message to the client's chat without sending it to the server. A {@code null} is
      * ignored; text helpers preserve rich formatting and other values are converted with
-     * {@code toString()}. Outside a thread joined to Minecraft's main thread, {@code await=true}
-     * waits for the scheduled task to finish; {@code await=false} returns without waiting for
-     * that task to run.
+     * {@code toString()}.
+     * <p>
+     * On Minecraft's thread the message is added immediately. From another thread it is queued on
+     * Minecraft's thread; {@code await=true} waits for that queued task to finish. A thread that
+     * Minecraft is already waiting on, such as a joined callback, cannot wait for it without
+     * deadlocking, so the message is queued and this call returns without waiting.
      *
      * @param message the message to log, or {@code null} to do nothing
-     * @param await   should wait for message to actually be sent to chat to continue.
+     * @param await   whether to wait for the message to be added to chat; has no effect on a
+     *                thread that Minecraft is already waiting on
      * @throws InterruptedException if the script is interrupted while waiting
      * @since 1.1.3
      */
@@ -101,23 +105,32 @@ public class FChat extends BaseLibrary {
                 message instanceof TextBuilder ? ((TextBuilder) message).build() :
                         message.toString();
 
-        if (runner.profile.checkJoinedThreadStack()) {
-            if (message2 instanceof TextHelper) {
-                logInternal((TextHelper) message2);
-            } else {
-                logInternal((String) message2);
-            }
-        } else {
-            final Semaphore semaphore = new Semaphore(await ? 0 : 1);
-            mc.execute(() -> {
-                if (message2 instanceof TextHelper) {
-                    logInternal((TextHelper) message2);
-                } else {
-                    logInternal((String) message2);
-                }
+        if (mc.isSameThread()) {
+            logInternal(message2);
+            return;
+        }
+
+        // Minecraft's thread is already blocked waiting for a joined caller, so waiting for this
+        // task would deadlock. Queue it and let the joined callback return.
+        final boolean wait = await && !runner.profile.checkJoinedThreadStack();
+        final Semaphore semaphore = new Semaphore(wait ? 0 : 1);
+        mc.execute(() -> {
+            try {
+                logInternal(message2);
+            } finally {
                 semaphore.release();
-            });
+            }
+        });
+        if (wait) {
             semaphore.acquire();
+        }
+    }
+
+    private static void logInternal(Object message) {
+        if (message instanceof TextHelper) {
+            logInternal((TextHelper) message);
+        } else {
+            logInternal((String) message);
         }
     }
 
