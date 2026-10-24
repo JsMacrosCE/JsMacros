@@ -421,7 +421,7 @@ public class FChat extends BaseLibrary {
             Component descc = (desc instanceof TextHelper) ? ((TextHelper) desc).getRaw() : desc != null ? Component.literal(desc.toString()) : null;
             // There doesn't seem to be a difference in the appearance or the functionality except for the UNSECURE_SERVER_WARNING with a longer duration
             if (titlee != null) {
-                t.addToast(SystemToast.multiline(mc, SystemToast.SystemToastId.PERIODIC_NOTIFICATION, titlee, descc));
+                showSystemToast(t, SystemToast.SystemToastId.PERIODIC_NOTIFICATION, titlee, descc);
             }
         }
     }
@@ -439,10 +439,10 @@ public class FChat extends BaseLibrary {
      * @since 1.2.5
      */
     public void toast(Object title, Object desc, long displayTimeMs) {
-        ToastManager t = GuiCompat.toastManager(mc);
+        ToastManager tm = GuiCompat.toastManager(mc);
         // TODO: Are scripts run before Minecraft is properly instantiated anyway? Even if not wouldn't the line above
         //  throw an error because mc is null?
-        if (t == null) {
+        if (tm == null) {
             // TODO: Throw?
             return;
         }
@@ -451,13 +451,26 @@ public class FChat extends BaseLibrary {
         Component descComp = (desc instanceof TextHelper) ? ((TextHelper) desc).getRaw() : desc != null ? Component.literal(desc.toString()) : null;
         // There doesn't seem to be a difference in the appearance or the functionality except for the UNSECURE_SERVER_WARNING with a longer duration
         if (titleComp != null) {
-            t.addToast(SystemToast.multiline(
-                    mc,
-                    new SystemToast.SystemToastId(displayTimeMs),
-                    titleComp,
-                    descComp
-            ));
+            showSystemToast(tm, new SystemToast.SystemToastId(displayTimeMs), titleComp, descComp);
         }
+    }
+
+    /**
+     * Queues a system toast, keeping long descriptions multi-line on versions that still support
+     * that layout.
+     */
+    private static void showSystemToast(ToastManager manager, SystemToast.SystemToastId id,
+                                        Component title, @Nullable Component desc) {
+        // 26.2 removed SystemToast.multiline; its constructor now splits the title and description itself.
+        //? if >=26.2 {
+        SystemToast.add(manager, id, title, desc);
+        //?} else {
+        if (desc == null) {
+            SystemToast.add(manager, id, title, null);
+        } else {
+            manager.addToast(SystemToast.multiline(mc, id, title, desc));
+        }
+        //?}
     }
 
     /**
