@@ -19,7 +19,7 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 //? if >1.21.8 {
 /*import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 *///?}
 
 import java.util.ArrayList;
@@ -280,7 +280,7 @@ public class ClickableWidgetHelper<B extends ClickableWidgetHelper<B, T>, T exte
             /*MouseButtonEvent fakeEvent = new MouseButtonEvent(
                     base.getX(),
                     base.getY(),
-                    new MouseButtonInfo(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0));
+                    new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
             base.mouseClicked(fakeEvent, false);
             base.mouseReleased(fakeEvent);
             *///?} else {
@@ -294,7 +294,7 @@ public class ClickableWidgetHelper<B extends ClickableWidgetHelper<B, T>, T exte
                 /*MouseButtonEvent fakeEvent = new MouseButtonEvent(
                         base.getX(),
                         base.getY(),
-                        new MouseButtonInfo(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0));
+                        new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
                 base.mouseClicked(fakeEvent, false);
                 base.mouseReleased(fakeEvent);
                 *///?} else {

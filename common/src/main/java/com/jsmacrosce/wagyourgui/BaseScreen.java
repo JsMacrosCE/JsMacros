@@ -14,7 +14,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.util.FormattedCharSequence;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.wagyourgui.overlays.IOverlayParent;
 import com.jsmacrosce.wagyourgui.overlays.OverlayContainer;
@@ -222,7 +222,7 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
      */
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+        if (keyCode == InputConstants.KEY_ESCAPE) {
             if (overlay != null) {
                 this.overlay.closeOverlay(this.overlay.getChildOverlay());
                 return true;
@@ -248,7 +248,7 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
             /*MouseButtonEvent evt = new MouseButtonEvent(
                     mouseX,
                     mouseY,
-                    new MouseButtonInfo(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0));
+                    new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
             *///?}
             overlay.scroll.mouseDragged(
                     //? if >1.21.8 {

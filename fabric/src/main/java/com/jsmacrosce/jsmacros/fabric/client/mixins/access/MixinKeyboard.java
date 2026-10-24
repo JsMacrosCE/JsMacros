@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.fabric.client.mixins.access;
 
+import com.jsmacrosce.jsmacros.client.util.InputCompat;
+
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.kikugie.fletching_table.annotation.MixinEnvironment;
@@ -20,7 +22,7 @@ public class MixinKeyboard {
     //? if >1.21.8 {
     /*@WrapOperation(method = "keyPress", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/screens/Screen;keyPressed(Lnet/minecraft/client/input/KeyEvent;)Z"))
     private boolean onKeyPressed(Screen instance, KeyEvent keyEvent, Operation<Boolean> original) {
-        ((IScreenInternal) instance).jsmacros_keyPressed(keyEvent.key(), keyEvent.scancode(), keyEvent.modifiers());
+        ((IScreenInternal) instance).jsmacros_keyPressed(keyEvent.key(), InputCompat.scanCode(keyEvent), InputCompat.modifiers(keyEvent.modifiers()));
         return original.call(instance, keyEvent);
     }
 

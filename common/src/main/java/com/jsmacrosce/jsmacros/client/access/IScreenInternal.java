@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.client.access;
 
+import com.jsmacrosce.jsmacros.client.util.InputCompat;
+
 //? if >=26.1 {
 /*import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
@@ -32,7 +34,7 @@ public interface IScreenInternal {
         if (mc.hasShiftDown()) modifiers |= 1;
         if (mc.hasControlDown()) modifiers |= 2;
         if (mc.hasAltDown()) modifiers |= 4;
-        if (InputConstants.isKeyDown(mc.getWindow(), 343) || InputConstants.isKeyDown(mc.getWindow(), 347)) modifiers |= 8;
+        if (InputCompat.superDown(mc)) modifiers |= 8;
         return modifiers;
     }
     *///? }

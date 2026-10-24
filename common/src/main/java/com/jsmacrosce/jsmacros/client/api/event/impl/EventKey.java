@@ -1,6 +1,8 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl;
 
 import com.jsmacrosce.jsmacros.client.util.GuiCompat;
+import com.jsmacrosce.jsmacros.client.util.InputCompat;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.EditBox;
@@ -81,7 +83,7 @@ public class EventKey extends BaseEvent {
     )
     public final String mods;
 
-    private static final Set<Integer> wasNullOnDown = new HashSet<>();
+    private static final Set<InputConstants.Key> wasNullOnDown = new HashSet<>();
 
     /**
      * Initializes an event with the supplied action and input names without validating or dispatching them.
@@ -103,12 +105,14 @@ public class EventKey extends BaseEvent {
     /**
      * Converts a raw keyboard or mouse-button report into a {@code Key} event. It updates
      * JsMacros' pressed-key tracker, applies the screen filters, and then fires the event. The
-     * {@code scancode} is unused. The modifier string is formed before the attempted modifier-key
-     * adjustment, so that adjustment does not affect the event. Calling this method directly fires
+     * {@code scancode} is unused. Calling this method directly fires
      * a synthetic event; only the game's input callback uses its cancellation result to stop game
      * handling.
+     * The integer overload retains legacy GLFW numbering on every target, including Minecraft 26.3:
+     * left/right/middle mouse buttons are 0/1/2 and the A key is 65. Recognized legacy keys are
+     * translated to their native equivalents; keys without an SDL equivalent are ignored on 26.3.
      *
-     * @param key raw code; values through {@code 7} select mouse buttons, larger values select keyboard keys
+     * @param key legacy GLFW code; values through {@code 7} select mouse buttons, larger values select keyboard keys
      * @param scancode the raw scancode, which this method does not read
      * @param action what happened, using the windowing library's numbering, where {@code 1} is a
      *               press and {@code 0} is a release
@@ -117,13 +121,11 @@ public class EventKey extends BaseEvent {
      * @return whether a listener cancelled the event
      */
     public static boolean parse(int key, int scancode, int action, int mods) {
-        InputConstants.Key keycode;
-        if (key <= 7) {
-            keycode = InputConstants.Type.MOUSE.getOrCreate(key);
-        } else {
-            keycode = InputConstants.Type.KEYSYM.getOrCreate(key);
-        }
+        return parse(InputCompat.legacyKey(key), action, mods);
+    }
 
+    @DocletIgnore
+    public static boolean parse(InputConstants.Key keycode, int action, int mods) {
         String keyStr = keycode.getName();
         String modsStr = getKeyModifiers(mods);
 
@@ -138,7 +140,7 @@ public class EventKey extends BaseEvent {
         }
 
         if (GuiCompat.screen(mc) != null) {
-            if (action != 0 || !wasNullOnDown.contains(key)) {
+            if (action != 0 || !wasNullOnDown.contains(keycode)) {
                 ClientConfigV2 config = JsMacrosClient.clientCore.config.getOptions(ClientConfigV2.class);
                 if (config.disableKeyWhenScreenOpen) {
                     return false;
@@ -155,22 +157,11 @@ public class EventKey extends BaseEvent {
                 }
             }
         } else if (action == 1) {
-            wasNullOnDown.add(key);
+            wasNullOnDown.add(keycode);
         }
 
         if (action == 0) {
-            wasNullOnDown.remove(key);
-        }
-
-        // fix mods if it was a mod key
-        if (action == 1) {
-            if (key == 340 || key == 344) {
-                mods -= 1;
-            } else if (key == 341 || key == 345) {
-                mods -= 2;
-            } else if (key == 342 || key == 346) {
-                mods -= 4;
-            }
+            wasNullOnDown.remove(keycode);
         }
 
         EventKey ev = new EventKey(action, keyStr, modsStr);

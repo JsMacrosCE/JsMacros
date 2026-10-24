@@ -1,5 +1,7 @@
 package com.jsmacrosce.jsmacros.forge.client.forgeevents;
 
+import com.jsmacrosce.jsmacros.client.util.InputCompat;
+
 import com.google.common.collect.ImmutableSet;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -36,7 +38,12 @@ public class ForgeEvents {
     }
 
     public static void onScreenKeyPressed(ScreenEvent.KeyPressed.Pre event) {
+        //? if >=26.3 {
+        /*var key = event.getKeyEvent();
+        ((IScreenInternal) event.getScreen()).jsmacros_keyPressed(key.key(), InputCompat.scanCode(key), InputCompat.modifiers(key.modifiers()));
+        *///?} else {
         ((IScreenInternal) event.getScreen()).jsmacros_keyPressed(event.getKeyCode(), event.getScanCode(), event.getModifiers());
+        //?}
     }
 
     public static void onScreenCharTyped(ScreenEvent.CharacterTyped.Pre event) {
@@ -57,11 +64,11 @@ public class ForgeEvents {
     }
 
     public static void onScreenMouseClicked(ScreenEvent.MouseButtonPressed.Pre event) {
-        ((IScreenInternal) event.getScreen()).jsmacros_mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
+        ((IScreenInternal) event.getScreen()).jsmacros_mouseClicked(event.getMouseX(), event.getMouseY(), InputCompat.mouseButton(event.getButton()));
     }
 
     public static void onScreenMouseReleased(ScreenEvent.MouseButtonReleased.Pre event) {
-        ((IScreenInternal) event.getScreen()).jsmacros_mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
+        ((IScreenInternal) event.getScreen()).jsmacros_mouseReleased(event.getMouseX(), event.getMouseY(), InputCompat.mouseButton(event.getButton()));
     }
 
     public static void onScreenMouseScroll(ScreenEvent.MouseScrolled.Pre event) {
@@ -69,7 +76,7 @@ public class ForgeEvents {
     }
 
     public static void onScreenMouseDragged(ScreenEvent.MouseDragged.Pre event) {
-        ((IScreenInternal) event.getScreen()).jsmacros_mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(), event.getDragX(), event.getDragY());
+        ((IScreenInternal) event.getScreen()).jsmacros_mouseDragged(event.getMouseX(), event.getMouseY(), InputCompat.mouseButton(event.getMouseButton()), event.getDragX(), event.getDragY());
     }
 
     public static void renderHudListener(GuiGraphics guiGraphics, DeltaTracker partialTicks) {

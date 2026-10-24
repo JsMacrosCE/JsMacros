@@ -1,5 +1,8 @@
 package com.jsmacrosce.jsmacros.client.mixin.events;
 
+import com.jsmacrosce.jsmacros.client.util.InputCompat;
+import com.mojang.blaze3d.platform.InputConstants;
+
 import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.Minecraft;
 //? if >1.21.8 {
@@ -26,10 +29,11 @@ class MixinKeyboard {
         if (window != minecraft.getWindow().handle()) {
             return;
         }
-        if (keyEvent.key() == -1 || action == 2) {
+        if (InputConstants.getKey(keyEvent) == InputConstants.UNKNOWN
+                || (action != InputConstants.PRESS && action != InputConstants.RELEASE)) {
             return;
         }
-        if (EventKey.parse(keyEvent.key(), keyEvent.scancode(), action, keyEvent.modifiers())) {
+        if (EventKey.parse(InputConstants.getKey(keyEvent), action, InputCompat.modifiers(keyEvent.modifiers()))) {
             info.cancel();
         }
     }

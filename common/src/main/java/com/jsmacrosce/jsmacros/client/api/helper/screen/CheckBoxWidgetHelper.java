@@ -5,7 +5,7 @@ import net.minecraft.client.gui.components.Checkbox;
 /*import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.input.MouseButtonInfo;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 *///?}
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletCategory;
@@ -97,7 +97,7 @@ public class CheckBoxWidgetHelper extends ClickableWidgetHelper<CheckBoxWidgetHe
             /*MouseButtonEvent fakeEvent = new MouseButtonEvent(
                     base.getX(),
                     base.getY(),
-                    new MouseButtonInfo(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0));
+                    new MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
             base.onPress(fakeEvent);
             *///?} else {
             base.onPress();
