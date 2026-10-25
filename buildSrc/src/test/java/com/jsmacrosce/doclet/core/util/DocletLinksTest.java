@@ -449,7 +449,9 @@ public final class DocletLinksTest {
             contains(Files.readString(root.resolve(version + "/pydoclet/__init__.py")), "from . import FixtureTypes as FixtureTypes");
             String namespaceMd = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/types/FixtureTypes.md"));
             contains(namespaceMd, "`FixtureTypes.Nested`");
-            contains(Files.readString(root.resolve(version + "/webdoclet/fixture/example/TypeCatalog.html")), "FixtureTypes.Nested");
+            String catalogHtml = Files.readString(root.resolve(version + "/webdoclet/fixture/example/TypeCatalog.html"));
+            contains(catalogHtml, "FixtureTypes.Nested");
+            contains(catalogHtml, "id=\"Nested\"");
             contains(md, "Available in scripts as `FixtureTypes.Api`.");
             contains(html, "Available in scripts as FixtureTypes.Api.");
              String py = Files.readString(root.resolve(version + "/pydoclet/Api.py"));
@@ -533,6 +535,7 @@ public final class DocletLinksTest {
             excludes(search, "HiddenType");
             excludes(search, "NestedChild");
             contains(search, "VisibleImplementation#hiddenInherited()");
+            contains(search, "F\tTypeCatalog#Nested\texample/TypeCatalog#Nested");
             String implementation = Files.readString(root.resolve(version + "/webdoclet/fixture/example/Api.VisibleImplementation.html"));
             contains(implementation, "hiddenInherited");
             excludes(html, "href=\"\" class=\"type deadType\">CommandSyntaxException");

@@ -167,7 +167,7 @@ public class ClassParser {
                 // These fields become host types in scripts, not java.lang.Class-valued properties.
                 builder.append(new XMLBuilder("p").append("Read-only script type namespace: " + namespace.name()));
                 for (var export : namespace.exports()) {
-                    builder.append(new XMLBuilder("p").append(namespace.name() + "." + export.name() + " — ", parseType(export.target().asType())));
+                    builder.append(new XMLBuilder("p").setId(export.name()).append(namespace.name() + "." + export.name() + " — ", parseType(export.target().asType())));
                 }
                 return builder;
             }
