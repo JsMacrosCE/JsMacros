@@ -108,25 +108,24 @@ public class SelectorDropdownOverlay extends OverlayContainer {
         }
     }
 
-    /** Requests closing when the pointer is strictly outside the overlay bounds; points on the border do not close it.
-     * Does not forward the click to a child overlay or invoke the choice callback itself.
-     * @param mouseX pointer x-coordinate in GUI coordinates
-     * @param mouseY pointer y-coordinate in GUI coordinates
-     * @param button unused mouse-button value
-     */
     //? if >1.21.8 {
     /*/^* Requests closing when the pointer is strictly outside the overlay bounds; points on the border do not close it.
      * Does not forward the click to a child overlay or invoke the choice callback itself.
      * @param buttonEvent non-null pointer event supplying x/y in GUI coordinates; its button value is unused
      * @param doubleClick unused double-click indicator
      ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public void onClick(MouseButtonEvent buttonEvent, boolean doubleClick) {
+    public void onClick(MouseButtonEvent buttonEvent, boolean doubleClick) {
         double mouseX = buttonEvent.x();
         double mouseY = buttonEvent.y();
     *///?} else {
+    /** Requests closing when the pointer is strictly outside the overlay bounds; points on the border do not close it.
+     * Does not forward the click to a child overlay or invoke the choice callback itself.
+     * @param mouseX pointer x-coordinate in GUI coordinates
+     * @param mouseY pointer y-coordinate in GUI coordinates
+     * @param button unused mouse-button value
+     */
+    @Override
     public void onClick(double mouseX, double mouseY, int button) {
     //?}
         if (mouseX < x || mouseX > x + width || mouseY < y || mouseY > y + height) {
@@ -148,6 +147,17 @@ public class SelectorDropdownOverlay extends OverlayContainer {
         }
     }
 
+    //? if >1.21.8 {
+    /*/^* Handles up/down selection and enter/tab confirmation; confirmation invokes the optional callback with the current selection, including -1, then requests closing.
+     * If the callback throws, closing and the return are not reached. Down is handled even when selection cannot change; up is not handled when nothing is selected.
+     * Other keys return false without superclass or child delegation. There is no local focus, activation or visibility check, and changing selection does not scroll it into view.
+     * @param keyEvent non-null native key event; only its GLFW key code is used, not its scan code or modifiers
+     * @return true for down, enter or tab, and for up when a selection exists; false otherwise
+     ^/
+    @Override
+    public boolean keyPressed(KeyEvent keyEvent) {
+        switch (keyEvent.key()) {
+    *///?} else {
     /** Handles up/down selection and enter/tab confirmation; confirmation invokes the optional callback with the current selection, including -1, then closes.
      * If the callback throws, closing and the return are not reached. Down is handled even when selection cannot change; up is not handled when nothing is selected.
      * Other keys return false without superclass or child delegation. There is no local focus, activation or visibility check, and changing selection does not scroll it into view.
@@ -156,19 +166,7 @@ public class SelectorDropdownOverlay extends OverlayContainer {
      * @param modifiers unused modifier flags
      * @return true for down, enter or tab, and for up when a selection exists; false otherwise
      */
-    //? if >1.21.8 {
-    /*/^* Handles up/down selection and enter/tab confirmation; confirmation invokes the optional callback with the current selection, including -1, then requests closing.
-     * If the callback throws, closing and the return are not reached. Down is handled even when selection cannot change; up is not handled when nothing is selected.
-     * Other keys return false without superclass or child delegation. There is no local focus, activation or visibility check, and changing selection does not scroll it into view.
-     * @param keyEvent non-null native key event; only its GLFW key code is used, not its scan code or modifiers
-     * @return true for down, enter or tab, and for up when a selection exists; false otherwise
-     ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public boolean keyPressed(KeyEvent keyEvent) {
-        switch (keyEvent.key()) {
-    *///?} else {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         switch (keyCode) {
     //?}

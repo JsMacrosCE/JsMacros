@@ -196,44 +196,42 @@ public class Button extends AbstractButton {
     // This method is overridden to prevent mouseDown from triggering onPress
     // if onPress is triggered on mouseDown, the keybind editor will detect the mouseUp
     // as the target key.
-    /** Ignores the press hook; press dispatch is handled on release instead.
-     * @param mouseX mouse x-coordinate in GUI units; unused
-     * @param mouseY mouse y-coordinate in GUI units; unused
-     */
     //? if >1.21.8 {
     /*/^* Ignores this mouse-press hook; mouse activation is dispatched by the release hook instead.
      * @param buttonEvent unused pointer event
      * @param doubleClick unused double-click indicator
      ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public void onClick(MouseButtonEvent buttonEvent, boolean doubleClick) {
+    public void onClick(MouseButtonEvent buttonEvent, boolean doubleClick) {
     }
     *///?} else {
+    /** Ignores the press hook; press dispatch is handled on release instead.
+     * @param mouseX mouse x-coordinate in GUI units; unused
+     * @param mouseY mouse y-coordinate in GUI units; unused
+     */
+    @Override
     public void onClick(double mouseX, double mouseY) {
     }
     //?}
 
-    /** On release, dispatches the superclass click only when this button is active; the coordinates are forwarded to that call.
-     * The superclass click invokes this button's overridable press handler. This hook does not perform its own bounds or visibility check.
-     * @param mouseX mouse x-coordinate in GUI units, forwarded to the superclass click
-     * @param mouseY mouse y-coordinate in GUI units, forwarded to the superclass click
-     */
     //? if >1.21.8 {
     /*/^* On release, forwards the pointer event and a false double-click flag to the superclass click when {@code isActive()} is true.
      * The inherited active test requires visibility and active state. The superclass click invokes this button's overridable press handler; this hook adds no bounds check.
      * @param buttonEvent pointer event forwarded to the superclass click
      ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public void onRelease(MouseButtonEvent buttonEvent) {
+    public void onRelease(MouseButtonEvent buttonEvent) {
         if (this.isActive()) {
             super.onClick(buttonEvent, false);
         }
     }
     *///?} else {
+    /** On release, dispatches the superclass click only when this button is active; the coordinates are forwarded to that call.
+     * The superclass click invokes this button's overridable press handler. This hook does not perform its own bounds or visibility check.
+     * @param mouseX mouse x-coordinate in GUI units, forwarded to the superclass click
+     * @param mouseY mouse y-coordinate in GUI units, forwarded to the superclass click
+     */
+    @Override
     public void onRelease(double mouseX, double mouseY) {
         if (this.active) {
             super.onClick(mouseX, mouseY);
@@ -241,23 +239,22 @@ public class Button extends AbstractButton {
     }
     //?}
 
-    /** Invokes the current press callback with this button, if a callback is set.
-     * A null callback is a no-op; this method does not itself check widget state or change it.
-     */
     //? if >1.21.8 {
     /*/^* Invokes the current press callback with this button, if a callback is set.
      * A null callback is a no-op; this method does not itself check widget state or change it.
      * @param input unused activation input
      ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public void onPress(InputWithModifiers input) {
+    public void onPress(InputWithModifiers input) {
         if (onPress != null) {
             onPress.accept(this);
         }
     }
     *///?} else {
+    /** Invokes the current press callback with this button, if a callback is set.
+     * A null callback is a no-op; this method does not itself check widget state or change it.
+     */
+    @Override
     public void onPress() {
         if (onPress != null) {
             onPress.accept(this);

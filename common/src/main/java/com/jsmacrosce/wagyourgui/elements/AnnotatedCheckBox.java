@@ -55,9 +55,7 @@ public class AnnotatedCheckBox extends Button {
      * A direct call does not check active or visible state; a callback failure propagates without rolling back the toggle.
      * @param input activation input forwarded to the parent, which does not use it
      ^/
-    *///?}
-    //? if >1.21.8 {
-    /*@Override
+    @Override
     public void onPress(InputWithModifiers input) {
         value = !value;
         super.onPress(input);

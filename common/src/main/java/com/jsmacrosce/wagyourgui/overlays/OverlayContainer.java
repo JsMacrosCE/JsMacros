@@ -135,9 +135,7 @@ public abstract class OverlayContainer extends MultiElementContainer<IOverlayPar
      * @param buttonEvent native click event forwarded unchanged to the child
      * @param doubleClick caller-supplied double-click flag forwarded unchanged; not computed here
      ^/
-    *///?}
-    //? if >1.21.8 {
-    /*public void onClick(MouseButtonEvent buttonEvent, boolean doubleClick) {
+    public void onClick(MouseButtonEvent buttonEvent, boolean doubleClick) {
         if (overlay != null) {
             overlay.onClick(buttonEvent, doubleClick);
         }
@@ -221,9 +219,7 @@ public abstract class OverlayContainer extends MultiElementContainer<IOverlayPar
      * @param mouseY mouse y-coordinate in GUI space
      * @param a frame value forwarded to widgets and the child overlay
      ^/
-    *///?}
-    //? if >=26.1 {
-    /*@Override
+    @Override
     public void extractRenderState(final GuiGraphicsExtractor graphics, int mouseX, int mouseY, final float a) {
         for (AbstractWidget button : buttons) {
             button.extractRenderState(graphics, mouseX, mouseY, a);

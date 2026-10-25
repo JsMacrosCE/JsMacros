@@ -80,6 +80,17 @@ public class Slider extends AbstractWidget {
         this(x, y, width, height, text, value, action, 2);
     }
 
+    //? if >1.21.8 {
+    /*/^* Moves the value one configured interval left or right for the corresponding key.
+     * The key is handled even when clamping leaves the value unchanged; other keys return false without superclass delegation.
+     * Calls the overridable setValue; an action failure propagates before returning. There is no local focus, visibility or activation check.
+     * @param keyEvent non-null native key event; only its GLFW key code is used, not its scan code or modifiers
+     * @return {@code true} for left or right; {@code false} for other keys
+     ^/
+    @Override
+    public boolean keyPressed(KeyEvent keyEvent) {
+        int keyCode = keyEvent.key();
+    *///?} else {
     /**
      * Moves the value one configured interval left or right for the corresponding key.
      * The key is handled even when clamping leaves the value unchanged; other keys return false without superclass delegation.
@@ -90,19 +101,7 @@ public class Slider extends AbstractWidget {
      * @param modifiers unused modifier bits
      * @return {@code true} for left or right; {@code false} for other keys
      */
-    //? if >1.21.8 {
-    /*/^* Moves the value one configured interval left or right for the corresponding key.
-     * The key is handled even when clamping leaves the value unchanged; other keys return false without superclass delegation.
-     * Calls the overridable setValue; an action failure propagates before returning. There is no local focus, visibility or activation check.
-     * @param keyEvent non-null native key event; only its GLFW key code is used, not its scan code or modifiers
-     * @return {@code true} for left or right; {@code false} for other keys
-     ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public boolean keyPressed(KeyEvent keyEvent) {
-        int keyCode = keyEvent.key();
-    *///?} else {
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
     //?}
         if (keyCode == InputConstants.KEY_LEFT) {
@@ -198,6 +197,18 @@ public class Slider extends AbstractWidget {
         context.blitSprite(renderType, this.getHandleTexture(), this.getX() + (int)(this.value * (double)(this.width - 8)), this.getY(), 8, this.getHeight());
     }
 
+    //? if >1.21.8 {
+    /*/^* Sets the value from the horizontal mouse position along the slider track.
+     * The position is mapped from the track inset by four GUI units on each side, then clamped and rounded;
+     * the action runs only if the value changes, through the overridable setValue.
+     * The calculation divides by width minus eight; this method does not validate track width or check bounds, focus, activation or visibility.
+     * @param event non-null pointer event; only its x-coordinate in GUI units is used
+     * @param isDoubleClick unused double-click indicator
+     ^/
+    @Override
+    public void onClick(MouseButtonEvent event, boolean isDoubleClick)  {
+    double mouseX = event.x();
+    *///?} else {
     /**
      * Sets the value from the horizontal mouse position along the slider track.
      * The position is mapped from the track inset by four GUI units on each side, then clamped and rounded;
@@ -207,25 +218,20 @@ public class Slider extends AbstractWidget {
      * @param mouseX mouse x-coordinate in GUI units
      * @param mouseY mouse y-coordinate in GUI units; unused
      */
-    //? if >1.21.8 {
-    /*/^* Sets the value from the horizontal mouse position along the slider track.
-     * The position is mapped from the track inset by four GUI units on each side, then clamped and rounded;
-     * the action runs only if the value changes, through the overridable setValue.
-     * The calculation divides by width minus eight; this method does not validate track width or check bounds, focus, activation or visibility.
-     * @param event non-null pointer event; only its x-coordinate in GUI units is used
-     * @param isDoubleClick unused double-click indicator
-     ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public void onClick(MouseButtonEvent event, boolean isDoubleClick)  {
-    double mouseX = event.x();
-    *///?} else {
     public void onClick(double mouseX, double mouseY) {
     //?}
         setValueFromMouse(mouseX);
     }
 
+    //? if >1.21.8 {
+    /*/^* Requests the widget's down sound for a release; this does not change the slider value or invoke the action.
+     * A direct call does not check activation, visibility or focus; sound audibility depends on native sound handling.
+     * @param event unused pointer event
+     ^/
+    @Override
+    public void onRelease(MouseButtonEvent event) {
+    *///?} else {
     /**
      * Requests the widget's down sound for a release; this does not change the slider value or invoke the action.
      * A direct call does not check activation, visibility or focus; sound audibility depends on native sound handling.
@@ -233,16 +239,7 @@ public class Slider extends AbstractWidget {
      * @param mouseX mouse x-coordinate in GUI units; unused
      * @param mouseY mouse y-coordinate in GUI units; unused
      */
-    //? if >1.21.8 {
-    /*/^* Requests the widget's down sound for a release; this does not change the slider value or invoke the action.
-     * A direct call does not check activation, visibility or focus; sound audibility depends on native sound handling.
-     * @param event unused pointer event
-     ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public void onRelease(MouseButtonEvent event) {
-    *///?} else {
     public void onRelease(double mouseX, double mouseY) {
     //?}
         super.playDownSound(Minecraft.getInstance().getSoundManager());

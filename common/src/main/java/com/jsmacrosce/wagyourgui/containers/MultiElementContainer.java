@@ -166,9 +166,7 @@ public abstract class MultiElementContainer<T extends IContainerParent> implemen
      * @param mouseY mouse y-coordinate in GUI space
      * @param a frame value supplied by the caller
      ^/
-    *///?}
-    //? if >=26.1 {
-    /*public abstract void extractRenderState(final GuiGraphicsExtractor graphics, int mouseX, int mouseY, final float a);
+    public abstract void extractRenderState(final GuiGraphicsExtractor graphics, int mouseX, int mouseY, final float a);
     *///? } else {
     /** Subclass hook for rendering container-specific content; parent widget registration does not invoke this hook automatically.
      * Subclasses decide what to render and whether to honor the stored visibility flag; there is no base rendering body.

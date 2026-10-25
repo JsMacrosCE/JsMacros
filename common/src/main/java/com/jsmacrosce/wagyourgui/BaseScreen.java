@@ -200,9 +200,7 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
      * @param keyEvent non-null native key event; its key code is tested for Escape before inspecting the overlay, and the event is forwarded unchanged on delegation
      * @return true for the intercepted Escape path, otherwise the native screen handler's result
      ^/
-    *///?}
-    //? if >1.21.8 {
-    /*@Override
+    @Override
     public boolean keyPressed(KeyEvent keyEvent) {
         if (keyEvent.isEscape()) {
             if (overlay != null) {
@@ -270,9 +268,7 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
      * @param doubleClick caller-supplied double-click flag forwarded unchanged; this method does not compute it
      * @return the native screen handler's result, not the overlay hook's handling state
      ^/
-    *///?}
-    //? if >1.21.8 {
-    /*@Override
+    @Override
     public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean doubleClick) {
         if (overlay != null) {
             overlay.onClick(buttonEvent, doubleClick);
@@ -304,9 +300,7 @@ public abstract class BaseScreen extends Screen implements IOverlayParent {
      * @param mouseY mouse Y coordinate in GUI space forwarded to the overlay
      * @param a caller-supplied frame value forwarded unchanged to the overlay
      ^/
-    *///?}
-    //? if >=26.1 {
-    /*@Override
+    @Override
     public void extractRenderState(final GuiGraphicsExtractor graphics, int mouseX, int mouseY, final float a) {
         if (overlay != null) {
             overlay.extractRenderState(graphics, mouseX, mouseY, a);

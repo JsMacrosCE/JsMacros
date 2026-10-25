@@ -62,9 +62,7 @@ public interface RenderElement extends Renderable {
      * @param mouseY the mouse y-coordinate, or 0 on a plain overlay
      * @param delta the frame value supplied by the caller, or 0 on a plain overlay
      ^/
-    *///?}
-    //? if >=26.1 {
-    /*void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta);
+    void render(GuiGraphicsExtractor drawContext, int mouseX, int mouseY, float delta);
 
     @DocletIgnore
     @Override

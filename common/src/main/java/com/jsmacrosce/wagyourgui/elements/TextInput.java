@@ -130,13 +130,6 @@ public class TextInput extends Button {
         }
     }
 
-    /** When already focused on entry, moves both selection endpoints and {@code arrowCursor} to the position derived from {@code mouseX}, then delegates to the native widget.
-     * The local position update occurs before superclass filtering and may happen even if the returned handled state is false; an unfocused call makes no local cursor change before delegation.
-     * @param mouseX mouse x-coordinate in GUI units, used for the local text position
-     * @param mouseY mouse y-coordinate in GUI units, forwarded to the native handler
-     * @param button mouse button forwarded to the native handler
-     * @return the native handler's handled state, not whether the local selection moved
-     */
     //? if >1.21.8 {
     /*/^* When already focused on entry, moves both selection endpoints and {@code arrowCursor} to the position derived from the pointer's x-coordinate, then delegates to the native widget.
      * The local position update occurs before superclass filtering and may happen even if the returned handled state is false;
@@ -145,12 +138,18 @@ public class TextInput extends Button {
      * @param doubleClick double-click flag forwarded to the native handler, unused locally
      * @return the native handler's handled state, not whether the local selection moved
      ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean doubleClick) {
+    public boolean mouseClicked(MouseButtonEvent buttonEvent, boolean doubleClick) {
         double mouseX = buttonEvent.x();
     *///?} else {
+    /** When already focused on entry, moves both selection endpoints and {@code arrowCursor} to the position derived from {@code mouseX}, then delegates to the native widget.
+     * The local position update occurs before superclass filtering and may happen even if the returned handled state is false; an unfocused call makes no local cursor change before delegation.
+     * @param mouseX mouse x-coordinate in GUI units, used for the local text position
+     * @param mouseY mouse y-coordinate in GUI units, forwarded to the native handler
+     * @param button mouse button forwarded to the native handler
+     * @return the native handler's handled state, not whether the local selection moved
+     */
+    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
     //?}
         if (this.isFocused()) {
@@ -166,15 +165,6 @@ public class TextInput extends Button {
         //?}
     }
 
-    /** When focused on entry, moves the selection end and {@code arrowCursor} to the position derived from {@code mouseX}, leaving the start endpoint unchanged, then delegates to the native widget.
-     * The local update has no button, bounds, active, or visibility guard; the native return value is independent of whether that update occurred.
-     * @param mouseX mouse x-coordinate in GUI units, used for the local text position
-     * @param mouseY mouse y-coordinate forwarded to the native handler
-     * @param button mouse button forwarded to the native handler
-     * @param deltaX horizontal drag delta forwarded to the native handler
-     * @param deltaY vertical drag delta forwarded to the native handler
-     * @return the native handler's handled state
-     */
     //? if >1.21.8 {
     /*/^* When focused on entry, moves the selection end and {@code arrowCursor} to the position derived from the pointer's x-coordinate, leaving the start endpoint unchanged, then delegates to the native widget.
      * The local update has no button, bounds, active, or visibility guard;
@@ -184,12 +174,20 @@ public class TextInput extends Button {
      * @param deltaY vertical drag delta forwarded to the native handler, unused locally
      * @return the native handler's handled state
      ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public boolean mouseDragged(MouseButtonEvent buttonEvent, double deltaX, double deltaY) {
+    public boolean mouseDragged(MouseButtonEvent buttonEvent, double deltaX, double deltaY) {
         double mouseX = buttonEvent.x();
     *///?} else {
+    /** When focused on entry, moves the selection end and {@code arrowCursor} to the position derived from {@code mouseX}, leaving the start endpoint unchanged, then delegates to the native widget.
+     * The local update has no button, bounds, active, or visibility guard; the native return value is independent of whether that update occurred.
+     * @param mouseX mouse x-coordinate in GUI units, used for the local text position
+     * @param mouseY mouse y-coordinate forwarded to the native handler
+     * @param button mouse button forwarded to the native handler
+     * @param deltaX horizontal drag delta forwarded to the native handler
+     * @param deltaY vertical drag delta forwarded to the native handler
+     * @return the native handler's handled state
+     */
+    @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
     //?}
         if (this.isFocused()) {
@@ -215,14 +213,6 @@ public class TextInput extends Button {
 
     }
 
-    /** Handles focused text-editing shortcuts and navigation, then delegates the key event to the superclass.
-     * Supports select-all, copy, paste, cut, deletion and cursor navigation. Paste and deletions bypass the mask; Control, not Shift, extends left/right selection using the current native modifier state.
-     * Select-all, Home and End update selection endpoints without refreshing arrowCursor. Edits can notify the optional change callback even when deletion leaves content unchanged; a callback failure can leave changed content before endpoint updates and prevents superclass delegation.
-     * @param keyCode GLFW key code used for local handling
-     * @param scanCode scan code forwarded to the superclass, unused locally
-     * @param modifiers modifier bits forwarded to the superclass, not consulted by local shortcuts or navigation
-     * @return the superclass's handled state, not whether text changed; local edits can occur even when it is false
-     */
     //? if >1.21.8 {
     /*/^* Handles focused text-editing shortcuts and navigation, then delegates the key event to the superclass.
      * Supports select-all, copy, paste, cut, deletion and cursor navigation; paste and deletions bypass the mask.
@@ -234,10 +224,8 @@ public class TextInput extends Button {
      * @param keyEvent non-null native key event; its key and modifier bits are read before the focus check and drive local handling, while its scan code is only forwarded to the superclass
      * @return the superclass's handled state, not whether text changed; local edits can occur even when it is false
      ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public boolean keyPressed(KeyEvent keyEvent) {
+    public boolean keyPressed(KeyEvent keyEvent) {
         boolean selectAll = keyEvent.isSelectAll();
         boolean isCopy = keyEvent.isCopy();
         boolean isPaste = keyEvent.isPaste();
@@ -245,6 +233,15 @@ public class TextInput extends Button {
         boolean isCtrl = keyEvent.hasControlDown();
         int keyCode = keyEvent.key();
         *///?} else {
+    /** Handles focused text-editing shortcuts and navigation, then delegates the key event to the superclass.
+     * Supports select-all, copy, paste, cut, deletion and cursor navigation. Paste and deletions bypass the mask; Control, not Shift, extends left/right selection using the current native modifier state.
+     * Select-all, Home and End update selection endpoints without refreshing arrowCursor. Edits can notify the optional change callback even when deletion leaves content unchanged; a callback failure can leave changed content before endpoint updates and prevents superclass delegation.
+     * @param keyCode GLFW key code used for local handling
+     * @param scanCode scan code forwarded to the superclass, unused locally
+     * @param modifiers modifier bits forwarded to the superclass, not consulted by local shortcuts or navigation
+     * @return the superclass's handled state, not whether text changed; local edits can occur even when it is false
+     */
+    @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         boolean selectAll = Screen.isSelectAll(keyCode);
         boolean isCopy = Screen.isCopy(keyCode);
@@ -350,13 +347,6 @@ public class TextInput extends Button {
         //?}
     }
 
-    /** Replaces the current selection with one Java UTF-16 char only when the resulting content fully matches the mask; this method does not check focus.
-     * Reversed selection endpoints are exchanged before testing, even if insertion is rejected. Accepted content is stored before the optional change callback, then selection and arrowCursor advance past the inserted char; a callback failure prevents those later updates.
-     * Requires a valid non-null regex mask and valid indices in non-null content. Does not delegate to the superclass and returns false on normal completion even when insertion was accepted.
-     * @param chr Java UTF-16 char to insert
-     * @param modifiers unused modifier bits
-     * @return false on normal completion, independently of acceptance
-     */
     //? if >1.21.8 {
     /*/^* Replaces the current selection with the event's Java code point only when the resulting content fully matches the mask; this method does not check focus.
      * Inserts one or two UTF-16 code units and advances selection and arrowCursor by that count.
@@ -368,14 +358,20 @@ public class TextInput extends Button {
      * @param characterEvent non-null native character event; only its Java code point in {@code 0..0x10FFFF} is used
      * @return false on normal completion, independently of acceptance
      ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public boolean charTyped(CharacterEvent characterEvent) {
+    public boolean charTyped(CharacterEvent characterEvent) {
         int codePoint = characterEvent.codepoint();
         String inserted = new String(Character.toChars(codePoint));
         int advance = Character.charCount(codePoint);
     *///?} else {
+    /** Replaces the current selection with one Java UTF-16 char only when the resulting content fully matches the mask; this method does not check focus.
+     * Reversed selection endpoints are exchanged before testing, even if insertion is rejected. Accepted content is stored before the optional change callback, then selection and arrowCursor advance past the inserted char; a callback failure prevents those later updates.
+     * Requires a valid non-null regex mask and valid indices in non-null content. Does not delegate to the superclass and returns false on normal completion even when insertion was accepted.
+     * @param chr Java UTF-16 char to insert
+     * @param modifiers unused modifier bits
+     * @return false on normal completion, independently of acceptance
+     */
+    @Override
     public boolean charTyped(char chr, int modifiers) {
         String inserted = String.valueOf(chr);
         int advance = 1;

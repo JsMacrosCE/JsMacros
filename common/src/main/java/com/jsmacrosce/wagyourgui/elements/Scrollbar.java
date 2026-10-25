@@ -108,12 +108,6 @@ public class Scrollbar extends AbstractWidget {
         onChange();
     }
 
-    /** Moves the thumb toward the clicked track position when active; the mouse X coordinate is unused.
-     * Each qualifying side of the thumb calls onChange after its own one-sided position clamp. The two tests are separate, not mutually exclusive; a click within the thumb makes no change.
-     * This method does not check visibility or whether the coordinates lie within the widget.
-     * @param mouseX mouse X coordinate in GUI units (unused)
-     * @param mouseY mouse Y coordinate in GUI units
-     */
     //? if >1.21.8 {
     /*/^* Moves the thumb toward the clicked track position when active.
      * Each qualifying side of the thumb calls onChange after its own one-sided position clamp.
@@ -122,12 +116,17 @@ public class Scrollbar extends AbstractWidget {
      * @param buttonEvent non-null pointer event; its y-coordinate in GUI units is read even when inactive, and its other fields are unused
      * @param doubleClick unused double-click indicator
      ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public void onClick(MouseButtonEvent buttonEvent, boolean doubleClick) {
+    public void onClick(MouseButtonEvent buttonEvent, boolean doubleClick) {
         double mouseY = buttonEvent.y();
     *///?} else {
+    /** Moves the thumb toward the clicked track position when active; the mouse X coordinate is unused.
+     * Each qualifying side of the thumb calls onChange after its own one-sided position clamp. The two tests are separate, not mutually exclusive; a click within the thumb makes no change.
+     * This method does not check visibility or whether the coordinates lie within the widget.
+     * @param mouseX mouse X coordinate in GUI units (unused)
+     * @param mouseY mouse Y coordinate in GUI units
+     */
+    @Override
     public void onClick(double mouseX, double mouseY) {
     //?}
         if (this.active) {
@@ -152,16 +151,6 @@ public class Scrollbar extends AbstractWidget {
         }
     }
 
-    /** Adds the vertical drag delta to position, clamps first to the upper travel distance and then to zero, calls onChange, then delegates to the superclass.
-     * There is no local activation, visibility, focus, button or bounds check. The callback may run even if position is unchanged; if it throws, superclass delegation is not reached.
-     * The superclass result does not report whether this method changed position.
-     * @param mouseX current mouse X coordinate in GUI units, forwarded to the superclass
-     * @param mouseY current mouse Y coordinate in GUI units, forwarded to the superclass
-     * @param button mouse button, forwarded to the superclass
-     * @param deltaX horizontal drag delta, forwarded to the superclass but unused in the local adjustment
-     * @param deltaY vertical drag delta in GUI units; positive values increase the position
-     * @return the result returned by the superclass
-     */
     //? if >1.21.8 {
     /*/^* Adds the vertical drag delta to position, clamps first to the upper travel distance and then to zero, calls onChange, then delegates to the superclass.
      * There is no local activation, visibility, focus, button or bounds check.
@@ -172,12 +161,21 @@ public class Scrollbar extends AbstractWidget {
      * @param deltaY vertical drag delta in GUI units; positive values increase the position
      * @return the result returned by the superclass
      ^/
-    *///?}
     @Override
-    //? if >1.21.8 {
-    /*public boolean mouseDragged(MouseButtonEvent buttonEvent, double deltaX, double deltaY) {
+    public boolean mouseDragged(MouseButtonEvent buttonEvent, double deltaX, double deltaY) {
         double mouseY = buttonEvent.y();
     *///?} else {
+    /** Adds the vertical drag delta to position, clamps first to the upper travel distance and then to zero, calls onChange, then delegates to the superclass.
+     * There is no local activation, visibility, focus, button or bounds check. The callback may run even if position is unchanged; if it throws, superclass delegation is not reached.
+     * The superclass result does not report whether this method changed position.
+     * @param mouseX current mouse X coordinate in GUI units, forwarded to the superclass
+     * @param mouseY current mouse Y coordinate in GUI units, forwarded to the superclass
+     * @param button mouse button, forwarded to the superclass
+     * @param deltaX horizontal drag delta, forwarded to the superclass but unused in the local adjustment
+     * @param deltaY vertical drag delta in GUI units; positive values increase the position
+     * @return the result returned by the superclass
+     */
+    @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
     //?}
         scrollAmount += deltaY;
