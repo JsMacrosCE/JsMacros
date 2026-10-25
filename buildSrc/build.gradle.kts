@@ -67,7 +67,16 @@ val testDocletLinks by tasks.registering(JavaExec::class) {
 }
 
 tasks.named("check") {
-    dependsOn(testDocBodyRenderer, testTsRenderer, testExternalTypeLinks, testDocletLinks, "testMarkdownWriter", "testDistribution")
+    dependsOn(testDocBodyRenderer, testTsRenderer, testExternalTypeLinks, testDocletLinks, "testMarkdownWriter", "testDistribution", "testExternalJavadocIndexes")
+}
+
+tasks.register<JavaExec>("testExternalJavadocIndexes") {
+    group = "verification"
+    description = "Checks external Javadoc index fallback, validation and bounded HTTP retries"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.doclet.options.LinksTest")
+    args(layout.buildDirectory.dir("external-index-tests").get().asFile.absolutePath)
 }
 
 tasks.register<JavaExec>("testDistribution") {

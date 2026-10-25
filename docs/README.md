@@ -214,9 +214,11 @@ JDK Javadoc is selected using the target's Java toolchain version, and external
 `element-list` module prefixes are preserved rather than using legacy framed URLs.
 
 Configured external Javadoc indexes are fetched while generating with bounded
-timeouts and retries. An index that still cannot be read fails generation and
-names the URL and cause, so a release does not publish documentation whose
-external links silently went missing.
+timeouts and retries. Missing, malformed and permanent HTTP-error indexes fall
+back immediately from `element-list` to `package-list`; timeouts, HTTP 408/429 and
+server errors retain bounded retries. If neither format provides a valid index,
+generation fails and names the URL and cause, so a release does not publish
+documentation whose external links silently went missing.
 
 The provider rule currently accepts release versions. An unknown/snapshot version
 does not acquire a guessed Minecraft URL. New supported targets should verify
@@ -242,7 +244,8 @@ namespace exposes instance methods, so use its getters (e.g. `World.getServer15M
 
 ```sh
 ./gradlew :buildSrc:testExternalTypeLinks :buildSrc:testDocletLinks \
-  :buildSrc:testDocBodyRenderer :buildSrc:testTsRenderer :buildSrc:testMarkdownWriter
+  :buildSrc:testDocBodyRenderer :buildSrc:testTsRenderer :buildSrc:testMarkdownWriter \
+  :buildSrc:testExternalJavadocIndexes
 node --test docs/vitepress/.vitepress/api-snapshots.test.ts \
   docs/vitepress/.vitepress/theme/inline-highlight.test.ts \
   docs/vitepress/.vitepress/theme/search-scope.test.ts

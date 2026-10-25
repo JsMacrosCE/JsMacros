@@ -4,11 +4,13 @@ import com.jsmacrosce.doclet.DocletIgnore;
 import jdk.javadoc.doclet.Doclet;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -72,20 +74,25 @@ public class Links implements Doclet.Option {
                         // Modern Javadoc puts classes beneath their module directory.
                         if (line.startsWith("module:")) {
                             String module = line.substring("module:".length());
-                            if (!SourceVersion.isName(module)) throw new IOException("Invalid Javadoc module: " + line);
+                            if (!SourceVersion.isName(module)) throw new NonRetryableIndexException("Invalid Javadoc module: " + line);
                             modulePath = module + "/";
                             continue;
                         }
                         // Some hosts return a soft-404 HTML page with HTTP 200. Do not
                         // mistake it for a successful package list and lose every link.
-                        if (!SourceVersion.isName(line)) throw new IOException("Invalid Javadoc package: " + line);
+                        if (!SourceVersion.isName(line)) throw new NonRetryableIndexException("Invalid Javadoc package: " + line);
                         packages.put(
                                 line,
                                 baseUrl + modulePath + line.replace(".", "/") + "/");
                     }
-                    if (packages.isEmpty()) throw new IOException("Empty Javadoc package index: " + baseUrl + listFile);
+                    if (packages.isEmpty()) throw new NonRetryableIndexException("Empty Javadoc package index: " + baseUrl + listFile);
                     externalPackages.putAll(packages);
                     return true;
+                } catch (FileNotFoundException | NonRetryableIndexException e) {
+                    // Older Javadoc has only package-list. Missing/invalid indexes
+                    // should fall back immediately, not sleep through four attempts.
+                    lastException = e;
+                    break;
                 } catch (Exception e) {
                     lastException = e;
                     // Retry a momentary blip; a persistent failure still fails generation.
@@ -101,7 +108,7 @@ public class Links implements Doclet.Option {
         return false;
     }
 
-    private static void pauseBetweenAttempts() {
+    void pauseBetweenAttempts() {
         try {
             Thread.sleep(1_000);
         } catch (InterruptedException e) {
@@ -114,6 +121,23 @@ public class Links implements Doclet.Option {
         connection.setConnectTimeout(CONNECT_TIMEOUT_MILLIS);
         connection.setReadTimeout(READ_TIMEOUT_MILLIS);
         connection.setRequestProperty("User-Agent", "jsmacrosce-doclet");
+        if (connection instanceof HttpURLConnection http) {
+            int status = http.getResponseCode();
+            if (status >= 400) {
+                http.disconnect();
+                String message = "HTTP " + status + " reading Javadoc index " + url;
+                if (status == 408 || status == 429 || status >= 500) {
+                    throw new IOException(message);
+                }
+                throw new NonRetryableIndexException(message);
+            }
+        }
         return connection.getInputStream();
+    }
+
+    private static final class NonRetryableIndexException extends IOException {
+        private NonRetryableIndexException(String message) {
+            super(message);
+        }
     }
 }
