@@ -51,8 +51,10 @@ public final class DocletLinksTest {
             "package com.jsmacrosce.doclet; import java.lang.annotation.*; @Target(ElementType.METHOD) public @interface DocletReplaceReturn { String value(); }");
         Path ignoreAnnotation = write(root.resolve("source/com/jsmacrosce/doclet/DocletIgnore.java"),
             "package com.jsmacrosce.doclet; import java.lang.annotation.*; @Retention(RetentionPolicy.SOURCE) @Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD, ElementType.CONSTRUCTOR}) public @interface DocletIgnore {}");
+        Path namespaceAnnotation = write(root.resolve("source/com/jsmacrosce/jsmacros/core/library/ScriptNamespace.java"),
+            "package com.jsmacrosce.jsmacros.core.library; import java.lang.annotation.*; @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.TYPE) public @interface ScriptNamespace { String value(); }");
         int compile = ToolProvider.getSystemJavaCompiler().run(null, null, null,
-            "-d", stubs.toString(), player.toString(), hit.toString(), profile.toString(), syntaxException.toString(), record.toString(), commandSource.toString(), libraryAnnotation.toString(), eventAnnotation.toString(), nullableAnnotation.toString(), replaceReturnAnnotation.toString(), ignoreAnnotation.toString());
+            "-d", stubs.toString(), player.toString(), hit.toString(), profile.toString(), syntaxException.toString(), record.toString(), commandSource.toString(), libraryAnnotation.toString(), eventAnnotation.toString(), nullableAnnotation.toString(), replaceReturnAnnotation.toString(), ignoreAnnotation.toString(), namespaceAnnotation.toString());
         if (compile != 0) throw new AssertionError("Fixture compilation failed: " + compile);
         String fixtureSource = """
             package example;
@@ -370,6 +372,26 @@ public final class DocletLinksTest {
             }
             """);
 
+        Path catalogFixture = write(root.resolve("source/example/TypeCatalog.java"), """
+            package example;
+            /** Stable fixture types, preserving {@code a < b && b > c}.
+             * <pre>if (value instanceof FixtureTypes.Nested) value.toString();</pre>
+             */
+            @com.jsmacrosce.jsmacros.core.library.ScriptNamespace("FixtureTypes")
+            public final class TypeCatalog {
+                private TypeCatalog() {}
+                public static final Class<Api> Api = Api.class;
+                public static final Class<Api.GenericFixture> Generic = Api.GenericFixture.class;
+                public static final Class<Outer.Nested> Nested = Outer.Nested.class;
+                public static final Class<Capability> Interface = Capability.class;
+                public interface Capability {
+                    int MARKER = 7;
+                    static String family() { return "capability"; }
+                    int value();
+                }
+            }
+            """);
+
         // Do not put Gradle/Kotlin compiler jars on the doclet path. Their service
         // providers can initialize javac before Javadoc has finished parsing options.
         String docletClasspath = Path.of(com.jsmacrosce.doclet.core.mddoclet.Main.class
@@ -403,6 +425,7 @@ public final class DocletLinksTest {
                 command.add(overrideFixture.toString());
                 command.add(innerFixture.toString());
                 command.add(genericOuterFixture.toString());
+                command.add(catalogFixture.toString());
                 Path log = root.resolve(version + "-" + kind + ".log");
                 int result = new ProcessBuilder(command).redirectErrorStream(true)
                     .redirectOutput(log.toFile()).start().waitFor();
@@ -411,6 +434,24 @@ public final class DocletLinksTest {
             String md = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/classes/example/Api.md"));
             String html = Files.readString(root.resolve(version + "/webdoclet/fixture/example/Api.html"));
             String ts = Files.readString(root.resolve(version + "/tsdoclet/JsMacros-fixture.d.ts"));
+            contains(ts, "declare namespace FixtureTypes {");
+            contains(ts, "const Nested: typeof Packages.example.Outer$Nested;");
+            contains(ts, "type Generic<T = any> = Packages.example.Api$GenericFixture<T>;");
+            contains(ts, "[Symbol.hasInstance](value: unknown): value is Packages.example.TypeCatalog$Capability;");
+            contains(ts, "readonly MARKER: number;");
+            contains(ts, "family(): string;");
+            excludes(ts, "class TypeCatalog extends");
+            String namespacePy = Files.readString(root.resolve(version + "/pydoclet/FixtureTypes.py"));
+            contains(namespacePy, "from .Outer_Nested import Outer_Nested as Nested");
+            contains(namespacePy, "from .Api_GenericFixture import Api_GenericFixture as Generic");
+            contains(namespacePy, "a < b && b > c");
+            contains(namespacePy, "if (value instanceof FixtureTypes.Nested) value.toString();");
+            contains(Files.readString(root.resolve(version + "/pydoclet/__init__.py")), "from . import FixtureTypes as FixtureTypes");
+            String namespaceMd = Files.readString(root.resolve(version + "/mddoclet/content/fixture/" + version + "/types/FixtureTypes.md"));
+            contains(namespaceMd, "`FixtureTypes.Nested`");
+            contains(Files.readString(root.resolve(version + "/webdoclet/fixture/example/TypeCatalog.html")), "FixtureTypes.Nested");
+            contains(md, "Available in scripts as `FixtureTypes.Api`.");
+            contains(html, "Available in scripts as FixtureTypes.Api.");
              String py = Files.readString(root.resolve(version + "/pydoclet/Api.py"));
              String eventTs = Files.readString(root.resolve(version + "/tsdoclet/JsMacros-fixture.d.ts"));
               String eventPy = Files.readString(root.resolve(version + "/pydoclet/SyntheticEvents_WrappedScript.py"));
@@ -754,7 +795,23 @@ public final class DocletLinksTest {
             contains(modern, "[Example license](https://example.org/license)");
             contains(modern, "<a target=\"_blank\" href=\"https://example.org\">$literal</a>");
         }
-        System.out.println("DocletLinks: 8 actual doclet runs, read-only fields, external links and nested-library presentation passed");
+        assertInvalidNamespace(root, stubs, docletClasspath, "mutable", """
+                @com.jsmacrosce.jsmacros.core.library.ScriptNamespace("BadTypes")
+                public class BadCatalog { public static Class<String> Value = String.class; }
+                """, "Expected public static final Class<T> export");
+        assertInvalidNamespace(root, stubs, docletClasspath, "wildcard", """
+                @com.jsmacrosce.jsmacros.core.library.ScriptNamespace("BadTypes")
+                public class BadCatalog { public static final Class<?> Value = String.class; }
+                """, "Expected public static final Class<T> export");
+        assertInvalidNamespace(root, stubs, docletClasspath, "undocumented", """
+                @com.jsmacrosce.jsmacros.core.library.ScriptNamespace("BadTypes")
+                public class BadCatalog { public static final Class<String> Value = String.class; }
+                """, "Script export must target a documented public API type");
+        assertInvalidNamespace(root, stubs, docletClasspath, "conflicting", """
+                @com.jsmacrosce.jsmacros.core.library.ScriptNamespace("context")
+                public class BadCatalog { public static final Class<String> Value = String.class; }
+                """, "Invalid or conflicting script namespace");
+        System.out.println("DocletLinks: 8 actual doclet runs and 4 negative namespace fixtures passed");
         TypeRef lowerBound = new TypeRef(TypeKind.WILDCARD, "?", "?", List.of(), false, false,
             new TypeRef(TypeKind.DECLARED, "String", "java.lang.String", List.of(), false, false, null, false), false,
             TypeRef.WildcardBound.SUPER);
@@ -767,6 +824,19 @@ public final class DocletLinksTest {
         if (legacyEightArgument.wildcardBound() != TypeRef.WildcardBound.EXTENDS) {
             throw new AssertionError("Eight-argument TypeRef compatibility constructor changed");
         }
+    }
+
+    private static void assertInvalidNamespace(Path root, Path stubs, String docletClasspath,
+                                               String name, String source, String expected) throws Exception {
+        Path file = write(root.resolve("invalid/" + name + "/BadCatalog.java"), source);
+        Path log = root.resolve("invalid-" + name + ".log");
+        int result = new ProcessBuilder(Path.of(System.getProperty("java.home"), "bin", "javadoc").toString(),
+                "-quiet", "-source", "21", "-doclet", "com.jsmacrosce.doclet.core.tsdoclet.Main",
+                "-docletpath", docletClasspath, "-classpath", stubs + java.io.File.pathSeparator + docletClasspath,
+                "-d", root.resolve("invalid-output/" + name).toString(), "-v", "fixture", file.toString())
+                .redirectErrorStream(true).redirectOutput(log.toFile()).start().waitFor();
+        if (result == 0) throw new AssertionError("Invalid namespace accepted: " + name);
+        contains(Files.readString(log), expected);
     }
 
     private static Path write(Path file, String content) throws Exception {

@@ -14,6 +14,7 @@ import com.jsmacrosce.doclet.core.model.MemberDoc;
 import com.jsmacrosce.doclet.core.model.MemberKind;
 import com.jsmacrosce.doclet.core.model.PackageDoc;
 import com.jsmacrosce.doclet.core.model.ParamDoc;
+import com.jsmacrosce.doclet.core.model.ScriptNamespaceDoc;
 import com.jsmacrosce.doclet.core.model.TypeKind;
 import com.jsmacrosce.doclet.core.model.TypeRef;
 import com.jsmacrosce.doclet.core.util.DocBodyRenderer;
@@ -47,6 +48,7 @@ public class MarkdownWriter {
     private String version;
     private String minecraftVersion;
     private String routePrefix;
+    private List<ScriptNamespaceDoc> scriptNamespaces = List.of();
 
     public MarkdownWriter() {
     }
@@ -63,6 +65,7 @@ public class MarkdownWriter {
         this.version = version;
         this.minecraftVersion = mcVersion;
         this.routePrefix = version + "/" + mcVersion;
+        this.scriptNamespaces = model.scriptNamespaces();
         indexClasses(model);
         Map<String, List<ClassDoc>> classCategories = groupByCategory(model, ClassGroup.Class);
         Map<String, List<ClassDoc>> eventCategories = groupByCategory(model, ClassGroup.Event);
@@ -87,6 +90,22 @@ public class MarkdownWriter {
         }
 
         writeGroupIndexes(model, outDir, version, mcVersion, classCategories, eventCategories, libraryCategories);
+        // Namespace pages are indexes of existing API pages, not duplicate class declarations.
+        for (var namespace : scriptNamespaces) {
+            MarkdownBuilder md = new MarkdownBuilder();
+            md.heading(1, namespace.name());
+            md.paragraph(formatDescription(namespace.docComment(), null));
+            md.paragraph("Read-only type members available in JavaScript and Python scripts without Java package lookup.");
+            for (var export : namespace.exports()) {
+                ClassDoc target = classByQualifiedName.get(export.target().qualifiedName());
+                if (target == null) throw new IllegalArgumentException("Undocumented script export: " + export.target().qualifiedName());
+                md.bulletItem(MarkdownBuilder.codeSpan(namespace.name() + "." + export.name()) + " — "
+                        + MarkdownBuilder.link(target.name(), buildLinkUrl(target, null, null)));
+            }
+            File directory = new File(outDir, "types");
+            java.nio.file.Files.createDirectories(directory.toPath());
+            new FileHandler(new File(directory, namespace.name() + ".md")).write(md.toString());
+        }
         writeSidebarData(outDir, sidebarData);
     }
 
@@ -148,6 +167,12 @@ public class MarkdownWriter {
         md.bulletItem(MarkdownBuilder.link("Events", "./events.md") + " (" + grouped.getOrDefault(ClassGroup.Event, List.of()).size() + ")");
         md.bulletItem(MarkdownBuilder.link("Classes", "./classes.md") + " (" + grouped.getOrDefault(ClassGroup.Class, List.of()).size() + ")");
         md.paragraph("Use the sidebar to browse packages and classes.");
+        if (!scriptNamespaces.isEmpty()) {
+            md.heading(2, "Script type namespaces");
+            for (var namespace : scriptNamespaces) {
+                md.bulletItem(MarkdownBuilder.link(namespace.name(), "./types/" + namespace.name() + ".md"));
+            }
+        }
         return md.toString();
     }
 
@@ -351,6 +376,13 @@ public class MarkdownWriter {
         String desc = formatDescription(clz.docComment(), clz);
         String descText = desc.isEmpty() ? "TODO: No description supplied\n" : desc;
         md.paragraph(descText);
+        for (var namespace : scriptNamespaces) {
+            for (var export : namespace.exports()) {
+                if (export.target().qualifiedName().equals(clz.qualifiedName())) {
+                    md.paragraph("Available in scripts as " + MarkdownBuilder.codeSpan(namespace.name() + "." + export.name()) + ".");
+                }
+            }
+        }
         renderClassTypeParameters(md, clz);
         String since = getTagText(clz.docComment(), DocTagKind.SINCE, clz);
         if (!since.isBlank()) {

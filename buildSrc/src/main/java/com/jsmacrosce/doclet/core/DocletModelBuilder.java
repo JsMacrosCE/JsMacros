@@ -18,6 +18,7 @@ import com.jsmacrosce.doclet.core.model.MemberDoc;
 import com.jsmacrosce.doclet.core.model.MemberKind;
 import com.jsmacrosce.doclet.core.model.PackageDoc;
 import com.jsmacrosce.doclet.core.model.ParamDoc;
+import com.jsmacrosce.doclet.core.model.ScriptNamespaceDoc;
 import com.jsmacrosce.doclet.core.model.TypeRef;
 import com.jsmacrosce.doclet.core.util.DocBodyRenderer;
 import com.jsmacrosce.doclet.core.util.ElementNameUtils;
@@ -110,6 +111,29 @@ public class DocletModelBuilder {
 
         Map<String, List<ClassDoc>> packages = new HashMap<>();
         Set<String> documented = new HashSet<>();
+        List<ScriptNamespaceDoc> namespaces = new ArrayList<>();
+        Set<TypeElement> catalogs = new HashSet<>();
+        // These classes list the types scripts can use; they are not themselves objects scripts create.
+        // Read their entries separately instead of documenting them as ordinary classes.
+        for (ScriptNamespaceReader.Namespace namespace : ScriptNamespaceReader.read(environment.getIncludedElements())) {
+            catalogs.add(namespace.catalog());
+            List<ScriptNamespaceDoc.Export> exports = new ArrayList<>();
+            for (ScriptNamespaceReader.Export export : namespace.exports()) {
+                // Class<GenericHelper> does not tell us about GenericHelper<T>. Read the class's
+                // own parameters, and its enclosing class's parameters, so the typings keep them.
+                List<TypeRef> params = new ArrayList<>();
+                for (NestedTypeParams.Captured captured : NestedTypeParams.capturedParams(export.target())) {
+                    params.add(typeResolver.resolve(captured.element().asType()));
+                }
+                for (TypeParameterElement param : export.target().getTypeParameters()) {
+                    params.add(typeResolver.resolve(param.asType()));
+                }
+                exports.add(new ScriptNamespaceDoc.Export(export.name(),
+                        typeResolver.resolve(export.target().asType()), params, export.target().getKind().isInterface()));
+            }
+            namespaces.add(new ScriptNamespaceDoc(namespace.name(),
+                    docCommentParser.parse(namespace.catalog()), exports));
+        }
         Map<String, List<TypeMirror>> mixinInterfaces = collectMixinInterfaces(environment);
 
         for (Element element : environment.getIncludedElements()) {
@@ -118,7 +142,7 @@ public class DocletModelBuilder {
                 continue;
             }
 
-            if (hasDocletIgnore(type)) {
+            if (catalogs.contains(type) || hasDocletIgnore(type)) {
                 continue;
             }
 
@@ -355,8 +379,17 @@ public class DocletModelBuilder {
         }
         packageDocs.sort(Comparator.comparing(PackageDoc::name, String.CASE_INSENSITIVE_ORDER));
 
+        // Each short name must lead to a documented class that Python can import and the site can link to.
+        for (var namespace : namespaces) {
+            for (var export : namespace.exports()) {
+                if (!documented.contains(export.target().qualifiedName())) {
+                    throw new IllegalArgumentException("Script export must target a documented public API type: "
+                            + namespace.name() + "." + export.name() + " -> " + export.target().qualifiedName());
+                }
+            }
+        }
         List<ClassDoc> referenced = buildReferencedTypes(documented);
-        return new DocletModel(packageDocs, declaredTypes, referenced, undeclaredTypes);
+        return new DocletModel(packageDocs, declaredTypes, referenced, undeclaredTypes, namespaces);
     }
 
     /**

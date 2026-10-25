@@ -18,8 +18,13 @@ public record DocletModel(
      * The types the API refers to that are not declared, because they are not part of the
      * documented API. A reference to one of them has to say so rather than point at nothing.
      */
-    java.util.Set<String> undeclaredTypes
+    java.util.Set<String> undeclaredTypes,
+    List<ScriptNamespaceDoc> scriptNamespaces
 ) {
+    public DocletModel(List<PackageDoc> packages, List<DeclaredTypeDoc> declaredTypes,
+                       List<ClassDoc> referencedTypes, java.util.Set<String> undeclaredTypes) {
+        this(packages, declaredTypes, referencedTypes, undeclaredTypes, List.of());
+    }
     public DocletModel(List<PackageDoc> packages, List<DeclaredTypeDoc> declaredTypes) {
         this(packages, declaredTypes, List.of(), java.util.Set.of());
     }

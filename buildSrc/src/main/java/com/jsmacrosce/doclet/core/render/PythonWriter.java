@@ -72,6 +72,23 @@ public class PythonWriter {
         for (String module : groupModules) {
             init.append("from .").append(module).append(" import *\n");
         }
+        for (var namespace : model.scriptNamespaces()) {
+            // These files live beside class and library files, so a name clash could overwrite one.
+            if (classNameByQualified.containsValue(namespace.name()) || groupOrder.contains(namespace.name())) {
+                throw new IllegalArgumentException("Script namespace conflicts with Python module: " + namespace.name());
+            }
+            StringBuilder aliases = new StringBuilder();
+            appendDocstring(aliases, 0, namespace.docComment(), List.of(), false, List.of());
+            // Import the existing class under the short name; do not create a different class or an instance.
+            for (var export : namespace.exports()) {
+                String target = classNameByQualified.get(export.target().qualifiedName());
+                if (target == null) throw new IllegalArgumentException("Undocumented Python export: " + export.target().qualifiedName());
+                aliases.append("from .").append(target).append(" import ").append(target)
+                        .append(" as ").append(export.name()).append("\n");
+            }
+            new FileHandler(new File(outDir, namespace.name() + ".py")).write(aliases.toString());
+            init.append("from . import ").append(namespace.name()).append(" as ").append(namespace.name()).append("\n");
+        }
         new FileHandler(new File(outDir, "__init__.py")).write(init.toString());
 
         if (version != null) {

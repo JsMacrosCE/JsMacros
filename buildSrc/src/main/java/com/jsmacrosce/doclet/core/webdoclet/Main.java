@@ -2,6 +2,7 @@ package com.jsmacrosce.doclet.core.webdoclet;
 
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.core.ClassGroup;
+import com.jsmacrosce.doclet.core.ScriptNamespaceReader;
 import com.sun.source.util.DocTrees;
 import jdk.javadoc.doclet.Doclet;
 import jdk.javadoc.doclet.DocletEnvironment;
@@ -26,6 +27,7 @@ import javax.tools.Diagnostic;
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +40,7 @@ public class Main implements Doclet {
     public static Types types;
     public static Set<? extends Element> elements;
     public static Map<Element, ClassParser> internalClasses = new LinkedHashMap<>();
+    public static List<ScriptNamespaceReader.Namespace> scriptNamespaces = List.of();
 
     @Override
     public void init(Locale locale, Reporter reporter) {
@@ -74,6 +77,8 @@ public class Main implements Doclet {
         treeUtils = environment.getDocTrees();
         types = environment.getTypeUtils();
         elementUtils = environment.getElementUtils();
+        // Legacy HTML bypasses DocletModelBuilder; share its catalog reader to keep aliases aligned.
+        scriptNamespaces = ScriptNamespaceReader.read(elements);
 
         File outDir = new File(OutputDirectory.outputDir, Version.version);
         try {
