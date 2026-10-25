@@ -10,7 +10,7 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinAnvilScreen;
  * result, respectively; {@link #getOutput()} reads the current result rather than calculating it.
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("Anvil")) {
+ * if (inv instanceof Inventories.Anvil) {
  *   Chat.log(`${inv.getLeftInput().getItemId()} + ${inv.getRightInput().getItemId()}`);
  *   if (!inv.getOutput().isEmpty()) {
  *     Chat.log(`result: ${inv.getOutput().getName()} for ${inv.getLevelCost()} levels`);

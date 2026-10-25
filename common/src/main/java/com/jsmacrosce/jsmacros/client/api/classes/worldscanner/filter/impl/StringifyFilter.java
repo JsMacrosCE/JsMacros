@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.impl;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.BasicFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.ICompare;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.compare.StringCompareFilter;
@@ -12,13 +13,15 @@ import java.util.Set;
 /**
  * Converts each candidate to its {@code toString()} text and accepts it if any configured pattern
  * matches. Patterns form a set, so duplicates have no effect; {@code MATCHES} uses a whole-string
- * regular-expression match.
+ * regular-expression match. The scanner builder creates this for string block and state filters;
+ * constructing it directly applies the same text test to your own values.
  *
  * @param <T> the type of candidates converted to text
  * @author Etheradon
  * @since 1.6.5
  */
 @DocletCategory("Filters/Predicates")
+@DocletIgnore
 public class StringifyFilter<T> extends BasicFilter<T> {
 
     private final Set<String> filterObjects;

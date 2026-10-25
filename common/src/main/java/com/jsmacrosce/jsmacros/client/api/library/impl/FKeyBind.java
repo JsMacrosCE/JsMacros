@@ -277,8 +277,7 @@ public class FKeyBind extends BaseLibrary {
      * Tracks key names marked pressed by JsMacros key and keybind state calls; it does not query
      * physical keyboard state. Direct calls update only this ledger and do not synthesize input.
      * <pre>
-     * const tracker = Java.type("com.jsmacrosce.jsmacros.client.api.library.impl.FKeyBind$KeyTracker");
-     * Chat.log(tracker.getPressedKeys());
+     * Chat.log(ScriptClasses.KeyTracker.getPressedKeys());
      * </pre>
      */
     public static class KeyTracker {

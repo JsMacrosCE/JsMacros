@@ -14,12 +14,22 @@ import com.jsmacrosce.doclet.DocletIgnore;
   * A renderable element that can be added to a 2D overlay. The overlay orders its
   * elements by z-index and renders them each frame. Lower z-indexes draw first; ties
   * retain insertion order.
+  * <p>
+  * Use the {@code RenderElements} types, such as {@code RenderElements.Text}, to identify
+  * a specific element from an overlay's element list.
  * <pre>
  * const draw = Hud.createDraw2D();
  * const back = draw.addRect(0, 0, 100, 100, 0xFF000000);
  * const front = draw.addRect(10, 10, 50, 50, 0xFFFF0000);
  * // sorted by z-index lowest first, and a tie keeps the order the two were added in
  * front.setZIndex(back.getZIndex() + 1);
+ *
+ * // namespace types narrow the mixed list the overlay hands back
+ * for (const element of draw.getElements()) {
+ *   if (element instanceof RenderElements.Rect) {
+ *     Chat.log(`rect at ${element.getX1()}, ${element.getY1()}, z ${element.getZIndex()}`);
+ *   }
+ * }
  * draw.register();
  * </pre>
  *

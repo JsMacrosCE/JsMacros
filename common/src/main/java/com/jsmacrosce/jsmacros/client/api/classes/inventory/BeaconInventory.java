@@ -26,7 +26,7 @@ import java.util.Optional;
  * Effects use registry ids, and either selection can be unset ({@code null}).
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("Beacon")) {
+ * if (inv instanceof Inventories.Beacon) {
  *   Chat.log(`beacon level ${inv.getLevel()}`);
  *   inv.selectFirstEffect("minecraft:haste");
  *   inv.selectSecondEffect("minecraft:jump_boost");

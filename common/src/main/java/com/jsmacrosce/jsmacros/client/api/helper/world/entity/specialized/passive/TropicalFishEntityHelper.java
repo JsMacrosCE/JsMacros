@@ -12,14 +12,13 @@ import net.minecraft.world.entity.animal.TropicalFish;
 /**
  * Provides a tropical fish's pattern, body size, and base and pattern colours.
  * <pre>
- * const TropicalFishEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.TropicalFishEntityHelper");
  * const fish = World.getEntities(32, "tropical_fish");
  * if (fish !== null) {
  *   for (const entity of fish) {
- *     const tf = TropicalFishEntityHelper.class.cast(entity);
- *     Chat.log(`${tf.getVariant()} on a ${tf.getSize().toLowerCase()} body, `
- *       + `base 0x${tf.getBaseColor().toString(16)}, `
- *       + `pattern 0x${tf.getPatternColor().toString(16)}`);
+ *     if (!(entity instanceof EntityHelpers.TropicalFish)) continue;
+ *     Chat.log(`${entity.getVariant()} on a ${entity.getSize().toLowerCase()} body, `
+ *       + `base 0x${entity.getBaseColor().toString(16)}, `
+ *       + `pattern 0x${entity.getPatternColor().toString(16)}`);
  *   }
  * }
  * </pre>

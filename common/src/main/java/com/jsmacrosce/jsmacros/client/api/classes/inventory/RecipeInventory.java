@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * {@link #toggleRecipeBook()}, {@link #setRecipeBook(boolean)}, and {@link #getRecipes(boolean)}.
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("Crafting Table")) {
+ * if (inv instanceof Inventories.Crafting) {
  *   const grid = inv.getInput();
  *   for (let x = 0; inv.getCraftingWidth() > x; x++) {
  *     for (let z = 0; inv.getCraftingHeight() > z; z++) {

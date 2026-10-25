@@ -9,14 +9,13 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinAbstractPiglinEntity;
  * Provides the shared zombification-immunity query for piglins.
  * <p>
  * <pre>
- * const AbstractPiglinEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.AbstractPiglinEntityHelper");
  * const brute = World.getEntities(32, "piglin_brute");
  * if (brute !== null) {
  *   for (const entity of brute) {
  *     // a brute reaches a script as this class, a piglin as PiglinEntityHelper
- *     const piglin = AbstractPiglinEntityHelper.class.cast(entity);
- *     if (piglin.canBeZombified()) {
- *       Chat.log(`the brute at ${piglin.getPos()} carries no immunity flag`);
+ *     if (!(entity instanceof EntityHelpers.AbstractPiglin)) continue;
+ *     if (entity.canBeZombified()) {
+ *       Chat.log(`the brute at ${entity.getPos()} carries no immunity flag`);
  *     }
  *   }
  * }

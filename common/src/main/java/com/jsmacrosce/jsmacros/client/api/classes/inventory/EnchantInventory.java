@@ -18,7 +18,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
  * wrappers. The item and lapis slots are 0 and 1, respectively.
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("Enchanting Table")) {
+ * if (inv instanceof Inventories.Enchant) {
  *   if (!inv.getItemToEnchant().isEmpty()) {
  *     const enchants = inv.getEnchantmentHelpers();
  *     for (let i = 0; enchants.length > i; i++) {

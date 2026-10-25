@@ -12,7 +12,7 @@ import com.jsmacrosce.doclet.DocletCategory;
  * wrapper does not calculate it.
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("Cartography Table")) {
+ * if (inv instanceof Inventories.Cartography) {
  *   Chat.log(`${inv.getMapItem().getItemId()} with ${inv.getMaterial().getItemId()}`);
  *   if (!inv.getOutput().isEmpty()) {
  *     Chat.log(`table offers ${inv.getOutput().getCount()} item(s)`);

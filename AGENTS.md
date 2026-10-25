@@ -1,3 +1,17 @@
+# Comments and descriptions
+
+- Explain purpose before mechanics: what the code lets someone do, what problem
+  it solves, or why it exists. Write for a developer who is new to this area.
+- Use plain language and a small concrete example when it helps. Introduce
+  implementation terms only after the reader understands the point; do not lead
+  with a restatement of Java declarations or framework jargon.
+- Keep the useful technical details and verified caveats. Clearer wording must
+  not weaken the contract or invent behavior.
+- Implementation comments should explain a design choice or a problem being
+  avoided, not narrate obvious code. Straightforward members do not need filler.
+- Before finishing, reread descriptions without relying on the implementation:
+  can a new reader tell what this is for? See `docs/STYLE.md` for API documentation.
+
 # Documentation work
 
 When writing or revising Javadoc, doclet annotations, or generated-documentation

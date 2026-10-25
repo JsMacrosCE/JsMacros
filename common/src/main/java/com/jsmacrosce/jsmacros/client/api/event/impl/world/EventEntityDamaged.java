@@ -14,7 +14,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * {@code damage} is the difference from the previously tracked health.
  * <pre>
  * JsMacros.on("EntityDamaged", JavaWrapper.methodToJava(function (event) {
- *   if (event.entity.getType() === "minecraft:creeper") {
+ *   if (event.entity instanceof EntityHelpers.Creeper) {
  *     Chat.log(`Creeper took ${event.damage} damage; incoming health: ${event.health}`);
  *   }
  * }))

@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.logical;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.BasicFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
 
@@ -10,7 +11,8 @@ import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilte
  * {@link NullPointerException} when unboxed.
  * <p>
  * The scanner builder creates this filter for a {@code not} step, which negates the
- * category's accumulated filter.
+ * category's accumulated filter; {@link BasicFilter#not()} creates the same negation from a
+ * filter you already hold.
  * <pre>
  * // Negation applies to the accumulated state filter.
  * const scanner = World.getWorldScanner()
@@ -26,6 +28,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilte
  * @since 1.6.5
  */
 @DocletCategory("Filters/Predicates")
+@DocletIgnore
 public class NotFilter<T> extends BasicFilter<T> {
 
     private final IFilter<T> filter;

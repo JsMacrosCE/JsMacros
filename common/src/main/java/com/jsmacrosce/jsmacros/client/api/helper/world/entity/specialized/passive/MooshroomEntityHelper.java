@@ -11,13 +11,12 @@ import net.minecraft.world.entity.animal.MushroomCow;
 /**
  * Provides access to a mooshroom's variant and whether it is ready for shearing.
  * <pre>
- * const MooshroomEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.MooshroomEntityHelper");
  * const mooshrooms = World.getEntities(32, "mooshroom");
  * if (mooshrooms !== null) {
  *   for (const entity of mooshrooms) {
- *     const mooshroom = MooshroomEntityHelper.class.cast(entity);
- *     Chat.log(`red ${mooshroom.isRed()}, brown ${mooshroom.isBrown()}, `
- *       + `shearable ${mooshroom.isShearable()}`);
+ *     if (!(entity instanceof EntityHelpers.Mooshroom)) continue;
+ *     Chat.log(`red ${entity.isRed()}, brown ${entity.isBrown()}, `
+ *       + `shearable ${entity.isShearable()}`);
  *   }
  * }
  * </pre>

@@ -13,12 +13,11 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
  * <p>
  * These methods report the state currently available on the client.
  * <pre>
- * const WardenEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.WardenEntityHelper");
  * const wardens = World.getEntities(32, "warden");
  * if (wardens !== null) {
  *   for (const entity of wardens) {
- *     const warden = WardenEntityHelper.class.cast(entity);
- *     if (warden.isDigging()) Chat.log(`digging at ${warden.getPos()}`);
+ *     if (!(entity instanceof EntityHelpers.Warden)) continue;
+ *     if (entity.isDigging()) Chat.log(`digging at ${entity.getPos()}`);
  *   }
  * }
  * </pre>
@@ -42,14 +41,13 @@ public class WardenEntityHelper extends MobEntityHelper<Warden> {
     /**
      * The warden's current client-synced anger level.
      * <pre>
-     * const WardenEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.WardenEntityHelper");
      * const wardens = World.getEntities(32, "warden");
      * if (wardens !== null) {
      *   for (const entity of wardens) {
-     *     const warden = WardenEntityHelper.class.cast(entity);
+     *     if (!(entity instanceof EntityHelpers.Warden)) continue;
      *     // 80 is where the game calls a warden angry
-     *     if (warden.getAnger() >= 80) {
-     *       Chat.log(`a warden at ${warden.getPos()} is at anger ${warden.getAnger()}`);
+     *     if (entity.getAnger() >= 80) {
+     *       Chat.log(`a warden at ${entity.getPos()} is at anger ${entity.getAnger()}`);
      *     }
      *   }
      * }
@@ -65,14 +63,13 @@ public class WardenEntityHelper extends MobEntityHelper<Warden> {
     /**
      * Whether the warden is in the pose for going into the ground.
      * <pre>
-     * const WardenEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.WardenEntityHelper");
      * const wardens = World.getEntities(32, "warden");
      * if (wardens !== null) {
      *   for (const entity of wardens) {
-     *     const warden = WardenEntityHelper.class.cast(entity);
-     *     if (warden.isDigging()) {
+     *     if (!(entity instanceof EntityHelpers.Warden)) continue;
+     *     if (entity.isDigging()) {
      *       // going in, not coming out: the other pose is the one to ask for that
-     *       Chat.log(`a warden at ${warden.getPos()} is digging, emerging: ${warden.isEmerging()}`);
+     *       Chat.log(`a warden at ${entity.getPos()} is digging, emerging: ${entity.isEmerging()}`);
      *     }
      *   }
      * }
@@ -89,13 +86,12 @@ public class WardenEntityHelper extends MobEntityHelper<Warden> {
     /**
      * Whether the warden is in the pose for emerging from the ground.
      * <pre>
-     * const WardenEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.WardenEntityHelper");
      * const wardens = World.getEntities(32, "warden");
      * if (wardens !== null) {
      *   for (const entity of wardens) {
-     *     const warden = WardenEntityHelper.class.cast(entity);
-     *     if (warden.isEmerging()) {
-     *       Chat.log(`a warden at ${warden.getPos()} is coming up out of the ground`);
+     *     if (!(entity instanceof EntityHelpers.Warden)) continue;
+     *     if (entity.isEmerging()) {
+     *       Chat.log(`a warden at ${entity.getPos()} is coming up out of the ground`);
      *     }
      *   }
      * }
@@ -112,14 +108,13 @@ public class WardenEntityHelper extends MobEntityHelper<Warden> {
     /**
      * Whether the warden is in its roaring pose.
      * <pre>
-     * const WardenEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.WardenEntityHelper");
      * const wardens = World.getEntities(32, "warden");
      * if (wardens !== null) {
      *   for (const entity of wardens) {
-     *     const warden = WardenEntityHelper.class.cast(entity);
-     *     if (warden.isRoaring()) {
+     *     if (!(entity instanceof EntityHelpers.Warden)) continue;
+     *     if (entity.isRoaring()) {
      *       // a pose, so it can be true at a low anger number
-     *       Chat.log(`roaring at anger ${warden.getAnger()}`);
+     *       Chat.log(`roaring at anger ${entity.getAnger()}`);
      *     }
      *   }
      * }
@@ -135,13 +130,12 @@ public class WardenEntityHelper extends MobEntityHelper<Warden> {
     /**
      * Whether the warden is in its sniffing pose.
      * <pre>
-     * const WardenEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.WardenEntityHelper");
      * const wardens = World.getEntities(32, "warden");
      * if (wardens !== null) {
      *   for (const entity of wardens) {
-     *     const warden = WardenEntityHelper.class.cast(entity);
-     *     if (warden.isSniffing()) {
-     *       Chat.log(`a warden at ${warden.getPos()} is following a sound`);
+     *     if (!(entity instanceof EntityHelpers.Warden)) continue;
+     *     if (entity.isSniffing()) {
+     *       Chat.log(`a warden at ${entity.getPos()} is following a sound`);
      *     }
      *   }
      * }

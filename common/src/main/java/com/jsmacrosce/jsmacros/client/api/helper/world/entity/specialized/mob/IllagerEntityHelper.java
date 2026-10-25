@@ -12,13 +12,12 @@ import net.minecraft.world.entity.monster.AbstractIllager;
 /**
  * Provides access to illager state shared across specialized illager helpers.
  * <pre>
- * const IllagerEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.IllagerEntityHelper");
  * const raiders = World.getEntities(32, "vindicator", "pillager", "evoker");
  * if (raiders !== null) {
  *   for (const entity of raiders) {
  *     // Access state shared by the different illager helper classes.
- *     const raider = IllagerEntityHelper.class.cast(entity);
- *     Chat.log(`${raider.getType()} at ${raider.getPos()} is ${raider.getState()}`);
+ *     if (!(entity instanceof EntityHelpers.Illager)) continue;
+ *     Chat.log(`${entity.getType()} at ${entity.getPos()} is ${entity.getState()}`);
  *   }
  * }
  * </pre>

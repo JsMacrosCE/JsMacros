@@ -19,18 +19,17 @@ import net.minecraft.world.entity.animal.horse.AbstractHorse;
  * flag, not anger. Saddle-slot and body-slot eligibility are separate checks, exposed by
  * {@link #canBeSaddled()} and {@link #canWearArmor()}.
  * <pre>
- * const AbstractHorseEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.AbstractHorseEntityHelper");
  * const horses = World.getEntities(32, "horse", "donkey", "llama");
  * if (horses !== null) {
  *   for (const entity of horses) {
- *     const horse = AbstractHorseEntityHelper.class.cast(entity);
- *     Chat.log(`${horse.getType()}: jump ${horse.getJumpStrengthStat()}, `
- *       + `speed ${horse.getSpeedStat()}, health ${horse.getHealthStat()}`);
- *     if (horse.canBeSaddled()) {
- *       Chat.log(`  saddleable, estimated speed ${horse.getHorseSpeed()} blocks per second`);
+ *     if (!(entity instanceof EntityHelpers.AbstractHorse)) continue;
+ *     Chat.log(`${entity.getType()}: jump ${entity.getJumpStrengthStat()}, `
+ *       + `speed ${entity.getSpeedStat()}, health ${entity.getHealthStat()}`);
+ *     if (entity.canBeSaddled()) {
+ *       Chat.log(`  saddleable, estimated speed ${entity.getHorseSpeed()} blocks per second`);
  *     }
  *     // the flag is the rear, not anger
- *     if (horse.isAngry()) {
+ *     if (entity.isAngry()) {
  *       Chat.log("  rearing up");
  *     }
  *   }

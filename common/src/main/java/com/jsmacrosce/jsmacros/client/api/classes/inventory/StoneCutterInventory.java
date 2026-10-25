@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  * those accepted by {@link #selectRecipe(int)}.
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("Stonecutter")) {
+ * if (inv instanceof Inventories.StoneCutter) {
  *   if (inv.canCraft()) {
  *     const count = inv.getAvailableRecipeCount();
  *     Chat.log(`${count} cuts from ${inv.getSlot(0).getItemId()}`);

@@ -8,14 +8,13 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.LivingEntityHelper
 /**
  * Reads an armor stand's flags and six pose rotations.
  * <pre>
- * const ArmorStandEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.decoration.ArmorStandEntityHelper");
  * const stands = World.getEntities(32, "armor_stand");
  * if (stands !== null) {
  *   for (const entity of stands) {
- *     const stand = ArmorStandEntityHelper.class.cast(entity);
- *     if (stand.isMarker()) {
+ *     if (!(entity instanceof EntityHelpers.ArmorStand)) continue;
+ *     if (entity.isMarker()) {
  *       // Marker stands have zero dimensions and cannot be picked.
- *       Chat.log(`marker at ${entity.getPos()}, wearing a ${stand.getHeadArmor().getItemID()}`);
+ *       Chat.log(`marker at ${entity.getPos()}, wearing a ${entity.getHeadArmor().getItemID()}`);
  *     }
  *   }
  * }

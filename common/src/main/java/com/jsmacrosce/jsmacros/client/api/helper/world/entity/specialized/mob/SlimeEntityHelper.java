@@ -7,14 +7,13 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 /**
  * Provides access to a slime's size and whether it is tiny.
  * <pre>
- * const SlimeEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.SlimeEntityHelper");
  * const slimes = World.getEntities(32, "slime");
  * if (slimes !== null) {
  *   for (const entity of slimes) {
- *     const slime = SlimeEntityHelper.class.cast(entity);
+ *     if (!(entity instanceof EntityHelpers.Slime)) continue;
  *     // Tiny slimes do not deal melee damage; larger slimes can split when killed.
- *     if (!slime.isSmall()) {
- *       Chat.log(`a slime at ${slime.getPos()} is size ${slime.getSize()}, ${slime.getMaxHealth()} health`);
+ *     if (!entity.isSmall()) {
+ *       Chat.log(`a slime at ${entity.getPos()} is size ${entity.getSize()}, ${entity.getMaxHealth()} health`);
  *     }
  *   }
  * }

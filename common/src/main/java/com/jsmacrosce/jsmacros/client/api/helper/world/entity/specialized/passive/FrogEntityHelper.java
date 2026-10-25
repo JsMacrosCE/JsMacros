@@ -12,13 +12,12 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
  * Provides variant, tongue-target, and croaking-state information for a frog.
  * <p>
  * <pre>
- * const FrogEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.FrogEntityHelper");
  * const frogs = World.getEntities(32, "frog");
  * if (frogs !== null) {
  *   for (const entity of frogs) {
- *     const frog = FrogEntityHelper.class.cast(entity);
- *     Chat.log(`${frog.getVariant()}, croaking ${frog.isCroaking()}`);
- *     const prey = frog.getTarget();
+ *     if (!(entity instanceof EntityHelpers.Frog)) continue;
+ *     Chat.log(`${entity.getVariant()}, croaking ${entity.isCroaking()}`);
+ *     const prey = entity.getTarget();
  *     if (prey !== null) {
  *       Chat.log(`  tongue out at ${prey.getType()}`);
  *     }

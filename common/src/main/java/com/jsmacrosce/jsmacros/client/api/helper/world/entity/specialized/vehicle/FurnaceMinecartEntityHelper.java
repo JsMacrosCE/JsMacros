@@ -12,6 +12,17 @@ import net.minecraft.world.entity.vehicle.MinecartFurnace;
 
 /**
  * Provides access to the furnace minecart's displayed furnace lit state.
+ * <pre>
+ * const carts = World.getEntities(32, "furnace_minecart");
+ * if (carts !== null) {
+ *   for (const entity of carts) {
+ *     if (!(entity instanceof EntityHelpers.FurnaceMinecart)) continue;
+ *     if (entity.isPowered()) {
+ *       Chat.log(`a lit furnace minecart at ${entity.getPos()}`);
+ *     }
+ *   }
+ * }
+ * </pre>
  *
  * @author Etheradon
  * @since 1.8.4

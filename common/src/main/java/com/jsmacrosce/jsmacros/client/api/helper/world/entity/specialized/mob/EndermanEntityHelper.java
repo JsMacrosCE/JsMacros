@@ -15,14 +15,13 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
  * before it has a target. When an enderman picks up a block, the game stores that block's
  * default state, not necessarily the state of the block at its original location.
  * <pre>
- * const EndermanEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.EndermanEntityHelper");
  * const endermen = World.getEntities(32, "enderman");
  * if (endermen !== null) {
  *   for (const entity of endermen) {
- *     const enderman = EndermanEntityHelper.class.cast(entity);
- *     if (enderman.isHoldingBlock()) {
+ *     if (!(entity instanceof EntityHelpers.Enderman)) continue;
+ *     if (entity.isHoldingBlock()) {
  *       // The carried block is exposed as a block state.
- *       Chat.log(`an enderman at ${enderman.getPos()} is carrying ${enderman.getHeldBlock().getId()}`);
+ *       Chat.log(`an enderman at ${entity.getPos()} is carrying ${entity.getHeldBlock().getId()}`);
  *     }
  *   }
  * }

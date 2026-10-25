@@ -9,12 +9,11 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinFishingBobberEntity;
 /**
  * A fishing bobber projectile, with access to its bite and open-water state and hooked entity.
  * <pre>
- * const FishingBobberEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.projectile.FishingBobberEntityHelper");
  * const bobbers = World.getEntities(32, "fishing_bobber");
  * if (bobbers !== null) {
  *   for (const entity of bobbers) {
- *     const bobber = FishingBobberEntityHelper.class.cast(entity);
- *     if (bobber.hasCaughtFish()) {
+ *     if (!(entity instanceof EntityHelpers.FishingBobber)) continue;
+ *     if (entity.hasCaughtFish()) {
  *       Chat.log("reel in now");
  *     }
  *   }

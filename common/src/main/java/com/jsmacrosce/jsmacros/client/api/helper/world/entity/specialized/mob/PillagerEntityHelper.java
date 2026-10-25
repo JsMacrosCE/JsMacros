@@ -13,13 +13,12 @@ import net.minecraft.world.entity.monster.Pillager;
 /**
  * Provides access to a pillager's entity-helper API, including a check for a white banner in its head slot.
  * <pre>
- * const PillagerEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.PillagerEntityHelper");
  * const pillagers = World.getEntities(32, "pillager");
  * if (pillagers !== null) {
  *   for (const entity of pillagers) {
- *     const pillager = PillagerEntityHelper.class.cast(entity);
- *     if (pillager.isCaptain()) {
- *       Chat.log(`a pillager with a white head-slot banner at ${pillager.getPos()}`);
+ *     if (!(entity instanceof EntityHelpers.Pillager)) continue;
+ *     if (entity.isCaptain()) {
+ *       Chat.log(`a pillager with a white head-slot banner at ${entity.getPos()}`);
  *     }
  *   }
  * }

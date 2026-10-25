@@ -17,6 +17,13 @@ import java.util.Map;
 
 /**
  * Inventory wrapper for a furnace screen, exposing its input, fuel, result, and smelting state.
+ * <pre>
+ * const inv = Player.openInventory();
+ * if (inv instanceof Inventories.Furnace) {
+ *   Chat.log(`${inv.getSmeltedItem().getItemId()} -> ${inv.getOutput().getItemId()}, `
+ *     + `${inv.getRemainingSmeltingTime()} ticks left`);
+ * }
+ * </pre>
  *
  * @author Etheradon
  * @since 1.8.4

@@ -21,6 +21,12 @@ import java.util.stream.Collectors;
 
 /**
  * Handles the creative inventory screen and its item tabs.
+ * <pre>
+ * const inv = Player.openInventory();
+ * if (inv instanceof Inventories.Creative) {
+ *   Chat.log(`${inv.getShownItems().size()} items on the selected tab`);
+ * }
+ * </pre>
  *
  * @author Etheradon
  * @since 1.8.4

@@ -5,6 +5,13 @@ import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
 /** Provides access to the input grid and result of a crafting menu.
+ * <pre>
+ * const inv = Player.openInventory();
+ * if (inv instanceof Inventories.Crafting) {
+ *   const cell = inv.getInput(0, 0);
+ *   Chat.log(cell.isEmpty() ? "empty top-left cell" : cell.getItemId());
+ * }
+ * </pre>
  *
  * @author Etheradon
  * @since 1.8.4

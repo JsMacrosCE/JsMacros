@@ -43,8 +43,9 @@ public class EventInteractEntity extends BaseEvent {
     /**
      * The clicked entity, wrapped in the most specific
      * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper} subclass for its
-     * type, so it can be narrowed further with {@code asLiving()}, {@code asPlayer()} and the
-     * other {@code as...()} helpers. Its type is available from
+     * type, so it can be narrowed with {@code instanceof EntityHelpers.Player} and the other
+     * namespace types; {@code asLiving()}, {@code asPlayer()} and the other {@code as...()}
+     * helpers are casts. Its type is available from
      * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getType() getType()}
      * and its name from
      * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getName() getName()}.

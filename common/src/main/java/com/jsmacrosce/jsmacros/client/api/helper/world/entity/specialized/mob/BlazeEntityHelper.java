@@ -8,14 +8,13 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
  * Provides helper access to a blaze. Its {@link #isOnFire()} method reports attack charge,
  * not burning.
  * <pre>
- * const BlazeEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.BlazeEntityHelper");
  * const blazes = World.getEntities(32, "blaze");
  * if (blazes !== null) {
  *   for (const entity of blazes) {
- *     const blaze = BlazeEntityHelper.class.cast(entity);
+ *     if (!(entity instanceof EntityHelpers.Blaze)) continue;
  *     // isOnFire reports the blaze's attack charge, not burning
- *     if (blaze.isOnFire()) {
- *       Chat.log(`a blaze at ${blaze.getPos()} is charged up`);
+ *     if (entity.isOnFire()) {
+ *       Chat.log(`a blaze at ${entity.getPos()} is charged up`);
  *     }
  *   }
  * }

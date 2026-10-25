@@ -162,6 +162,21 @@ public class ClassParser {
 
         builder.append(getSince(type));
         builder.append(getDescription(type));
+        for (var namespace : Main.scriptNamespaces) {
+            if (namespace.catalog().equals(type)) {
+                // These fields become host types in scripts, not java.lang.Class-valued properties.
+                builder.append(new XMLBuilder("p").append("Read-only script type namespace: " + namespace.name()));
+                for (var export : namespace.exports()) {
+                    builder.append(new XMLBuilder("p").setId(export.name()).append(namespace.name() + "." + export.name() + " — ", parseType(export.target().asType())));
+                }
+                return builder;
+            }
+            for (var export : namespace.exports()) {
+                if (export.target().equals(type)) {
+                    builder.append(new XMLBuilder("p").append("Available in scripts as " + namespace.name() + "." + export.name() + "."));
+                }
+            }
+        }
         builder.append(getTypeParameterDescriptions(type));
         builder.append(getDeprecated(type));
 

@@ -9,13 +9,12 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 /**
  * Provides the item frame's type, displayed-item rotation, and item stack.
  * <pre>
- * const ItemFrameEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.decoration.ItemFrameEntityHelper");
  * const frames = World.getEntities(32, "item_frame", "glow_item_frame");
  * if (frames !== null) {
  *   for (const entity of frames) {
- *     const frame = ItemFrameEntityHelper.class.cast(entity);
+ *     if (!(entity instanceof EntityHelpers.ItemFrame)) continue;
  *     // The query includes both frame types; distinguish them with isGlowingFrame().
- *     Chat.log(`${frame.isGlowingFrame() ? "glow" : "plain"} frame, rotation ${frame.getRotation()}`);
+ *     Chat.log(`${entity.isGlowingFrame() ? "glow" : "plain"} frame, rotation ${entity.getRotation()}`);
  *   }
  * }
  * </pre>

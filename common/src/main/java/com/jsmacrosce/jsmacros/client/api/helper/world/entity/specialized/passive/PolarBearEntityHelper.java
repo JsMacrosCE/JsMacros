@@ -10,6 +10,17 @@ import net.minecraft.world.entity.animal.PolarBear;
 
 /**
  * Provides access to a polar bear's standing state.
+ * <pre>
+ * const bears = World.getEntities(32, "polar_bear");
+ * if (bears !== null) {
+ *   for (const entity of bears) {
+ *     if (!(entity instanceof EntityHelpers.PolarBear)) continue;
+ *     if (entity.isAttacking()) {
+ *       Chat.log(`a standing polar bear at ${entity.getPos()}`);
+ *     }
+ *   }
+ * }
+ * </pre>
  *
  * @author Etheradon
  * @since 1.8.4

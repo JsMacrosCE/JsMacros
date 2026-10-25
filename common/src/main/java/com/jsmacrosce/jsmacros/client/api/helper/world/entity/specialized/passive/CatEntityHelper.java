@@ -22,12 +22,11 @@ import net.minecraft.world.entity.animal.Cat;
  * The collar is there whether or not the cat is tamed, so a collar colour is not evidence of
  * anything having happened to the cat.
  * <pre>
- * const CatEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.CatEntityHelper");
  * const cats = World.getEntities(32, "cat");
  * if (cats !== null) {
  *   for (const entity of cats) {
-  *     const cat = CatEntityHelper.class.cast(entity);
- *     Chat.log(`a ${cat.getVariant()} cat in ${cat.getCollarColor().getName()}`);
+  *     if (!(entity instanceof EntityHelpers.Cat)) continue;
+ *     Chat.log(`a ${entity.getVariant()} cat in ${entity.getCollarColor().getName()}`);
  *   }
  * }
  * </pre>

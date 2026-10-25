@@ -29,7 +29,8 @@ import java.util.stream.Collectors;
 
 /**
  * Wraps a game widget so scripts can inspect and control it; other widget helpers
- * extend this base.
+ * extend this base. Use the {@code Widgets} types, such as {@code Widgets.Button} and
+ * {@code Widgets.Slider}, to identify a specific widget helper.
  * <p>
  * Each helper refers to its wrapped widget, so changes through a helper affect that
  * widget. Screens may return new helpers for the same widget on separate queries.
@@ -55,11 +56,12 @@ import java.util.stream.Collectors;
  *    .build();
  * Hud.openScreen(screen);
  *
- * // and the game's own buttons, wrapped as the screen hands them over
+ * // and the screen's button widgets, wrapped as the screen hands them over
  * const open = Hud.getOpenScreen();
  * if (open !== null) {
  *   for (const widget of open.getButtonWidgets()) {
- *     Chat.log(`${widget.getLabel()} at ${widget.getX()}, ${widget.getY()}`);
+ *     if (!(widget instanceof Widgets.Button)) continue;
+ *     Chat.log(`button ${widget.getLabel()} at ${widget.getX()}, ${widget.getY()}`);
  *   }
  * }
  * </pre>
@@ -81,14 +83,13 @@ public class ClickableWidgetHelper<B extends ClickableWidgetHelper<B, T>, T exte
      * Marks the next release to be skipped on a container screen. Other screen types
      * are unchanged.
      * <pre>
-     * const ClickableWidgetHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.screen.ClickableWidgetHelper");
      * const screen = Hud.createScreen("a screen", true);
      * screen.buttonBuilder()
      *    .pos(10, 20)
      *    .size(100, 20)
      *    .message("press me")
      *    .action(JavaWrapper.methodToJava(function (btn) {
-     *       ClickableWidgetHelper.clickedOn(screen);
+     *       Widgets.Clickable.clickedOn(screen);
      *     }))
      *    .build();
      * Hud.openScreen(screen);

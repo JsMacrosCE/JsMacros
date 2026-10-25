@@ -9,16 +9,15 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
  * Displays an item entity; its displayed stack is empty when no item is set. The transform
  * identifier may be {@code null} until its client render state is available.
  * <pre>
- * const ItemDisplayEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.display.ItemDisplayEntityHelper");
  * const items = World.getEntities(32, "item_display");
  * if (items !== null) {
  *   for (const entity of items) {
- *     const display = ItemDisplayEntityHelper.class.cast(entity);
- *     const item = display.getItem();
+ *     if (!(entity instanceof EntityHelpers.ItemDisplay)) continue;
+ *     const item = entity.getItem();
  *     if (item.isEmpty()) {
  *       continue;
  *     }
- *     Chat.log(`${item.getCount()} of ${item.getItemID()}, shown as ${display.getTransform()}`);
+ *     Chat.log(`${item.getCount()} of ${item.getItemID()}, shown as ${entity.getTransform()}`);
  *   }
  * }
  * </pre>

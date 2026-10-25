@@ -8,14 +8,13 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinAllayEntity;
 /**
  * Provides access to an allay's dancing, duplication-cooldown, and held-item states.
  * <pre>
- * const AllayEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.AllayEntityHelper");
  * const allays = World.getEntities(32, "allay");
  * if (allays !== null) {
  *   for (const entity of allays) {
- *     const allay = AllayEntityHelper.class.cast(entity);
- *     Chat.log(`dancing ${allay.isDancing()}, `
- *       + `holding ${allay.isHoldingItem()}, `
- *       + `ready to duplicate ${allay.canDuplicate()}`);
+ *     if (!(entity instanceof EntityHelpers.Allay)) continue;
+ *     Chat.log(`dancing ${entity.isDancing()}, `
+ *       + `holding ${entity.isHoldingItem()}, `
+ *       + `ready to duplicate ${entity.canDuplicate()}`);
  *   }
  * }
  * </pre>

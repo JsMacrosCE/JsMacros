@@ -77,6 +77,7 @@ public class TsRenderer implements Renderer {
         appendEventFilterers(out, events);
         appendEventTypeMap(out, events);
         appendLibraries(out, libraries);
+        appendScriptNamespaces(out, model);
 
         out.append("\n\ndeclare ").append(renderPackages(model)).append("\n");
         appendAliasTypes(out, model);
@@ -101,6 +102,48 @@ public class TsRenderer implements Renderer {
         out.append(" */\n");
         out.append("declare const event: Events.BaseEvent;\n");
         out.append("declare const file: Packages.java.io.File;\n\n");
+    }
+
+    private void appendScriptNamespaces(StringBuilder out, DocletModel model) {
+        for (var namespace : model.scriptNamespaces()) {
+            appendDocComment(out, namespace.docComment(), List.of(), false, null, null, 0);
+            out.append("declare namespace ").append(namespace.name()).append(" {\n");
+            for (var export : namespace.exports()) {
+                TypeRef target = export.target();
+                // Use the full Java type here so another short name cannot change what this refers to.
+                String canonical = "Packages." + target.qualifiedName().substring(0,
+                        target.qualifiedName().length() - target.name().length()) + target.name().replace('.', '$');
+                String args = export.typeParams().isEmpty() ? "" : "<" + export.typeParams().stream()
+                        .map(TypeRef::name).collect(java.util.stream.Collectors.joining(", ")) + ">";
+                String defaults = export.typeParams().isEmpty() ? "" : "<" + export.typeParams().stream()
+                        .map(p -> formatTypeParam(p, true)).collect(java.util.stream.Collectors.joining(", ")) + ">";
+                out.append("    const ").append(export.name()).append(": ");
+                if (export.interfaceType()) {
+                    // Java lets scripts check against interfaces and use their static members.
+                    // Describe those uses for TypeScript without suggesting interfaces can be constructed.
+                    String anyArgs = export.typeParams().isEmpty() ? "" : "<" + export.typeParams().stream()
+                            .map(p -> "any").collect(java.util.stream.Collectors.joining(", ")) + ">";
+                    String instance = canonical + anyArgs;
+                    out.append("{ readonly class: JavaClass<").append(instance).append(">; ")
+                            .append("[Symbol.hasInstance](value: unknown): value is ").append(instance).append(";\n");
+                    ClassDoc owner = model.packages().stream().flatMap(p -> p.classes().stream())
+                            .filter(c -> c.qualifiedName().equals(target.qualifiedName())).findFirst().orElseThrow();
+                    Set<String> merged = mergedMemberNames(owner);
+                    for (MemberDoc member : owner.members()) {
+                        if (!hasModifier(member, "static")) continue;
+                        if (member.kind() == MemberKind.FIELD) renderField(out, member, 2, false, owner, merged);
+                        if (member.kind() == MemberKind.METHOD) renderMethod(out, member, 2, false, owner);
+                    }
+                    out.append("    }");
+                } else {
+                    out.append("typeof ").append(canonical);
+                }
+                // Declare both uses of the name: instanceof/new in code, and type annotations in editors.
+                out.append(";\n    type ").append(export.name()).append(defaults)
+                        .append(" = ").append(canonical).append(args).append(";\n");
+            }
+            out.append("}\n\n");
+        }
     }
 
     private void appendEvents(StringBuilder out, List<ClassDoc> events) {

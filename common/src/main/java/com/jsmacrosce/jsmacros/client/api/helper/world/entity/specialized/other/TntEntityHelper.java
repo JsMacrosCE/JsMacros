@@ -8,13 +8,12 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
  * Represents primed TNT; its fuse can be read with {@link #getRemainingTime()}.
  * <p>
  * <pre>
- * const TntEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other.TntEntityHelper");
  * const bombs = World.getEntities(32, "tnt");
  * if (bombs !== null) {
  *   for (const entity of bombs) {
- *     const tnt = TntEntityHelper.class.cast(entity);
+ *     if (!(entity instanceof EntityHelpers.Tnt)) continue;
  *     // it has already been lit, so the only question is how long is left
- *     Chat.log(`goes off in ${(tnt.getRemainingTime() / 20).toFixed(1)} seconds`);
+ *     Chat.log(`goes off in ${(entity.getRemainingTime() / 20).toFixed(1)} seconds`);
  *   }
  * }
  * </pre>

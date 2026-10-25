@@ -12,12 +12,11 @@ import net.minecraft.world.entity.animal.SnowGolem;
 /**
  * Provides access to a snow golem's pumpkin and shearing state.
  * <pre>
- * const SnowGolemEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.SnowGolemEntityHelper");
  * const golems = World.getEntities(32, "snow_golem");
  * if (golems !== null) {
  *   for (const entity of golems) {
- *     const golem = SnowGolemEntityHelper.class.cast(entity);
- *     Chat.log(`pumpkin ${golem.hasPumpkin()}, shearable ${golem.isShearable()}`);
+ *     if (!(entity instanceof EntityHelpers.SnowGolem)) continue;
+ *     Chat.log(`pumpkin ${entity.hasPumpkin()}, shearable ${entity.isShearable()}`);
  *   }
  * }
  * </pre>

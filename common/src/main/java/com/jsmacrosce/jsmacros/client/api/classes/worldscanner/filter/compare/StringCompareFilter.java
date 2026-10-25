@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.compare;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.ICompare;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
 
@@ -9,12 +10,14 @@ import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilte
  * {@code STARTS_WITH}, {@code ENDS_WITH} or {@code MATCHES}. The operation name is
  * case-sensitive and resolved when the filter is constructed. {@code MATCHES} delegates to
  * {@link String#matches(String)}, which matches the entire candidate against the regular
- * expression.
+ * expression. The scanner builder creates this comparison for text returned by a method or by
+ * a string filter; constructing it directly tests ordinary strings instead.
  *
  * @author Etheradon
  * @since 1.6.5
  */
 @DocletCategory("Filters/Predicates")
+@DocletIgnore
 public class StringCompareFilter implements IFilter<String> {
 
     private final String compareTo;

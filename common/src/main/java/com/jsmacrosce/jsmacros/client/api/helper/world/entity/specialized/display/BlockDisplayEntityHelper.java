@@ -9,12 +9,11 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.BlockStateHelper;
  * Provides access to the block state displayed by a block display entity. The state is
  * {@code null} until the client creates its render state.
  * <pre>
- * const BlockDisplayEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.display.BlockDisplayEntityHelper");
  * const blocks = World.getEntities(32, "block_display");
  * if (blocks !== null) {
  *   for (const entity of blocks) {
- *     const display = BlockDisplayEntityHelper.class.cast(entity);
- *     const state = display.getBlockState();
+ *     if (!(entity instanceof EntityHelpers.BlockDisplay)) continue;
+ *     const state = entity.getBlockState();
  *     if (state === null) {
  *       continue;
  *     }

@@ -13,13 +13,12 @@ import net.minecraft.world.entity.animal.AbstractFish;
  * Helper for fish entities. Fish-specific behavior is documented on the corresponding
  * specialized helper.
  * <pre>
- * const FishEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.FishEntityHelper");
  * const fish = World.getEntities(32, "pufferfish", "tropical_fish", "cod", "salmon");
  * if (fish !== null) {
  *   for (const entity of fish) {
- *     const f = FishEntityHelper.class.cast(entity);
- *     if (f.isFromBucket()) {
- *       Chat.log(`that ${f.getType()} was not released, it was fished out`);
+ *     if (!(entity instanceof EntityHelpers.Fish)) continue;
+ *     if (entity.isFromBucket()) {
+ *       Chat.log(`that ${entity.getType()} was not released, it was fished out`);
  *     }
  *   }
  * }

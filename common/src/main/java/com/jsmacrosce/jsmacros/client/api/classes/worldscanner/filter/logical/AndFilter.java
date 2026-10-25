@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.logical;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.BasicFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
 
@@ -11,7 +12,11 @@ import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilte
  * when unboxed.
  * <p>
  * The scanner builder creates this filter for an {@code and} step, using the accumulated
- * filter as the first component.
+ * filter as the first component; {@link BasicFilter#and(IFilter)} creates the same
+ * combination from filters you already hold. Both components must test the same value type:
+ * two numeric comparisons combine into a numeric predicate, while two
+ * {@code BlockFilter} filters combine into a block predicate the scanner accepts.
+ * The builder's {@code andBlockFilter} step does the latter for you.
  * <pre>
  * // The accumulated filter is tested first; the second is tested only if it accepts.
  * const scanner = World.getWorldScanner()
@@ -27,6 +32,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilte
  * @since 1.6.5
  */
 @DocletCategory("Filters/Predicates")
+@DocletIgnore
 public class AndFilter<T> extends BasicFilter<T> {
 
     private final IFilter<T> filterOne;

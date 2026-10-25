@@ -7,12 +7,11 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 /**
  * Provides access to whether a ghast is charging its fireball attack.
  * <pre>
- * const GhastEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.GhastEntityHelper");
  * const ghasts = World.getEntities(48, "ghast");
  * if (ghasts !== null) {
  *   for (const entity of ghasts) {
- *     const ghast = GhastEntityHelper.class.cast(entity);
- *     if (ghast.isShooting()) Chat.log(`a ghast at ${ghast.getPos()} is charging`);
+ *     if (!(entity instanceof EntityHelpers.Ghast)) continue;
+ *     if (entity.isShooting()) Chat.log(`a ghast at ${entity.getPos()} is charging`);
  *   }
  * }
  * </pre>

@@ -13,13 +13,12 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinDisplayEntity;
  * applies to the entity's position and rotation, not the displayed content's transformation.
  * Interpolation progress is client-side and is {@code 1.0} when no duration is set.
  * <pre>
- * const DisplayEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.display.DisplayEntityHelper");
  * const displays = World.getEntities(64, "text_display", "block_display", "item_display");
  * if (displays !== null) {
  *   for (const entity of displays) {
- *     const display = DisplayEntityHelper.class.cast(entity);
+ *     if (!(entity instanceof EntityHelpers.Display)) continue;
  *     // the display's culling bounds at its current position
- *     const box = display.getVisibilityBoundingBox();
+ *     const box = entity.getVisibilityBoundingBox();
  *     Chat.log(`${entity.getType()} at ${entity.getPos()}, culling bounds ${box.getDeltaX()} by ${box.getDeltaY()}`);
  *   }
  * }

@@ -8,7 +8,7 @@ import com.jsmacrosce.doclet.DocletCategory;
  * the container section rather than the player's inventory.
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("3 Row Chest")) {
+ * if (inv instanceof Inventories.Container) {
  *   const free = inv.findFreeContainerSlot();
  *   Chat.log(free === -1 ? "the chest is full" : `first free slot is ${free}`);
  * }

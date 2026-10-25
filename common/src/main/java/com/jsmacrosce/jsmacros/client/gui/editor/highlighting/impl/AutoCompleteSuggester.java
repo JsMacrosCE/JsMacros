@@ -72,6 +72,22 @@ public class AutoCompleteSuggester {
                 suggestions.add(sigBuilder);
             }
         });
+        if (language.equals(".js") || language.equals(".py")) {
+            // Read the registered type list so opening autocomplete does not need to start a script.
+            JsMacrosClient.clientCore.scriptTypeRegistry.snapshot().forEach((namespace, types) -> {
+                suggestions.add(namespace + ".");
+                types.forEach((name, type) -> {
+                    String prefix = namespace + "." + name;
+                    suggestions.add(prefix);
+                    // Only statics are callable on the exported type; instance methods need an object.
+                    for (Method method : type.getMethods()) {
+                        if (Modifier.isStatic(method.getModifiers()) && !method.isSynthetic()) {
+                            suggestions.add(prefix + "." + method.getName() + "(");
+                        }
+                    }
+                });
+            });
+        }
     }
 
     /**

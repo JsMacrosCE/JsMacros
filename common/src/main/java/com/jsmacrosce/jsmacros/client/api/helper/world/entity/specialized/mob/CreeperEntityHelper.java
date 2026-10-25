@@ -11,16 +11,15 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinCreeperEntity;
  * {@link #getRemainingFuseTime()} provides a countdown when applicable.
  *
  * <pre>
- * const CreeperEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.CreeperEntityHelper");
  * const creepers = World.getEntities(32, "creeper");
  * if (creepers !== null) {
  *   for (const entity of creepers) {
- *     const creeper = CreeperEntityHelper.class.cast(entity);
+ *     if (!(entity instanceof EntityHelpers.Creeper)) continue;
  *     // three different flags, so read the one that is actually the question
- *     if (creeper.isIgnited()) {
- *       Chat.log(`a lit creeper at ${creeper.getPos()}, ${creeper.getRemainingFuseTime()} ticks left`);
+ *     if (entity.isIgnited()) {
+ *       Chat.log(`a lit creeper at ${entity.getPos()}, ${entity.getRemainingFuseTime()} ticks left`);
  *     }
- *     if (creeper.isCharged()) {
+ *     if (entity.isCharged()) {
  *       Chat.log("that one was struck by lightning, so its explosion is doubled");
  *     }
  *   }

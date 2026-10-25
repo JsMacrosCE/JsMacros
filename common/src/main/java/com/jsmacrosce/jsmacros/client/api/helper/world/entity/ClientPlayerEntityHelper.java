@@ -51,6 +51,9 @@ import java.util.stream.Collectors;
 /**
  * Provides client-side operations for the local player.
  * <p>
+ * The local player is an {@code EntityHelpers.ClientPlayer} and therefore an
+ * {@code EntityHelpers.Player}.
+ * <p>
  * Position setters schedule changes on the client thread when called off-thread; their
  * {@code await} overloads wait for the scheduled task to run. Calls from the client
  * thread apply immediately.

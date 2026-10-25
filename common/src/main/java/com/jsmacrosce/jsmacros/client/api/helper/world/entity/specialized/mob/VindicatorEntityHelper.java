@@ -13,14 +13,13 @@ import net.minecraft.world.entity.monster.Vindicator;
  * <p>
  * {@link #isJohnny() isJohnny} checks the custom name, not the game's separate Johnny flag.
  * <pre>
- * const VindicatorEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.VindicatorEntityHelper");
  * const vindicators = World.getEntities(32, "vindicator");
  * if (vindicators !== null) {
  *   for (const entity of vindicators) {
- *     const vindicator = VindicatorEntityHelper.class.cast(entity);
- *     if (vindicator.isJohnny()) {
+ *     if (!(entity instanceof EntityHelpers.Vindicator)) continue;
+ *     if (entity.isJohnny()) {
  *       // this is the name check, so the name is worth reading back
- *       Chat.log(`Johnny at ${vindicator.getPos()}: ${vindicator.getName().getString()}`);
+ *       Chat.log(`Johnny at ${entity.getPos()}: ${entity.getName().getString()}`);
  *     }
  *   }
  * }

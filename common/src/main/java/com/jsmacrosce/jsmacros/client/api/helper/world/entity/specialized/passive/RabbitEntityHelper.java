@@ -12,12 +12,11 @@ import net.minecraft.world.entity.animal.Rabbit;
 /**
  * Wraps a rabbit and exposes its variant, including the killer bunny variant.
  * <pre>
- * const RabbitEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.RabbitEntityHelper");
  * const rabbits = World.getEntities(32, "rabbit");
  * if (rabbits !== null) {
  *   for (const entity of rabbits) {
- *     const rabbit = RabbitEntityHelper.class.cast(entity);
- *     Chat.log(`a ${rabbit.getVariant()} rabbit, killer ${rabbit.isKillerBunny()}`);
+ *     if (!(entity instanceof EntityHelpers.Rabbit)) continue;
+ *     Chat.log(`a ${entity.getVariant()} rabbit, killer ${entity.isKillerBunny()}`);
  *   }
  * }
  * </pre>

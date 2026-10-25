@@ -30,8 +30,8 @@ import java.util.stream.Collectors;
  * // an item's data, which is a compound
  * const nbt = player.getMainHand().getNBT();
  * if (nbt !== null) {
- *   // ask the type before reaching into it
- *   if (nbt.isCompound()) {
+ *   // ask the helper type before reaching into it
+ *   if (nbt instanceof NBTHelpers.Compound) {
  *     for (const key of nbt.getKeys()) {
  *       Chat.log(`${key}: ${nbt.asString(key)}`);
  *     }
@@ -289,6 +289,15 @@ public class NBTElementHelper<T extends Tag> extends BaseHelper<T> {
     }
 
     /** Wraps a numeric tag and provides conversions to primitive numeric types.
+     * <pre>
+     * const player = Player.getPlayer();
+     * if (player !== null) {
+     *   const nbt = player.getMainHand().getNBT();
+     *   if (nbt instanceof NBTHelpers.Number) {
+     *     Chat.log(`as int ${nbt.asInt()}, as double ${nbt.asDouble()}`);
+     *   }
+     * }
+     * </pre>
      *
      * @since 1.5.1
      */
@@ -368,6 +377,15 @@ public class NBTElementHelper<T extends Tag> extends BaseHelper<T> {
     }
 
     /** Provides indexed access to list and array tags, and converts four-int arrays to UUIDs.
+     * <pre>
+     * const player = Player.getPlayer();
+     * if (player !== null) {
+     *   const nbt = player.getMainHand().getNBT();
+     *   if (nbt instanceof NBTHelpers.List) {
+     *     Chat.log(`${nbt.length()} entries, held type ${nbt.getHeldType()}`);
+     *   }
+     * }
+     * </pre>
      *
      * @since 1.5.1
      */
@@ -443,6 +461,15 @@ public class NBTElementHelper<T extends Tag> extends BaseHelper<T> {
     }
 
     /** Wraps a compound tag and provides access to its keys and values.
+     * <pre>
+     * const player = Player.getPlayer();
+     * if (player !== null) {
+     *   const nbt = player.getMainHand().getNBT();
+     *   if (nbt instanceof NBTHelpers.Compound) {
+     *     Chat.log(nbt.getKeys());
+     *   }
+     * }
+     * </pre>
      *
      * @since 1.5.1
      */

@@ -12,13 +12,12 @@ import net.minecraft.world.entity.vehicle.MinecartTNT;
 /**
  * Provides fuse and primed-state queries for TNT minecarts.
  * <pre>
- * const TntMinecartEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.TntMinecartEntityHelper");
  * const carts = World.getEntities(32, "tnt_minecart");
  * if (carts !== null) {
  *   for (const entity of carts) {
- *     const cart = TntMinecartEntityHelper.class.cast(entity);
- *     if (cart.isPrimed()) {
- *       Chat.log(`it is lit, and goes off in ${cart.getRemainingTime()} ticks`);
+ *     if (!(entity instanceof EntityHelpers.TntMinecart)) continue;
+ *     if (entity.isPrimed()) {
+ *       Chat.log(`it is lit, and goes off in ${entity.getRemainingTime()} ticks`);
  *     }
  *   }
  * }

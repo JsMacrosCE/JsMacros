@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.core;
 
 import org.slf4j.Logger;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.SynchronizedWeakHashSet;
 import com.jsmacrosce.jsmacros.core.config.BaseProfile;
 import com.jsmacrosce.jsmacros.core.config.ConfigManager;
@@ -16,6 +17,7 @@ import com.jsmacrosce.jsmacros.core.language.BaseScriptContext;
 import com.jsmacrosce.jsmacros.core.language.BaseWrappedException;
 import com.jsmacrosce.jsmacros.core.language.EventContainer;
 import com.jsmacrosce.jsmacros.core.library.LibraryRegistry;
+import com.jsmacrosce.jsmacros.core.library.ScriptTypeRegistry;
 import com.jsmacrosce.jsmacros.core.service.ServiceManager;
 import com.jsmacrosce.jsmacros.core.threads.JsMacrosThreadPool;
 
@@ -49,6 +51,9 @@ public class Core<T extends BaseProfile, U extends BaseEventRegistry> {
     public final ClassWrapperTree<Object, BaseHelper<?>> helperRegistry = new ClassWrapperTree<>(Object.class, a -> null);
     /** Registry of scripting libraries associated with this core. */
     public final LibraryRegistry libraryRegistry = new LibraryRegistry(this);
+    /** Share the list of Java types, but let each script create its own language-specific values. */
+    @DocletIgnore
+    public final ScriptTypeRegistry scriptTypeRegistry = new ScriptTypeRegistry();
     /** Event registry supplied by the event-registry factory. */
     public final BaseEventRegistry eventRegistry;
 

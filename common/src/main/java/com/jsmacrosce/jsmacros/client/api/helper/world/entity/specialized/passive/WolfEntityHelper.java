@@ -8,17 +8,16 @@ import com.jsmacrosce.jsmacros.client.api.helper.DyeColorHelper;
  * Provides access to wolf-specific state, including taming, collar color, begging, anger,
  * and wetness.
  * <pre>
- * const WolfEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.WolfEntityHelper");
  * const player = Player.getPlayer();
  * const wolves = World.getEntities(32, "wolf");
  * if (player !== null) {
  *   if (wolves !== null) {
  *     for (const entity of wolves) {
- *       const wolf = WolfEntityHelper.class.cast(entity);
- *       Chat.log(`${wolf.isTamed() ? "tamed" : "wild"}, `
- *         + `collar ${wolf.getCollarColor().getName()}, `
- *         + `begging ${wolf.isBegging()}, angry ${wolf.isAngry()}, `
- *         + `wet ${wolf.isWet()}`);
+ *       if (!(entity instanceof EntityHelpers.Wolf)) continue;
+ *       Chat.log(`${entity.isTamed() ? "tamed" : "wild"}, `
+ *         + `collar ${entity.getCollarColor().getName()}, `
+ *         + `begging ${entity.isBegging()}, angry ${entity.isAngry()}, `
+ *         + `wet ${entity.isWet()}`);
  *     }
  *   }
  * }

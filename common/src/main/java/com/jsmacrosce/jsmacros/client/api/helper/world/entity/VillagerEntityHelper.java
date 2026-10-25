@@ -18,9 +18,9 @@ import net.minecraft.world.entity.npc.Villager;
  * const villagers = World.getEntities("villager");
  * if (villagers !== null) {
  *   for (const entity of villagers) {
- *     const villager = entity.asVillager();
- *     Chat.log(`a level ${villager.getLevel()} ${villager.getProfession()} `
- *       + `holding ${villager.getExperience()} xp`);
+ *     if (!(entity instanceof EntityHelpers.Villager)) continue;
+ *     Chat.log(`a level ${entity.getLevel()} ${entity.getProfession()} `
+ *       + `holding ${entity.getExperience()} xp`);
  *   }
  * }
  * </pre>

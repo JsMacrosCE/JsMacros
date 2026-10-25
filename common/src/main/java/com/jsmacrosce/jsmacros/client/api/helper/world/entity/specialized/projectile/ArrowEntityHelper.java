@@ -15,8 +15,14 @@ import net.minecraft.world.entity.projectile.Arrow;
  * An arrow projectile, including ordinary, tipped, and spectral arrows.
  *
  * <pre>
- * const color = arrow.getColor();
- * if (color !== -1) Chat.log(color);
+ * const arrows = World.getEntities(32, "arrow", "spectral_arrow");
+ * if (arrows !== null) {
+ *   for (const entity of arrows) {
+ *     if (!(entity instanceof EntityHelpers.Arrow)) continue;
+ *     const color = entity.getColor();
+ *     if (color !== -1) Chat.log(`potion color 0x${color.toString(16)}`);
+ *   }
+ * }
  * </pre>
  *
  * @author Etheradon

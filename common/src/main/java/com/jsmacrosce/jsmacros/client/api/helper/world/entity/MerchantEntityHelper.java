@@ -14,6 +14,8 @@ import java.util.List;
 
 /**
  * Helpers for villagers and wandering traders, which share the game's merchant base class.
+ * Use {@code EntityHelpers.Merchant} to match either kind, or {@code EntityHelpers.Villager}
+ * for villagers alone.
  * <p>
  * {@link #getTrades()} and {@link #refreshTrades()} throw {@code IllegalStateException}
  * on the client: the underlying merchant offer getter is server-only.
@@ -23,12 +25,10 @@ import java.util.List;
  * entity's local trading-player field, which is not a reliable indication of remote occupancy on a client.
  * <pre>
  * // the trade list has to come from the open screen, not from the entity
- * const Inventory = Java.type("com.jsmacrosce.jsmacros.client.api.classes.inventory.Inventory");
- * const VillagerInventory = Java.type("com.jsmacrosce.jsmacros.client.api.classes.inventory.VillagerInventory");
- * const inv = Inventory.create(Hud.getOpenScreen());
+ * const inv = Inventories.Inventory.create(Hud.getOpenScreen());
  * if (inv !== null) {
- *   if (inv.is("Villager")) {
- *     for (const trade of VillagerInventory.class.cast(inv).getTrades()) {
+ *   if (inv instanceof Inventories.Villager) {
+ *     for (const trade of inv.getTrades()) {
  *       Chat.log(`#${trade.getIndex()}: ${trade.getOutput().getName()} `
  *         + `for ${trade.getLeftInput().getName()}`);
  *     }

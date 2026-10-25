@@ -30,6 +30,7 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.inventory.*;
 import com.jsmacrosce.jsmacros.client.api.event.impl.player.*;
 import com.jsmacrosce.jsmacros.client.api.event.impl.world.*;
 import com.jsmacrosce.jsmacros.client.api.helper.*;
+import com.jsmacrosce.jsmacros.client.api.classes.types.*;
 import com.jsmacrosce.jsmacros.client.api.library.impl.*;
 import com.jsmacrosce.jsmacros.client.gui.screens.EditorScreen;
 import com.jsmacrosce.jsmacros.client.gui.screens.MacroScreen;
@@ -176,6 +177,15 @@ public class ClientProfile extends BaseProfile {
     @Override
     public void initRegistries() {
         super.initRegistries();
+
+        // Choose which type groups scripts receive, rather than exposing every class in the project.
+        runner.scriptTypeRegistry.register(EntityHelpers.class);
+        runner.scriptTypeRegistry.register(Inventories.class);
+        runner.scriptTypeRegistry.register(Widgets.class);
+        runner.scriptTypeRegistry.register(RenderElements.class);
+        runner.scriptTypeRegistry.register(NBTHelpers.class);
+        runner.scriptTypeRegistry.register(HitResults.class);
+        runner.scriptTypeRegistry.register(ScriptClasses.class);
 
         runner.eventRegistry.addEvent(CommandContextHelper.class);
 

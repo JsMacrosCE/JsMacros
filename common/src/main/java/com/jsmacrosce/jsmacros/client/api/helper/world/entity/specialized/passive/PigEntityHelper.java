@@ -11,13 +11,12 @@ import net.minecraft.world.entity.animal.Pig;
 /**
  * Provides pig-specific access to saddle state.
  * <pre>
- * const PigEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.PigEntityHelper");
  * const pigs = World.getEntities(32, "pig");
  * if (pigs !== null) {
  *   for (const entity of pigs) {
- *     const pig = PigEntityHelper.class.cast(entity);
- *     if (pig.isSaddled()) {
- *       Chat.log(`a saddled pig at ${pig.getPos()}`);
+ *     if (!(entity instanceof EntityHelpers.Pig)) continue;
+ *     if (entity.isSaddled()) {
+ *       Chat.log(`a saddled pig at ${entity.getPos()}`);
  *     }
  *   }
  * }

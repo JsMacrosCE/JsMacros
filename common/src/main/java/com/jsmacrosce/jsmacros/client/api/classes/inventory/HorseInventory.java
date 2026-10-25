@@ -26,7 +26,7 @@ import net.minecraft.world.entity.animal.horse.AbstractHorse;
  * check whether carried slots are available.
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("Horse")) {
+ * if (inv instanceof Inventories.Horse) {
  *   const horse = inv.getHorse();
  *   if (inv.hasChest()) {
  *     Chat.log(`${horse.isTame() ? "tamed" : "wild"} mount, ${inv.getInventorySize()} carried slots`);

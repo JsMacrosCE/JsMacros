@@ -10,6 +10,9 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.projec
  * Provides player-specific entity data, including experience, score, and sleep state.
  * Equipment accessors are inherited in behavior from {@link LivingEntityHelper}; the
  * player overrides return those same six hand and armor slots, not additional slots.
+ * <p>
+ * A player helper from an entity list is an {@code EntityHelpers.Player}; the local player
+ * is also an {@code EntityHelpers.ClientPlayer}.
  * <pre>
  * // the local player, which is the only one a client has any business with
  * const player = Player.getPlayer();

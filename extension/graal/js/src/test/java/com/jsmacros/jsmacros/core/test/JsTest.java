@@ -9,6 +9,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JsTest extends BaseTest {
+    @com.jsmacrosce.jsmacros.core.library.ScriptNamespace("IntegrationTypes")
+    public static final class TypeCatalog {
+        public static final Class<StringBuilder> Builder = StringBuilder.class;
+    }
+
+    @Test
+    public void scriptExecutionInstallsTypeNamespaces() throws InterruptedException {
+        com.jsmacrosce.jsmacros.test.stubs.CoreInstanceCreator.core.scriptTypeRegistry.register(TypeCatalog.class);
+        EventCustom result = runTestScript("""
+                const text = new IntegrationTypes.Builder('exports');
+                event.putString('test', text instanceof IntegrationTypes.Builder ? text.toString() : 'wrong type');
+                """);
+        assertEquals("exports", result.getString("test"));
+    }
 
     @Override
     public String getLang() {

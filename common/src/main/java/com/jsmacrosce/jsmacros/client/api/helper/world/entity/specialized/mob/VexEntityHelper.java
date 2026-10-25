@@ -8,13 +8,12 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
  * Provides access to a vex's charge state. {@link #isCharging()} is set when its charge
  * goal starts and cleared when that goal ends; it does not indicate that damage has landed.
  * <pre>
- * const VexEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.VexEntityHelper");
  * const vexes = World.getEntities(32, "vex");
  * if (vexes !== null) {
  *   for (const entity of vexes) {
- *     const vex = VexEntityHelper.class.cast(entity);
- *     if (vex.isCharging()) {
- *       Chat.log(`a vex at ${vex.getPos()} is closing on something`);
+ *     if (!(entity instanceof EntityHelpers.Vex)) continue;
+ *     if (entity.isCharging()) {
+ *       Chat.log(`a vex at ${entity.getPos()} is closing on something`);
  *     }
  *   }
  * }

@@ -1,5 +1,8 @@
 # Documentation generation
 
+For package-independent runtime type checks and static class access, see
+[Script type namespaces](SCRIPT_TYPES.md).
+
 JsMacrosCE uses the JDK doclet API to read Java declarations and Javadoc. Markdown,
 TypeScript declarations and Python stubs share a model; the legacy HTML renderer
 remains supported. VitePress is the primary website.
