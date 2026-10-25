@@ -6,10 +6,28 @@ declarations, Python stubs, legacy HTML, and the VitePress site. Write one
 accurate contract that survives all four; do not write four renderer-specific
 versions in the comment.
 
-## 1. Write the contract, not a tutorial
+## 1. Explain the purpose, then the contract
 
-Lead with one direct sentence saying what the class or member is or does. Add
-only details that change a caller's understanding or use of it, such as:
+Lead with what the code lets the reader do and, where it is not obvious, why it
+exists. Write for someone who knows programming but is new to this part of the
+project. A description should make sense before they read the implementation.
+Do not make them decode framework jargon or Java declarations to discover the
+point. Explain the mechanics afterward, when they help the reader use or maintain
+the code.
+
+For example, prefer:
+
+> Gives scripts short names for Java types, such as `EntityHelpers.Horse`, so
+> scripts do not need to know where those classes live in the Java source.
+
+over:
+
+> Exports catalog fields as guest-language host-type symbols.
+
+This is a choice of explanation, not a reason to omit precision. Keep verified
+contracts and caveats; do not turn descriptions into tutorials or invent benefits.
+For a straightforward getter, a direct statement of what it returns is enough.
+Add details that change a caller's understanding or use of it, such as:
 
 - units, coordinate systems, index bases, defaults, or the meaning of a value;
 - null, sentinel, empty-result, or failure behavior;
