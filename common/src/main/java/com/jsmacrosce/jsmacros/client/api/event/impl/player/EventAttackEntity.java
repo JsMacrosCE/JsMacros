@@ -13,7 +13,9 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * cancellable.
  * <pre>
  * JsMacros.on("AttackEntity", JavaWrapper.methodToJava(function (event) {
- *   Chat.log(`Attacked ${event.entity.getType()} named ${event.entity.getName().getString()}`);
+ *   if (event.entity instanceof EntityHelpers.Player) {
+ *     Chat.log(`Attacked player ${event.entity.getName().getString()}`);
+ *   }
  * }))
  * </pre>
  */
@@ -23,7 +25,8 @@ public class EventAttackEntity extends BaseEvent {
     /**
      * The attacked entity, wrapped in the most specific
      * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper} subclass for its
-     * type. Use {@code as...()} helpers to narrow the wrapper; its type and name are available from
+     * type. Use {@code instanceof EntityHelpers.Player} and the other namespace types to narrow
+     * the wrapper; the {@code as...()} helpers are casts. Its type and name are available from
      * {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getType() getType()}
      * and {@link com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper#getName() getName()}.
      */

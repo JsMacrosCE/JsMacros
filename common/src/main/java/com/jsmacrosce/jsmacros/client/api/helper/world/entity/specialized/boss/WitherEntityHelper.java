@@ -7,13 +7,12 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 /**
  * Provides access to the wither's invulnerability countdown and health-based phase state.
  * <pre>
- * const WitherEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.boss.WitherEntityHelper");
  * const withers = World.getEntities(64, "wither");
  * if (withers !== null) {
  *   for (const entity of withers) {
- *     const wither = WitherEntityHelper.class.cast(entity);
- *     if (wither.isInvulnerable()) {
- *       Chat.log(`untouchable for another ${wither.getRemainingInvulnerableTime()} ticks`);
+ *     if (!(entity instanceof EntityHelpers.Wither)) continue;
+ *     if (entity.isInvulnerable()) {
+ *       Chat.log(`untouchable for another ${entity.getRemainingInvulnerableTime()} ticks`);
  *     }
  *   }
  * }

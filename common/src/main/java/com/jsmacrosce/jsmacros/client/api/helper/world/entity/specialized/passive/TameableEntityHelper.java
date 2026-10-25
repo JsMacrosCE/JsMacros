@@ -14,16 +14,15 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.LivingEntityHelper
  * returns {@code false} if it cannot be resolved. {@link #isSitting()} reports the sit order,
  * not the animal's current sitting pose.
  * <pre>
- * const TameableEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.TameableEntityHelper");
  * const player = Player.getPlayer();
  * const tameables = World.getEntities(32, "wolf", "cat", "parrot");
  * if (player !== null) {
  *   if (tameables !== null) {
  *     for (const entity of tameables) {
- *       const tame = TameableEntityHelper.class.cast(entity);
- *       if (tame.isTamed()) {
- *         Chat.log(`${tame.getType()} tamed by ${tame.getOwner()}, `
- *           + `yours ${tame.isOwner(player)}, told to sit ${tame.isSitting()}`);
+ *       if (!(entity instanceof EntityHelpers.Tameable)) continue;
+ *       if (entity.isTamed()) {
+ *         Chat.log(`${entity.getType()} tamed by ${entity.getOwner()}, `
+ *           + `yours ${entity.isOwner(player)}, told to sit ${entity.isSitting()}`);
  *       }
  *     }
  *   }

@@ -28,12 +28,11 @@ import java.util.concurrent.atomic.AtomicReference;
  * identifier. Creating another image with the same name registers it under the same identifier.
  * <p>
  * A script gets one through {@link #createWidget(int, int, String)} for a blank one or
- * {@link #createWidget(String, String)} for one loaded from a file, and the raw class is reached
- * with {@code Java.type}.
+ * {@link #createWidget(String, String)} for one loaded from a file, and the class is available
+ * through the {@code ScriptClasses.CustomImage} type namespace.
  * <pre>
  * // Draw several changes before uploading the image once.
- * const CustomImage = Java.type("com.jsmacrosce.jsmacros.client.api.classes.CustomImage");
- * const img = CustomImage.createWidget(16, 16, "badge");
+ * const img = ScriptClasses.CustomImage.createWidget(16, 16, "badge");
  * img.setGraphicsColor(0xFF5555);
  * img.fillRect(0, 0, 16, 16);
  * img.setGraphicsColor(0xFFFFFF);
@@ -55,9 +54,8 @@ public class CustomImage {
      * existing identifier replaces that map entry.
      * <pre>
      * // Look up an image by its full identifier.
-     * const CustomImage = Java.type("com.jsmacrosce.jsmacros.client.api.classes.CustomImage");
-     * const made = CustomImage.createWidget(16, 16, "overlay");
-     * const found = CustomImage.IMAGES.get(`minecraft:jsmimage/${made.getName()}`);
+     * const made = ScriptClasses.CustomImage.createWidget(16, 16, "overlay");
+     * const found = ScriptClasses.CustomImage.IMAGES.get(`minecraft:jsmimage/${made.getName()}`);
      * if (found !== null) {
      *   Chat.log(`found the overlay at ${found.getWidth()} by ${found.getHeight()}`);
      * }
@@ -129,8 +127,7 @@ public class CustomImage {
      * is an ordinary {@code BufferedImage}, not a registered game texture.
      * <pre>
      * // Load an image file and draw it when recognized.
-     * const CustomImage = Java.type("com.jsmacrosce.jsmacros.client.api.classes.CustomImage");
-     * const img = CustomImage.createWidget(32, 32, "canvas");
+     * const img = ScriptClasses.CustomImage.createWidget(32, 32, "canvas");
      * const source = img.loadImage("images/logo.png");
      * if (source !== null) {
      *   img.drawImage(source, 0, 0, 32, 32);

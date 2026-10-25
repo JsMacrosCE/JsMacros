@@ -10,17 +10,16 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * Exposes the client-built render state for a text display; {@link #getData()} returns {@code null}
  * until it exists.
  * <pre>
- * const TextDisplayEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.display.TextDisplayEntityHelper");
  * const names = World.getEntities(32, "text_display");
  * if (names !== null) {
  *   for (const entity of names) {
- *     const display = TextDisplayEntityHelper.class.cast(entity);
- *     const data = display.getData();
+ *     if (!(entity instanceof EntityHelpers.TextDisplay)) continue;
+ *     const data = entity.getData();
  *     // the state may not exist yet
  *     if (data === null) {
  *       continue;
  *     }
- *     Chat.log(`"${data.getText().getString()}" is ${display.getDisplayWidth()} by ${display.getDisplayHeight()}`);
+ *     Chat.log(`"${data.getText().getString()}" is ${entity.getDisplayWidth()} by ${entity.getDisplayHeight()}`);
  *   }
  * }
  * </pre>

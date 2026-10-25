@@ -13,7 +13,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * positive increase; this event does not identify the healing source or cancel the health change.
  * <pre>
  * JsMacros.on("EntityHealed", JavaWrapper.methodToJava(function (event) {
- *   if (event.entity.getType() === "minecraft:villager") {
+ *   if (event.entity instanceof EntityHelpers.Villager) {
  *     Chat.log(`Villager regained ${event.damage} health, ${event.health} hp now`);
  *   }
  * }))

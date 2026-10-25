@@ -12,13 +12,12 @@ import net.minecraft.world.entity.animal.Ocelot;
 /**
  * Provides access to an ocelot's trust state.
  * <pre>
- * const OcelotEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.OcelotEntityHelper");
  * const ocelots = World.getEntities(32, "ocelot");
  * if (ocelots !== null) {
  *   for (const entity of ocelots) {
- *     const ocelot = OcelotEntityHelper.class.cast(entity);
- *     Chat.log(`${ocelot.getType()} at ${ocelot.getPos()}, `
- *       + `trusting ${ocelot.isTrusting()}`);
+ *     if (!(entity instanceof EntityHelpers.Ocelot)) continue;
+ *     Chat.log(`${entity.getType()} at ${entity.getPos()}, `
+ *       + `trusting ${entity.isTrusting()}`);
  *   }
  * }
  * </pre>

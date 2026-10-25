@@ -11,13 +11,12 @@ import net.minecraft.world.entity.animal.horse.AbstractChestedHorse;
 /**
  * Provides horse APIs for donkeys and mules, including whether a chest is attached.
  * <pre>
- * const DonkeyEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.DonkeyEntityHelper");
  * const donkeys = World.getEntities(32, "donkey");
  * if (donkeys !== null) {
  *   for (const entity of donkeys) {
- *     const donkey = DonkeyEntityHelper.class.cast(entity);
- *     if (donkey.hasChest()) {
- *       Chat.log(`${donkey.getInventorySize()} slots of storage`);
+ *     if (!(entity instanceof EntityHelpers.Donkey)) continue;
+ *     if (entity.hasChest()) {
+ *       Chat.log(`${entity.getInventorySize()} slots of storage`);
  *     }
  *   }
  * }

@@ -7,14 +7,13 @@ import com.jsmacrosce.doclet.DocletReplaceReturn;
 /**
  * Provides access to an axolotl's variant, playing-dead state, and bucket-origin flag.
  * <pre>
- * const AxolotlEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.AxolotlEntityHelper");
  * const axolotls = World.getEntities(32, "axolotl");
  * if (axolotls !== null) {
  *   for (const entity of axolotls) {
- *     const axolotl = AxolotlEntityHelper.class.cast(entity);
- *     Chat.log(`variant ${axolotl.getVariantName()} (${axolotl.getVariantId()}), `
- *       + `from a bucket ${axolotl.isFromBucket()}, `
- *       + `playing dead ${axolotl.isPlayingDead()}`);
+ *     if (!(entity instanceof EntityHelpers.Axolotl)) continue;
+ *     Chat.log(`variant ${entity.getVariantName()} (${entity.getVariantId()}), `
+ *       + `from a bucket ${entity.isFromBucket()}, `
+ *       + `playing dead ${entity.isPlayingDead()}`);
  *   }
  * }
  * </pre>

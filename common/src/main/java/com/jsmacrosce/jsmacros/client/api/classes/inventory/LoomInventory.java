@@ -22,7 +22,7 @@ import java.util.stream.StreamSupport;
  * determined by the pattern slot; selecting one requires the pattern list to be displayed.
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("Loom")) {
+ * if (inv instanceof Inventories.Loom) {
  *   const patterns = inv.listAvailablePatterns();
  *   Chat.log(`${patterns.size()} patterns on offer`);
  *   if (patterns.size() > 0) {

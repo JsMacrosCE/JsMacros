@@ -20,12 +20,14 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * const target = interactions === null ? null : interactions.getTarget();
  * if (target === null) {
  *   // nothing under the crosshair at all
- * } else if (target.asEntity() !== null) {
- *   const entity = target.asEntity().getEntity();
+ * } else if (target instanceof HitResults.Entity) {
+ *   const entity = target.getEntity();
  *   Chat.log(`the crosshair is on ${entity.getName()} at ${target.getPos()}`);
- * } else if (target.asBlock() !== null) {
- *   const block = target.asBlock();
- *   Chat.log(`the crosshair is on the ${block.getSide().getName()} face of ${block.getBlockPos()}`);
+ * } else if (target instanceof HitResults.Block) {
+ *   const blockPos = target.getBlockPos();
+ *   if (blockPos !== null) {
+ *     Chat.log(`the crosshair is on the ${target.getSide().getName()} face of ${blockPos}`);
+ *   }
  * }
  *
  * // the point where the ray landed is on all three kinds
@@ -107,6 +109,14 @@ public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
 
     /**
      * Represents a block hit or miss; use {@link #isMissed()} to distinguish them.
+     * <pre>
+     * const interactions = Player.interactions();
+     * const target = interactions === null ? null : interactions.getTarget();
+     * if (target instanceof HitResults.Block && !target.isMissed()) {
+     *   const pos = target.getBlockPos();
+     *   if (pos !== null) Chat.log(`hit ${pos}`);
+     * }
+     * </pre>
      *
      * @author aMelonRind
      * @since 1.9.1
@@ -190,6 +200,13 @@ public class HitResultHelper<T extends HitResult> extends BaseHelper<T> {
 
     /**
      * A target that carries the entity and the hit location recorded by the hit result.
+     * <pre>
+     * const interactions = Player.interactions();
+     * const target = interactions === null ? null : interactions.getTarget();
+     * if (target instanceof HitResults.Entity) {
+     *   Chat.log(`the crosshair is on ${target.getEntity().getName()}`);
+     * }
+     * </pre>
      *
      * @author aMelonRind
      * @since 1.9.1

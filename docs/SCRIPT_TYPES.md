@@ -11,7 +11,6 @@ JavaScript and GraalPython scripts receive these globals automatically:
 | `NBTHelpers` | `Element`, `Number`, `List`, `Compound` |
 | `HitResults` | `Result`, `Block`, `Entity` |
 | `ScriptClasses` | `CustomImage`, `KeyTracker` |
-| `ScannerFilters` | Logical, comparison, and block/state filter types |
 
 Generated references list every member and link to its canonical API page. The
 in-game editor suggests namespace members; generated TypeScript and Python files
@@ -40,9 +39,6 @@ constructed. Exported constructors retain their existing parameters and threadin
 requirements; exporting a helper does not add a raw-entity conversion.
 
 ```js
-const filter = new ScannerFilters.Not(
-    new ScannerFilters.StringCompare("EQUALS", "air")
-);
 const image = ScriptClasses.CustomImage.createWidget(16, 16, "badge");
 ```
 

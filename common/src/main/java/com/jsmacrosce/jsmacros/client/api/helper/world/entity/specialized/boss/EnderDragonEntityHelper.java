@@ -15,12 +15,11 @@ import java.util.stream.Collectors;
 /**
  * Provides access to the ender dragon's current phase and its eight body parts.
  * <pre>
- * const EnderDragonEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.boss.EnderDragonEntityHelper");
  * const dragons = World.getEntities(128, "ender_dragon");
  * if (dragons !== null) {
  *   for (const entity of dragons) {
- *     const dragon = EnderDragonEntityHelper.class.cast(entity);
- *     Chat.log(`phase ${dragon.getPhase()}, over ${dragon.getBodyParts().size()} parts`);
+ *     if (!(entity instanceof EntityHelpers.EnderDragon)) continue;
+ *     Chat.log(`phase ${entity.getPhase()}, over ${entity.getBodyParts().size()} parts`);
  *   }
  * }
  * </pre>

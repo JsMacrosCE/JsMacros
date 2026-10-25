@@ -10,6 +10,15 @@ import net.minecraft.world.entity.animal.Pufferfish;
 
 /**
  * Provides access to a pufferfish's inflation state.
+ * <pre>
+ * const pufferfish = World.getEntities(32, "pufferfish");
+ * if (pufferfish !== null) {
+ *   for (const entity of pufferfish) {
+ *     if (!(entity instanceof EntityHelpers.Pufferfish)) continue;
+ *     Chat.log(`puff state ${entity.getSize()} at ${entity.getPos()}`);
+ *   }
+ * }
+ * </pre>
  *
  * @author Etheradon
  * @since 1.8.4

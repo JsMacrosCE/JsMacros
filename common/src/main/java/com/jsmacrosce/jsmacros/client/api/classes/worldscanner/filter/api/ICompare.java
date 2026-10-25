@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 /**
  * A two-argument comparison function, used by string filters.
  *
@@ -9,6 +10,7 @@ import com.jsmacrosce.doclet.DocletCategory;
  */
 @FunctionalInterface
 @DocletCategory("Filters/Predicates")
+@DocletIgnore
 public interface ICompare<T> {
 
     /**

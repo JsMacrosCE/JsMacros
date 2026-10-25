@@ -12,6 +12,15 @@ import net.minecraft.world.entity.projectile.ThrownTrident;
 
 /**
  * A helper for querying a thrown trident's stored loyalty level and foil state.
+ * <pre>
+ * const tridents = World.getEntities(32, "trident");
+ * if (tridents !== null) {
+ *   for (const entity of tridents) {
+ *     if (!(entity instanceof EntityHelpers.Trident)) continue;
+ *     Chat.log(`loyalty ${entity.hasLoyalty()}, glint ${entity.isEnchanted()}`);
+ *   }
+ * }
+ * </pre>
  *
  * @author Etheradon
  * @since 1.8.4

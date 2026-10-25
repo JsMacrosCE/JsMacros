@@ -22,29 +22,28 @@ import net.minecraft.world.entity.vehicle.ChestRaft;
  * The status checks read the boat's current status; {@link #isUnderwater()} matches both
  * underwater statuses. The four checks are mutually exclusive.
  * <pre>
- * const BoatEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.vehicle.BoatEntityHelper");
  * const boats = World.getEntities(32, "oak_boat", "oak_chest_boat", "bamboo_raft", "bamboo_chest_raft");
  * if (boats !== null) {
  *   for (const entity of boats) {
- *     const boat = BoatEntityHelper.class.cast(entity);
+ *     if (!(entity instanceof EntityHelpers.Boat)) continue;
  *     // isUnderwater covers both underwater statuses
  *     let where = "somewhere";
- *     if (boat.isInWater()) {
+ *     if (entity.isInWater()) {
  *       where = "floating";
  *     } else {
- *       if (boat.isUnderwater()) {
+ *       if (entity.isUnderwater()) {
  *         where = "underwater";
  *       } else {
- *         if (boat.isInAir()) {
+ *         if (entity.isInAir()) {
  *           where = "in the air";
  *         } else {
- *           if (boat.isOnLand()) {
+ *           if (entity.isOnLand()) {
  *             where = "ashore";
  *           }
  *         }
  *       }
  *     }
- *     Chat.log(`${boat.isChestBoat() ? "chest boat" : "boat"} is ${where}`);
+ *     Chat.log(`${entity.isChestBoat() ? "chest boat" : "boat"} is ${where}`);
  *   }
  * }
  * </pre>

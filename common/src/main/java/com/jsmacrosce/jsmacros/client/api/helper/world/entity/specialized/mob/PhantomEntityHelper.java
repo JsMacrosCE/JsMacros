@@ -7,14 +7,13 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 /**
  * Provides access to a phantom's size, which scales its dimensions and sets its base attack damage to 6 plus the size.
  * <pre>
- * const PhantomEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.PhantomEntityHelper");
  * const phantoms = World.getEntities(64, "phantom");
  * if (phantoms !== null) {
  *   for (const entity of phantoms) {
- *     const phantom = PhantomEntityHelper.class.cast(entity);
+ *     if (!(entity instanceof EntityHelpers.Phantom)) continue;
  *     // An ordinary phantom has size 0.
- *     if (phantom.getSize() !== 0) {
- *       Chat.log(`a phantom at ${phantom.getPos()} is size ${phantom.getSize()}`);
+ *     if (entity.getSize() !== 0) {
+ *       Chat.log(`a phantom at ${entity.getPos()} is size ${entity.getSize()}`);
  *     }
  *   }
  * }

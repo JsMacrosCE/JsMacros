@@ -14,13 +14,12 @@ import net.minecraft.world.entity.monster.Zombie;
  * Drowned and zombie-villager helpers inherit this API, but those vanilla entity types do not
  * enter the underwater-conversion path and normally report {@code false}.
  * <pre>
- * const ZombieEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.ZombieEntityHelper");
  * const zombies = World.getEntities(32, "zombie");
  * if (zombies !== null) {
  *   for (const entity of zombies) {
- *     const zombie = ZombieEntityHelper.class.cast(entity);
- *     if (zombie.isConvertingToDrowned()) {
- *       Chat.log(`a zombie at ${zombie.getPos()} is turning, with maximum health ${zombie.getMaxHealth()}`);
+ *     if (!(entity instanceof EntityHelpers.Zombie)) continue;
+ *     if (entity.isConvertingToDrowned()) {
+ *       Chat.log(`a zombie at ${entity.getPos()} is turning, with maximum health ${entity.getMaxHealth()}`);
  *     }
  *   }
  * }

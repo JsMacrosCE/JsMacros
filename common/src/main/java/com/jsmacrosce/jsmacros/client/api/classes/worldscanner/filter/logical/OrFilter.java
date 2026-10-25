@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.logical;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.BasicFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
 
@@ -8,7 +9,8 @@ import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilte
  * Combines two filters with short-circuit OR: the second is tested only if the first rejects
  * the value. A {@code null} result causes a {@link NullPointerException} when unboxed, and
  * exceptions from evaluated filters propagate. The scanner builder uses the accumulated filter
- * as the first component of an {@code or} step.
+ * as the first component of an {@code or} step; {@link BasicFilter#or(IFilter)} creates the
+ * same combination from filters you already hold. Both components must test the same value type.
  * <pre>
  * // The two block conditions are alternatives: either one can match.
  * const scanner = World.getWorldScanner()
@@ -24,6 +26,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilte
  * @since 1.6.5
  */
 @DocletCategory("Filters/Predicates")
+@DocletIgnore
 public class OrFilter<T> extends BasicFilter<T> {
 
     private final IFilter<T> filterOne;

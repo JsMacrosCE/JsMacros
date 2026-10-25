@@ -18,14 +18,13 @@ import net.minecraft.world.entity.monster.SpellcasterIllager;
  * the spell name, including {@code NONE} when idle and {@code ERROR} for an unmapped value.
  * Its arm pose is {@code SPELLCASTING} while casting.
  * <pre>
- * const SpellcastingIllagerEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.SpellcastingIllagerEntityHelper");
  * const evokers = World.getEntities(32, "evoker");
  * if (evokers !== null) {
  *   for (const entity of evokers) {
- *     const evoker = SpellcastingIllagerEntityHelper.class.cast(entity);
- *     if (evoker.isCastingSpell()) {
+ *     if (!(entity instanceof EntityHelpers.SpellcastingIllager)) continue;
+ *     if (entity.isCastingSpell()) {
  *       // the spell is a name, and the pose is SPELLCASTING while it runs
- *       Chat.log(`an evoker at ${evoker.getPos()} is casting ${evoker.getCastedSpell()}`);
+ *       Chat.log(`an evoker at ${entity.getPos()} is casting ${entity.getCastedSpell()}`);
  *     }
  *   }
  * }

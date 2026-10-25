@@ -14,7 +14,7 @@ import java.util.List;
  * {@link #selectTrade(int)} to select one.
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("Villager")) {
+ * if (inv instanceof Inventories.Villager) {
  *   Chat.log(`level ${inv.getLevelProgress()}, ${inv.getExperience()} xp so far`);
  *   const trades = inv.getTrades();
  *   for (let i = 0; trades.size() > i; i++) {

@@ -8,6 +8,17 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 
 /**
  * Exposes an end crystal's base-display flag and optional beam target.
+ * <pre>
+ * const crystals = World.getEntities(32, "end_crystal");
+ * if (crystals !== null) {
+ *   for (const entity of crystals) {
+ *     if (!(entity instanceof EntityHelpers.EndCrystal)) continue;
+ *     const beam = entity.getBeamTarget();
+ *     Chat.log(`${entity.isNatural() ? "base shown" : "base hidden"}, `
+ *       + `beam ${beam === null ? "none" : beam}`);
+ *   }
+ * }
+ * </pre>
  *
  * @author Etheradon
  * @since 1.8.4

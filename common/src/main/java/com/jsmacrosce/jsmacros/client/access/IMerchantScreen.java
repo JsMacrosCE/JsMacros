@@ -7,7 +7,7 @@ package com.jsmacrosce.jsmacros.client.access;
  * <pre>
  * if (Player.getPlayer()) {
  *   const inv = Player.openInventory();
- *   if (inv.is("Villager")) {
+ *   if (inv instanceof Inventories.Villager) {
  *     if (inv.getTrades().size() > 0) {
  *       const screen = inv.getRawContainer();
  *       if (screen) {

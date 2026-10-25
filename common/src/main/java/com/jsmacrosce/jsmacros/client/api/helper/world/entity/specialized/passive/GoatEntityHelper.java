@@ -6,14 +6,13 @@ import com.jsmacrosce.doclet.DocletCategory;
 /**
  * Provides access to whether a goat is a screaming goat and which horns remain.
  * <pre>
- * const GoatEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.GoatEntityHelper");
  * const goats = World.getEntities(32, "goat");
  * if (goats !== null) {
  *   for (const entity of goats) {
- *     const goat = GoatEntityHelper.class.cast(entity);
- *     Chat.log(`${goat.getType()}: left ${goat.hasLeftHorn()}, `
- *       + `right ${goat.hasRightHorn()}, any ${goat.hasHorns()}, `
- *       + `screaming ${goat.isScreaming()}`);
+ *     if (!(entity instanceof EntityHelpers.Goat)) continue;
+ *     Chat.log(`${entity.getType()}: left ${entity.hasLeftHorn()}, `
+ *       + `right ${entity.hasRightHorn()}, any ${entity.hasHorns()}, `
+ *       + `screaming ${entity.isScreaming()}`);
  *   }
  * }
  * </pre>

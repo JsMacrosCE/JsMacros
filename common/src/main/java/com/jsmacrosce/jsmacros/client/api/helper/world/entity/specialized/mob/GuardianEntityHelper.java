@@ -10,17 +10,16 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 /**
  * Provides access to guardian-specific state, including elder status, attack target, and movement state.
  * <pre>
- * const GuardianEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.GuardianEntityHelper");
  * const guardians = World.getEntities(32, "guardian", "elder_guardian");
  * if (guardians !== null) {
  *   for (const entity of guardians) {
- *     const guardian = GuardianEntityHelper.class.cast(entity);
- *     if (guardian.isElder()) {
- *       Chat.log(`an elder guardian at ${guardian.getPos()}`);
+ *     if (!(entity instanceof EntityHelpers.Guardian)) continue;
+ *     if (entity.isElder()) {
+ *       Chat.log(`an elder guardian at ${entity.getPos()}`);
  *     }
- *     if (guardian.hasTarget()) {
+ *     if (entity.hasTarget()) {
  *       // the beam is on something
- *       const target = guardian.getTarget();
+ *       const target = entity.getTarget();
  *       if (target !== null) {
  *         Chat.log(`locked onto ${target.getType()}`);
  *       }

@@ -45,6 +45,8 @@ import net.minecraft.world.inventory.ClickType;
 
 /**
  * Wraps a container screen's menu; specialized subclasses represent recognized screen types.
+ * Use {@code instanceof Inventories.Crafting} and the other {@code Inventories} names to branch
+ * on those wrapper types; {@link #getType()} returns the screen name used for identification.
  * Slot indices refer to the menu's full slot list. {@link #getMap()} groups applicable indices
  * by section name; available sections depend on the screen.
  * <pre>

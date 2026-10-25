@@ -1,15 +1,19 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.compare;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
 
 /**
  * Keeps candidates from a named boolean-returning method when they equal the fixed value.
+ * The scanner builder creates this comparison automatically; construct it directly only when
+ * testing values you already have.
  *
  * @author Etheradon
  * @since 1.6.5
  */
 @DocletCategory("Filters/Predicates")
+@DocletIgnore
 public class BooleanCompareFilter implements IFilter<Boolean> {
 
     private final boolean compareTo;

@@ -9,14 +9,13 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
 /**
  * Represents a block moving as a falling entity, exposing its origin and block state.
  * <pre>
- * const FallingBlockEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other.FallingBlockEntityHelper");
- * const falling = World.getEntities(32, "falling_block");
- * if (falling !== null) {
- *   for (const entity of falling) {
- *     const block = FallingBlockEntityHelper.class.cast(entity);
+ * const blocks = World.getEntities(32, "falling_block");
+ * if (blocks !== null) {
+ *   for (const entity of blocks) {
+ *     if (!(entity instanceof EntityHelpers.FallingBlock)) continue;
  *     // where it started falling
- *     const origin = block.getOriginBlockPos();
- *     Chat.log(`${block.getBlockState().getId()} from ${origin.getX()}, ${origin.getY()}, ${origin.getZ()}`);
+ *     const origin = entity.getOriginBlockPos();
+ *     Chat.log(`${entity.getBlockState().getId()} from ${origin.getX()}, ${origin.getY()}, ${origin.getZ()}`);
  *   }
  * }
  * </pre>

@@ -22,15 +22,14 @@ import net.minecraft.world.entity.animal.Parrot;
  * <p>
  * {@link #isFlying() isFlying} reports whether the parrot is off the ground.
  * <pre>
- * const ParrotEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.ParrotEntityHelper");
  * const parrots = World.getEntities(32, "parrot");
  * if (parrots !== null) {
  *   for (const entity of parrots) {
- *     const parrot = ParrotEntityHelper.class.cast(entity);
- *     Chat.log(`${parrot.getVariant()} parrot: flying ${parrot.isFlying()}, `
- *       + `sitting ${parrot.isSitting()}, `
- *       + `partying ${parrot.isPartying()}, `
- *       + `standing ${parrot.isStanding()}`);
+ *     if (!(entity instanceof EntityHelpers.Parrot)) continue;
+ *     Chat.log(`${entity.getVariant()} parrot: flying ${entity.isFlying()}, `
+ *       + `sitting ${entity.isSitting()}, `
+ *       + `partying ${entity.isPartying()}, `
+ *       + `standing ${entity.isStanding()}`);
  *   }
  * }
  * </pre>

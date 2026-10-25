@@ -11,12 +11,11 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinInteractionEntity2;
 /**
  * Exposes an interaction entity's dimensions, response flag, recorded living entities, and client-side hit override.
  * <pre>
- * const InteractionEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other.InteractionEntityHelper");
  * const markers = World.getEntities(32, "interaction");
  * if (markers !== null) {
  *   for (const entity of markers) {
- *     const marker = InteractionEntityHelper.class.cast(entity);
- *     const last = marker.getLastInteracted();
+ *     if (!(entity instanceof EntityHelpers.Interaction)) continue;
+ *     const last = entity.getLastInteracted();
  *     // a gate is an interaction entity with a name, and a name is not in the entity data
  *     Chat.log(`${entity.getName().getString()} at ${entity.getPos()}, last used by ${last === null ? "nobody" : last.getName().getString()}`);
  *   }

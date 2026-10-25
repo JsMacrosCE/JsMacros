@@ -15,15 +15,14 @@ import net.minecraft.world.entity.animal.Panda;
  * not match the hidden gene. {@link #isIdle() isIdle} is false while the panda is on its
  * back, scared by a thunderstorm, eating, rolling, or sitting.
  * <pre>
- * const PandaEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.PandaEntityHelper");
  * const pandas = World.getEntities(32, "panda");
  * if (pandas !== null) {
  *   for (const entity of pandas) {
- *     const panda = PandaEntityHelper.class.cast(entity);
- *     Chat.log(`main ${panda.getMainGeneName()}, hidden ${panda.getHiddenGeneName()}`);
- *     Chat.log(`  lazy ${panda.isLazy()}, worried ${panda.isWorried()}, `
- *       + `brown ${panda.isBrown()}, weak ${panda.isWeak()}, `
- *       + `aggressive ${panda.isAttacking()}`);
+ *     if (!(entity instanceof EntityHelpers.Panda)) continue;
+ *     Chat.log(`main ${entity.getMainGeneName()}, hidden ${entity.getHiddenGeneName()}`);
+ *     Chat.log(`  lazy ${entity.isLazy()}, worried ${entity.isWorried()}, `
+ *       + `brown ${entity.isBrown()}, weak ${entity.isWeak()}, `
+ *       + `aggressive ${entity.isAttacking()}`);
  *   }
  * }
  * </pre>

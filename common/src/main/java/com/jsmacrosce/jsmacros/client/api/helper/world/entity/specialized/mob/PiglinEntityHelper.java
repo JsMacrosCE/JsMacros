@@ -7,39 +7,38 @@ import com.jsmacrosce.doclet.DocletCategory;
 /**
  * Provides access to the piglin's current arm-pose states. The arm-pose predicates are mutually exclusive; {@link #isDancing()} reads a separate state, so check it separately from the arm-pose predicates.
  * <pre>
- * const PiglinEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.PiglinEntityHelper");
  * const piglins = World.getEntities(32, "piglin");
  * if (piglins !== null) {
  *   for (const entity of piglins) {
- *     const piglin = PiglinEntityHelper.class.cast(entity);
+ *     if (!(entity instanceof EntityHelpers.Piglin)) continue;
  *     // Dancing is a separate state; the arm-pose predicates below are mutually exclusive.
  *     let doing = "wander";
- *     if (piglin.isDancing()) {
+ *     if (entity.isDancing()) {
  *       doing = "dance";
  *     } else {
- *       if (piglin.isAdmiring()) {
+ *       if (entity.isAdmiring()) {
  *         doing = "admire";
  *       } else {
- *         if (piglin.isMeleeAttacking()) {
+ *         if (entity.isMeleeAttacking()) {
  *           doing = "swing";
  *         } else {
- *           if (piglin.isChargingCrossbow()) {
+ *           if (entity.isChargingCrossbow()) {
  *             doing = "draw";
  *           } else {
- *             if (piglin.hasCrossbowReady()) {
+ *             if (entity.hasCrossbowReady()) {
  *               doing = "loaded";
  *             }
  *           }
  *         }
  *       }
  *     }
- *     if (piglin.isWandering()) {
+ *     if (entity.isWandering()) {
  *       doing = "wander";
  *     }
  *     if (doing === "wander") {
- *       Chat.log(`a piglin at ${piglin.getPos()} is doing nothing in particular`);
+ *       Chat.log(`a piglin at ${entity.getPos()} is doing nothing in particular`);
  *     } else {
- *       Chat.log(`a piglin at ${piglin.getPos()} is ${doing}`);
+ *       Chat.log(`a piglin at ${entity.getPos()} is ${doing}`);
  *     }
  *   }
  * }

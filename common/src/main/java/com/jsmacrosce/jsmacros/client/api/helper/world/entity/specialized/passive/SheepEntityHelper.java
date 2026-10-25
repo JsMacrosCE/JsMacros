@@ -9,13 +9,12 @@ import com.jsmacrosce.jsmacros.client.api.helper.DyeColorHelper;
  * fleece is off; {@link #isShearable()} additionally requires that it is alive and not a baby.
  * {@link #isJeb()} checks for the exact custom name {@code jeb_}.
  * <pre>
- * const SheepEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.SheepEntityHelper");
  * const sheep = World.getEntities(32, "sheep");
  * if (sheep !== null) {
  *   for (const entity of sheep) {
- *     const ewe = SheepEntityHelper.class.cast(entity);
- *     Chat.log(`${ewe.getColor().getName()}, sheared ${ewe.isSheared()}, `
- *       + `shearable ${ewe.isShearable()}, rainbow ${ewe.isJeb()}`);
+ *     if (!(entity instanceof EntityHelpers.Sheep)) continue;
+ *     Chat.log(`${entity.getColor().getName()}, sheared ${entity.isSheared()}, `
+ *       + `shearable ${entity.isShearable()}, rainbow ${entity.isJeb()}`);
  *   }
  * }
  * </pre>

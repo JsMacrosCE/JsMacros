@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
  * on remote servers they use local vanilla recipes and cannot account for remote datapacks.
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("Brewing Stand")) {
+ * if (inv instanceof Inventories.BrewingStand) {
  *   // what would the three bottles become?
  *   for (const potion of inv.previewPotions()) {
  *     Chat.log(potion.getName());

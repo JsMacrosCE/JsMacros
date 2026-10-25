@@ -12,12 +12,11 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.EntityHelper;
  * A lingering area-effect cloud applies its potion effects over time. Its particle may be
  * customized independently of its potion contents.
  * <pre>
- * const AreaEffectCloudEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other.AreaEffectCloudEntityHelper");
  * const clouds = World.getEntities(32, "area_effect_cloud");
  * if (clouds !== null) {
  *   for (const entity of clouds) {
- *     const cloud = AreaEffectCloudEntityHelper.class.cast(entity);
- *     Chat.log(`${cloud.getRadius()} blocks of ${cloud.getParticleType()}, waiting: ${cloud.isWaiting()}`);
+ *     if (!(entity instanceof EntityHelpers.AreaEffectCloud)) continue;
+ *     Chat.log(`${entity.getRadius()} blocks of ${entity.getParticleType()}, waiting: ${entity.isWaiting()}`);
  *   }
  * }
  * </pre>

@@ -7,13 +7,12 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
 /**
  * Provides access to a bat's resting state.
  * <pre>
- * const BatEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.BatEntityHelper");
  * const bats = World.getEntities(24, "bat");
  * if (bats !== null) {
  *   for (const entity of bats) {
- *     const bat = BatEntityHelper.class.cast(entity);
- *     if (!bat.isResting()) {
- *       Chat.log(`a bat out at ${bat.getPos()}`);
+ *     if (!(entity instanceof EntityHelpers.Bat)) continue;
+ *     if (!entity.isResting()) {
+ *       Chat.log(`a bat out at ${entity.getPos()}`);
  *     }
  *   }
  * }

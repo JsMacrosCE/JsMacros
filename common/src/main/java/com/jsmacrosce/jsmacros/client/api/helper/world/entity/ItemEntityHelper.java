@@ -8,9 +8,13 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
  * A dropped stack of items in the world.
  * <pre>
  * // Log dropped stacks within ten blocks.
- * for (const entity of World.getEntities(10, "item")) {
- *   const stack = entity.asItem().getContainedItemStack();
- *   Chat.log(`${stack.getCount()} ${stack.getItemId()} at ${entity.getPos()}`);
+ * const items = World.getEntities(10, "item");
+ * if (items !== null) {
+ *   for (const entity of items) {
+ *     if (!(entity instanceof EntityHelpers.Item)) continue;
+ *     const stack = entity.getContainedItemStack();
+ *     Chat.log(`${stack.getCount()} ${stack.getItemId()} at ${entity.getPos()}`);
+ *   }
  * }
  * </pre>
  */

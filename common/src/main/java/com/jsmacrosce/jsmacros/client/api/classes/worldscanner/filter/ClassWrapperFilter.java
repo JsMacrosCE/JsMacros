@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.compare.BooleanCompareFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.compare.CharCompareFilter;
@@ -48,6 +49,7 @@ import java.util.stream.Collectors;
  * @since 1.6.5
  */
 @DocletCategory("Filters/Predicates")
+@DocletIgnore
 public abstract class ClassWrapperFilter<T> extends BasicFilter<T> {
 
     /**

@@ -11,15 +11,14 @@ import net.minecraft.world.entity.animal.Bee;
 /**
  * Provides access to a bee's nectar, anger, and sting states.
  * <pre>
- * const BeeEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.BeeEntityHelper");
  * const bees = World.getEntities(32, "bee");
  * if (bees !== null) {
  *   for (const entity of bees) {
- *     const bee = BeeEntityHelper.class.cast(entity);
- *     Chat.log(`${bee.getType()} at ${bee.getPos()}: `
- *       + `nectar ${bee.hasNectar()}, `
- *       + `angry ${bee.isAngry()}, `
- *       + `stung ${bee.hasStung()}`);
+ *     if (!(entity instanceof EntityHelpers.Bee)) continue;
+ *     Chat.log(`${entity.getType()} at ${entity.getPos()}: `
+ *       + `nectar ${entity.hasNectar()}, `
+ *       + `angry ${entity.isAngry()}, `
+ *       + `stung ${entity.hasStung()}`);
  *   }
  * }
  * </pre>

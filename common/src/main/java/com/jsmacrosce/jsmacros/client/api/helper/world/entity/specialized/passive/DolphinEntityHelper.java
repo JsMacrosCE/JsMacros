@@ -19,13 +19,12 @@ import net.minecraft.world.entity.animal.Dolphin;
  * to clients.
  * <p>
  * <pre>
- * const DolphinEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.DolphinEntityHelper");
  * const dolphins = World.getEntities(32, "dolphin");
  * if (dolphins !== null) {
  *   for (const entity of dolphins) {
- *     const dolphin = DolphinEntityHelper.class.cast(entity);
- *     Chat.log(`${dolphin.getType()}: carrying a fish ${dolphin.hasFish()}, `
- *       + `${dolphin.getMoistness()} ticks of water left`);
+ *     if (!(entity instanceof EntityHelpers.Dolphin)) continue;
+ *     Chat.log(`${entity.getType()}: carrying a fish ${entity.hasFish()}, `
+ *       + `${entity.getMoistness()} ticks of water left`);
  *   }
  * }
  * </pre>

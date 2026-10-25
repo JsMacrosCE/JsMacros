@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.logical;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.BasicFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
 
@@ -8,12 +9,24 @@ import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilte
  * A filter that accepts a value only when exactly one of its two filters accepts it.
  * Both filters are evaluated, in order; if either returns {@code null}, evaluation throws
  * {@link NullPointerException}.
+ * <p>
+ * The scanner builder creates this filter for an {@code xor} step, and
+ * {@link BasicFilter#xor(IFilter)} creates the same combination from filters you already hold.
+ * <pre>
+ * const scanner = World.getWorldScanner()
+ *   .withBlockFilter("getHardness").is(">=", 10)
+ *   .xorBlockFilter("getSlipperiness").is(">", 0.5)
+ *   .build();
+ * const found = scanner.scanAroundPlayer(2);
+ * Chat.log(`${found.size()} blocks that are hard or slippery, but not both`);
+ * </pre>
  *
  * @param <T> the type of value tested by the filters
  * @author Etheradon
  * @since 1.6.5
  */
 @DocletCategory("Filters/Predicates")
+@DocletIgnore
 public class XorFilter<T> extends BasicFilter<T> {
 
     private final IFilter<T> filterOne;

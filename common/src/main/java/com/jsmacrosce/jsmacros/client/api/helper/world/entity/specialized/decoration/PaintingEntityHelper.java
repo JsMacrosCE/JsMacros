@@ -14,12 +14,11 @@ import net.minecraft.world.entity.decoration.Painting;
 /**
  * Reads a painting's variant dimensions and registry identifier.
  * <pre>
- * const PaintingEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.decoration.PaintingEntityHelper");
  * const paintings = World.getEntities(32, "painting");
  * if (paintings !== null) {
  *   for (const entity of paintings) {
- *     const painting = PaintingEntityHelper.class.cast(entity);
- *     Chat.log(`${painting.getIdentifier()}: ${painting.getWidth()} by ${painting.getHeight()}`);
+ *     if (!(entity instanceof EntityHelpers.Painting)) continue;
+ *     Chat.log(`${entity.getIdentifier()}: ${entity.getWidth()} by ${entity.getHeight()}`);
  *   }
  * }
  * </pre>

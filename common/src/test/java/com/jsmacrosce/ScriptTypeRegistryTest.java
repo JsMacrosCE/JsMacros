@@ -11,12 +11,12 @@ public final class ScriptTypeRegistryTest {
     public static void main(String[] args) {
         ScriptTypeRegistry registry = new ScriptTypeRegistry();
         for (Class<?> catalog : new Class<?>[]{EntityHelpers.class, Inventories.class, Widgets.class,
-                RenderElements.class, NBTHelpers.class, HitResults.class, ScriptClasses.class, ScannerFilters.class}) {
+                RenderElements.class, NBTHelpers.class, HitResults.class, ScriptClasses.class}) {
             registry.register(catalog);
         }
         var namespaces = registry.snapshot();
         if (!namespaces.keySet().equals(Set.of("EntityHelpers", "Inventories", "Widgets", "RenderElements",
-                "NBTHelpers", "HitResults", "ScriptClasses", "ScannerFilters"))) {
+                "NBTHelpers", "HitResults", "ScriptClasses"))) {
             throw new AssertionError("Unexpected script namespaces: " + namespaces.keySet());
         }
         if (namespaces.get("EntityHelpers").get("Horse") != HorseEntityHelper.class) {

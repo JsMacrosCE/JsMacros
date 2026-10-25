@@ -11,14 +11,13 @@ import com.jsmacrosce.jsmacros.client.mixin.access.MixinShulkerEntity;
 /**
  * Provides access to a shulker's shell state, attachment face, and optional dye color.
  * <pre>
- * const ShulkerEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.ShulkerEntityHelper");
  * const shulkers = World.getEntities(32, "shulker");
  * if (shulkers !== null) {
  *   for (const entity of shulkers) {
- *     const shulker = ShulkerEntityHelper.class.cast(entity);
- *     if (shulker.isClosed()) {
+ *     if (!(entity instanceof EntityHelpers.Shulker)) continue;
+ *     if (entity.isClosed()) {
  *       // fully retracted, so it is not shooting out of its shell
- *       Chat.log(`a closed shulker at ${shulker.getPos()}, on the ${shulker.getAttachedSide().getName()}`);
+ *       Chat.log(`a closed shulker at ${entity.getPos()}, on the ${entity.getAttachedSide().getName()}`);
  *     }
  *   }
  * }

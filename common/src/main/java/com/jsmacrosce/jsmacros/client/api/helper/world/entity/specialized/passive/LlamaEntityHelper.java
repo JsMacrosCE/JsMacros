@@ -12,15 +12,14 @@ import net.minecraft.world.entity.animal.horse.Llama;
 /**
  * Provides llama coat, strength, and trader status alongside the chested-horse APIs inherited from {@link DonkeyEntityHelper}.
  * <pre>
- * const LlamaEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.LlamaEntityHelper");
  * const llamas = World.getEntities(32, "llama", "trader_llama");
  * if (llamas !== null) {
  *   for (const entity of llamas) {
- *     const llama = LlamaEntityHelper.class.cast(entity);
- *     Chat.log(`${llama.getType()}: ${llama.getVariant()}, `
- *       + `strength ${llama.getStrength()}, `
- *       + `${llama.hasChest()} chest, `
- *       + `${llama.getInventorySize()} slots`);
+ *     if (!(entity instanceof EntityHelpers.Llama)) continue;
+ *     Chat.log(`${entity.getType()}: ${entity.getVariant()}, `
+ *       + `strength ${entity.getStrength()}, `
+ *       + `${entity.hasChest()} chest, `
+ *       + `${entity.getInventorySize()} slots`);
  *   }
  * }
  * </pre>

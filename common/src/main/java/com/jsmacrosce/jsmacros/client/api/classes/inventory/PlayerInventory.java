@@ -6,6 +6,13 @@ import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 
 /** The player's inventory screen, including its crafting result, input grid, equipment, and hotbar.
+ * <pre>
+ * const inv = Player.openInventory();
+ * if (inv instanceof Inventories.Player) {
+ *   Chat.log(`${inv.getOutput().getItemId()} in the crafting result, `
+ *     + `${inv.getOffhand().getItemId()} in the offhand`);
+ * }
+ * </pre>
  *
  * @author Etheradon
  * @since 1.8.4

@@ -12,12 +12,11 @@ import net.minecraft.world.entity.projectile.WitherSkull;
 /**
  * A wither skull projectile, with access to its dangerous flag.
  * <pre>
- * const WitherSkullEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.projectile.WitherSkullEntityHelper");
  * const skulls = World.getEntities(32, "wither_skull");
  * if (skulls !== null) {
  *   for (const entity of skulls) {
- *     const skull = WitherSkullEntityHelper.class.cast(entity);
- *     if (skull.isCharged()) {
+ *     if (!(entity instanceof EntityHelpers.WitherSkull)) continue;
+ *     if (entity.isCharged()) {
  *       Chat.log("dangerous wither skull");
  *     }
  *   }

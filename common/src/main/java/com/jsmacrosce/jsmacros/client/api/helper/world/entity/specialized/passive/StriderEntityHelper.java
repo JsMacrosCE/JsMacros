@@ -6,12 +6,11 @@ import com.jsmacrosce.doclet.DocletCategory;
 /**
  * Provides access to a strider's saddle and suffocating state.
  * <pre>
- * const StriderEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.StriderEntityHelper");
  * const striders = World.getEntities(32, "strider");
  * if (striders !== null) {
  *   for (const entity of striders) {
- *     const strider = StriderEntityHelper.class.cast(entity);
- *     Chat.log(`saddled ${strider.isSaddled()}, shivering ${strider.isShivering()}`);
+ *     if (!(entity instanceof EntityHelpers.Strider)) continue;
+ *     Chat.log(`saddled ${entity.isSaddled()}, shivering ${entity.isShivering()}`);
  *   }
  * }
  * </pre>

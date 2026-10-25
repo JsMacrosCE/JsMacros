@@ -22,7 +22,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
  * taken; it does not take the result or change the inventory.
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("Grindstone")) {
+ * if (inv instanceof Inventories.GrindStone) {
  *   if (!inv.getOutput().isEmpty()) {
  *     const floor = inv.simulateXp();
  *     Chat.log(`grinding to ${inv.getOutput().getName()} for ${floor} to ${2 * floor - 1} xp`);
@@ -74,7 +74,7 @@ public class GrindStoneInventory extends Inventory<GrindstoneScreen> {
      * <p>
      * <pre>
      * const inv = Player.openInventory();
-     * if (inv.is("Grindstone")) {
+     * if (inv instanceof Inventories.GrindStone) {
      *   const out = inv.getOutput();
      *   if (!out.isEmpty()) {
      *     Chat.log(`grinding to ${out.getName()}`);
@@ -101,7 +101,7 @@ public class GrindStoneInventory extends Inventory<GrindstoneScreen> {
      * <p>
      * <pre>
      * const inv = Player.openInventory();
-     * if (inv.is("Grindstone")) {
+     * if (inv instanceof Inventories.GrindStone) {
      *   const floor = inv.simulateXp();
      *   if (floor > 0) {
      *     Chat.log(`between ${floor} and ${2 * floor - 1} xp when the result is taken`);

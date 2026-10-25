@@ -12,13 +12,12 @@ import net.minecraft.world.entity.animal.IronGolem;
 /**
  * Provides access to iron-golem state, including whether it was player-created.
  * <pre>
- * const IronGolemEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.IronGolemEntityHelper");
  * const golems = World.getEntities(48, "iron_golem");
  * if (golems !== null) {
  *   for (const entity of golems) {
- *     const golem = IronGolemEntityHelper.class.cast(entity);
- *     if (golem.isPlayerCreated()) {
- *       Chat.log(`a player-built golem at ${golem.getPos()}`);
+ *     if (!(entity instanceof EntityHelpers.IronGolem)) continue;
+ *     if (entity.isPlayerCreated()) {
+ *       Chat.log(`a player-built golem at ${entity.getPos()}`);
  *     }
  *   }
  * }

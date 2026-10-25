@@ -9,13 +9,12 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
  * Provides access to a witch's drinking state and main-hand item. While drinking,
  * the witch holds a potion; outside that state, its main hand may be empty.
  * <pre>
- * const WitchEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.WitchEntityHelper");
  * const witches = World.getEntities(32, "witch");
  * if (witches !== null) {
  *   for (const entity of witches) {
- *     const witch = WitchEntityHelper.class.cast(entity);
- *     if (witch.isDrinkingPotion()) {
- *       Chat.log(`a witch at ${witch.getPos()} is drinking ${witch.getPotion().getName().getString()}`);
+ *     if (!(entity instanceof EntityHelpers.Witch)) continue;
+ *     if (entity.isDrinkingPotion()) {
+ *       Chat.log(`a witch at ${entity.getPos()} is drinking ${entity.getPotion().getName().getString()}`);
  *     }
  *   }
  * }

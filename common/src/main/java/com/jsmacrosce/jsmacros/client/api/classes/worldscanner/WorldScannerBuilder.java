@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.classes.worldscanner;
 
 import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IAdvancedFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.BasicFilter;
@@ -14,8 +15,9 @@ import com.jsmacrosce.jsmacros.client.api.library.impl.FWorld;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 
 /**
- * Builds scanners with separate block and block-state filters. Named-method and string filters run in the scanner's native filtering path;
- * callback filters force sequential scanning. A filter step starts with a {@code with}, {@code and}, {@code or}, or {@code xor} method and
+ * Builds scanners with separate block and block-state filters. Named-method and string
+ * filters run in the scanner's native filtering path. A filter step starts with a
+ * {@code with}, {@code and}, {@code or}, or {@code xor} method and
  * is completed by a comparison call; {@code not} immediately negates the complete existing filter. A second {@code with} filter replaces
  * the existing filter in that category, while the other operators combine with it. A pending step must be completed before another starts.
  * String filters inspect the helper's complete {@code toString()} text, and each supplied pattern is an alternative. {@link #matches(String[])}
@@ -172,6 +174,7 @@ public final class WorldScannerBuilder {
      * @return this builder for chaining
      * @throws IllegalStateException if a filter step is pending
      */
+    @DocletIgnore
     public WorldScannerBuilder withStateFilter(IFilter<BlockStateHelper> filter) {
         if (!canCreateNewFilter()) throw new IllegalStateException("Complete the pending filter before replacing it");
         stateFilter = new BasicFilter<>() {
@@ -305,6 +308,7 @@ public final class WorldScannerBuilder {
      * @return this builder for chaining
      * @throws IllegalStateException if a filter step is pending
      */
+    @DocletIgnore
     public WorldScannerBuilder withBlockFilter(IFilter<BlockHelper> filter) {
         if (!canCreateNewFilter()) throw new IllegalStateException("Complete the pending filter before replacing it");
         blockFilter = new BasicFilter<>() {

@@ -21,7 +21,9 @@ import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.decoration.ItemFrame;
+import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.item.PrimedTnt;
 import net.minecraft.world.entity.monster.*;
 import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
@@ -63,7 +65,10 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.displa
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.display.ItemDisplayEntityHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.display.TextDisplayEntityHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.*;
+import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other.AreaEffectCloudEntityHelper;
+import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other.FallingBlockEntityHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other.InteractionEntityHelper;
+import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.other.TntEntityHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.*;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.projectile.ArrowEntityHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.projectile.FishingBobberEntityHelper;
@@ -898,6 +903,15 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
             return new TntMinecartEntityHelper(((MinecartTNT) e));
         }
 
+        // Other entities
+        if (e instanceof AreaEffectCloud) {
+            return new AreaEffectCloudEntityHelper(((AreaEffectCloud) e));
+        } else if (e instanceof FallingBlockEntity) {
+            return new FallingBlockEntityHelper(((FallingBlockEntity) e));
+        } else if (e instanceof PrimedTnt) {
+            return new TntEntityHelper(((PrimedTnt) e));
+        }
+
         if (e instanceof LivingEntity) {
             return new LivingEntityHelper<>((LivingEntity) e);
         }
@@ -922,7 +936,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
 
     /**
      * Casts this helper to a local-player helper. This is a Java cast, not a type check;
-     * it throws {@code ClassCastException} unless this helper wraps the local player.
+     * it throws {@code ClassCastException} unless this helper wraps the local player. Use
+     * {@code instanceof EntityHelpers.ClientPlayer} to test for one.
      *
      * @return this helper as a local-player helper
      * @since 1.6.3
@@ -933,7 +948,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
 
     /**
      * Casts this helper to a player helper. This is a Java cast, not a type check;
-     * it throws {@code ClassCastException} unless this helper wraps a player.
+     * it throws {@code ClassCastException} unless this helper wraps a player. Use
+     * {@code instanceof EntityHelpers.Player} to test for one.
      *
      * @return this helper as a player helper
      * @since 1.6.3
@@ -944,7 +960,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
 
     /**
      * Casts this helper to a villager helper. This cast is valid only for villagers;
-     * other merchant entities, such as wandering traders, are not villagers.
+     * other merchant entities, such as wandering traders, are not villagers. Use
+     * {@code instanceof EntityHelpers.Villager} to test for one.
      *
      * @return this helper as a villager helper
      * @since 1.6.3
@@ -955,7 +972,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
 
     /**
      * Casts this helper to a merchant helper. Villagers and other merchant entities,
-     * including wandering traders, can be cast; the helper exposes merchant state.
+     * including wandering traders, can be cast; the helper exposes merchant state. Use
+     * {@code instanceof EntityHelpers.Merchant} to test for one.
      *
      * @return this helper as a merchant helper
      * @since 1.6.3
@@ -965,7 +983,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Casts this helper to a living-entity helper, exposing living-entity state.
+     * Casts this helper to a living-entity helper, exposing living-entity state. Use
+     * {@code instanceof EntityHelpers.Living} to test for one.
      *
      * @return this helper as a living-entity helper
      * @since 1.6.3
@@ -976,7 +995,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
 
     /**
      * Casts this helper to an animal-entity helper. The entity must be an animal;
-     * being a living entity alone is not sufficient.
+     * being a living entity alone is not sufficient. Use
+     * {@code instanceof EntityHelpers.Animal} to test for one.
      *
      * @return this helper as an animal-entity helper
      * @since 1.8.4
@@ -986,7 +1006,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Casts this helper to an item-entity helper for a dropped item entity.
+     * Casts this helper to an item-entity helper for a dropped item entity. Use
+     * {@code instanceof EntityHelpers.Item} to test for one.
      *
      * @return this helper as an item-entity helper
      * @since 1.6.3

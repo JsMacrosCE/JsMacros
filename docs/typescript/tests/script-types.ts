@@ -28,6 +28,4 @@ declare const nbt: NBTElementHelper;
 if (nbt instanceof NBTHelpers.Compound) nbt.getKeys();
 declare const hit: HitResultHelper | null;
 if (hit instanceof HitResults.Entity) hit.getEntity();
-const filter = new ScannerFilters.Not(new ScannerFilters.StringCompare("EQUALS", "air"));
-filter.apply("stone");
 ScriptClasses.CustomImage.createWidget(16, 16, "badge");

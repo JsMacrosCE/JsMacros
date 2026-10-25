@@ -7,13 +7,12 @@ import com.jsmacrosce.doclet.DocletCategory;
   * Wraps a Minecraft mob and exposes its mob-specific state.
  * <p>
  * <pre>
- * const MobEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper");
  * const mobs = World.getEntities("zombie", "skeleton", "creeper");
  * if (mobs !== null) {
  *   for (const entity of mobs) {
- *     const mob = MobEntityHelper.class.cast(entity);
- *     if (mob.isAiDisabled()) {
- *       Chat.log(`a ${mob.getType()} near ${mob.getPos()} has no AI and is not going anywhere`);
+ *     if (!(entity instanceof EntityHelpers.Mob)) continue;
+ *     if (entity.isAiDisabled()) {
+ *       Chat.log(`a ${entity.getType()} near ${entity.getPos()} has no AI and is not going anywhere`);
  *     }
  *   }
  * }

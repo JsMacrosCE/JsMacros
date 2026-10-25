@@ -36,16 +36,15 @@ import java.util.function.Function;
  * Values reflect the client's current entity state; this helper does not modify it.
  * <p>
  * {@code asLiving()} on an entity helper is a cast, not a type check; it throws if the
- * helper does not wrap a living entity. Use a type-filtered entity query when narrowing
- * from an unfiltered entity list.
-     * <pre>
+ * helper does not wrap a living entity. Use {@code instanceof EntityHelpers.Living}, or a
+ * type-filtered entity query, when narrowing from an unfiltered entity list.
+ * <pre>
  * // the living things within twenty blocks, and their health
  * const mobs = World.getEntities(20, "zombie", "skeleton", "creeper", "cow");
  * if (mobs !== null) {
  *   for (const entity of mobs) {
- *     // every one of these really is alive, so the cast is safe
- *     const alive = entity.asLiving();
- *     Chat.log(`${alive.getType()}: ${alive.getHealth()} of ${alive.getMaxHealth()}`);
+ *     if (!(entity instanceof EntityHelpers.Living)) continue;
+ *     Chat.log(`${entity.getType()}: ${entity.getHealth()} of ${entity.getMaxHealth()}`);
  *   }
  * }
  * </pre>

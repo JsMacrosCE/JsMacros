@@ -10,7 +10,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
  * {@link #getOutput()} returns the addition input; read the result with {@code getSlot(3)}.
  * <pre>
  * const inv = Player.openInventory();
- * if (inv.is("Smithing Table")) {
+ * if (inv instanceof Inventories.Smithing) {
  *   Chat.log(`template ${inv.getLeftInput().getItemId()}`);
  *   Chat.log(`base ${inv.getRightInput().getItemId()}`);
  *   Chat.log(`addition ${inv.getOutput().getItemId()}`);

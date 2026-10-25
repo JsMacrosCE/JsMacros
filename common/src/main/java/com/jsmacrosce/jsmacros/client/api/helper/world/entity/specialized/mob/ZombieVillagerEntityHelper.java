@@ -12,13 +12,12 @@ import net.minecraft.world.entity.monster.ZombieVillager;
 /**
  * Provides access to a zombie villager's conversion state and villager data.
  * <pre>
- * const ZombieVillagerEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.ZombieVillagerEntityHelper");
  * const zombievillagers = World.getEntities(32, "zombie_villager");
  * if (zombievillagers !== null) {
  *   for (const entity of zombievillagers) {
- *     const villager = ZombieVillagerEntityHelper.class.cast(entity);
- *     if (villager.isConvertingToVillager()) {
- *       Chat.log(`turning back at ${villager.getPos()}, was a ${villager.getProfession()} of level ${villager.getLevel()}`);
+ *     if (!(entity instanceof EntityHelpers.ZombieVillager)) continue;
+ *     if (entity.isConvertingToVillager()) {
+ *       Chat.log(`turning back at ${entity.getPos()}, was a ${entity.getProfession()} of level ${entity.getLevel()}`);
  *     }
  *   }
  * }

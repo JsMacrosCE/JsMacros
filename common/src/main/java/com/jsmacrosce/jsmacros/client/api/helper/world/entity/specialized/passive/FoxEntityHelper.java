@@ -25,6 +25,16 @@ import net.minecraft.world.entity.animal.Fox;
  * A fox has up to two trusted-entity slots; {@link #getOwner()} and {@link #getSecondOwner()}
  * return their UUIDs.
  * <p>
+ * <pre>
+ * const foxes = World.getEntities(32, "fox");
+ * if (foxes !== null) {
+ *   for (const entity of foxes) {
+ *     if (!(entity instanceof EntityHelpers.Fox)) continue;
+ *     Chat.log(`${entity.isSnowFox() ? "snow" : "red"} fox, `
+ *       + `first trusted ${entity.getOwner()}`);
+ *   }
+ * }
+ * </pre>
  *
  * @author Etheradon
  * @since 1.8.4

@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.compare;
 
 import com.google.common.math.DoubleMath;
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.worldscanner.filter.api.IFilter;
 
 import java.util.Locale;
@@ -14,11 +15,14 @@ import java.util.Locale;
  * tolerance of {@code 0.000001}; ordering comparisons are exact. An unsupported {@link Number}
  * subclass is accepted at construction but causes an {@link IllegalArgumentException} when
  * tested. An unsupported operator likewise causes that exception when a candidate is tested.
+ * The scanner builder creates this comparison for a numeric method result; constructing it
+ * directly tests ordinary numbers instead.
  *
  * @author Etheradon
  * @since 1.6.5
  */
 @DocletCategory("Filters/Predicates")
+@DocletIgnore
 public class NumberCompareFilter implements IFilter<Number> {
 
     private final static double EPSILON = 0.000001d;

@@ -12,14 +12,13 @@ import net.minecraft.world.entity.monster.Drowned;
 /**
  * Provides access to drowned-specific checks for held tridents and nautilus shells.
  * <pre>
- * const DrownedEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.mob.DrownedEntityHelper");
  * const drowned = World.getEntities(32, "drowned");
  * if (drowned !== null) {
  *   for (const entity of drowned) {
- *     const zombie = DrownedEntityHelper.class.cast(entity);
- *     if (zombie.hasTrident()) {
+ *     if (!(entity instanceof EntityHelpers.Drowned)) continue;
+ *     if (entity.hasTrident()) {
  *       // either hand counts, so the off hand is worth reading too
- *       Chat.log(`a trident at ${zombie.getPos()}, main hand ${zombie.getMainHand().getName().getString()}`);
+ *       Chat.log(`a trident at ${entity.getPos()}, main hand ${entity.getMainHand().getName().getString()}`);
  *     }
  *   }
  * }

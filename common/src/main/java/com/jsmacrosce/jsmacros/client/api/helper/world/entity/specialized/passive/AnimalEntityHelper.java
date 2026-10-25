@@ -11,14 +11,13 @@ import com.jsmacrosce.jsmacros.client.api.helper.world.entity.MobEntityHelper;
  * overload checks an item's default instance; {@link #isFood(ItemStackHelper)} checks the
  * supplied stack.
  * <pre>
- * const AnimalEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.AnimalEntityHelper");
  * const ItemStackHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper");
  * const carrots = new ItemStackHelper("carrot", 1);
  * const rabbits = World.getEntities(32, "rabbit");
  * if (rabbits !== null) {
  *   for (const entity of rabbits) {
- *     const rabbit = AnimalEntityHelper.class.cast(entity);
- *     Chat.log(`${rabbit.getType()} takes carrots: ${rabbit.isFood(carrots)}`);
+ *     if (!(entity instanceof EntityHelpers.Animal)) continue;
+ *     Chat.log(`${entity.getType()} takes carrots: ${entity.isFood(carrots)}`);
  *   }
  * }
  * </pre>

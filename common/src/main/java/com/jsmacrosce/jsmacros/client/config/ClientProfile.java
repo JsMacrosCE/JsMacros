@@ -186,7 +186,6 @@ public class ClientProfile extends BaseProfile {
         runner.scriptTypeRegistry.register(NBTHelpers.class);
         runner.scriptTypeRegistry.register(HitResults.class);
         runner.scriptTypeRegistry.register(ScriptClasses.class);
-        runner.scriptTypeRegistry.register(ScannerFilters.class);
 
         runner.eventRegistry.addEvent(CommandContextHelper.class);
 
