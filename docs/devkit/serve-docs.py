@@ -10,7 +10,7 @@ from pathlib import Path
 class DocsHandler(SimpleHTTPRequestHandler):
     def translate_path(self, path):
         resolved = super().translate_path(path)
-        if not Path(resolved).exists() and Path(resolved + ".html").is_file():
+        if not Path(resolved).is_file() and Path(resolved + ".html").is_file():
             return resolved + ".html"
         return resolved
 

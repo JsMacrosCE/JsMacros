@@ -158,13 +158,20 @@ jobs:
         run: python3 buildSrc/src/test/python/test_devkit_server.py
 
       # Exercise real doc generation, the site build and the actual devkit ZIP.
-      # Releases package every target; this job needs only one snapshot.
-      - name: Build the devkit for one target
+      # Two snapshots also exercise browser navigation and version switching.
+      - name: Build the devkit for two targets
         run: |
           ./gradlew --console=plain --stacktrace \
-            -PdocsMinecraftVersions=26.3 \
+            -PdocsMinecraftVersions=1.21.5,26.3 \
             -PdistDirectory=build/ci-devkit \
             :packageDevkit
 
       - name: Test the site
         run: npm --prefix build/docs/vitepress run test
+
+      - name: Install test browser
+        working-directory: build/docs/vitepress
+        run: npx playwright-core install --with-deps chromium
+
+      - name: Test browser navigation
+        run: npm --prefix build/docs/vitepress run test:browser

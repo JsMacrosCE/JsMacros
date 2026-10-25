@@ -31,6 +31,8 @@ class DevkitServerTest(unittest.TestCase):
         (cls.site / "index.html").write_text("home")
         (cls.site / "2.0.0").mkdir()
         (cls.site / "2.0.0/reference.html").write_text("reference")
+        (cls.site / "2.0.0/reference").mkdir()
+        (cls.site / "2.0.0/reference/Child.html").write_text("child reference")
         (cls.site / "com.example.Foo.html").write_text("dotted class name")
         (cls.site / "app.js").write_text("site asset")
         (Path(cls.temporary.name) / "outside.html").write_text("must not be served")
@@ -62,6 +64,10 @@ class DevkitServerTest(unittest.TestCase):
 
     def test_clean_url_with_query(self):
         self.assertEqual(self.request("/2.0.0/reference?q=hello"), (200, "reference"))
+
+    def test_page_takes_precedence_over_child_directory(self):
+        self.assertEqual(self.request("/2.0.0/reference"), (200, "reference"))
+        self.assertEqual(self.request("/2.0.0/reference/Child"), (200, "child reference"))
 
     def test_dotted_class_name(self):
         self.assertEqual(self.request("/com.example.Foo"), (200, "dotted class name"))

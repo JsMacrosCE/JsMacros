@@ -50,6 +50,14 @@ away. A search answers for the snapshot the reader is on: the index holds every
 snapshot, but results from other Minecraft versions and other mod versions are
 dropped.
 
+The sidebar is browser-only. API prose, signatures, examples and index-page
+links are still server-rendered; visitors without JavaScript and HTTP-only agents
+do not see sidebar links. The browser fetches one hashed JSON navigation asset
+for the selected snapshot, indexes its routes, and reuses successful loads across
+page changes and version switches. Loading reserves the normal sidebar column;
+a failed request offers Retry and a link to the server-rendered API index.
+The default theme still supplies the sidebar appearance and mobile controls.
+
 Stonecutter decides which declarations exist and which names/signatures apply.
 The doclet does not interpret Stonecutter comments a second time. A method that
 exists as a compatibility stub is still documented on that target: generation
@@ -112,9 +120,10 @@ The website build allows Node a 12 GiB heap, bounds VitePress build concurrency
 to four pages instead of its default 64, and disables the Markdown render cache.
 This is a heap ceiling, not a reservation; use a suitably sized machine when
 building every target together. Minification and local search remain enabled.
-A measured five-target build used about 10.8 GiB peak resident memory and took
-about seven minutes. On smaller machines, generate and build a selected subset of
-targets instead.
+Before the browser-only sidebar, a measured five-target build used about 10.8 GiB
+peak resident memory and took about seven minutes; that is not a current
+performance estimate. On smaller machines, generate and build a selected subset
+of targets instead.
 
 `copyVitepressDoc` synchronizes only the generated site directory; source files in
 `docs/vitepress` are inputs and are never rewritten. Installed site dependencies
@@ -151,6 +160,9 @@ directory contains one **rendered**, multi-target website, not a Node project or
 one copy per Minecraft version. After extraction, `python3 serve-docs.py` serves
 it on <http://127.0.0.1:8000/> with clean-URL support and local search. Users do
 not need to install Node or rebuild the site.
+Sidebar JSON assets are included in `vitepress/assets/`; they are fetched from
+this local server, so browser navigation works offline too. Opening the HTML
+directly with `file://` is not supported.
 
 `packageDevkit` builds only the devkit and its documentation dependencies; it
 does not compile mod JARs or package Python. It follows the documentation target
@@ -182,21 +194,17 @@ must not be added to the shared artifact list merely by renaming a JAR.
 
 ## Site size
 
-Most of a generated page is navigation, not content. Two settings keep that from
-growing with the number of pages:
+Navigation is shared rather than repeated on every generated page:
 
 - `metaChunk` writes the site data and the page hash map into one shared chunk.
   Inlined, they were repeated on every page and grew with the page count, which
   made a five-target site larger than any static host accepts.
-- A member page shows the branch of the tree it belongs to instead of the whole
-  tree. The tree is the same on every page of a snapshot, so repeating it made
-  the site as many times larger as the class tree.
-
-A five-target site is about 240 MB, of which about 116 MB is HTML and about 80 MB
-is the per-page content. The rest of the HTML is the tree on the group pages,
-which is one page per group and target. A member page is about 25 KB of HTML,
-roughly 5 KB compressed, so the remaining duplication is a publishing cost
-rather than a reading one.
+- Global site data contains only a small snapshot manifest, not the expanded
+  per-page sidebar table. This also avoids the default theme traversing every
+  snapshot's navigation during each page's server render.
+- Snapshot trees are separate static JSON assets loaded on demand in the browser.
+  A member page constructs only its owner branch; overview and group pages show
+  the full relevant trees. No sidebar links are duplicated in server HTML.
 
 ## Minecraft class links
 
@@ -230,7 +238,7 @@ their provider and class URLs before publication.
 for release, beta and dev names, verifies the 16 explicit assets and rejects
 incomplete devkits and Java-25-only shared extensions. Run
 `python3 buildSrc/src/test/python/test_devkit_server.py` for the bundled preview
-server's clean-URL and path-isolation checks. CI also builds a real single-target
+server's clean-URL and path-isolation checks. CI also builds a real two-target
 devkit ZIP, including all four generated formats and the rendered site.
 
 Reference prose and field contracts follow [the documentation style guide](STYLE.md).
@@ -246,10 +254,27 @@ namespace exposes instance methods, so use its getters (e.g. `World.getServer15M
 ./gradlew :buildSrc:testExternalTypeLinks :buildSrc:testDocletLinks \
   :buildSrc:testDocBodyRenderer :buildSrc:testTsRenderer :buildSrc:testMarkdownWriter \
   :buildSrc:testExternalJavadocIndexes
-node --test docs/vitepress/.vitepress/api-snapshots.test.ts \
-  docs/vitepress/.vitepress/theme/inline-highlight.test.ts \
-  docs/vitepress/.vitepress/theme/search-scope.test.ts
+npm --prefix docs/vitepress test
 ```
+
+Browser regressions require a built site with at least two snapshots. Playwright
+Core is a test-only dependency; install its browser explicitly:
+
+```sh
+./gradlew :buildVitepressSite -PdocsMinecraftVersions=1.21.5,26.3
+cd build/docs/vitepress
+npx playwright-core install chromium
+npm run test:browser
+```
+
+The suite checks no-JS content, delayed loading/layout stability, direct and SPA
+navigation, history, version switching, caching, failed/malformed requests, retry,
+stale responses and mobile controls, including hydration/console errors. Optional
+environment variables: `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` selects an existing
+Chromium executable; `DOCS_SCREENSHOT_DIR` saves desktop/mobile screenshots;
+`DOCS_SITE_DIR` selects another rendered site; `DOCS_TEST_URL` tests an existing
+server (for example the extracted devkit); `DOCS_BASE_PATH` matches a site built
+for a subdirectory deployment (including leading/trailing slashes).
 
 The offline doclet fixture compiles synthetic external types and actually runs
 all four doclets for an older and an unobfuscated target. It verifies constructor
