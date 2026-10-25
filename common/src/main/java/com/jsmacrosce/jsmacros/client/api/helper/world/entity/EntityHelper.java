@@ -143,6 +143,9 @@ import net.minecraft.world.level.storage.ValueOutput;
  * Wraps a Minecraft entity for script access. Factories such as
  * {@code World.getEntities()} return the most specific supported helper subtype;
  * helpers wrap the underlying entity rather than copying it.
+ * Use the global {@code EntityHelpers} types for inheritance-aware checks such as
+ * {@code entity instanceof EntityHelpers.Horse}; {@link #is(String...)} instead
+ * checks entity registry IDs.
  * <pre>
  * const nearby = World.getEntities(10);
  * if (nearby !== null) {

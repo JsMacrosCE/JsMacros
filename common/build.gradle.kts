@@ -178,7 +178,7 @@ if (stonecutter.current.parsed >= "26.1") {
     }
 }
 
-listOf("InputCompat", "PacketBufferCompat").forEach { checkName ->
+listOf("InputCompat", "PacketBufferCompat", "ScriptTypeRegistry").forEach { checkName ->
     val adapterCheck = tasks.register<JavaExec>("test$checkName") {
         group = "verification"
         description = "Checks $checkName compatibility contracts without starting a client"

@@ -12,12 +12,11 @@ import net.minecraft.world.entity.animal.horse.Horse;
 /**
  * Provides access to horse coat and markings data in addition to {@link AbstractHorseEntityHelper}.
  * <pre>
- * const HorseEntityHelper = Java.type("com.jsmacrosce.jsmacros.client.api.helper.world.entity.specialized.passive.HorseEntityHelper");
- * const horses = World.getEntities(32, "horse");
- * if (horses !== null) {
- *   for (const entity of horses) {
- *     const horse = HorseEntityHelper.class.cast(entity);
- *     const packed = horse.getVariant();
+ * const entities = World.getEntities(32);
+ * if (entities !== null) {
+ *   for (const entity of entities) {
+ *     if (!(entity instanceof EntityHelpers.Horse)) continue;
+ *     const packed = entity.getVariant();
  *     const coat = packed % 256;
  *     const markings = Math.floor(packed / 256) % 256;
  *     Chat.log(`coat ${coat}, markings ${markings}`);

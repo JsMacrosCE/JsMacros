@@ -44,6 +44,10 @@ fun StonecutterBuildExtension.minecraftReplacements() {
         replace("com.mojang.blaze3d.buffers.GpuBufferSlice", "com.mojang.renderpearl.api.buffers.GpuBufferSlice")
         replace("net.minecraft.world.entity.monster.EnderMan", "net.minecraft.world.entity.monster.Enderman")
         replace("EndermanEntityHelper", "EndermanEntityHelper")
+        // Keep the script name unchanged when Stonecutter renames the Minecraft class in either direction.
+        replace(" Enderman = ", " Enderman = ")
+        replace("EntityHelpers.Enderman", "EntityHelpers.Enderman")
+        replace("\"Enderman\"", "\"Enderman\"")
         replace("EnderMan", "Enderman")
         replace("InputConstants.Type.KEYSYM", "InputConstants.Type.KEYBOARD")
     }
