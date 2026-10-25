@@ -106,12 +106,12 @@ jobs:
         with:
           cache-overwrite-existing: true
 
-      # These subprojects are not versioned by Stonecutter and compile against
-      # stonecutter.active. :extension has no main sources (just the test stubs
-      # the graal modules need) and its test task is disabled.
+      # These subprojects share a Java 21 binary and compile against the oldest
+      # supported core (1.21.5), independently of stonecutter.active.
+      # :extension has no main sources (just the test stubs the graal modules
+      # need) and its test task is disabled.
       - name: Compile extension modules
         run: |
-          echo "Extensions compile against Minecraft $(tr -d '[:space:]' < stonecutter.active)"
           ./gradlew --console=plain --stacktrace \
             :extension:testClasses \
             :extension:graal:classes \
@@ -154,15 +154,17 @@ jobs:
       - name: Doclet checks
         run: ./gradlew --console=plain --stacktrace -p buildSrc check
 
-      # One target is enough to prove that the site is assembled and builds.
-      # Every target is generated when the documentation is released. Going
-      # through the Gradle task also exercises the install/build path that
-      # distribution packaging uses.
-      - name: Build the documentation site for one target
+      - name: Devkit preview server checks
+        run: python3 buildSrc/src/test/python/test_devkit_server.py
+
+      # Exercise real doc generation, the site build and the actual devkit ZIP.
+      # Releases package every target; this job needs only one snapshot.
+      - name: Build the devkit for one target
         run: |
           ./gradlew --console=plain --stacktrace \
             -PdocsMinecraftVersions=26.3 \
-            :buildVitepressSite
+            -PdistDirectory=build/ci-devkit \
+            :packageDevkit
 
       - name: Test the site
         run: npm --prefix build/docs/vitepress run test

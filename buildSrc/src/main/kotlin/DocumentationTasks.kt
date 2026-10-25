@@ -17,7 +17,7 @@ import org.gradle.kotlin.dsl.*
 import java.io.File
 
 /** Called after evaluation: one source/classpath/toolchain tuple per Minecraft snapshot. */
-fun Project.registerDocumentationTasks(supportedVersions: List<String>, defaultTargets: List<String>) {
+fun Project.registerDocumentationTasks(supportedVersions: List<String>, defaultTargets: List<String>): List<String> {
     val singular = providers.gradleProperty("docsMinecraftVersion").orNull
     val plural = providers.gradleProperty("docsMinecraftVersions").orNull
     if (singular != null && plural != null) {
@@ -50,7 +50,7 @@ fun Project.registerDocumentationTasks(supportedVersions: List<String>, defaultT
         val tools = common.extensions.getByType<JavaToolchainService>()
         val docletLibraries = common.configurations.detachedConfiguration(
             common.dependencies.create("com.google.code.gson:gson:2.14.0"))
-        // Extensions compile against active common in ordinary builds. Only their external
+        // Extensions compile against a fixed core baseline. Only their external
         // libraries belong here: all extension/common project types are supplied as sources.
         val extensionLibraries = common.configurations.create("documentationLibraries") {
             isCanBeResolved = true
@@ -192,4 +192,5 @@ fun Project.registerDocumentationTasks(supportedVersions: List<String>, defaultT
         description = "Generates isolated documentation snapshots for all supported Minecraft versions"
         dependsOn(supportedVersions.map { "generateDocs${it.replace(".", "")}" })
     }
+    return targets
 }

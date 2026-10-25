@@ -1,32 +1,11 @@
 plugins {
-    `java-library`
+    id("jsmacros-extension")
 }
 
-val minecraftVersion = rootProject.file("stonecutter.active").readText().trim()
-val versionProject = project(":${minecraftVersion}")
-val targetJavaVersion = versionProject.property("java_version").toString().toInt()
-
-configurations.configureEach {
-    if (isCanBeResolved) {
-        attributes.attribute(org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, targetJavaVersion)
-    }
-}
+val minecraftVersion = EXTENSION_CORE_TARGET
 
 base {
     archivesName.set("${property("mod_id")}-extension")
-}
-
-java {
-    sourceCompatibility = JavaVersion.toVersion(targetJavaVersion)
-    targetCompatibility = JavaVersion.toVersion(targetJavaVersion)
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(targetJavaVersion))
-    }
-    withSourcesJar()
-}
-
-repositories {
-    mavenCentral()
 }
 
 dependencies {

@@ -1,9 +1,7 @@
 import me.modmuss50.mpp.PublishModTask
 import me.modmuss50.mpp.ReleaseType
-import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.bundling.AbstractArchiveTask
-import org.gradle.api.tasks.bundling.Zip
 import org.gradle.internal.extensions.stdlib.capitalized
 import org.gradle.api.GradleException
 import java.io.File
@@ -83,8 +81,14 @@ if (IS_CI) stonecutter active null
 else stonecutter active file("stonecutter.active") /* [SC] DO NOT EDIT */
 
 // Root-level distribution setup
-val distDir = layout.projectDirectory.dir("dist")
+val distDir = layout.projectDirectory.dir(providers.gradleProperty("distDirectory").orElse("dist").get())
 val distDirFile = distDir.asFile
+val canonicalDist = distDirFile.canonicalFile
+val canonicalBuild = layout.buildDirectory.get().asFile.canonicalFile
+require(canonicalDist == file("dist").canonicalFile ||
+    (canonicalDist != canonicalBuild && canonicalDist.toPath().startsWith(canonicalBuild.toPath()))) {
+    "distDirectory must be dist/ or a subdirectory of build/; distribution tasks delete their output directory"
+}
 val docsBuildDir = layout.buildDirectory.dir("docs").get().asFile
 
 repositories {
@@ -141,9 +145,8 @@ val mcVersion = mcVersionsToBuild.first() // for backward compatibility
 
 val loaders = listOf("fabric", "neoforge")
 
-data class ExtensionSpec(val path: String, val extId: String)
-val jsmExtensions: List<ExtensionSpec> = listOf(
-    ExtensionSpec(path = ":extension:graal:python", extId = "graalpy")
+val jsmExtensions = listOf(
+    SharedExtensionArtifact(path = ":extension:graal:python", id = "graalpy")
 )
 
 val artifactBaseName = providers.provider { "$modId-$mcVersion-$channel-$version" }
@@ -210,17 +213,19 @@ tasks.register("printMinecraftVersion") {
 
 // Configure distribution tasks after projects are evaluated
 gradle.projectsEvaluated {
-    registerDocumentationTasks(supportedVersions, mcVersionsToBuild)
+    val documentationVersions = registerDocumentationTasks(supportedVersions, mcVersionsToBuild)
+    val distribution = registerDistributionTasks(
+        modId, supportedVersions, mcVersionsToBuild, documentationVersions, loaders, jsmExtensions, distDir
+    )
 
     tasks.register("createDistDocs", Copy::class.java) {
         group = "distribution"
         description = "Packages generated documentation into the dist directory"
-        dependsOn("prepareDist", "copyPyDoc", "copyTSDoc", "copyWebDoc",
-            mcVersionsToBuild.map { "copyDocs${it.replace(".", "")}" })
-        mcVersionsToBuild.forEach { minecraft ->
-            from(File(docsBuildDir, "targets/$minecraft")) { into("docs/$minecraft") }
+        dependsOn("prepareDist", documentationVersions.map { "copyDocs${it.replace(".", "")}" })
+        documentationVersions.forEach { minecraft ->
+            from(File(docsBuildDir, "targets/$minecraft")) { into(minecraft) }
         }
-        into(distDirFile)
+        into(File(distDirFile, "docs"))
     }
 
     tasks.register("createDistSite", Copy::class.java) {
@@ -229,110 +234,6 @@ gradle.projectsEvaluated {
         dependsOn("prepareDist", "buildVitepressSite")
         from(File(docsBuildDir, "vitepress/.vitepress/dist"))
         into(File(distDirFile, "vitepress"))
-    }
-
-    // Package loader-specific jars
-    val baseJarTasks: Map<String, org.gradle.api.tasks.TaskProvider<Copy>> =
-        loaders.flatMap { loader ->
-            mcVersionsToBuild.map { version ->
-                val loaderProject = project(":$loader:$version")
-                val sourceTaskName = loaderProject.modJarTaskName(loader)
-                val taskName = "package${loader.replaceFirstChar { it.uppercase() }}ModJar${version.replace(".", "")}"
-
-                tasks.register(taskName, Copy::class.java) {
-                    group = "distribution"
-                    description = "Packages $loader mod jar for $version into dist"
-                    dependsOn("prepareDist", loaderProject.tasks.named(sourceTaskName))
-
-                    val jarFile = loaderProject.tasks.named(sourceTaskName).flatMap {
-                        (it as org.gradle.api.tasks.bundling.AbstractArchiveTask).archiveFile
-                    }
-
-                    from(jarFile)
-                    rename { "$modId-$version-$loader-${project.version}.jar" }
-                    into(distDirFile)
-                    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-                }
-            }
-        }.associateBy { it.name }
-
-    // Package extensions
-    val extensionJarTasks = jsmExtensions.map { ext: ExtensionSpec ->
-        tasks.register("package${ext.extId.replaceFirstChar { ch -> ch.uppercase() }}Extension", Copy::class.java) {
-            group = "distribution"
-            description = "Packages ${ext.extId} extension"
-
-            val extJar = project(ext.path).tasks.named("jar").flatMap {
-                (it as org.gradle.api.tasks.bundling.AbstractArchiveTask).archiveFile
-            }
-
-            dependsOn("prepareDist", extJar)
-            from(extJar)
-            rename { "$modId-ext-${ext.extId}-$mcVersion-${project.version}.jar" }
-            into(File(distDirFile, "extensions"))
-            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-        }
-    }
-
-    val devkitTasks = mcVersionsToBuild.map { version ->
-        tasks.register("packageDevkit${version.replace(".", "")}", Zip::class.java) {
-            group = "distribution"
-            description = "Packages devkit bundle for $version"
-            dependsOn("prepareDist", "copyDocs${version.replace(".", "")}")
-            destinationDirectory.set(distDir)
-            archiveFileName.set("$modId-devkit-$version-${project.version}.zip")
-            from(File(docsBuildDir, "targets/$version")) {
-                include("web/**")
-                include("typescript/**")
-                include("python/**")
-            }
-        }
-    }
-
-    val extensionPackTasks = mcVersionsToBuild.map { version ->
-        tasks.register("packageExtensionsPack${version.replace(".", "")}", Zip::class.java) {
-            group = "distribution"
-            description = "Bundles all extensions into the config/jsMacros/extensions layout for $version"
-            dependsOn(
-                "prepareDist",
-                extensionJarTasks,
-                "createDistExtensions",
-                "createDistDocs",
-                baseJarTasks.values
-            )
-            destinationDirectory.set(distDir)
-            archiveFileName.set("$modId-extensions-$version-${project.version}.zip")
-            into("config/jsMacros/extensions") {
-                from(File(distDirFile, "extensions")) {
-                    include("*-${project.version}.jar")
-                }
-            }
-        }
-    }
-
-    tasks.register("createDistMods") {
-        group = "distribution"
-        description = "Packages loader specific jars into the dist directory"
-        dependsOn(baseJarTasks.values)
-    }
-
-    tasks.register("createDistExtensions") {
-        group = "distribution"
-        description = "Packages standalone extensions into the dist directory"
-        dependsOn(extensionJarTasks)
-    }
-
-    tasks.register("createDist") {
-        group = "distribution"
-        description = "Assembles documentation, mods, extensions, devkits, and sources into dist/"
-        dependsOn(
-            "createDistDocs",
-            "createDistSite",
-            "createDistMods",
-            "createDistExtensions",
-            devkitTasks,
-            extensionPackTasks
-        )
     }
 
     val releaseType = when (channel) {
@@ -402,17 +303,7 @@ gradle.projectsEvaluated {
             changelog.set(githubChangelog())
             type.set(releaseType)
             allowEmptyFiles.set(true)
-            additionalFiles.from(
-                providers.provider {
-                    distDir.asFileTree.matching {
-                        include("jsmacrosce-*-fabric-${project.version}.jar")
-                        include("jsmacrosce-*-neoforge-${project.version}.jar")
-                        include("jsmacrosce-devkit-*-${project.version}.zip")
-                        include("jsmacrosce-extensions-*-${project.version}.zip")
-                        include("extensions/jsmacrosce-ext-*-${project.version}.jar")
-                    }
-                }
-            )
+            additionalFiles.from(distribution.releaseFiles)
         }
     }
 
@@ -421,6 +312,6 @@ gradle.projectsEvaluated {
     }
 
     tasks.withType(PublishModTask::class.java).configureEach {
-        dependsOn("createDist")
+        dependsOn("createDist", distribution.verify)
     }
 }

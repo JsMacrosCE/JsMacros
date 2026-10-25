@@ -21,6 +21,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.14.0")
     implementation("commons-io:commons-io:2.7")
     implementation("dev.kikugie:stonecutter:0.8.3")
+    testImplementation(gradleTestKit())
 }
 
 tasks.withType<JavaCompile>().configureEach {
@@ -66,7 +67,16 @@ val testDocletLinks by tasks.registering(JavaExec::class) {
 }
 
 tasks.named("check") {
-    dependsOn(testDocBodyRenderer, testTsRenderer, testExternalTypeLinks, testDocletLinks, "testMarkdownWriter")
+    dependsOn(testDocBodyRenderer, testTsRenderer, testExternalTypeLinks, testDocletLinks, "testMarkdownWriter", "testDistribution")
+}
+
+tasks.register<JavaExec>("testDistribution") {
+    group = "verification"
+    description = "Packages offline seven-target release fixtures and checks devkit/extension regressions"
+    dependsOn(tasks.named("testClasses"), tasks.named("pluginUnderTestMetadata"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("DistributionTasksTestKt")
+    args(layout.buildDirectory.dir("distribution-tests").get().asFile.absolutePath, projectDir.parentFile.absolutePath)
 }
 
 tasks.register<JavaExec>("testMarkdownWriter") {

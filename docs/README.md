@@ -122,24 +122,63 @@ and VitePress caches are preserved. A doclet regeneration clears only its own
 isolated generated destination so removed classes cannot survive as stale pages.
 Do not edit generated files as a way to fix documentation.
 
-Devkits consume the matching `build/docs/targets/<Minecraft>` tree, not one shared
-typing/HTML tree for every version. Legacy HTML can be served independently from
-each target's `web` directory, with its existing mod-version paths and assets.
+The combined devkit consumes the matching `build/docs/targets/<Minecraft>` trees,
+not one shared typing/HTML tree for every version. Legacy HTML can be served
+independently from each target's `web` directory, with its existing mod-version
+paths and assets.
 
 ## Distribution packaging
 
-`createDist` includes the rendered site at `dist/vitepress/`, so distribution
-artifacts ship browsable documentation instead of a site project that the
-consumer has to install and build. `createDistSite` copies the output of
-`buildVitepressSite`, which runs `npm ci` and `npm run build` in
-`build/docs/vitepress`. The release, beta and dev workflows install Node before
-Gradle for this reason.
+`createDist` produces one mod JAR per Minecraft/loader pair, one shared GraalPython
+JAR, and one `jsmacrosce-devkit-<release>.zip`. A seven-target release therefore
+publishes 16 assets. GitHub receives explicit task outputs, not a glob of old and
+new files in `dist`. Per-version build nodes delegate shared packaging to the
+controller; they do not register another publisher or extension/devkit copies.
 
-`-x createDistSite` skips the site while still producing the per-target
-`dist/docs/<Minecraft>` trees. The rendered site is the largest part of the
-artifact (see [Site size](#site-size)), so a local packaging run that does not
-need browsable docs should skip it; CI release builds render every selected
-target.
+The devkit ZIP contains:
+
+```text
+README.md
+serve-docs.py
+1.21.5/{typescript,python,web}/
+1.21.8/{typescript,python,web}/
+...
+vitepress/{index.html,assets,...}
+```
+
+The Minecraft folders contain independent API snapshots. The `vitepress/`
+directory contains one **rendered**, multi-target website, not a Node project or
+one copy per Minecraft version. After extraction, `python3 serve-docs.py` serves
+it on <http://127.0.0.1:8000/> with clean-URL support and local search. Users do
+not need to install Node or rebuild the site.
+
+`packageDevkit` builds only the devkit and its documentation dependencies; it
+does not compile mod JARs or package Python. It follows the documentation target
+selection above (latest locally, all in CI, or an explicit override). A complete
+distribution must include documentation for every packaged mod target.
+`verifyDistribution` checks the release asset count, required devkit snapshots,
+rendered site and shared extension bytecode; publishing depends on these checks.
+
+`createDistSite` also copies the rendered site to `dist/vitepress/`, and
+`createDistDocs` copies the per-target trees to `dist/docs/<Minecraft>/` for CI
+consumers. `buildVitepressSite` runs `npm ci` and `npm run build` in
+`build/docs/vitepress`. All release workflows install Node for this reason.
+Skipping `createDistSite` alone no longer skips the site build, because the
+devkit itself includes the site. For a documentation-only local check, select
+one target and run `packageDevkit`; the complete site can be large (see below).
+
+Distribution tasks recreate their output directory. Use
+`-PdistDirectory=build/packaging-check` to validate without replacing `dist/`.
+Only `dist/` or a subdirectory of `build/` is accepted, to protect source trees
+from the distribution cleanup.
+
+The shared language adapters target Java 21 and compile against the 1.21.5 core,
+independently of `stonecutter.active`. Graal infrastructure and JavaScript remain
+embedded in every mod JAR. Optional Python is published once as
+`jsmacrosce-ext-graalpy-<release>.jar`, installed in `config/jsMacros/Extensions/`
+(capital `E`). There are no duplicate extension ZIPs. Future extensions that use
+version-specific Minecraft or loader APIs need their own target builds; they
+must not be added to the shared artifact list merely by renaming a JAR.
 
 ## Site size
 
@@ -184,6 +223,13 @@ does not acquire a guessed Minecraft URL. New supported targets should verify
 their provider and class URLs before publication.
 
 ## Regression checks
+
+`./gradlew -p buildSrc testDistribution` packages offline seven-target fixtures
+for release, beta and dev names, verifies the 16 explicit assets and rejects
+incomplete devkits and Java-25-only shared extensions. Run
+`python3 buildSrc/src/test/python/test_devkit_server.py` for the bundled preview
+server's clean-URL and path-isolation checks. CI also builds a real single-target
+devkit ZIP, including all four generated formats and the rendered site.
 
 Reference prose and field contracts follow [the documentation style guide](STYLE.md).
 Use `@DocletReadOnly` for fields maintained by Java that scripts should not assign;

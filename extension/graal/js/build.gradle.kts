@@ -2,35 +2,13 @@ import org.gradle.api.artifacts.ResolvedArtifact
 import org.gradle.language.jvm.tasks.ProcessResources
 
 plugins {
-    `java-library`
+    id("jsmacros-extension")
 }
 
-// Get minecraft version from stonecutter.active file
-val minecraftVersion = rootProject.file("stonecutter.active").readText().trim()
-val versionProject = project(":${minecraftVersion}")
-val targetJavaVersion = versionProject.property("java_version").toString().toInt()
-
-configurations.configureEach {
-    if (isCanBeResolved) {
-        attributes.attribute(org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, targetJavaVersion)
-    }
-}
+val minecraftVersion = EXTENSION_CORE_TARGET
 
 base {
     archivesName.set("${property("mod_id")}-graal-js")
-}
-
-java {
-    sourceCompatibility = JavaVersion.toVersion(targetJavaVersion)
-    targetCompatibility = JavaVersion.toVersion(targetJavaVersion)
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(targetJavaVersion))
-    }
-    withSourcesJar()
-}
-
-repositories {
-    mavenCentral()
 }
 
 val extensionTestOutput = project(":extension")
