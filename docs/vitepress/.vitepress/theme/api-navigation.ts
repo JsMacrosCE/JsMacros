@@ -5,7 +5,7 @@ export type SnapshotSummary = { version: string; minecraftVersion: string; prefi
 export type ApiThemeConfig = DefaultTheme.Config & { apiSnapshots: SnapshotSummary[] }
 type Group = 'libraries' | 'classes' | 'events'
 type Item = DefaultTheme.SidebarItem
-type Member = { group: Group; path: Item[]; children?: SidebarEntry[] }
+type Mapped = { item: Item; active: boolean }
 const groups: Group[] = ['libraries', 'classes', 'events']
 
 export type SnapshotNavigation = {
@@ -23,7 +23,16 @@ export function snapshotForRoute(relativePath: string, snapshots: SnapshotSummar
   return snapshots.find(snapshot => route === snapshot.prefix || route.startsWith(`${snapshot.prefix}/`))
 }
 
-/** Index one immutable snapshot, not a global table containing every page's expanded branch. */
+/**
+ * Index one immutable snapshot, not a global table containing every page's
+ * expanded branch.
+ *
+ * Every group keeps its full tree. Only the group, category and owner chain that
+ * contain the current page is expanded; everything else starts collapsed. The
+ * flags are recomputed for each route because VitePress keeps a section's open
+ * state on the sidebar item: without an explicit reset, a group opened on one
+ * page would stay open after an in-page navigation to another group.
+ */
 export function createSnapshotNavigation(data: SidebarData, expected: SnapshotSummary): SnapshotNavigation {
   if (data.version !== expected.version || data.minecraftVersion !== expected.minecraftVersion) {
     throw new Error(`Navigation metadata does not match ${expected.prefix}`)
@@ -31,51 +40,26 @@ export function createSnapshotNavigation(data: SidebarData, expected: SnapshotSu
   for (const group of groups) {
     if (!Array.isArray(data[group])) throw new Error(`Invalid ${group} navigation in ${expected.prefix}`)
   }
-  const reference: Item = {
-    text: 'Reference',
-    items: [
-      { text: 'Overview', link: `${expected.prefix}/` },
-      ...groups.map(group => ({ text: title(group), link: `${expected.prefix}/${group}` }))
-    ]
+  if (data.types !== undefined && !Array.isArray(data.types)) {
+    throw new Error(`Invalid types navigation in ${expected.prefix}`)
   }
-  const members = new Map<string, Member>()
-  for (const group of groups) {
-    for (const section of data[group]) {
-      const sectionTitle = section.name === 'Uncategorized' ? `Other ${group}` : section.name
-      visit(section.items, [{ text: sectionTitle, collapsed: true }], group)
-    }
-  }
-  function visit(entries: SidebarEntry[], parents: Item[], group: Group) {
-    for (const entry of entries) {
-      const item: Item = isNode(entry)
-        ? { text: entry.name, link: entry.link, collapsed: true }
-        : { text: entry.text, link: entry.link }
-      const path = [...parents, item]
-      if (entry.link) members.set(normalizeApiRoute(entry.link), {
-        group, path, ...(isNode(entry) ? { children: entry.items } : {})
-      })
-      if (isNode(entry)) visit(entry.items, path, group)
-    }
-  }
-  const trees = new Map<Group, Item[]>()
-  function tree(group: Group): Item[] {
-    if (!trees.has(group)) trees.set(group, groupTree(data[group], group, expected.prefix))
-    return trees.get(group)!
-  }
+
   return {
     prefix: expected.prefix,
     sidebar(relativePath) {
       const route = normalizeApiRoute(relativePath)
-      if (route === expected.prefix) return groups.flatMap(tree)
+      if (route !== expected.prefix && !route.startsWith(`${expected.prefix}/`)) return []
+
+      const sidebar: Item[] = [{ text: 'Overview', link: `${expected.prefix}/` }]
       for (const group of groups) {
-        if (route === `${expected.prefix}/${group}`) return [reference, ...tree(group)]
+        sidebar.push(groupItem(title(group), `${expected.prefix}/${group}`,
+          categoryItems(data[group], group, route), route))
       }
-      const member = members.get(route)
-      if (!member) return []
-      const path = member.path.map(item => ({ ...item }))
-      if (member.children) path[path.length - 1].items = mapEntries(member.children)
-      for (let index = path.length - 2; index >= 0; index--) path[index].items = [path[index + 1]]
-      return [reference, { text: title(member.group), items: [path[0]] }]
+      if ((data.types ?? []).length) {
+        sidebar.push(groupItem('Type namespaces', `${expected.prefix}/types`,
+          mapEntries(data.types ?? [], route), route))
+      }
+      return sidebar
     }
   }
 }
@@ -88,29 +72,63 @@ function title(group: Group): string {
   return group[0].toUpperCase() + group.slice(1)
 }
 
-function mapEntries(entries: SidebarEntry[]): Item[] {
-  return entries.map(entry => isNode(entry)
-    ? { text: entry.name, link: entry.link, collapsed: true, items: mapEntries(entry.items) }
-    : { text: entry.text, link: entry.link })
+function groupItem(text: string, link: string, children: Mapped[], route: string): Item {
+  const active = isUnder(link, route) || children.some(child => child.active)
+  return {
+    text,
+    link,
+    collapsed: !active,
+    items: children.map(child => child.item)
+  }
 }
 
-function groupTree(entries: SidebarNode[], group: Group, prefix: string): Item[] {
-  if (!entries.length) return [{ text: title(group), items: [{ text: `Browse ${title(group)}`, link: prefix + '/' + group }] }]
-  if (entries.length === 1 && entries[0].name === 'Uncategorized') {
-    return [{ text: title(group), items: mapEntries(entries[0].items) }]
+/** Category nodes are collapsed unless a page in them is open. */
+function categoryItems(entries: SidebarNode[], group: Group, route: string): Mapped[] {
+  const visible = entries.filter(section => section.items.length)
+  if (!visible.length) return []
+  if (visible.length === 1 && visible[0].name === 'Uncategorized') {
+    return mapEntries(visible[0].items, route)
   }
-  return [{
-    text: title(group),
-    items: [...entries].sort((a, b) => {
-      if (a.name === 'Uncategorized') return 1
-      if (b.name === 'Uncategorized') return -1
-      return a.name.localeCompare(b.name)
-    }).map(section => ({
-      text: section.name === 'Uncategorized' ? `Other ${group}` : section.name,
-      collapsed: true,
-      items: mapEntries(section.items)
-    }))
-  }]
+  return [...visible].sort((a, b) => {
+    if (a.name === 'Uncategorized') return 1
+    if (b.name === 'Uncategorized') return -1
+    return a.name.localeCompare(b.name)
+  }).map(section => {
+    const children = mapEntries(section.items, route)
+    return {
+      item: {
+        text: section.name === 'Uncategorized' ? `Other ${group}` : section.name,
+        collapsed: !children.some(child => child.active),
+        items: children.map(child => child.item)
+      },
+      active: children.some(child => child.active)
+    }
+  })
+}
+
+function mapEntries(entries: SidebarEntry[], route: string): Mapped[] {
+  return entries.map(entry => {
+    if (!isNode(entry)) {
+      return { item: { text: entry.text, link: entry.link }, active: isUnder(entry.link, route) }
+    }
+    const children = mapEntries(entry.items, route)
+    const active = isUnder(entry.link, route) || children.some(child => child.active)
+    return {
+      item: {
+        text: entry.name,
+        link: entry.link,
+        collapsed: !active,
+        items: children.map(child => child.item)
+      },
+      active
+    }
+  })
+}
+
+/** Group links use `/` before a page; nested type links add `.` to their owner. */
+function isUnder(link: string | undefined, route: string): boolean {
+  if (!link) return false
+  return route === link || route.startsWith(`${link}/`) || route.startsWith(`${link}.`)
 }
 
 /** Failed loads are evicted so the sidebar's retry action can recover. */

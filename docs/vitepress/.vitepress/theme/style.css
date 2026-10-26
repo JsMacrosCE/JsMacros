@@ -74,15 +74,12 @@
    Class page header — qualified name as subdued subtitle
    -------------------------------------------------------------------------- */
 
-.vp-doc h1 + p:not(:has(a)):not(:has(code)):not(:has(strong)) {
-  font-family: var(--vp-font-family-mono);
-  font-size: 0.82rem;
-  color: var(--vp-c-text-3);
-}
-
 .vp-doc h1 + p:has(> span.qualified-name:only-child) {
   margin-top: -0.2rem;
   margin-bottom: -0.75rem;
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.82rem;
+  color: var(--vp-c-text-3);
 }
 
 /* --------------------------------------------------------------------------
