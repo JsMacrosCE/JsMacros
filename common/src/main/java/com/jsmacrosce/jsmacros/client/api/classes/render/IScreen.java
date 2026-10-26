@@ -20,13 +20,19 @@ import java.util.function.Consumer;
  * {@code Hud.openScreen}; call {@link #reloadScreen()} to clear and rebuild its elements
  * by rerunning its init callback.
  * <p>
+ * The game initializes a screen when it opens and when it is reloaded. Initialization clears
+ * elements added outside the init callback, so build the screen's contents in
+ * {@link #setOnInit(MethodWrapper)}.
+ * <p>
  * Each input callback setter replaces the previous callback of that kind. Mouse
  * positions use the same screen coordinates as drawing elements.
  * <pre>
  * const screen = Hud.createScreen("my screen", true);
- * screen.addText("something to read", 10, 40, Color.rgb(0xFF, 0xFF, 0xFF), true);
- * screen.addButton(10, 20, 100, 20, "a button", JavaWrapper.methodToJava(function (button) {
- *   Chat.log("clicked");
+ * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+ *   self.addText("something to read", 10, 40, Color.rgb(0xFF, 0xFF, 0xFF), true);
+ *   self.addButton(10, 20, 100, 20, "a button", JavaWrapper.methodToJava(function (button) {
+ *     Chat.log("clicked");
+ *   }));
  * }));
  * Hud.openScreen(screen);
  * </pre>
@@ -125,8 +131,10 @@ public interface IScreen extends IDraw2D<IScreen> {
      * Adds a checkbox whose callback runs when its checked state changes.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.addCheckbox(10, 20, 20, 20, "enabled", false, JavaWrapper.methodToJava(function (box) {
-     *   Chat.log(`now ${box.isChecked()}`);
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.addCheckbox(10, 20, 20, 20, "enabled", false, JavaWrapper.methodToJava(function (box) {
+     *     Chat.log(`now ${box.isChecked()}`);
+     *   }));
      * }));
      * Hud.openScreen(screen);
      * </pre>
@@ -182,8 +190,10 @@ public interface IScreen extends IDraw2D<IScreen> {
      * counts below 2 are raised to 2. Overloads without a step count use a continuous slider.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.addSlider(10, 20, 100, 20, "volume", 0.5, 10, JavaWrapper.methodToJava(function (slider) {
-     *   Chat.log(`now ${slider.getValue()}`);
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.addSlider(10, 20, 100, 20, "volume", 0.5, 10, JavaWrapper.methodToJava(function (slider) {
+     *     Chat.log(`now ${slider.getValue()}`);
+     *   }));
      * }));
      * Hud.openScreen(screen);
      * </pre>
@@ -254,8 +264,10 @@ public interface IScreen extends IDraw2D<IScreen> {
      * Adds a lock button at its fixed size. Its callback runs when clicked.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.addLockButton(10, 20, JavaWrapper.methodToJava(function (button) {
-     *   Chat.log(`locked: ${button.isLocked()}`);
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.addLockButton(10, 20, JavaWrapper.methodToJava(function (button) {
+     *     Chat.log(`locked: ${button.isLocked()}`);
+     *   }));
      * }));
      * Hud.openScreen(screen);
      * </pre>
@@ -286,10 +298,12 @@ public interface IScreen extends IDraw2D<IScreen> {
      * Adds a button that cycles through the supplied values when clicked.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.addCyclingButton(10, 20, 100, 20, ["low", "medium", "high"], "low",
-     *   JavaWrapper.methodToJava(function (button) {
-     *     Chat.log(`now ${button.getValue()}`);
-     *   }));
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.addCyclingButton(10, 20, 100, 20, ["low", "medium", "high"], "low",
+     *     JavaWrapper.methodToJava(function (button) {
+     *       Chat.log(`now ${button.getValue()}`);
+     *     }));
+     * }));
      * Hud.openScreen(screen);
      * </pre>
      *
@@ -392,8 +406,10 @@ public interface IScreen extends IDraw2D<IScreen> {
      * is reloaded.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.addTextInput(10, 20, 100, 20, 0, "type a name", JavaWrapper.methodToJava(function (text) {
-     *   Chat.log(`so far: ${text}`);
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.addTextInput(10, 20, 100, 20, 0, "type a name", JavaWrapper.methodToJava(function (text) {
+     *     Chat.log(`so far: ${text}`);
+     *   }));
      * }));
      * Hud.openScreen(screen);
      * </pre>
@@ -560,8 +576,10 @@ public interface IScreen extends IDraw2D<IScreen> {
      * Closes this screen, invoking its close handling and returning to its parent if set.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.addButton(10, 20, 100, 20, "close", JavaWrapper.methodToJava(function (button) {
-     *   screen.close();
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.addButton(10, 20, 100, 20, "close", JavaWrapper.methodToJava(function (button) {
+     *     self.close();
+     *   }));
      * }));
      * Hud.openScreen(screen);
      * </pre>
@@ -594,14 +612,16 @@ public interface IScreen extends IDraw2D<IScreen> {
      * to this screen; button height is fixed at 20.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.buttonBuilder()
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .message("press me")
-     *    .action(JavaWrapper.methodToJava(function (button) {
-     *      Chat.log("clicked");
-     *    }))
-     *    .build();
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.buttonBuilder()
+     *      .pos(10, 20)
+     *      .size(100, 20)
+     *      .message("press me")
+     *      .action(JavaWrapper.methodToJava(function (button) {
+     *        Chat.log("clicked");
+     *      }))
+     *      .build();
+     * }));
      * Hud.openScreen(screen);
      * </pre>
      *
@@ -615,11 +635,13 @@ public interface IScreen extends IDraw2D<IScreen> {
      * checkbox here; this overload starts unchecked.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.checkBoxBuilder()
-     *    .pos(10, 20)
-     *    .size(20, 20)
-     *    .message("enabled")
-     *    .build();
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.checkBoxBuilder()
+     *      .pos(10, 20)
+     *      .size(20, 20)
+     *      .message("enabled")
+     *      .build();
+     * }));
      * Hud.openScreen(screen);
      * </pre>
      *
@@ -632,11 +654,13 @@ public interface IScreen extends IDraw2D<IScreen> {
      * Returns a checkbox builder bound to this screen, initialized to {@code checked}.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.checkBoxBuilder(true)
-     *    .pos(10, 20)
-     *    .size(20, 20)
-     *    .message("on by default")
-     *    .build();
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.checkBoxBuilder(true)
+     *      .pos(10, 20)
+     *      .size(20, 20)
+     *      .message("on by default")
+     *      .build();
+     * }));
      * Hud.openScreen(screen);
      * </pre>
      *
@@ -651,14 +675,16 @@ public interface IScreen extends IDraw2D<IScreen> {
      * text displayed for each value; it allows values other than strings.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.cyclicButtonBuilder(JavaWrapper.methodToJava(function (value) {
-     *   return Chat.createTextHelperFromString(String(value));
-     * }))
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .values(["low", "medium", "high"])
-     *    .initially("low")
-     *    .build();
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.cyclicButtonBuilder(JavaWrapper.methodToJava(function (value) {
+     *     return Chat.createTextHelperFromString(String(value));
+     *   }))
+     *      .pos(10, 20)
+     *      .size(100, 20)
+     *      .values(["low", "medium", "high"])
+     *      .initially("low")
+     *      .build();
+     * }));
      * Hud.openScreen(screen);
      * </pre>
      *
