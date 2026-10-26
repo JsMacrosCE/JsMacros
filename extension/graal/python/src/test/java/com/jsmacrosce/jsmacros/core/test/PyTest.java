@@ -15,6 +15,23 @@ public class PyTest extends BaseTest {
         return "py";
     }
 
+    @Test
+    public void colorLibraryHandlesPackedArgbValues() throws InterruptedException {
+        EventCustom result = runTestScript("""
+                import json
+                packed = Color.fromPacked(0x80000000)
+                built = Color.argb(0x80, 0, 0, 0)
+                with_alpha = Color.withAlpha(0x123456, 0x40)
+                event.putString("test", json.dumps([
+                    Color.alpha(packed), Color.red(packed), Color.green(packed), Color.blue(packed),
+                    packed == built,
+                    Color.alpha(Color.rgb(1, 2, 3)),
+                    Color.alpha(with_alpha), Color.red(with_alpha)
+                ]))
+                """);
+        assertEquals("[128, 0, 0, 0, true, 255, 64, 18]", result.getString("test"));
+    }
+
     @Language("py")
     private final String TEST_SCRIPT = """
             import json

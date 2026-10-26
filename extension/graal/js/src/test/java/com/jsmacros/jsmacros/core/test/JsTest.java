@@ -24,6 +24,29 @@ public class JsTest extends BaseTest {
         assertEquals("exports", result.getString("test"));
     }
 
+    @Test
+    public void colorLibraryHandlesPackedArgbValues() throws InterruptedException {
+        EventCustom result = runTestScript("""
+                const packed = Color.fromPacked(0x80000000);
+                const built = Color.argb(0x80, 0, 0, 0);
+                const withAlpha = Color.withAlpha(0x123456, 0x40);
+                let rejected = false;
+                try {
+                    Color.fromPacked(0x100000000);
+                } catch (error) {
+                    rejected = true;
+                }
+                event.putString('test', [
+                    Color.alpha(packed), Color.red(packed), Color.green(packed), Color.blue(packed),
+                    packed === built,
+                    Color.alpha(Color.rgb(1, 2, 3)),
+                    Color.alpha(withAlpha), Color.red(withAlpha),
+                    typeof Color.fixAlpha, rejected
+                ].join(','));
+                """);
+        assertEquals("128,0,0,0,true,255,64,18,undefined,true", result.getString("test"));
+    }
+
     @Override
     public String getLang() {
         return "js";

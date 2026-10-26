@@ -210,13 +210,13 @@ run('A10', 'addBox_alpha_separate', () => {
   });
 });
 
-run('A11', 'box_fixAlpha_bare_rgb', () => {
+run('A11', 'box_bare_rgb_opacity', () => {
   withFreshDraw((d) => {
     var box = d.addBox(0, 0, 0, 1, 1, 1, 0xff0000, 0, false);
     assertEq(
       alphaOf(box.color),
       255,
-      'fixAlpha should set alpha=255 for bare rgb'
+      'bare RGB should default to alpha=255'
     );
   });
 });
@@ -372,14 +372,14 @@ run('A25', 'addLine_returns_line_in_list', () => {
   });
 });
 
-run('A26', 'line_setColor_fixAlpha', () => {
+run('A26', 'line_setColor_bare_rgb_opacity', () => {
   withFreshDraw((d) => {
     var line = d.addLine(0, 0, 0, 1, 2, 3, 0xffffff);
     line.setColor(0x123456);
     assertEq(
       alphaOf(line.color),
       255,
-      'fixAlpha should set alpha=255 for bare rgb'
+      'bare RGB should default to alpha=255'
     );
   });
 });
