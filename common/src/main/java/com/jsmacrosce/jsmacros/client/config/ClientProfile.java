@@ -41,6 +41,7 @@ import com.jsmacrosce.jsmacros.core.language.BaseScriptContext;
 import com.jsmacrosce.jsmacros.core.language.BaseWrappedException;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import net.minecraft.advancements.critereon.BlockPredicate;
 import net.minecraft.advancements.critereon.NbtPredicate;
@@ -101,7 +102,7 @@ public class ClientProfile extends BaseProfile {
                     return;
                 }
                 // un-wrap exceptions
-                if (ex.getMessage().equals(ex.getCause().toString())) {
+                if (Objects.equals(ex.getMessage(), ex.getCause().toString())) {
                     ex = ex.getCause();
                 }
             }
