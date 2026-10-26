@@ -16,6 +16,7 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
 import com.jsmacrosce.jsmacros.core.language.BaseScriptContext;
 import com.jsmacrosce.jsmacros.core.language.BaseWrappedException;
 import com.jsmacrosce.jsmacros.core.language.EventContainer;
+import com.jsmacrosce.jsmacros.core.language.ThrowableFormatter;
 import com.jsmacrosce.jsmacros.core.library.LibraryRegistry;
 import com.jsmacrosce.jsmacros.core.library.ScriptTypeRegistry;
 import com.jsmacrosce.jsmacros.core.service.ServiceManager;
@@ -178,11 +179,7 @@ public class Core<T extends BaseProfile, U extends BaseEventRegistry> {
             }
         }
         Iterator<StackTraceElement> elements = Arrays.stream(ex.getStackTrace()).iterator();
-        String message = ex.getClass().getSimpleName();
-        String intMessage = ex.getMessage();
-        if (intMessage != null) {
-            message += ": " + intMessage;
-        }
+        String message = ThrowableFormatter.format(ex);
         return new BaseWrappedException<>(ex, message, null, elements.hasNext() ? wrapHostInternal(elements.next(), elements) : null);
     }
 
