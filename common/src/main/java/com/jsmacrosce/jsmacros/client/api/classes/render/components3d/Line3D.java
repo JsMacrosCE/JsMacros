@@ -15,7 +15,7 @@ import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.api.math.Vec3D;
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 
 import java.lang.reflect.Field;
 import java.util.Objects;
@@ -179,7 +179,7 @@ public class Line3D implements RenderElement3D<Line3D> {
      * @since 1.0.6
      */
     public void setColor(int color) {
-        this.color = ColorUtil.fixAlpha(color);
+        this.color = ColorMath.fixAlpha(color);
     }
 
     /**
@@ -521,8 +521,8 @@ public class Line3D implements RenderElement3D<Line3D> {
         }
 
         /**
-         * Sets the colour and derives the builder's alpha from its top byte, applying
-         * {@link ColorUtil#fixAlpha(int)} first.
+         * Sets the colour and derives the builder's alpha from its top byte after applying
+         * the renderer's zero-alpha rule.
          *
          * @param color the color of the line
          * @return self for chaining.
@@ -530,7 +530,7 @@ public class Line3D implements RenderElement3D<Line3D> {
          */
         public Builder color(int color) {
             this.color = color;
-            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
+            this.alpha = ColorMath.fixAlpha(color) >>> 24;
             return this;
         }
 

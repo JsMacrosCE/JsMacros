@@ -13,7 +13,7 @@ import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.api.math.Vec3D;
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 
 //? if <1.21.11 {
 import java.lang.reflect.Field;
@@ -111,9 +111,8 @@ public class Box implements RenderElement3D<Box> {
 
     /**
      * Constructs a detached box from two ordered opposite corners in world-space block
-     * coordinates and packed outline and fill colours. Each colour uses
-     * {@link ColorUtil#fixAlpha(int)}: a nonzero RGB value with a zero alpha byte
-     * becomes opaque, while zero remains transparent.
+     * coordinates and packed outline and fill colours. For each colour, a nonzero RGB value
+     * with a zero alpha byte becomes opaque, while zero remains transparent.
      * This does not add or register the box with a {@link Draw3D} overlay.
      *
      * @param x1 x coordinate of the first corner
@@ -237,7 +236,7 @@ public class Box implements RenderElement3D<Box> {
      * @since 1.0.6
      */
     public void setColor(int color) {
-        this.color = ColorUtil.fixAlpha(color);
+        this.color = ColorMath.fixAlpha(color);
     }
 
     /**
@@ -248,7 +247,7 @@ public class Box implements RenderElement3D<Box> {
      * @since 1.0.6
      */
     public void setFillColor(int fillColor) {
-        this.fillColor = ColorUtil.fixAlpha(fillColor);
+        this.fillColor = ColorMath.fixAlpha(fillColor);
     }
 
     /**
@@ -681,7 +680,7 @@ public class Box implements RenderElement3D<Box> {
 
         /**
          * Sets the outline colour and derives its alpha from the packed value, making
-         * a zero alpha byte opaque for non-black colours, as in {@link ColorUtil#fixAlpha(int)}.
+         * a zero alpha byte opaque for non-black colours.
          *
          * @param color the color of the box
          * @return self for chaining.
@@ -689,7 +688,7 @@ public class Box implements RenderElement3D<Box> {
          */
         public Builder color(int color) {
             this.color = color;
-            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
+            this.alpha = ColorMath.fixAlpha(color) >>> 24;
             return this;
         }
 
@@ -775,7 +774,7 @@ public class Box implements RenderElement3D<Box> {
 
         /**
          * Stores the colour and sets the separate fill alpha from its alpha byte;
-         * {@link ColorUtil#fixAlpha(int)} makes a non-black colour with zero alpha opaque.
+         * a non-black colour with zero alpha is made opaque.
          *
          * @param fillColor the fill color of the box
          * @return self for chaining.
@@ -783,7 +782,7 @@ public class Box implements RenderElement3D<Box> {
          */
         public Builder fillColor(int fillColor) {
             this.fillColor = fillColor;
-            this.fillAlpha = ColorUtil.fixAlpha(fillColor) >>> 24;
+            this.fillAlpha = ColorMath.fixAlpha(fillColor) >>> 24;
             return this;
         }
 

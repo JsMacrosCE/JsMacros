@@ -163,6 +163,17 @@ tasks.named("check") {
     dependsOn(testFormattingCompat)
 }
 
+val testColorMath = tasks.register<JavaExec>("testColorMath") {
+    group = "verification"
+    description = "Checks packed-ARGB packing, validation and the render alpha policy"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.ColorMathTest")
+}
+tasks.named("check") {
+    dependsOn(testColorMath)
+}
+
 // Bootstrap on 1.21.x expects the client language assets, which this test classpath does not
 // carry. The 1.21.x targets are covered by compilation; runtime checks run on 26.1+.
 if (stonecutter.current.parsed >= "26.1") {

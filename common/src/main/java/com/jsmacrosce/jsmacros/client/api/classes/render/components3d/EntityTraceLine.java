@@ -2,7 +2,7 @@ package com.jsmacrosce.jsmacros.client.api.classes.render.components3d;
 import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 
 import com.jsmacrosce.doclet.DocletCategory;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
@@ -271,7 +271,7 @@ public class EntityTraceLine extends TraceLine {
          */
         public Builder color(int color) {
             this.color = color;
-            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
+            this.alpha = ColorMath.fixAlpha(color) >>> 24;
             return this;
         }
 

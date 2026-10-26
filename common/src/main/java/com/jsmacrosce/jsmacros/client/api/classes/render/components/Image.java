@@ -14,7 +14,7 @@ import org.joml.Matrix3x2fStack;
 import com.jsmacrosce.jsmacros.client.api.classes.CustomImage;
 import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 import com.jsmacrosce.doclet.DocletIgnore;
 
 //? if <=1.21.5 {
@@ -114,8 +114,8 @@ public class Image implements RenderElement, Alignable<Image> {
     /**
     * the tint, packed with the alpha in the top byte.
     * <p>
-    * A colour with no alpha of its own is made opaque unless it was pure black, so
-    * {@code 0xFF0000} is stored as {@code 0xFFFF0000}.
+    * A colour with no alpha of its own is made opaque unless it was pure black; for
+    * example, {@code 0xFF0000} is stored with alpha {@code 0xFF}.
     */
     public int color;
     /**
@@ -387,7 +387,7 @@ public class Image implements RenderElement, Alignable<Image> {
     * @since 1.6.5
     */
     public Image setColor(int color) {
-        this.color = ColorUtil.fixAlpha(color);
+        this.color = ColorMath.fixAlpha(color);
         return this;
     }
 
@@ -1104,7 +1104,8 @@ public class Image implements RenderElement, Alignable<Image> {
         }
 
         /**
-        * Sets the packed tint and derives alpha from its top byte, using {@link ColorUtil#fixAlpha(int)}.
+        * Sets the packed tint and derives alpha from its top byte after applying the renderer's
+        * zero-alpha rule.
         *
         * @param color the color of the image
         * @return self for chaining.
@@ -1112,7 +1113,7 @@ public class Image implements RenderElement, Alignable<Image> {
         */
         public Builder color(int color) {
             this.color = color;
-            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
+            this.alpha = ColorMath.fixAlpha(color) >>> 24;
             return this;
         }
 

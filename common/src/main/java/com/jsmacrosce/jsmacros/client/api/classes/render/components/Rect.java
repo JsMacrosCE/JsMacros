@@ -12,7 +12,7 @@ import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 
 import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
 
@@ -329,7 +329,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     * @since 1.0.5
     */
     public Rect setColor(int color) {
-        this.color = ColorUtil.fixAlpha(color);
+        this.color = ColorMath.fixAlpha(color);
         return this;
     }
 
@@ -831,7 +831,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
         */
         public Builder color(int color) {
             this.color = color;
-            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
+            this.alpha = ColorMath.fixAlpha(color) >>> 24;
             return this;
         }
 

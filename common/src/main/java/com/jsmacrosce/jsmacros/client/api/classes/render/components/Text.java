@@ -20,7 +20,7 @@ import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.TextBuilder;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 
 import java.nio.FloatBuffer;
 
@@ -376,7 +376,7 @@ public class Text implements RenderElement, Alignable<Text> {
     * @since 1.8.4
     */
     public Text setColor(int color) {
-        this.color = ColorUtil.fixAlpha(color);
+        this.color = ColorMath.fixAlpha(color);
         return this;
     }
 

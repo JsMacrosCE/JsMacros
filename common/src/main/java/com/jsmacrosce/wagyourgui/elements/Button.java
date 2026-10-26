@@ -7,7 +7,7 @@ import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 
 //? if >1.21.8 {
 /*import net.minecraft.client.input.InputWithModifiers;
@@ -123,21 +123,21 @@ public class Button extends AbstractButton {
      * @param color packed ARGB color
      */
     public void setColor(int color) {
-        this.color = ColorUtil.fixAlpha(color);
+        this.color = ColorMath.fixAlpha(color);
     }
 
     /** Sets the outline color; a zero alpha byte with nonzero RGB is made opaque, while zero remains zero.
      * @param color packed ARGB color
      */
     public void setBorderColor(int color) {
-        this.borderColor = ColorUtil.fixAlpha(color);
+        this.borderColor = ColorMath.fixAlpha(color);
     }
 
     /** Sets the hover or forced-hover fill; a zero alpha byte with nonzero RGB is made opaque, while zero remains zero.
      * @param color packed ARGB color
      */
     public void setHighlightColor(int color) {
-        this.highlightColor = ColorUtil.fixAlpha(color);
+        this.highlightColor = ColorMath.fixAlpha(color);
     }
 
     /** Sets the packed ARGB label color, making zero-alpha nonzero RGB opaque; zero remains transparent.
@@ -145,7 +145,7 @@ public class Button extends AbstractButton {
      * @param color packed ARGB label color
      */
     public void setTextColor(int color) {
-        this.textColor = ColorUtil.fixAlpha(color);
+        this.textColor = ColorMath.fixAlpha(color);
     }
 
     protected void renderMessage(GuiGraphics drawContext) {
