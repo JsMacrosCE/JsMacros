@@ -12,6 +12,8 @@ java {
 
 tasks.withType<JavaCompile>().configureEach {
     options.release.set(21)
+    // Keep parameter names in class files for host-call diagnostics.
+    options.compilerArgs.add("-parameters")
 }
 
 configurations.configureEach {

@@ -58,6 +58,7 @@ dependencies {
     testImplementation(libs.junit.api)
     testImplementation(libs.jetbrains.annotations)
     testRuntimeOnly(libs.junit.engine)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 // Collect embedded dependency paths for the json file
