@@ -39,6 +39,7 @@
   "jsmacrosce.errorsaving": "儲存檔案時出錯... \n\n",
   "jsmacrosce.nosave": "確定不儲存並退出?",
   "jsmacrosce.clicktoview": "點擊查看",
+  "jsmacrosce.clicktocopy": "點擊複製此錯誤",
   "jsmacrosce.errorerror": "嘗試解析錯誤訊息時發生錯誤",
   "jsmacrosce.close": "關閉",
   "jsmacrosce.add": "新增",

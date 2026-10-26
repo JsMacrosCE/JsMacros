@@ -39,6 +39,7 @@
   "jsmacrosce.errorsaving": "Wystąpił błąd podczas zapisywania pliku... \n\n",
   "jsmacrosce.nosave": "Napewno wyjść bez zapisywania?",
   "jsmacrosce.clicktoview": "Wybierz by otworzyć w edytorze.",
+  "jsmacrosce.clicktocopy": "Kliknij, aby skopiować ten błąd.",
   "jsmacrosce.errorerror": "WYSTĄPIŁ BŁĄD Z PARSOWANIEM WIADOMOŚCI O BŁĘDZIE",
   "jsmacrosce.close": "Zamknij",
   "jsmacrosce.add": "Dodaj",

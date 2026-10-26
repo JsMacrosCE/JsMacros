@@ -39,6 +39,7 @@
 	"jsmacrosce.errorsaving": "Помилка при зберіганні... \n\n",
 	"jsmacrosce.nosave": "Покинути не зберегаючі?",
 	"jsmacrosce.clicktoview": "Натисни щоб переглянути в редакторі.",
+	"jsmacrosce.clicktocopy": "Натисни, щоб скопіювати цю помилку.",
 	"jsmacrosce.errorerror": "ВИНИКЛА ПОМИЛКА ПІД ЧАС ОБРОБКИ ПОВІДОМЛЕННЯ ПРО ПОМИЛКУ",
 	"jsmacrosce.close": "Закрити",
 	"jsmacrosce.add": "Додати",
