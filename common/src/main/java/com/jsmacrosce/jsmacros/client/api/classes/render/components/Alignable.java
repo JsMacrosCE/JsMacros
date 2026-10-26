@@ -9,8 +9,8 @@ import java.util.Locale;
  * move the element and return its concrete self type.
  * <pre>
  * const draw = Hud.createDraw2D();
- * const panel = draw.addRect(0, 0, 200, 100, 0x80000000);
- * const label = draw.addText("centred", 0, 0, 0xFFFFFFFF, true);
+ * const panel = draw.addRect(0, 0, 200, 100, Color.argb(0x80, 0, 0, 0));
+ * const label = draw.addText("centred", 0, 0, Color.rgb(0xFF, 0xFF, 0xFF), true);
  * // the text is put in the middle of the rectangle
  * label.align(panel, "center", "center");
  * draw.register();

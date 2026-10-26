@@ -45,7 +45,7 @@ import com.mojang.blaze3d.platform.DepthTestFunction;
  * <pre>
  * const draw = Hud.createDraw3D();
  * // a filled red cube one block on a side, drawn over the world
- * draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFF0000, 0x88000000, true);
+ * draw.addBox(0, 64, 0, 1, 65, 1, Color.rgb(0xFF, 0x00, 0x00), Color.argb(0x88, 0, 0, 0), true);
  * draw.register();
  * </pre>
  *
@@ -440,7 +440,7 @@ public class Box implements RenderElement3D<Box> {
      * <pre>
      * const draw = Hud.createDraw3D();
      * draw.boxBuilder(0, 64, 0)
-     *    .color(0xFFFF0000)
+     *    .color(Color.rgb(0xFF, 0x00, 0x00))
      *    .fillColor(0x00FF00, 128)
      *    .fill(true)
      *    .cull(true)
@@ -663,7 +663,7 @@ public class Box implements RenderElement3D<Box> {
          * const player = Player.getPlayer();
          * if (player !== null) {
          *   const draw = Hud.createDraw3D();
-         *   draw.boxBuilder().forBlock(player.getBlockPos()).color(0xFFFF0000).buildAndAdd();
+         *   draw.boxBuilder().forBlock(player.getBlockPos()).color(Color.rgb(0xFF, 0x00, 0x00)).buildAndAdd();
          *   draw.register();
          * }
          * </pre>

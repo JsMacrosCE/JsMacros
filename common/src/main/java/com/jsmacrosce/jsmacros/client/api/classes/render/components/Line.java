@@ -27,7 +27,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRen
  * <p>
   * <pre>
  * const draw = Hud.createDraw2D();
- * const line = draw.addLine(0, 0, 50, 50, 0xFFFFFFFF, 0, 2);
+ * const line = draw.addLine(0, 0, 50, 50, Color.rgb(0xFF, 0xFF, 0xFF), 0, 2);
  * draw.register();
  * Chat.log(`${line.getWidth()} thick, reaching ${line.getScaledWidth()} across`);
  * </pre>

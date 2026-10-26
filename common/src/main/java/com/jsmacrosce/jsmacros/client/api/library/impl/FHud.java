@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <pre>
  * // draw 2D text in the overlay and register it
  * const draw = Hud.createDraw2D();
- * draw.addText("hello", 10, 10, 0xFFFFFFFF, true);
+ * draw.addText("hello", 10, 10, Color.rgb(0xFF, 0xFF, 0xFF), true);
  * draw.register();
  * </pre>
  *
@@ -293,7 +293,7 @@ public class FHud extends BaseLibrary {
      * <pre>
      * // a wireframe box around a single block
      * const draw = Hud.createDraw3D();
-     * draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFF0000, 0x00000000, false);
+     * draw.addBox(0, 64, 0, 1, 65, 1, Color.rgb(0xFF, 0x00, 0x00), Color.argb(0, 0, 0, 0), false);
      * draw.register();
      * </pre>
      *

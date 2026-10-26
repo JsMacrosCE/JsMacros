@@ -7,7 +7,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
   * Base class for builders that configure render elements for a 2D overlay.
   * <pre>
  * const draw = Hud.createDraw2D();
- * draw.lineBuilder().pos(0, 0, 50, 50).color(0xFFFFFFFF).width(2).buildAndAdd();
+ * draw.lineBuilder().pos(0, 0, 50, 50).color(Color.rgb(0xFF, 0xFF, 0xFF)).width(2).buildAndAdd();
  * draw.register();
  * </pre>
  *

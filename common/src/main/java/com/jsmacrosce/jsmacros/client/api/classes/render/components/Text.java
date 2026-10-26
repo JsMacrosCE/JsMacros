@@ -35,7 +35,7 @@ import java.nio.FloatBuffer;
  * interactions, while a plain overlay does not provide mouse input.
  * <pre>
  * const draw = Hud.createDraw2D();
- * const label = draw.addText("hello", 10, 10, 0xFFFFFFFF, true);
+ * const label = draw.addText("hello", 10, 10, Color.rgb(0xFF, 0xFF, 0xFF), true);
  * draw.register();
  * Chat.log(`${label.getWidth()} wide, ${label.getHeight()} tall, as the font measures it`);
  * </pre>
@@ -620,7 +620,7 @@ public class Text implements RenderElement, Alignable<Text> {
     * its center by default.
     * <pre>
     * const draw = Hud.createDraw2D();
-    * draw.textBuilder().text("hello").pos(10, 10).color(0xFFFFFFFF).buildAndAdd();
+    * draw.textBuilder().text("hello").pos(10, 10).color(Color.rgb(0xFF, 0xFF, 0xFF)).buildAndAdd();
     * draw.register();
     * </pre>
     *

@@ -20,7 +20,7 @@ import java.util.function.Consumer;
  * <pre>
  * // a plain overlay, the usual implementation
  * const draw = Hud.createDraw2D();
- * draw.addText("hello", 10, 10, 0xFFFFFFFF, true);
+ * draw.addText("hello", 10, 10, Color.rgb(0xFF, 0xFF, 0xFF), true);
  * draw.register();
  * </pre>
  *
@@ -65,7 +65,7 @@ public interface IDraw2D<T> {
      * example:
      * <pre>
      * const draw = Hud.createDraw2D();
-     * draw.addText("one", 10, 10, 0xFFFFFFFF, true);
+     * draw.addText("one", 10, 10, Color.rgb(0xFF, 0xFF, 0xFF), true);
      * draw.register();
      * Chat.log(`${draw.getTexts().size()} texts`);
      * </pre>
@@ -85,7 +85,7 @@ public interface IDraw2D<T> {
      * example:
      * <pre>
      * const draw = Hud.createDraw2D();
-     * draw.addRect(0, 0, 10, 10, 0xFFFF0000);
+     * draw.addRect(0, 0, 10, 10, Color.rgb(0xFF, 0x00, 0x00));
      * draw.register();
      * Chat.log(`${draw.getRects().size()} rects`);
      * </pre>

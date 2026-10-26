@@ -39,7 +39,7 @@ import net.minecraft.client.renderer.RenderType;
  * <pre>
  * const draw = Hud.createDraw3D();
  * // a green line across one block, hidden by anything in front of it
- * const line = draw.addLine(0, 64, 0, 1, 65, 0, 0xFF00FF00, true);
+ * const line = draw.addLine(0, 64, 0, 1, 65, 0, Color.rgb(0x00, 0xFF, 0x00), true);
  * Chat.log(`runs from ${line.getPos1()} to ${line.getPos2()}`);
  * draw.register();
  * </pre>

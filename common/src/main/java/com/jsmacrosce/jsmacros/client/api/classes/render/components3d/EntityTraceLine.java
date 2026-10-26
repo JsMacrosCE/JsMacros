@@ -22,7 +22,7 @@ import static com.jsmacrosce.jsmacros.client.api.classes.render.components.Rende
  * if (player !== null) {
  *   const draw = Hud.createDraw3D();
  *   // a line from the crosshair to the player, 2.0 blocks above their feet
- *   draw.entityTraceLineBuilder().entity(player).color(0xFFFF0000).yOffset(2.0).buildAndAdd();
+ *   draw.entityTraceLineBuilder().entity(player).color(Color.rgb(0xFF, 0x00, 0x00)).yOffset(2.0).buildAndAdd();
  *   draw.register();
  * }
  * </pre>
@@ -179,7 +179,7 @@ public class EntityTraceLine extends TraceLine {
      *   const draw = Hud.createDraw3D();
      *   draw.entityTraceLineBuilder()
      *      .entity(player)
-     *      .color(0xFF00FF00, 128)
+     *      .color(Color.rgb(0x00, 0xFF, 0x00), 128)
      *      .yOffset(1.5)
      *      .alwaysOnTop(false)
      *      .buildAndAdd();

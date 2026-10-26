@@ -13,8 +13,8 @@ import com.jsmacrosce.doclet.DocletIgnore;
  * <p>
  * <pre>
  * const draw = Hud.createDraw3D();
- * draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFF0000, 0x00000000, false);
- * draw.addBox(10, 64, 10, 11, 65, 11, 0xFF00FF00, 0x00000000, false);
+ * draw.addBox(0, 64, 0, 1, 65, 1, Color.rgb(0xFF, 0x00, 0x00), Color.argb(0, 0, 0, 0), false);
+ * draw.addBox(10, 64, 10, 11, 65, 11, Color.rgb(0x00, 0xFF, 0x00), Color.argb(0, 0, 0, 0), false);
  * draw.register();
  * // Same-class boxes are ordered by their implementation's position comparison.
  * const boxes = draw.getBoxes();

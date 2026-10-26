@@ -23,7 +23,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRen
  * <pre>
  * const draw = Hud.createDraw2D();
  * // Corners may be specified in either order.
- * const rect = draw.addRect(110, 60, 10, 10, 0x80000000);
+ * const rect = draw.addRect(110, 60, 10, 10, Color.argb(0x80, 0, 0, 0));
  * draw.register();
  * Chat.log(`${rect.getWidth()} by ${rect.getHeight()}, from ${rect.getX1()}, ${rect.getY1()}`);
  * </pre>

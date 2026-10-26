@@ -24,7 +24,7 @@ import java.util.function.Consumer;
  * positions use the same screen coordinates as drawing elements.
  * <pre>
  * const screen = Hud.createScreen("my screen", true);
- * screen.addText("something to read", 10, 40, 0xFFFFFFFF, true);
+ * screen.addText("something to read", 10, 40, Color.rgb(0xFF, 0xFF, 0xFF), true);
  * screen.addButton(10, 20, 100, 20, "a button", JavaWrapper.methodToJava(function (button) {
  *   Chat.log("clicked");
  * }));
@@ -577,7 +577,7 @@ public interface IScreen extends IDraw2D<IScreen> {
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
      * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
-     *   self.addText("rebuilt", 10, 10, 0xFFFFFFFF, true);
+     *   self.addText("rebuilt", 10, 10, Color.rgb(0xFF, 0xFF, 0xFF), true);
      * }));
      * Hud.openScreen(screen);
      * // the widgets are laid out again from scratch

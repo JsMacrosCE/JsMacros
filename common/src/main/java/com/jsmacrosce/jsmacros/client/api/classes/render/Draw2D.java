@@ -44,8 +44,8 @@ import java.util.stream.Collectors;
  * // an overlay that builds itself, registered so it renders
  * const draw = Hud.createDraw2D();
  * draw.setOnInit(JavaWrapper.methodToJava(function (self) {
- *   self.addRect(10, 10, 110, 60, 0x80000000);
- *   self.addText("a panel", 16, 20, 0xFFFFFFFF, true);
+ *   self.addRect(10, 10, 110, 60, Color.argb(0x80, 0, 0, 0));
+ *   self.addText("a panel", 16, 20, Color.rgb(0xFF, 0xFF, 0xFF), true);
  * }));
  * draw.register();
  *
