@@ -7,11 +7,16 @@ const prefixes = ['/2.0.0/1.21.8', '/2.0.0/26.1.2', '/2.0.0-beta.6/1.21.8']
 type Filter = (result: { id: string }) => boolean
 
 /** The filter reads the current path when it runs, so the stub has to stay. */
-function atPath(pathname: string, run: (filter: Filter) => void) {
+function atPath(
+  pathname: string,
+  run: (filter: Filter) => void,
+  guidePrefix = '',
+  fallbackPrefix = ''
+) {
   const previous = (globalThis as any).window
   ;(globalThis as any).window = { location: { pathname } }
   try {
-    run(createSearchScopeFilter(prefixes))
+    run(createSearchScopeFilter(prefixes, guidePrefix, fallbackPrefix))
   } finally {
     ;(globalThis as any).window = previous
   }
@@ -77,4 +82,28 @@ test('the filter survives the site data round trip', () => {
     assert.equal(restored({ id: '/2.0.0/26.1.2/classes/Client' }), true)
     assert.equal(restored({ id: '/2.0.0/1.21.8/classes/Client' }), false)
   })
+})
+
+test('a guide page searches only the guide', () => {
+  atPath('/guide/concepts/events.md', filter => {
+    assert.equal(filter({ id: '/guide/concepts/events#cancellable-events' }), true)
+    assert.equal(filter({ id: '/guide/getting-started' }), true)
+    assert.equal(filter({ id: '/2.0.0/26.1.2/classes/Client' }), false)
+  }, '/guide/', '/2.0.0/26.1.2')
+})
+
+test('the home page searches the guide and the latest reference', () => {
+  atPath('/index.md', filter => {
+    assert.equal(filter({ id: '/guide/concepts/events' }), true)
+    assert.equal(filter({ id: '/2.0.0/26.1.2/classes/Client' }), true)
+    assert.equal(filter({ id: '/2.0.0/1.21.8/classes/Client' }), false)
+  }, '/guide/', '/2.0.0/26.1.2')
+})
+
+test('a deployed base stays part of the guide scope', () => {
+  atPath('/docs/guide/concepts/events.md', filter => {
+    assert.equal(filter({ id: '/docs/guide/concepts/events#cancellable-events' }), true)
+    assert.equal(filter({ id: '/docs/guide/getting-started' }), true)
+    assert.equal(filter({ id: '/docs/2.0.0/26.1.2/classes/Client' }), false)
+  }, '/guide/', '/2.0.0/26.1.2')
 })
