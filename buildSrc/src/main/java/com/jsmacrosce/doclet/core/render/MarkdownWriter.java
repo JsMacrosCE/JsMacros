@@ -40,6 +40,38 @@ import java.util.TreeMap;
 public class MarkdownWriter {
     private static final String DEFAULT_CATEGORY = "Uncategorized";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+
+    /** One-line orientation shown under a generated category heading, plus a guide link when one exists. */
+    private record CategoryCopy(String description, String guidePath, String guideLabel) {
+        private CategoryCopy(String description) {
+            this(description, null, null);
+        }
+    }
+
+    private static final Map<String, CategoryCopy> CLASS_CATEGORY_COPY = Map.ofEntries(
+        Map.entry("Commands", new CategoryCopy("Builders for client-side commands and argument suggestions.")),
+        Map.entry("Configuration/Profiles", new CategoryCopy("Profiles, options, and the configuration objects behind them.", "/guide/concepts/how-scripts-run", "How a script runs")),
+        Map.entry("Entity Helpers", new CategoryCopy("Typed wrappers for entities and their attributes.", "/guide/game/player-and-world", "Player and world")),
+        Map.entry("Event Filterers", new CategoryCopy("Reusable conditions that decide whether a listener receives an event.", "/guide/concepts/events", "Events")),
+        Map.entry("Events and Event Handling", new CategoryCopy("The base types and handles used to receive and control events.", "/guide/concepts/events", "Events")),
+        Map.entry("Filters/Predicates", new CategoryCopy("Comparison and grouping filters used to build world scanners.", "/guide/game/player-and-world", "Player and world")),
+        Map.entry("Inventory", new CategoryCopy("Views of the player's inventory and open containers.", "/guide/game/player-and-world", "Player and world")),
+        Map.entry("Items/Enchantments", new CategoryCopy("Item stacks, item definitions, recipes, and enchantments.")),
+        Map.entry("Misc Helpers", new CategoryCopy("Small wrappers and utilities shared by other APIs.")),
+        Map.entry("Rendering/Graphics", new CategoryCopy("2D overlays, 3D world rendering, and drawing primitives.", "/guide/ui/hud-and-draw2d", "HUD and Draw2D")),
+        Map.entry("Screen and UI Elements", new CategoryCopy("Script-created screens, widgets, and input controls.", "/guide/ui/screens", "Custom screens"))
+    );
+
+    private static final Map<String, CategoryCopy> EVENT_CATEGORY_COPY = Map.ofEntries(
+        Map.entry("Core", new CategoryCopy("Events raised by JsMacros itself rather than by the game.", "/guide/concepts/events", "Events")),
+        Map.entry("Inputs/Interactions", new CategoryCopy("Keyboard, mouse, block, entity, and sign interactions.", "/guide/game/keybinds", "Key binds and input")),
+        Map.entry("Inventory", new CategoryCopy("Container contents, slot changes, pickups, and item damage.", "/guide/game/player-and-world", "Player and world")),
+        Map.entry("Network/Chat", new CategoryCopy("Chat, packets, server joins, disconnects, and player-list changes.", "/guide/concepts/events", "Events")),
+        Map.entry("Player/Stats", new CategoryCopy("Health, hunger, air, armor, effects, death, and riding changes.", "/guide/game/player-and-world", "Player and world")),
+        Map.entry("Render/UI", new CategoryCopy("Titles, boss bars, opened screens, and editor code-render hooks.", "/guide/ui/hud-and-draw2d", "HUD and Draw2D")),
+        Map.entry("System/Lifecycle", new CategoryCopy("Game launch and quit, resource packs, and command context.", "/guide/concepts/how-scripts-run", "How a script runs")),
+        Map.entry("World", new CategoryCopy("Blocks, chunks, dimensions, entities, sounds, and ticks.", "/guide/game/player-and-world", "Player and world"))
+    );
     private final Map<String, ClassDoc> classByQualifiedName = new HashMap<>();
     private final Map<String, List<ClassDoc>> classByName = new HashMap<>();
     private final Map<String, List<ClassDoc>> classByAlias = new HashMap<>();
@@ -70,12 +102,17 @@ public class MarkdownWriter {
         Map<String, List<ClassDoc>> classCategories = groupByCategory(model, ClassGroup.Class);
         Map<String, List<ClassDoc>> eventCategories = groupByCategory(model, ClassGroup.Event);
         Map<String, List<ClassDoc>> libraryCategories = groupByCategory(model, ClassGroup.Library);
+        List<SidebarEntry> typeEntries = new ArrayList<>();
+        for (var namespace : scriptNamespaces) {
+            typeEntries.add(new SidebarItem(namespace.name(), "/" + routePrefix + "/types/" + namespace.name()));
+        }
         SidebarData sidebarData = new SidebarData(
             version,
             mcVersion,
             mapToSidebarCategories(classCategories, routePrefix),
             mapToSidebarCategories(eventCategories, routePrefix),
-            mapToSidebarCategories(libraryCategories, routePrefix)
+            mapToSidebarCategories(libraryCategories, routePrefix),
+            typeEntries
         );
 
         for (PackageDoc pkg : model.packages()) {
@@ -90,23 +127,56 @@ public class MarkdownWriter {
         }
 
         writeGroupIndexes(model, outDir, version, mcVersion, classCategories, eventCategories, libraryCategories);
+        writeTypeIndex(outDir);
         // Namespace pages are indexes of existing API pages, not duplicate class declarations.
         for (var namespace : scriptNamespaces) {
             MarkdownBuilder md = new MarkdownBuilder();
             md.heading(1, namespace.name());
             md.paragraph(formatDescription(namespace.docComment(), null));
-            md.paragraph("Read-only type members available in JavaScript and Python scripts without Java package lookup.");
+            md.paragraph("These names are available in JavaScript and Python without importing anything. "
+                + "They are read-only aliases of Java types, so `instanceof` works as usual. "
+                + MarkdownBuilder.link("Guide: Script type namespaces", "/guide/advanced/script-types") + ".");
+            StringBuilder table = new StringBuilder();
+            table.append("| Script name | Java type | What it is |\n");
+            table.append("| --- | --- | --- |\n");
             for (var export : namespace.exports()) {
                 ClassDoc target = classByQualifiedName.get(export.target().qualifiedName());
                 if (target == null) throw new IllegalArgumentException("Undocumented script export: " + export.target().qualifiedName());
-                md.bulletItem(MarkdownBuilder.codeSpan(namespace.name() + "." + export.name()) + " — "
-                        + MarkdownBuilder.link(target.name(), buildLinkUrl(target, null, null)));
+                table.append("| ").append(MarkdownBuilder.codeSpan(namespace.name() + "." + export.name()))
+                    .append(" | ").append(MarkdownBuilder.link(target.name(), buildLinkUrl(target, null, null)))
+                    .append(" | ").append(escapeTableCell(summary(target))).append(" |\n");
             }
+            md.paragraph(table.toString());
             File directory = new File(outDir, "types");
             java.nio.file.Files.createDirectories(directory.toPath());
             new FileHandler(new File(directory, namespace.name() + ".md")).write(md.toString());
         }
         writeSidebarData(outDir, sidebarData);
+    }
+
+    private void writeTypeIndex(File outDir) throws IOException {
+        if (scriptNamespaces.isEmpty()) {
+            return;
+        }
+        MarkdownBuilder md = new MarkdownBuilder();
+        md.frontmatter(Map.of("outline", "false"));
+        md.heading(1, "Type namespaces");
+        md.paragraph("JavaScript and Python scripts get these globals automatically. They are read-only "
+            + "aliases of real Java types, so `instanceof` and `isinstance` work without a package name. "
+            + "They do not change which helper a factory returns; check the object you actually received. "
+            + MarkdownBuilder.link("Guide: Script type namespaces", "/guide/advanced/script-types") + ".");
+        StringBuilder table = new StringBuilder();
+        table.append("| Namespace | What it is | Types |\n");
+        table.append("| --- | --- | --- |\n");
+        for (var namespace : scriptNamespaces) {
+            table.append("| ").append(MarkdownBuilder.link(namespace.name(), "./" + namespace.name() + ".md"))
+                .append(" | ").append(escapeTableCell(summary(namespace.docComment())))
+                .append(" | ").append(namespace.exports().size()).append(" |\n");
+        }
+        md.paragraph(table.toString());
+        File directory = new File(outDir, "types");
+        java.nio.file.Files.createDirectories(directory.toPath());
+        new FileHandler(new File(directory, "index.md")).write(md.toString());
     }
 
     private String classPath(ClassDoc clz) {
@@ -162,15 +232,59 @@ public class MarkdownWriter {
             "Version: " + MarkdownBuilder.codeSpan(version) + "  \n"
             + "Minecraft: " + MarkdownBuilder.codeSpan(mcVersion)
         );
-        md.bulletItem(MarkdownBuilder.link("Libraries", "./libraries.md") + " ("
-            + grouped.getOrDefault(ClassGroup.Library, List.of()).stream().filter(this::isGlobalLibrary).count() + ")");
-        md.bulletItem(MarkdownBuilder.link("Events", "./events.md") + " (" + grouped.getOrDefault(ClassGroup.Event, List.of()).size() + ")");
-        md.bulletItem(MarkdownBuilder.link("Classes", "./classes.md") + " (" + grouped.getOrDefault(ClassGroup.Class, List.of()).size() + ")");
-        md.paragraph("Use the sidebar to browse packages and classes.");
+        md.paragraph("This reference is generated from the sources for this Minecraft target. "
+            + "Signatures, raw Minecraft types, and behavior can differ between versions; the version "
+            + "selector in the navigation bar opens another target. New to JsMacros? Start with the "
+            + MarkdownBuilder.link("Guide", "/guide/") + ".");
+
+        md.heading(2, "Start here");
+        long libraryCount = grouped.getOrDefault(ClassGroup.Library, List.of()).stream().filter(this::isGlobalLibrary).count();
+        md.bulletItem("**" + MarkdownBuilder.link("Libraries", "./libraries.md") + " (" + libraryCount + ")** — "
+            + "The global objects a script starts with: `Chat`, `World`, `Player`, `Hud`, `JsMacros`, and more.");
+        md.bulletItem("**" + MarkdownBuilder.link("Events", "./events.md") + " ("
+            + grouped.getOrDefault(ClassGroup.Event, List.of()).size() + ")** — "
+            + "Typed signals from the game. Subscribe with `JsMacros.on`, wait with `waitForEvent`, and read each event page for its payload and cancellation rules.");
+        md.bulletItem("**" + MarkdownBuilder.link("Classes", "./classes.md") + " ("
+            + grouped.getOrDefault(ClassGroup.Class, List.of()).size() + ")** — "
+            + "Objects returned by libraries and events: entities, blocks, inventories, draw elements, screens, and builders.");
+        if (!scriptNamespaces.isEmpty()) {
+            md.bulletItem("**" + MarkdownBuilder.link("Type namespaces", "./types/index.md") + " ("
+                + scriptNamespaces.size() + ")** — "
+                + "Stable script names for Java types, such as `EntityHelpers.Horse`. They are for `instanceof` and static access, not a second class list.");
+        }
+
+        List<String> common = List.of("Chat", "World", "Player", "Hud", "JsMacros", "KeyBind");
+        List<ClassDoc> entryPoints = new ArrayList<>();
+        for (String alias : common) {
+            List<ClassDoc> matches = classByAlias.get(alias);
+            if (matches != null && !matches.isEmpty()) entryPoints.add(matches.getFirst());
+        }
+        if (!entryPoints.isEmpty()) {
+            md.heading(2, "Common entry points");
+            for (ClassDoc clz : entryPoints) {
+                String line = MarkdownBuilder.link(displayTitle(clz), "./" + classPath(clz) + ".md");
+                String summary = summary(clz);
+                md.bulletItem(line + (summary.isEmpty() ? "" : " — " + summary));
+            }
+        }
+
+        md.heading(2, "How to read a page");
+        md.bulletItem("The large title is the script name. The small monospace line is the fully qualified Java name used by `Java.type` and reflection.");
+        md.bulletItem("`read-only` marks a field you should not write. It is not a constant and can still change over time.");
+        md.bulletItem("`Since` is the JsMacros version that introduced the member, not the Minecraft version.");
+        md.bulletItem("Overloads share a heading but keep separate signatures and descriptions. Read the parameters to choose one.");
+        md.bulletItem("A compatibility stub can exist on a target without the full behavior. Read the description, not just the signature. "
+            + MarkdownBuilder.link("Guide: How to read the API reference", "/guide/reference/how-to-read") + ".");
+
         if (!scriptNamespaces.isEmpty()) {
             md.heading(2, "Script type namespaces");
+            md.paragraph("JavaScript and Python scripts get these globals automatically. They are read-only aliases of real Java types, "
+                + "so `instanceof` and `isinstance` work without a package name. "
+                + MarkdownBuilder.link("Guide: Script type namespaces", "/guide/advanced/script-types") + ".");
             for (var namespace : scriptNamespaces) {
-                md.bulletItem(MarkdownBuilder.link(namespace.name(), "./types/" + namespace.name() + ".md"));
+                String summary = summary(namespace.docComment());
+                md.bulletItem(MarkdownBuilder.link(namespace.name(), "./types/" + namespace.name() + ".md")
+                    + " (" + namespace.exports().size() + ")" + (summary.isEmpty() ? "" : " — " + summary));
             }
         }
         return md.toString();
@@ -180,9 +294,7 @@ public class MarkdownWriter {
         MarkdownBuilder md = new MarkdownBuilder();
         md.frontmatter(Map.of("outline", "false"));
         md.heading(1, title);
-        if (title.equals("Libraries")) {
-            md.paragraph("Global objects available in scripts. Nested entries are supporting types, not additional globals.");
-        }
+        md.paragraph(groupIntro(title));
         if ((categories == null || categories.isEmpty()) && classes.isEmpty()) {
             md.paragraph("No entries found.");
             return md.toString();
@@ -192,12 +304,43 @@ public class MarkdownWriter {
                 if (!entry.getKey().equals(DEFAULT_CATEGORY) || categories.size() > 1) {
                     md.heading(3, entry.getKey().equals(DEFAULT_CATEGORY) ? "Other " + title.toLowerCase(Locale.ROOT) : entry.getKey());
                 }
+                CategoryCopy copy = categoryCopy(title, entry.getKey());
+                if (copy != null) {
+                    String text = copy.description();
+                    if (copy.guidePath() != null) {
+                        text += " " + MarkdownBuilder.link("Guide: " + copy.guideLabel(), copy.guidePath());
+                    }
+                    md.paragraph(text);
+                }
                 renderGroupEntries(entry.getValue(), md);
             }
             return md.toString();
         }
         renderGroupEntries(classes, md);
         return md.toString();
+    }
+
+    private String groupIntro(String title) {
+        return switch (title) {
+            case "Libraries" -> "Libraries are the globals a script starts with. Most scripts call a library first, then follow the returned object into a class. "
+                + "Nested entries are supporting types, not additional globals. "
+                + MarkdownBuilder.link("Guide: How a script runs", "/guide/concepts/how-scripts-run") + ", "
+                + MarkdownBuilder.link("Player and world", "/guide/game/player-and-world") + ".";
+            case "Events" -> "Events are typed signals from the game. Subscribe with `JsMacros.on`, wait with `JsMacros.waitForEvent`, "
+                + "and read each event page for its payload and cancellation rules. High-frequency events such as `Tick` and packet events need tight filtering. "
+                + MarkdownBuilder.link("Guide: Events", "/guide/concepts/events") + ".";
+            case "Classes" -> "Classes are the objects libraries and events return: entities, blocks, inventories, draw elements, screens, and builders. "
+                + "Follow a library method's return type into its class. Constructors are shown only for types scripts are meant to construct. "
+                + MarkdownBuilder.link("Guide: How to read the API reference", "/guide/reference/how-to-read") + ".";
+            default -> "";
+        };
+    }
+
+    private CategoryCopy categoryCopy(String title, String category) {
+        if (DEFAULT_CATEGORY.equals(category)) return null;
+        if (title.equals("Classes")) return CLASS_CATEGORY_COPY.get(category);
+        if (title.equals("Events")) return EVENT_CATEGORY_COPY.get(category);
+        return null;
     }
 
     private void renderGroupEntries(List<ClassDoc> entries, MarkdownBuilder md) {
@@ -215,7 +358,12 @@ public class MarkdownWriter {
     private void renderIndexEntry(SidebarEntryBuilder entry, ClassDoc parent, int depth, StringBuilder list) {
         ClassDoc clz = entry.classDoc();
         list.append("  ".repeat(depth)).append("- ")
-            .append(MarkdownBuilder.link(displayLabel(clz, parent), "./" + classPath(clz) + ".md")).append('\n');
+            .append(MarkdownBuilder.link(displayLabel(clz, parent), "./" + classPath(clz) + ".md"));
+        String summary = summary(clz);
+        if (!summary.isEmpty()) {
+            list.append(" — ").append(summary);
+        }
+        list.append('\n');
         for (SidebarEntryBuilder child : entry.children()) {
             renderIndexEntry(child, clz, depth + 1, list);
         }
@@ -365,7 +513,7 @@ public class MarkdownWriter {
         }
     }
     private record SidebarCategory(String name, List<SidebarEntry> items) {}
-    private record SidebarData(String version, String minecraftVersion, List<SidebarCategory> classes, List<SidebarCategory> events, List<SidebarCategory> libraries) {}
+    private record SidebarData(String version, String minecraftVersion, List<SidebarCategory> classes, List<SidebarCategory> events, List<SidebarCategory> libraries, List<SidebarEntry> types) {}
 
     private String renderClass(ClassDoc clz) {
         MarkdownBuilder md = new MarkdownBuilder();
@@ -387,6 +535,9 @@ public class MarkdownWriter {
         String since = getTagText(clz.docComment(), DocTagKind.SINCE, clz);
         if (!since.isBlank()) {
             md.paragraph("**Since:** " + since);
+        }
+        if (clz.group() == ClassGroup.Event) {
+            renderEventMetadata(md, clz);
         }
         if (isGlobalLibrary(clz)) {
             md.paragraph("Accessible in scripts via the global " + MarkdownBuilder.codeSpan(clz.alias()) + " variable.");
@@ -415,6 +566,36 @@ public class MarkdownWriter {
         renderMemberSection(md, clz, MemberKind.FIELD, "Fields");
         renderMemberSection(md, clz, MemberKind.METHOD, "Methods");
         return md.toString();
+    }
+
+    /**
+     * Shows the facts a reader needs before subscribing to an event: whether it can be
+     * cancelled, whether that forces joined dispatch, and which filterer it accepts.
+     */
+    private void renderEventMetadata(MarkdownBuilder md, ClassDoc clz) {
+        if (clz.eventCancellable()) {
+            md.paragraph("**Cancellable:** yes. The game waits for this event's handlers before it continues; "
+                + "cancellable events join even when the listener was registered with `joined: false`. "
+                + "Call `event.cancel()` before releasing the event lock.");
+        } else {
+            md.paragraph("**Cancellable:** no. Calling `event.cancel()` throws `UnsupportedOperationException`.");
+        }
+        String filtererName = clz.eventFilterer();
+        if (filtererName != null && !filtererName.isBlank()) {
+            ClassDoc filterer = findClassByName(filtererName);
+            String filtererLink = filterer == null
+                ? MarkdownBuilder.codeSpan(filtererName)
+                : MarkdownBuilder.link(filterer.name(), buildLinkUrl(filterer, null, clz));
+            md.paragraph("**Filterer:** " + filtererLink + ". Create it with "
+                + MarkdownBuilder.codeSpan("JsMacros.createEventFilterer(\"" + displayTitle(clz) + "\")")
+                + " and pass it to the filterer overload of `JsMacros.on`.");
+        }
+    }
+
+    @Nullable
+    private ClassDoc findClassByName(String name) {
+        List<ClassDoc> matches = classByName.get(name);
+        return matches == null || matches.isEmpty() ? null : matches.getFirst();
     }
 
     private void renderClassTypeParameters(MarkdownBuilder md, ClassDoc clz) {
@@ -820,6 +1001,32 @@ public class MarkdownWriter {
         }
         List<DocBodyNode> nodes = comment.body().isEmpty() ? comment.summary() : comment.body();
         return DocBodyRenderer.toHtml(nodes, link -> resolveLinkAsHtml(link, context));
+    }
+
+    /** A compact one-line orientation for an index entry, derived from the Javadoc's first sentence. */
+    private String summary(ClassDoc clz) {
+        return summary(clz == null ? null : clz.docComment());
+    }
+
+    private String summary(DocComment comment) {
+        if (comment == null || comment.summary().isEmpty()) {
+            return "";
+        }
+        // Index summaries are plain text: a truncated Markdown link would leave a
+        // broken URL in the generated page, and these lines do not need rich text.
+        String text = DocBodyRenderer.toPlainText(comment.summary(),
+            link -> link.label() != null ? link.label() : linkLabel(link.signature()));
+        text = text.replaceAll("\\s+", " ").trim();
+        if (text.length() > 180) {
+            int cut = text.lastIndexOf(' ', 177);
+            if (cut < 120) cut = 177;
+            text = text.substring(0, cut).trim() + "…";
+        }
+        return text;
+    }
+
+    private String escapeTableCell(String text) {
+        return text.replace("|", "\\|").replace('\n', ' ').replace('\r', ' ');
     }
 
     private boolean hasDeprecatedTag(DocComment comment) {
