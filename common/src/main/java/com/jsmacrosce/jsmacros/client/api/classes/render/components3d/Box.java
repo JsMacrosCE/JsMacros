@@ -229,7 +229,7 @@ public class Box implements RenderElement3D<Box> {
 
     /**
      * Replaces the outline colour. If its alpha byte is zero but its RGB value is
-     * nonzero, the alpha is made opaque; {@code 0x00000000} remains transparent.
+     * nonzero, the alpha is made opaque; transparent black remains transparent.
      * Use {@link #setColor(int, int)} to specify zero alpha explicitly.
      *
      * @param color the colour of the outline
@@ -441,7 +441,7 @@ public class Box implements RenderElement3D<Box> {
      * const draw = Hud.createDraw3D();
      * draw.boxBuilder(0, 64, 0)
      *    .color(Color.rgb(0xFF, 0x00, 0x00))
-     *    .fillColor(0x00FF00, 128)
+     *    .fillColor(Color.rgb(0x00, 0xFF, 0x00), 128)
      *    .fill(true)
      *    .cull(true)
      *    .buildAndAdd();

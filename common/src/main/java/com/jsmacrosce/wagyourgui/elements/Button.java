@@ -22,8 +22,8 @@ import java.util.function.Consumer;
  * <pre>
  * function makeButton(font, label, onPressed) {
  *   const Button = Java.type('com.jsmacrosce.wagyourgui.elements.Button');
- *   return new Button(10, 10, 120, 20, font, 0xFF000000, 0xFFFFFFFF,
- *     0xFF808080, 0xFFFFFFFF, label, JavaWrapper.methodToJava(onPressed));
+ *   return new Button(10, 10, 120, 20, font, Color.rgb(0x00, 0x00, 0x00), Color.rgb(0xFF, 0xFF, 0xFF),
+ *     Color.rgb(0x80, 0x80, 0x80), Color.rgb(0xFF, 0xFF, 0xFF), label, JavaWrapper.methodToJava(onPressed));
  * }
  * </pre>
  * The factory takes a native font, component label, and JavaScript callback; add the result to your existing host separately.

@@ -9,7 +9,7 @@ import com.jsmacrosce.jsmacros.core.library.ScriptNamespace;
  * Lets scripts identify 2D and 3D drawing elements through the {@code RenderElements} global.
  * <pre>
  * const draw = Hud.createDraw2D();
- * draw.addText("hello", 10, 10, 0xFFFFFF, true);
+ * draw.addText("hello", 10, 10, Color.rgb(0xFF, 0xFF, 0xFF), true);
  * for (const element of draw.getElements()) {
  *   if (element instanceof RenderElements.Text) {
  *     element.setText("updated");

@@ -327,7 +327,7 @@ public class Draw3D implements Registrable<Draw3D> {
 
     /**
      * Adds a line between two world-space endpoints. A zero alpha byte is treated as opaque
-     * when the RGB value is nonzero; {@code 0x00000000} remains transparent.
+     * when the RGB value is nonzero; transparent black remains transparent.
      *
      * @param x1 the x coordinate of the start
      * @param y1 the y coordinate of the start
