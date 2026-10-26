@@ -26,6 +26,18 @@ class ThrowableFormatterTest {
     }
 
     @Test
+    void includesTheFifthCause() {
+        Throwable cause = new IllegalStateException("cause5");
+        for (int i = 4; i >= 1; i--) {
+            cause = new RuntimeException("cause" + i, cause);
+        }
+
+        String message = ThrowableFormatter.format(new RuntimeException("root", cause));
+
+        assertTrue(message.contains("caused by IllegalStateException: cause5"));
+    }
+
+    @Test
     void stopsAtACauseCycle() {
         RuntimeException first = new RuntimeException("first");
         RuntimeException second = new RuntimeException("second", first);

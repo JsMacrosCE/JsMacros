@@ -16,6 +16,7 @@ import java.util.Set;
 @DocletIgnore
 public final class ThrowableFormatter {
     private static final int MAX_CAUSES = 5;
+    private static final int MAX_ENTRIES = MAX_CAUSES + 1;
 
     private ThrowableFormatter() {
     }
@@ -34,9 +35,9 @@ public final class ThrowableFormatter {
         StringBuilder builder = new StringBuilder();
         Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
         Throwable current = throwable;
-        int depth = 0;
-        while (current != null && depth < MAX_CAUSES && seen.add(current)) {
-            if (depth > 0) {
+        int entries = 0;
+        while (current != null && entries < MAX_ENTRIES && seen.add(current)) {
+            if (entries > 0) {
                 builder.append("\n  caused by ");
             }
             builder.append(simpleClassName(current.getClass()));
@@ -45,7 +46,7 @@ public final class ThrowableFormatter {
                 builder.append(": ").append(message);
             }
             current = current.getCause();
-            depth++;
+            entries++;
         }
         return builder.toString();
     }
