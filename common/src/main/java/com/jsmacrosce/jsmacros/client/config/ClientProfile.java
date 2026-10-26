@@ -14,6 +14,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
@@ -40,6 +41,7 @@ import com.jsmacrosce.jsmacros.core.language.BaseScriptContext;
 import com.jsmacrosce.jsmacros.core.language.BaseWrappedException;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 import net.minecraft.advancements.critereon.BlockPredicate;
 import net.minecraft.advancements.critereon.NbtPredicate;
@@ -100,7 +102,7 @@ public class ClientProfile extends BaseProfile {
                     return;
                 }
                 // un-wrap exceptions
-                if (ex.getMessage().equals(ex.getCause().toString())) {
+                if (Objects.equals(ex.getMessage(), ex.getCause().toString())) {
                     ex = ex.getCause();
                 }
             }
@@ -141,9 +143,11 @@ public class ClientProfile extends BaseProfile {
         }
         BaseWrappedException<?> head = ex;
         MutableComponent text = Component.literal("");
+        StringBuilder plainText = new StringBuilder();
         do {
             String message = head.message;
             MutableComponent line = Component.literal(message).setStyle(Style.EMPTY.withColor(ChatFormatting.RED));
+            plainText.append(stripFormatting(message));
             if (head.location != null) {
                 Style locationStyle = Style.EMPTY.withColor(ChatFormatting.GOLD);
                 if (head.location instanceof BaseWrappedException.GuestLocation) {
@@ -163,13 +167,27 @@ public class ClientProfile extends BaseProfile {
                     }
                 }
                 line.append(Component.literal(" (" + head.location + ")").setStyle(locationStyle));
+                plainText.append(" (").append(head.location).append(')');
             }
             if ((head = head.next) != null) {
                 line.append("\n");
+                plainText.append('\n');
             }
             text.append(line);
         } while (head != null);
+
+        text.append(Component.literal("  "));
+        text.append(Component.literal("[copy]").setStyle(Style.EMPTY
+                .withColor(ChatFormatting.GRAY)
+                .withHoverEvent(new HoverEvent.ShowText(
+                        Component.translatableWithFallback("jsmacrosce.clicktocopy", "Click to copy this error.")
+                ))
+                .withClickEvent(new ClickEvent.CopyToClipboard(plainText.toString()))));
         return text;
+    }
+
+    private static String stripFormatting(String message) {
+        return message.replaceAll("\u00A7.", "");
     }
 
     /** Initializes base registries, then registers client events, libraries, and helper mappings. Called during profile initialization; not intended for script invocation.

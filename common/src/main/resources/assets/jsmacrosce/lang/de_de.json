@@ -39,6 +39,7 @@
   "jsmacrosce.errorsaving": "Beim Speichern ist ein Fehler aufgetreten... \n\n",
   "jsmacrosce.nosave": "Möchtest du wirklich ohne Speichern zurückgehen?",
   "jsmacrosce.clicktoview": "Klicke hier, um die Datei im Editor zu öffnen.",
+  "jsmacrosce.clicktocopy": "Klicke hier, um diesen Fehler zu kopieren.",
   "jsmacrosce.errorerror": "Es ist ein Fehler beim Verarbeiten des Fehlers aufgetreten.",
   "jsmacrosce.close": "Schließen",
   "jsmacrosce.add": "Hinzufügen",

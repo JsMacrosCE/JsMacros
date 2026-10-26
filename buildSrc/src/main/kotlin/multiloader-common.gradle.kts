@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.bundling.Jar
+import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.language.jvm.tasks.ProcessResources
 import org.gradle.api.publish.maven.MavenPublication
 
@@ -36,6 +37,12 @@ java {
     }
     withSourcesJar()
     withJavadocJar()
+}
+
+// Keep parameter names in class files so host-call diagnostics can show the names
+// scripts see in the API reference instead of synthetic arg0/arg1 labels.
+tasks.withType<JavaCompile>().configureEach {
+    options.compilerArgs.add("-parameters")
 }
 
 repositories {

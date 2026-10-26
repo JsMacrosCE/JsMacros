@@ -10,6 +10,7 @@ import com.jsmacrosce.jsmacros.core.extensions.LanguageExtension;
 import com.jsmacrosce.jsmacros.core.extensions.LibraryExtension;
 import com.jsmacrosce.jsmacros.core.language.BaseLanguage;
 import com.jsmacrosce.jsmacros.core.language.BaseWrappedException;
+import com.jsmacrosce.jsmacros.core.language.ThrowableFormatter;
 import com.jsmacrosce.jsmacros.core.library.BaseLibrary;
 import com.jsmacrosce.jsmacros.graal.language.impl.GraalLanguageDefinition;
 import com.jsmacrosce.jsmacros.graal.language.impl.GuestExceptionSimplifier;
@@ -133,11 +134,7 @@ public class GraalExtension implements LanguageExtension, LibraryExtension {
             Iterator<PolyglotException.StackFrame> frames = ((PolyglotException) ex).getPolyglotStackTrace().iterator();
             String message;
             if (((PolyglotException) ex).isHostException()) {
-                message = ((PolyglotException) ex).asHostException().getClass().getName();
-                String intMessage = ((PolyglotException) ex).asHostException().getMessage();
-                if (intMessage != null) {
-                    message += ": " + intMessage;
-                }
+                message = ThrowableFormatter.format(((PolyglotException) ex).asHostException());
             } else {
                 message = GuestExceptionSimplifier.simplifyException(ex);
                 if (message == null) {

@@ -39,6 +39,7 @@
   "jsmacrosce.errorsaving": "Un error ocurrió mientras se intentava guardar... \n\n",
   "jsmacrosce.nosave": "¿Estás seguro que quieres salir sin guardar?",
   "jsmacrosce.clicktoview": "Clica para verlo en el editor.",
+  "jsmacrosce.clicktocopy": "Clica para copiar este error.",
   "jsmacrosce.errorerror": "HA OCURRIDO UN ERROR CON EL ANALISIS DE MENSAJES DE ERROR",
   "jsmacrosce.close": "Cerrar",
   "jsmacrosce.add": "Añadir",

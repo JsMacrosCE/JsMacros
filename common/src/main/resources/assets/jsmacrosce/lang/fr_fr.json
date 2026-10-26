@@ -39,6 +39,7 @@
   "jsmacrosce.errorsaving": "Une erreur s'est produite lors de la sauvegarde... \n\n",
   "jsmacrosce.nosave": "Êtes-vous sûr de vouloir quitter sans sauvegarder ?",
   "jsmacrosce.clicktoview": "Cliquez pour voir dans l'éditeur.",
+  "jsmacrosce.clicktocopy": "Cliquez pour copier cette erreur.",
   "jsmacrosce.errorerror": "UNE ERREUR AVEC UN MESSAGE D'ERREUR DE PARSING S'EST PRODUITE",
   "jsmacrosce.close": "Fermer",
   "jsmacrosce.add": "Ajouter",

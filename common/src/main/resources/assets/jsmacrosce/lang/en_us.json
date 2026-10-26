@@ -39,6 +39,7 @@
   "jsmacrosce.errorsaving": "An error occured while trying to save... \n\n",
   "jsmacrosce.nosave": "Are you sure you'd like to exit without saving?",
   "jsmacrosce.clicktoview": "Click to view in editor.",
+  "jsmacrosce.clicktocopy": "Click to copy this error.",
   "jsmacrosce.errorerror": "AN ERROR WITH ERROR MESSAGE PARSING HAS OCCURRED",
   "jsmacrosce.close": "Close",
   "jsmacrosce.add": "Add",

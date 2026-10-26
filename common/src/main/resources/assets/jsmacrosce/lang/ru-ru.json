@@ -39,6 +39,7 @@
   "jsmacrosce.errorsaving": "Произошла ошибка при сохранении... \n\n",
   "jsmacrosce.nosave": "Ты действительно хочешь выйти без сохранения?",
   "jsmacrosce.clicktoview": "Нажмите чтобы просмотреть в редакторы.",
+  "jsmacrosce.clicktocopy": "Нажмите, чтобы скопировать эту ошибку.",
   "jsmacrosce.errorerror": "ПРОИЗОШЛА ОШИБКА ВО ВРЕМЯ ПАРСИНГА СООБЩЕНИЯ ОБ ОШИБКЕ",
   "jsmacrosce.close": "Закрыть",
   "jsmacrosce.add": "Добавить",
