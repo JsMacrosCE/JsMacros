@@ -12,7 +12,7 @@ import org.joml.Matrix3x2fStack;
 import org.joml.Quaternionf;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 
 import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRenderTypes;
 
@@ -27,7 +27,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRen
  * <p>
   * <pre>
  * const draw = Hud.createDraw2D();
- * const line = draw.addLine(0, 0, 50, 50, 0xFFFFFFFF, 0, 2);
+ * const line = draw.addLine(0, 0, 50, 50, Color.rgb(0xFF, 0xFF, 0xFF), 0, 2);
  * draw.register();
  * Chat.log(`${line.getWidth()} thick, reaching ${line.getScaledWidth()} across`);
  * </pre>
@@ -246,15 +246,15 @@ public class Line implements RenderElement, Alignable<Line> {
     }
 
     /**
-    * Sets the packed ARGB color. If its alpha byte is zero, {@link ColorUtil#fixAlpha(int)}
-    * makes it opaque except when the packed value is pure black.
+    * Sets the packed ARGB color. A zero alpha byte with nonzero RGB is treated as opaque;
+    * pure black remains transparent.
     *
     * @param color the color of the line
     * @return self for chaining.
     * @since 1.8.4
     */
     public Line setColor(int color) {
-        this.color = ColorUtil.fixAlpha(color);
+        this.color = ColorMath.fixAlpha(color);
         return this;
     }
 
@@ -826,8 +826,8 @@ public class Line implements RenderElement, Alignable<Line> {
         }
 
         /**
-        * Sets the packed color and derives the builder's separate alpha using
-        * {@link ColorUtil#fixAlpha(int)}. A later {@code alpha} call changes the
+        * Sets the packed color and derives the builder's separate alpha from the value after
+        * applying the renderer's zero-alpha rule. A later {@code alpha} call changes the
         * separate alpha without changing this packed color.
         *
         * @param color the color of the line
@@ -836,7 +836,7 @@ public class Line implements RenderElement, Alignable<Line> {
         */
         public Builder color(int color) {
             this.color = color;
-            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
+            this.alpha = ColorMath.fixAlpha(color) >>> 24;
             return this;
         }
 

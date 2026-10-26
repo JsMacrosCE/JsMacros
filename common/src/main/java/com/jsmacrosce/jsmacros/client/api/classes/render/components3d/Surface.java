@@ -90,7 +90,7 @@ import org.joml.Matrix4f;
  *    .cull(false)
  *    .renderBack(true)
  *    .buildAndAdd();
- * surface.addText("hello", 10, 10, 0xFFFFFFFF, true);
+ * surface.addText("hello", 10, 10, Color.rgb(0xFF, 0xFF, 0xFF), true);
  * draw.register();
  * </pre>
  *
@@ -902,7 +902,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
      *    .minSubdivisions(200)
      *    .rotateToPlayer(true)
      *    .buildAndAdd();
-     * surface.addText("a label", 10, 10, 0xFFFFFFFF, true);
+     * surface.addText("a label", 10, 10, Color.rgb(0xFF, 0xFF, 0xFF), true);
      * draw.register();
      * </pre>
      *
@@ -1456,7 +1456,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
          * const surface = draw.surfaceBuilder().pos(0, 64, 0).size(1, 1).build();
          * // built but not added, so it is not in the overlay yet
          * draw.addSurface(surface);
-         * surface.addText("hello", 10, 10, 0xFFFFFFFF, true);
+         * surface.addText("hello", 10, 10, Color.rgb(0xFF, 0xFF, 0xFF), true);
          * draw.register();
          * </pre>
          *

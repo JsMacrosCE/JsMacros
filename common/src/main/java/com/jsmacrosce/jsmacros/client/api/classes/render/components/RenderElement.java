@@ -19,8 +19,8 @@ import com.jsmacrosce.doclet.DocletIgnore;
   * a specific element from an overlay's element list.
  * <pre>
  * const draw = Hud.createDraw2D();
- * const back = draw.addRect(0, 0, 100, 100, 0xFF000000);
- * const front = draw.addRect(10, 10, 50, 50, 0xFFFF0000);
+ * const back = draw.addRect(0, 0, 100, 100, Color.rgb(0x00, 0x00, 0x00));
+ * const front = draw.addRect(10, 10, 50, 50, Color.rgb(0xFF, 0x00, 0x00));
  * // sorted by z-index lowest first, and a tie keeps the order the two were added in
  * front.setZIndex(back.getZIndex() + 1);
  *

@@ -681,7 +681,7 @@ try {
       var p = posFromPlayer(0, 2.0, 3);
       var s = draw.addDraw2D(p.x, p.y, p.z, 2, 1);
       s.addRect(0, 0, s.getWidth(), s.getHeight(), 0x000000, 0x55);
-      s.addText('Hello 3D!', 10, 10, 0xffffffff | 0, false);
+      s.addText('Hello 3D!', 10, 10, Color.rgb(0xFF, 0xFF, 0xFF), false);
     }
   );
 
@@ -693,7 +693,7 @@ try {
       var p = posFromPlayer(0, 2.0, 3);
       var s = draw.addDraw2D(p.x, p.y, p.z, 0, 45, 0, 2, 1);
       s.addRect(0, 0, s.getWidth(), s.getHeight(), 0x2244aa, 0x55);
-      s.addText('Rotated', 8, 8, 0xffffffff | 0, false);
+      s.addText('Rotated', 8, 8, Color.rgb(0xFF, 0xFF, 0xFF), false);
     }
   );
 
@@ -707,7 +707,7 @@ try {
       s.setRotateToPlayer(true);
       s.setRotateCenter(true);
       s.addRect(0, 0, s.getWidth(), s.getHeight(), 0x22aa22, 0x55);
-      s.addText('Faces You', 8, 8, 0xffffffff | 0, false);
+      s.addText('Faces You', 8, 8, Color.rgb(0xFF, 0xFF, 0xFF), false);
     }
   );
 
@@ -719,13 +719,13 @@ try {
       var p = posFromPlayer(0, 2.0, 3);
       var s = draw.addDraw2D(p.x, p.y, p.z, 1.2, 0.8);
       var rect = s.addRect(0, 0, s.getWidth(), s.getHeight(), 0xaa2222, 0x55);
-      var label = s.addText('Before', 8, 8, 0xffffffff | 0, false);
+      var label = s.addText('Before', 8, 8, Color.rgb(0xFF, 0xFF, 0xFF), false);
       sleep(1000);
       s.setSizes(4.0, 2.2);
       s.removeRect(rect);
       s.removeText(label);
       s.addRect(0, 0, s.getWidth(), s.getHeight(), 0xaa2222, 0x55);
-      s.addText('Resized', 8, 8, 0xffffffff | 0, false);
+      s.addText('Resized', 8, 8, Color.rgb(0xFF, 0xFF, 0xFF), false);
       sleep(1000);
       s.setPos(p.x + 2, p.y, p.z);
     }
@@ -741,14 +741,14 @@ try {
       s1.setWorldLight();
       s1.cull = true;
       s1.addRect(0, 0, s1.getWidth(), s1.getHeight(), 0x0000ff, 0x66, 0, -5);
-      s1.addText('WORLD', 6, 6, 0xffffffff | 0, 10, false);
+      s1.addText('WORLD', 6, 6, Color.rgb(0xFF, 0xFF, 0xFF), 10, false);
       draw.addPoint(p.x - 1.2, p.y, p.z, 0.05, 0x00ffff, 255, true);
 
       var s2 = draw.addDraw2D(p.x + 1.2, p.y, p.z, 1.2, 0.8);
       s2.setFullBrightLight();
       s2.cull = true;
       s2.addRect(0, 0, s2.getWidth(), s2.getHeight(), 0xffaa00, 0x66, 0, -5);
-      s2.addText('BRIGHT', 6, 6, 0xffffffff | 0, 10, false);
+      s2.addText('BRIGHT', 6, 6, Color.rgb(0xFF, 0xFF, 0xFF), 10, false);
       draw.addPoint(p.x + 1.2, p.y, p.z, 0.05, 0xffffff, 255, true);
     }
   );

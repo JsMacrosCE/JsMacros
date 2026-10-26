@@ -903,10 +903,28 @@ const TESTS = [
         mode: "auto",
         title: "Default Color Alpha",
         run(state) {
-            const ColorUtil = Java.type("com.jsmacrosce.jsmacros.client.util.ColorUtil");
-            check(state, alphaOf(ColorUtil.fixAlpha(0x123456)) === 0xFF, "fixAlpha() makes bare RGB opaque");
-            check(state, alphaOf(ColorUtil.fixAlpha(0x40123456)) === 0x40, "fixAlpha() preserves packed alpha");
-            check(state, ColorUtil.fixAlpha(0) === 0, "fixAlpha() leaves zero transparent");
+            const halfBlack = Color.argb(0x80, 0, 0, 0);
+            const packedHalfBlack = Color.fromPacked(0x80000000);
+            check(state, halfBlack === packedHalfBlack, "fromPacked(0x80000000) matches argb(0x80, 0, 0, 0)");
+            check(state, Color.alpha(halfBlack) === 0x80 && Color.red(halfBlack) === 0
+                && Color.green(halfBlack) === 0 && Color.blue(halfBlack) === 0,
+                "argb() and component getters use the packed ARGB layout");
+            check(state, Color.alpha(Color.rgb(1, 2, 3)) === 0xFF, "rgb() produces an opaque color");
+            const replaced = Color.withAlpha(0x123456, 0x40);
+            check(state, Color.alpha(replaced) === 0x40 && Color.red(replaced) === 0x12
+                && Color.green(replaced) === 0x34 && Color.blue(replaced) === 0x56,
+                "withAlpha() replaces alpha and preserves RGB");
+            check(state, Color.alpha(Color.fromPacked(0xFFFFFFFF)) === 0xFF
+                && Color.blue(Color.fromPacked(0xFFFFFFFF)) === 0xFF,
+                "fromPacked() accepts unsigned opaque white");
+            check(state, typeof Color.fixAlpha === "undefined", "Color does not expose the renderer alpha policy");
+            let overflowRejected = false;
+            try {
+                Color.fromPacked(0x100000000);
+            } catch (error) {
+                overflowRejected = true;
+            }
+            check(state, overflowRejected, "fromPacked() rejects values above the 32-bit ARGB range");
 
             const draw = Hud.createDraw2D();
             const rect = draw.addRect(0, 0, 1, 1, 0x123456);
@@ -1031,10 +1049,10 @@ const TESTS = [
                 check(state, builtEntityTrace.getColor() === 0x778899 && builtEntityTrace.getAlpha() === 44,
                     "EntityTraceLine.Builder applies the separate RGB and alpha to the built line");
 
-                // The bare-RGB paths run through ColorUtil.fixAlpha, so a color
+                // The bare-RGB paths use the renderer's zero-alpha rule, so a color
                 // without an alpha byte is treated as opaque instead of invisible.
                 const bare = draw.addBox(0, 0, 0, 1, 1, 1, 0xFF0000, 0, false);
-                check(state, alphaOf(bare.color) === 255 && rgbOf(bare.color) === 0xFF0000, "Box outline fixAlpha() defaults bare RGB to alpha 255");
+                check(state, alphaOf(bare.color) === 255 && rgbOf(bare.color) === 0xFF0000, "Box outline defaults bare RGB to alpha 255");
                 const filled = draw.addBox(0, 0, 0, 1, 1, 1, 0x112233, 0x00CC44, true);
                 check(state, alphaOf(filled.fillColor) === 255 && rgbOf(filled.fillColor) === 0x00CC44,
                     "Box.addBox() defaults bare RGB fill to alpha 255");
@@ -1068,7 +1086,7 @@ const TESTS = [
 
                 const bareLine = draw.addLine(0, 0, 0, 1, 2, 3, 0xFFFFFF);
                 bareLine.setColor(0x123456);
-                check(state, alphaOf(bareLine.color) === 255 && rgbOf(bareLine.color) === 0x123456, "Line3D.setColor(rgb) uses fixAlpha()");
+                check(state, alphaOf(bareLine.color) === 255 && rgbOf(bareLine.color) === 0x123456, "Line3D.setColor(rgb) treats bare RGB as opaque");
                 bareLine.setColor(0x40123456);
                 check(state, alphaOf(bareLine.color) === 0x40, "Line3D.setColor(argb) preserves packed alpha");
                 bareLine.setColor(0);

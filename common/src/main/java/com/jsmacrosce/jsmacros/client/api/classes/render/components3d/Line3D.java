@@ -15,7 +15,7 @@ import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.api.math.Vec3D;
 import com.jsmacrosce.jsmacros.client.api.classes.render.Draw3D;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 
 import java.lang.reflect.Field;
 import java.util.Objects;
@@ -39,7 +39,7 @@ import net.minecraft.client.renderer.RenderType;
  * <pre>
  * const draw = Hud.createDraw3D();
  * // a green line across one block, hidden by anything in front of it
- * const line = draw.addLine(0, 64, 0, 1, 65, 0, 0xFF00FF00, true);
+ * const line = draw.addLine(0, 64, 0, 1, 65, 0, Color.rgb(0x00, 0xFF, 0x00), true);
  * Chat.log(`runs from ${line.getPos1()} to ${line.getPos2()}`);
  * draw.register();
  * </pre>
@@ -179,7 +179,7 @@ public class Line3D implements RenderElement3D<Line3D> {
      * @since 1.0.6
      */
     public void setColor(int color) {
-        this.color = ColorUtil.fixAlpha(color);
+        this.color = ColorMath.fixAlpha(color);
     }
 
     /**
@@ -521,8 +521,8 @@ public class Line3D implements RenderElement3D<Line3D> {
         }
 
         /**
-         * Sets the colour and derives the builder's alpha from its top byte, applying
-         * {@link ColorUtil#fixAlpha(int)} first.
+         * Sets the colour and derives the builder's alpha from its top byte after applying
+         * the renderer's zero-alpha rule.
          *
          * @param color the color of the line
          * @return self for chaining.
@@ -530,7 +530,7 @@ public class Line3D implements RenderElement3D<Line3D> {
          */
         public Builder color(int color) {
             this.color = color;
-            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
+            this.alpha = ColorMath.fixAlpha(color) >>> 24;
             return this;
         }
 

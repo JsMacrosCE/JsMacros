@@ -233,6 +233,7 @@ public abstract class BaseProfile {
         runner.libraryRegistry.addLibrary(FReflection.class);
         runner.libraryRegistry.addLibrary(FRequest.class);
         runner.libraryRegistry.addLibrary(FTime.class);
+        runner.libraryRegistry.addLibrary(FColor.class);
     }
 
 }

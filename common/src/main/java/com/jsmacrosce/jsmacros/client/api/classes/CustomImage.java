@@ -33,9 +33,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * <pre>
  * // Draw several changes before uploading the image once.
  * const img = ScriptClasses.CustomImage.createWidget(16, 16, "badge");
- * img.setGraphicsColor(0xFF5555);
+ * img.setGraphicsColor(Color.rgb(0xFF, 0x55, 0x55));
  * img.fillRect(0, 0, 16, 16);
- * img.setGraphicsColor(0xFFFFFF);
+ * img.setGraphicsColor(Color.rgb(0xFF, 0xFF, 0xFF));
  * img.drawString(2, 11, "hi");
  * img.update();
  * Chat.log(`${img.getIdentifier()} is ${img.getWidth()} by ${img.getHeight()}`);

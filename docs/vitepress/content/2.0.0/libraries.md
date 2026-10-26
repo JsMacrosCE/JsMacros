@@ -43,7 +43,7 @@ Think in terms of intent:
 
 - **automation/control:** `Player`, `Client`, `KeyBind`
 - **world inspection:** `World`
-- **UI and rendering:** `Hud`
+- **UI and rendering:** `Hud`, `Color`
 - **communication:** `Chat`
 - **runtime orchestration:** `JsMacros`, `Time`, `GlobalVars`
 - **IO/integration:** `FS`, `Request`

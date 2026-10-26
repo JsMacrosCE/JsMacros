@@ -20,7 +20,7 @@ import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.classes.TextBuilder;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 
 import java.nio.FloatBuffer;
 
@@ -35,7 +35,7 @@ import java.nio.FloatBuffer;
  * interactions, while a plain overlay does not provide mouse input.
  * <pre>
  * const draw = Hud.createDraw2D();
- * const label = draw.addText("hello", 10, 10, 0xFFFFFFFF, true);
+ * const label = draw.addText("hello", 10, 10, Color.rgb(0xFF, 0xFF, 0xFF), true);
  * draw.register();
  * Chat.log(`${label.getWidth()} wide, ${label.getHeight()} tall, as the font measures it`);
  * </pre>
@@ -376,7 +376,7 @@ public class Text implements RenderElement, Alignable<Text> {
     * @since 1.8.4
     */
     public Text setColor(int color) {
-        this.color = ColorUtil.fixAlpha(color);
+        this.color = ColorMath.fixAlpha(color);
         return this;
     }
 
@@ -620,7 +620,7 @@ public class Text implements RenderElement, Alignable<Text> {
     * its center by default.
     * <pre>
     * const draw = Hud.createDraw2D();
-    * draw.textBuilder().text("hello").pos(10, 10).color(0xFFFFFFFF).buildAndAdd();
+    * draw.textBuilder().text("hello").pos(10, 10).color(Color.rgb(0xFF, 0xFF, 0xFF)).buildAndAdd();
     * draw.register();
     * </pre>
     *

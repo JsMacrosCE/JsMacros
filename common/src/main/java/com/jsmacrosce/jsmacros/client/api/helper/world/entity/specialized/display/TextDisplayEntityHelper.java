@@ -94,9 +94,9 @@ public class TextDisplayEntityHelper extends DisplayEntityHelper<Display.TextDis
         }
 
         /**
-         * Returns the background box color as packed ARGB; the default is {@code 0x40000000}
-         * (quarter-opaque black), and {@code 0} disables the box. Its alpha is independent of
-         * {@link #getTextOpacity()}.
+         * Returns the background box color as packed ARGB; the default is quarter-opaque
+         * black ({@code Color.argb(0x40, 0x00, 0x00, 0x00)}), and {@code 0} disables the box.
+         * Its alpha is independent of {@link #getTextOpacity()}.
          *
          * @return the packed ARGB colour of the background box
          * @since 1.9.1

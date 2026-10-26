@@ -10,7 +10,7 @@ import com.jsmacrosce.jsmacros.core.library.ScriptNamespace;
  * Call their static methods directly on the named type.
  * <pre>
  * const image = ScriptClasses.CustomImage.createWidget(16, 16, "badge");
- * image.setGraphicsColor(0xFFFFFF);
+ * image.setGraphicsColor(Color.rgb(0xFF, 0xFF, 0xFF));
  * image.fillRect(0, 0, 16, 16);
  * image.update();
  * </pre>

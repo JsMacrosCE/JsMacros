@@ -21,7 +21,7 @@ import java.util.function.IntSupplier;
   * <pre>
  * const outer = Hud.createDraw2D();
  * const panel = Hud.createDraw2D();
- * panel.addText("inside the panel", 5, 5, 0xFFFFFFFF, true);
+ * panel.addText("inside the panel", 5, 5, Color.rgb(0xFF, 0xFF, 0xFF), true);
  * // lands at 25, 25 on the outer overlay, and is not clipped to 100 by 50
  * outer.draw2DBuilder(panel).pos(20, 20).size(100, 50).buildAndAdd();
  * outer.register();

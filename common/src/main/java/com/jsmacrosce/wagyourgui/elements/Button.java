@@ -7,7 +7,7 @@ import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 
 //? if >1.21.8 {
 /*import net.minecraft.client.input.InputWithModifiers;
@@ -22,8 +22,8 @@ import java.util.function.Consumer;
  * <pre>
  * function makeButton(font, label, onPressed) {
  *   const Button = Java.type('com.jsmacrosce.wagyourgui.elements.Button');
- *   return new Button(10, 10, 120, 20, font, 0xFF000000, 0xFFFFFFFF,
- *     0xFF808080, 0xFFFFFFFF, label, JavaWrapper.methodToJava(onPressed));
+ *   return new Button(10, 10, 120, 20, font, Color.rgb(0x00, 0x00, 0x00), Color.rgb(0xFF, 0xFF, 0xFF),
+ *     Color.rgb(0x80, 0x80, 0x80), Color.rgb(0xFF, 0xFF, 0xFF), label, JavaWrapper.methodToJava(onPressed));
  * }
  * </pre>
  * The factory takes a native font, component label, and JavaScript callback; add the result to your existing host separately.
@@ -123,21 +123,21 @@ public class Button extends AbstractButton {
      * @param color packed ARGB color
      */
     public void setColor(int color) {
-        this.color = ColorUtil.fixAlpha(color);
+        this.color = ColorMath.fixAlpha(color);
     }
 
     /** Sets the outline color; a zero alpha byte with nonzero RGB is made opaque, while zero remains zero.
      * @param color packed ARGB color
      */
     public void setBorderColor(int color) {
-        this.borderColor = ColorUtil.fixAlpha(color);
+        this.borderColor = ColorMath.fixAlpha(color);
     }
 
     /** Sets the hover or forced-hover fill; a zero alpha byte with nonzero RGB is made opaque, while zero remains zero.
      * @param color packed ARGB color
      */
     public void setHighlightColor(int color) {
-        this.highlightColor = ColorUtil.fixAlpha(color);
+        this.highlightColor = ColorMath.fixAlpha(color);
     }
 
     /** Sets the packed ARGB label color, making zero-alpha nonzero RGB opaque; zero remains transparent.
@@ -145,7 +145,7 @@ public class Button extends AbstractButton {
      * @param color packed ARGB label color
      */
     public void setTextColor(int color) {
-        this.textColor = ColorUtil.fixAlpha(color);
+        this.textColor = ColorMath.fixAlpha(color);
     }
 
     protected void renderMessage(GuiGraphics drawContext) {

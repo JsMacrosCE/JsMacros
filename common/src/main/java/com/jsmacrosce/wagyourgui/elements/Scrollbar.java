@@ -20,7 +20,7 @@ import java.util.function.Consumer;
  * <pre>
  * const Scrollbar = Java.type("com.jsmacrosce.wagyourgui.elements.Scrollbar");
  * function createScrollbar(x, y, width, height, onOffset) {
- *   return new Scrollbar(x, y, width, height, 0xff202020, 0xff000000, 0xff808080, 3,
+ *   return new Scrollbar(x, y, width, height, Color.rgb(0x20, 0x20, 0x20), Color.rgb(0x00, 0x00, 0x00), Color.rgb(0x80, 0x80, 0x80), 3,
  *     JavaWrapper.methodToJava(onOffset));
  * }
  * </pre>

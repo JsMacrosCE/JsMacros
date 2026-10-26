@@ -18,8 +18,8 @@ import net.minecraft.client.gui.GuiGraphics;
  * <pre>
  * function makeCheckBox(font, label, onChanged) {
  *   const CheckBox = Java.type('com.jsmacrosce.wagyourgui.elements.AnnotatedCheckBox');
- *   return new CheckBox(10, 10, 140, 16, font, 0xFF000000, 0xFFFFFFFF,
- *     0xFF808080, 0xFFFFFFFF, label, false,
+ *   return new CheckBox(10, 10, 140, 16, font, Color.rgb(0x00, 0x00, 0x00), Color.rgb(0xFF, 0xFF, 0xFF),
+ *     Color.rgb(0x80, 0x80, 0x80), Color.rgb(0xFF, 0xFF, 0xFF), label, false,
  *     JavaWrapper.methodToJava(button => onChanged(button.value)));
  * }
  * </pre>

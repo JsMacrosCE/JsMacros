@@ -36,8 +36,8 @@ import java.util.List;
  * <pre>
  * // a world overlay with a box and a line in it, registered so it shows
  * const draw = Hud.createDraw3D();
- * draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFF0000, 0x88000000, true);
- * draw.addLine(0, 64, 0, 8, 72, 0, 0xFF00FF00);
+ * draw.addBox(0, 64, 0, 1, 65, 1, Color.rgb(0xFF, 0x00, 0x00), Color.argb(0x88, 0, 0, 0), true);
+ * draw.addLine(0, 64, 0, 8, 72, 0, Color.rgb(0x00, 0xFF, 0x00));
  * draw.register();
  *
  * // what went in, in the order it will be drawn
@@ -327,7 +327,7 @@ public class Draw3D implements Registrable<Draw3D> {
 
     /**
      * Adds a line between two world-space endpoints. A zero alpha byte is treated as opaque
-     * when the RGB value is nonzero; {@code 0x00000000} remains transparent.
+     * when the RGB value is nonzero; transparent black remains transparent.
      *
      * @param x1 the x coordinate of the start
      * @param y1 the y coordinate of the start
@@ -539,7 +539,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * if (player !== null) {
      *   const draw = Hud.createDraw3D();
      *   // aim at the player's eyes rather than their feet
-     *   draw.addEntityTraceLine(player, 0xFFFF0000, 255, player.getEyeHeight());
+     *   draw.addEntityTraceLine(player, Color.rgb(0xFF, 0x00, 0x00), 255, player.getEyeHeight());
      *   draw.register();
      * }
      * </pre>
@@ -828,7 +828,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * default. For a one-block box, use {@link #boxBuilder(int, int, int)}.
      * <pre>
      * const draw = Hud.createDraw3D();
-     * draw.boxBuilder().pos(0, 64, 0, 3, 67, 2).color(0xFFFF0000).buildAndAdd();
+     * draw.boxBuilder().pos(0, 64, 0, 3, 67, 2).color(Color.rgb(0xFF, 0x00, 0x00)).buildAndAdd();
      * draw.register();
      * </pre>
      *
@@ -846,7 +846,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * const player = Player.getPlayer();
      * if (player !== null) {
      *   const draw = Hud.createDraw3D();
-     *   draw.boxBuilder(player.getBlockPos()).color(0xFFFF0000).buildAndAdd();
+     *   draw.boxBuilder(player.getBlockPos()).color(Color.rgb(0xFF, 0x00, 0x00)).buildAndAdd();
      *   draw.register();
      * }
      * </pre>
@@ -864,7 +864,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * <pre>
      * const draw = Hud.createDraw3D();
      * // a wireframe around a single block
-     * draw.boxBuilder(0, 64, 0).color(0xFFFF0000).buildAndAdd();
+     * draw.boxBuilder(0, 64, 0).color(Color.rgb(0xFF, 0x00, 0x00)).buildAndAdd();
      * draw.register();
      * </pre>
      *
@@ -883,7 +883,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * Set distinct endpoints for a visible line.
      * <pre>
      * const draw = Hud.createDraw3D();
-     * draw.lineBuilder().pos(0, 64, 0, 8, 72, 0).color(0xFF00FF00).buildAndAdd();
+     * draw.lineBuilder().pos(0, 64, 0, 8, 72, 0).color(Color.rgb(0x00, 0xFF, 0x00)).buildAndAdd();
      * draw.register();
      * </pre>
      *
@@ -899,7 +899,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * world. Its start point is calculated from the camera each frame.
      * <pre>
      * const draw = Hud.createDraw3D();
-     * draw.traceLineBuilder().pos(0, 64, 0).color(0xFFFF0000).buildAndAdd();
+     * draw.traceLineBuilder().pos(0, 64, 0).color(Color.rgb(0xFF, 0x00, 0x00)).buildAndAdd();
      * draw.register();
      * </pre>
      *
@@ -918,7 +918,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * const player = Player.getPlayer();
      * if (player !== null) {
      *   const draw = Hud.createDraw3D();
-     *   draw.entityTraceLineBuilder().entity(player).color(0xFFFF0000).buildAndAdd();
+     *   draw.entityTraceLineBuilder().entity(player).color(Color.rgb(0xFF, 0x00, 0x00)).buildAndAdd();
      *   draw.register();
      * }
      * </pre>
@@ -942,7 +942,7 @@ public class Draw3D implements Registrable<Draw3D> {
      *    .size(1, 1)
      *    .minSubdivisions(200)
      *    .buildAndAdd();
-     * surface.addText("hello", 10, 10, 0xFFFFFFFF, true);
+     * surface.addText("hello", 10, 10, Color.rgb(0xFF, 0xFF, 0xFF), true);
      * draw.register();
      * </pre>
      *
@@ -959,7 +959,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * already registered instance has no additional effect.
      * <pre>
      * const draw = Hud.createDraw3D();
-     * draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFF0000, 0x00000000, false);
+     * draw.addBox(0, 64, 0, 1, 65, 1, Color.rgb(0xFF, 0x00, 0x00), Color.argb(0, 0, 0, 0), false);
      * // nothing has been drawn until this
      * draw.register();
      * </pre>
@@ -978,7 +978,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * again later; other overlays are unaffected.
      * <pre>
      * const draw = Hud.createDraw3D();
-     * draw.addBox(0, 64, 0, 1, 65, 1, 0xFFFF0000, 0x00000000, false);
+     * draw.addBox(0, 64, 0, 1, 65, 1, Color.rgb(0xFF, 0x00, 0x00), Color.argb(0, 0, 0, 0), false);
      * draw.register();
      * draw.unregister();
      * // the box is still on the overlay, just not being drawn

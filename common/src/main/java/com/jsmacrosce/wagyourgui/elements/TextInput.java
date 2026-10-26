@@ -24,8 +24,8 @@ import com.jsmacrosce.doclet.DocletCategory;
  * <pre>
  * function makeTextInput(font, onChanged) {
  *   const TextInput = Java.type('com.jsmacrosce.wagyourgui.elements.TextInput');
- *   return new TextInput(10, 10, 120, 20, font, 0xFF000000, 0xFFFFFFFF,
- *     0x804040FF, 0xFFFFFFFF, '', null, JavaWrapper.methodToJava(onChanged));
+ *   return new TextInput(10, 10, 120, 20, font, Color.rgb(0x00, 0x00, 0x00), Color.rgb(0xFF, 0xFF, 0xFF),
+ *     Color.argb(0x80, 0x40, 0x40, 0xFF), Color.rgb(0xFF, 0xFF, 0xFF), '', null, JavaWrapper.methodToJava(onChanged));
  * }
  * </pre>
  * Supply a native font and JavaScript function for {@code onChanged}; {@code onClick} may be null.

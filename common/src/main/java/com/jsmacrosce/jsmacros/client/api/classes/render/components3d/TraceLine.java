@@ -3,7 +3,7 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.RenderSink;
 
 import com.jsmacrosce.jsmacros.client.util.RenderCompat;
 import com.jsmacrosce.doclet.DocletCategory;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -36,7 +36,7 @@ import java.util.Objects;
  * <pre>
  * const draw = Hud.createDraw3D();
  * // A red line from the camera toward this target.
- * draw.addTraceLine(0, 64, 0, 0xFFFF0000).setAlwaysOnTop(false);
+ * draw.addTraceLine(0, 64, 0, Color.rgb(0xFF, 0x00, 0x00)).setAlwaysOnTop(false);
  * draw.register();
  * </pre>
  *
@@ -50,8 +50,8 @@ public class TraceLine implements RenderElement3D<TraceLine> {
 
     /**
      * Initializes a detached trace toward the target in world-space block coordinates.
-     * The packed color uses {@link ColorUtil#fixAlpha(int)}: nonzero RGB with zero alpha
-     * becomes opaque, while zero-alpha black remains transparent. Depth testing is disabled.
+     * Nonzero RGB with zero alpha becomes opaque, while zero-alpha black remains transparent.
+     * Depth testing is disabled.
      *
      * @param x target x coordinate in blocks
      * @param y target y coordinate in blocks
@@ -96,7 +96,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     /**
      * Initializes a detached trace toward a copy of {@code pos}'s coordinates in world-space blocks.
      * A null position fails with {@link NullPointerException}; zero-alpha packed-color handling
-     * follows {@link ColorUtil#fixAlpha(int)}. Depth testing is disabled.
+     * follows the renderer's opaque-bare-RGB rule. Depth testing is disabled.
      *
      * @param pos target position; its coordinates are copied
      * @param color packed color; nonzero RGB with zero alpha becomes opaque, while zero-alpha black remains transparent
@@ -445,8 +445,8 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * Sets the packed colour and derives alpha from its top byte after
-         * {@link ColorUtil#fixAlpha(int)}; non-black RGB with a zero alpha becomes opaque.
+         * Sets the packed colour and derives alpha from its top byte after applying the
+         * renderer's zero-alpha rule; non-black RGB with a zero alpha becomes opaque.
          *
          * @param color the color of the line
          * @return self for chaining
@@ -454,7 +454,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
          */
         public Builder color(int color) {
             this.color = color;
-            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
+            this.alpha = ColorMath.fixAlpha(color) >>> 24;
             return this;
         }
 

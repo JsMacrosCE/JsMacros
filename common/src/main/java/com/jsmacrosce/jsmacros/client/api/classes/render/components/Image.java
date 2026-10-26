@@ -14,7 +14,7 @@ import org.joml.Matrix3x2fStack;
 import com.jsmacrosce.jsmacros.client.api.classes.CustomImage;
 import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
 import com.jsmacrosce.jsmacros.client.api.classes.render.IDraw2D;
-import com.jsmacrosce.jsmacros.client.util.ColorUtil;
+import com.jsmacrosce.jsmacros.util.ColorMath;
 import com.jsmacrosce.doclet.DocletIgnore;
 
 //? if <=1.21.5 {
@@ -114,8 +114,8 @@ public class Image implements RenderElement, Alignable<Image> {
     /**
     * the tint, packed with the alpha in the top byte.
     * <p>
-    * A colour with no alpha of its own is made opaque unless it was pure black, so
-    * {@code 0xFF0000} is stored as {@code 0xFFFF0000}.
+    * A colour with no alpha of its own is made opaque unless it was pure black; for
+    * example, a bare RGB red is stored with alpha {@code 0xFF}.
     */
     public int color;
     /**
@@ -129,7 +129,7 @@ public class Image implements RenderElement, Alignable<Image> {
     * <p>
     * A bare texture name gets the {@code minecraft} namespace. Finite rotations are
     * normalized to {@code [-180, 180)}. Tint handling follows {@link #setColor(int)},
-    * including its special handling of {@code 0x000000}.
+    * including its special handling of transparent black.
     *
     * @param x             the x position of the image
     * @param y             the y position of the image
@@ -377,7 +377,7 @@ public class Image implements RenderElement, Alignable<Image> {
     * <pre>
     * const draw = Hud.createDraw2D();
     * const icon = draw.imageBuilder("minecraft:item/diamond").pos(10, 10).size(16, 16).buildAndAdd();
-    * icon.setColor(0xFF0000);
+    * icon.setColor(Color.rgb(0xFF, 0x00, 0x00));
     * draw.register();
     * Chat.log(`0x${(icon.getColor() >>> 0).toString(16)}`); // ffff0000
     * </pre>
@@ -387,7 +387,7 @@ public class Image implements RenderElement, Alignable<Image> {
     * @since 1.6.5
     */
     public Image setColor(int color) {
-        this.color = ColorUtil.fixAlpha(color);
+        this.color = ColorMath.fixAlpha(color);
         return this;
     }
 
@@ -1104,7 +1104,8 @@ public class Image implements RenderElement, Alignable<Image> {
         }
 
         /**
-        * Sets the packed tint and derives alpha from its top byte, using {@link ColorUtil#fixAlpha(int)}.
+        * Sets the packed tint and derives alpha from its top byte after applying the renderer's
+        * zero-alpha rule.
         *
         * @param color the color of the image
         * @return self for chaining.
@@ -1112,7 +1113,7 @@ public class Image implements RenderElement, Alignable<Image> {
         */
         public Builder color(int color) {
             this.color = color;
-            this.alpha = ColorUtil.fixAlpha(color) >>> 24;
+            this.alpha = ColorMath.fixAlpha(color) >>> 24;
             return this;
         }
 
