@@ -48,7 +48,7 @@ public class FileMapSetting extends AbstractMapSettingContainer<String, FileMapS
             addRenderableWidget(new Button(x + w / 2, y, w / 2, height, textRenderer, 0, 0xFF000000, 0x7FFFFFFF, 0xFFFFFFFF, Component.literal(value), (btn) -> {
                 File current = new File(FileField.getTopLevel(parent.setting), value);
                 FileChooser fc = new FileChooser(parent.x, parent.y, parent.width, parent.height, textRenderer, current.getParentFile(), current, getFirstOverlayParent(), (file) -> {
-                    String newVal = "." + FileField.relativize(parent.setting, file).replaceAll("\\\\", "/");
+                    String newVal = "./" + FileField.relativize(parent.setting, file).replaceAll("\\\\", "/");
                     try {
                         parent.changeValue(key, newVal);
                         btn.setMessage(Component.literal(newVal));
