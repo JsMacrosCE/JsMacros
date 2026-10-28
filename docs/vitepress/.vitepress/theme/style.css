@@ -83,16 +83,87 @@
 }
 
 /* --------------------------------------------------------------------------
+   Class metadata pills — @since and event cancellation.
+
+   These are page-wide facts, so they sit between the qualified name and the
+   prose instead of repeating themselves in every description.
+   -------------------------------------------------------------------------- */
+
+.vp-doc .api-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.85rem 0 0.9rem;
+}
+
+.vp-doc .api-pill {
+  display: inline-flex;
+  align-items: baseline;
+  padding: 0.08rem 0.6rem;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 999px;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-2);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.vp-doc .api-pill-since {
+  gap: 0.3rem;
+}
+
+.vp-doc .api-pill-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vp-c-text-2);
+}
+
+.vp-doc .api-pill-value {
+  font-family: var(--vp-font-family-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.vp-doc .api-pill-cancellable {
+  border-color: var(--vp-c-green-1);
+  background: var(--vp-c-green-soft);
+  color: var(--vp-c-green-1);
+}
+
+.vp-doc .api-pill-conditional {
+  border-color: var(--vp-c-yellow-1);
+  background: var(--vp-c-yellow-soft);
+  color: var(--vp-c-yellow-1);
+}
+
+.vp-doc .api-pill-neutral {
+  color: var(--vp-c-text-2);
+}
+
+.vp-doc .api-meta-note {
+  margin: -0.5rem 0 0.9rem;
+  color: var(--vp-c-text-2);
+  font-size: 0.85rem;
+}
+
+/* --------------------------------------------------------------------------
    Overload / member groups — rendered as raw HTML by the Java doclet.
 
    Structure emitted for every member (solo or overloaded):
 
      <div class="overload-list">
        <div class="overload-item" id="QualifiedClass_anchorId">
-         <div class="overload-sig"><code>…full signature…</code></div>
+         <div class="overload-sig">
+           <code>…full signature…</code>
+           <span class="overload-badges">…since/deprecated/read-only pills…</span>
+           <a class="overload-anchor">#</a>
+         </div>
          <div class="overload-body">          (absent when no docs)
            <p>description</p>
-           <p><strong>Since:</strong> …</p>
+           <p class="api-meta-note">since history, when the tag has extra text</p>
            <p><strong>Parameters:</strong></p>
            <ul>…</ul>
            <p><strong>Returns:</strong> …</p>
@@ -120,6 +191,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  row-gap: 0.35rem;
   padding: 0.5rem 0.75rem;
   background: var(--vp-c-bg-alt);
 }
@@ -244,8 +317,21 @@ html.dark .vp-doc .overload-body pre.shiki span {
   padding: 0;
 }
 
-.vp-doc .overload-sig .VPBadge {
+.vp-doc .overload-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   margin-left: auto;
+}
+
+.vp-doc .overload-badges .api-pill {
+  padding: 0 0.5rem;
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.vp-doc .overload-badges .VPBadge {
+  margin-left: 0;
 }
 
 

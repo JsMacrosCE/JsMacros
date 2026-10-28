@@ -35,11 +35,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @DocletIgnore
 public class MarkdownWriter {
     private static final String DEFAULT_CATEGORY = "Uncategorized";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+    /** A release version at the start of {@code @since}, with any trailing history. */
+    private static final Pattern SINCE_VERSION = Pattern.compile("^(\\d+(?:\\.\\d+)*)\\s*[,;:]?\\s*(.*)$", Pattern.DOTALL);
 
     /** One-line orientation shown under a generated category heading, plus a guide link when one exists. */
     private record CategoryCopy(String description, String guidePath, String guideLabel) {
@@ -520,6 +524,7 @@ public class MarkdownWriter {
         md.frontmatter(Map.of("outline", "deep"));
         md.heading(1, displayTitle(clz));
         md.paragraph(wrapHtmlWithElemAndAttribs(clz.qualifiedName(), "span", "class=\"qualified-name\""));
+        renderClassMetadata(md, clz);
 
         String desc = formatDescription(clz.docComment(), clz);
         String descText = desc.isEmpty() ? "TODO: No description supplied\n" : desc;
@@ -532,12 +537,8 @@ public class MarkdownWriter {
             }
         }
         renderClassTypeParameters(md, clz);
-        String since = getTagText(clz.docComment(), DocTagKind.SINCE, clz);
-        if (!since.isBlank()) {
-            md.paragraph("**Since:** " + since);
-        }
         if (clz.group() == ClassGroup.Event) {
-            renderEventMetadata(md, clz);
+            renderEventFilterer(md, clz);
         }
         if (isGlobalLibrary(clz)) {
             md.paragraph("Accessible in scripts via the global " + MarkdownBuilder.codeSpan(clz.alias()) + " variable.");
@@ -569,17 +570,41 @@ public class MarkdownWriter {
     }
 
     /**
-     * Shows the facts a reader needs before subscribing to an event: whether it can be
-     * cancelled, whether that forces joined dispatch, and which filterer it accepts.
+     * Renders the compact fact strip under a class name: the release that introduced the
+     * type and, for events, whether {@code event.cancel()} is available. These facts apply
+     * to the whole page, so they sit above the prose instead of being repeated in it.
      */
-    private void renderEventMetadata(MarkdownBuilder md, ClassDoc clz) {
-        if (clz.eventCancellable()) {
-            md.paragraph("**Cancellable:** yes. The game waits for this event's handlers before it continues; "
-                + "cancellable events join even when the listener was registered with `joined: false`. "
-                + "Call `event.cancel()` before releasing the event lock.");
-        } else {
-            md.paragraph("**Cancellable:** no. Calling `event.cancel()` throws `UnsupportedOperationException`.");
+    private void renderClassMetadata(MarkdownBuilder md, ClassDoc clz) {
+        List<String> pills = new ArrayList<>();
+        SinceInfo since = sinceInfo(clz.docComment(), clz);
+        if (since.version() != null) {
+            pills.add(sincePill(since.version()));
         }
+        if (clz.group() == ClassGroup.Event) {
+            if (clz.eventCancellableDynamic()) {
+                pills.add(pill("api-pill-conditional", "Cancellable per instance",
+                    "Whether this event can be cancelled depends on the instance; check the fields below."));
+            } else if (clz.eventCancellable()) {
+                pills.add(pill("api-pill-cancellable", "Cancellable",
+                    "Call event.cancel() in a handler before releasing the event lock."));
+            } else {
+                pills.add(pill("api-pill-neutral", "Not cancellable",
+                    "Calling event.cancel() throws UnsupportedOperationException."));
+            }
+        }
+        if (!pills.isEmpty()) {
+            md.paragraph("<div class=\"api-meta\">" + String.join("", pills) + "</div>");
+        }
+        if (since.detail() != null && !since.detail().isBlank()) {
+            md.paragraph("<p class=\"api-meta-note\">Note: " + since.detail() + "</p>");
+        }
+    }
+
+    /**
+     * Shows the filterer an event accepts and the call that creates one. This is usage
+     * guidance rather than a one-glance fact, so it stays in prose below the metadata strip.
+     */
+    private void renderEventFilterer(MarkdownBuilder md, ClassDoc clz) {
         String filtererName = clz.eventFilterer();
         if (filtererName != null && !filtererName.isBlank()) {
             ClassDoc filterer = findClassByName(filtererName);
@@ -590,6 +615,45 @@ public class MarkdownWriter {
                 + MarkdownBuilder.codeSpan("JsMacros.createEventFilterer(\"" + displayTitle(clz) + "\")")
                 + " and pass it to the filterer overload of `JsMacros.on`.");
         }
+    }
+
+    /**
+     * Splits a {@code @since} tag into the release that belongs in a pill and any trailing
+     * history such as an old name. Long sentences in a pill make signatures hard to scan,
+     * so the explanation is rendered as a note next to it instead.
+     */
+    private SinceInfo sinceInfo(DocComment comment, ClassDoc context) {
+        String html = getTagTextAsHtml(comment, DocTagKind.SINCE, context).trim();
+        if (html.isEmpty()) {
+            return SinceInfo.EMPTY;
+        }
+        Matcher matcher = SINCE_VERSION.matcher(html);
+        if (!matcher.matches()) {
+            return new SinceInfo(html, null);
+        }
+        String detail = matcher.group(2).trim();
+        if (detail.startsWith("(") && detail.endsWith(")")) {
+            detail = detail.substring(1, detail.length() - 1).trim();
+        }
+        return new SinceInfo(matcher.group(1), detail.isEmpty() ? null : detail);
+    }
+
+    private static String sincePill(String version) {
+        return "<span class=\"api-pill api-pill-since\">"
+            + "<span class=\"api-pill-label\">Since</span>"
+            + "<span class=\"api-pill-value\">" + version + "</span></span>";
+    }
+
+    private static String pill(String variant, String text, String title) {
+        StringBuilder html = new StringBuilder("<span class=\"api-pill ").append(variant).append('"');
+        if (title != null) {
+            html.append(" title=\"").append(title).append('"');
+        }
+        return html.append('>').append(text).append("</span>").toString();
+    }
+
+    private record SinceInfo(String version, String detail) {
+        private static final SinceInfo EMPTY = new SinceInfo(null, null);
     }
 
     @Nullable
@@ -695,12 +759,18 @@ public class MarkdownWriter {
             html.append("<code>")
                 .append(renderSignatureAsHtml(member, clz))
                 .append("</code>");
+            html.append("<span class=\"overload-badges\">");
+            SinceInfo memberSince = sinceInfo(member.docComment(), clz);
+            if (memberSince.version() != null) {
+                html.append(sincePill(memberSince.version()));
+            }
             if (hasDeprecatedTag(member.docComment())) {
                 html.append("<Badge type=\"danger\" text=\"deprecated\" />");
             }
             if (member.isReadOnly()) {
                 html.append("<Badge type=\"info\" text=\"read-only\" />");
             }
+            html.append("</span>");
             if (itemId != null) {
                 html.append("<a class=\"overload-anchor\" href=\"#").append(itemId).append("\">#</a>");
             }
@@ -805,13 +875,11 @@ public class MarkdownWriter {
             }
         }
 
-        // TODO: (docs) Make these badges inline with the name(?)
-        String since = getTagTextAsHtml(member.docComment(), DocTagKind.SINCE, clz);
-        // TODO: (docs) Migrate the since tags containing descriptions to a note or similar.
         // TODO: (docs) Verify all [citaiton needed] instances.
-        // Can be "1.2.3", "1.2.3 [citation needed]", or sometimes "1.2.3 (TextHelper since 2.3.4)"
-        if (!since.isEmpty()) {
-            html.append("<p><strong>Since:</strong> ").append(since).append("</p>\n");
+        // The release number is a pill in the signature row; only its history note stays here.
+        SinceInfo since = sinceInfo(member.docComment(), clz);
+        if (since.detail() != null && !since.detail().isBlank()) {
+            html.append("<p class=\"api-meta-note\">Note: ").append(since.detail()).append("</p>\n");
         }
 
         // See
@@ -967,18 +1035,6 @@ public class MarkdownWriter {
         for (DocTag tag : comment.tags()) {
             if (tag.kind() == kind) {
                 return DocBodyRenderer.toHtml(tag.body(), link -> resolveLinkAsHtml(link, context));
-            }
-        }
-        return "";
-    }
-
-    private String getTagText(DocComment comment, DocTagKind kind, ClassDoc context) {
-        if (comment == null) {
-            return "";
-        }
-        for (DocTag tag : comment.tags()) {
-            if (tag.kind() == kind) {
-                return DocBodyRenderer.toMarkdown(tag.body(), link -> resolveLink(link, context));
             }
         }
         return "";
