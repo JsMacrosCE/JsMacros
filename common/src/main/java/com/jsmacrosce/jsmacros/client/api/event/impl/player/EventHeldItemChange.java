@@ -10,8 +10,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 /**
  * Fires when polling detects a change to the local player's main- or off-hand stack, at most once
  * per client tick. It does not fire for an empty-to-empty transition. If only damage changes,
- * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventItemDamage} fires first. This
- * event is not cancellable.
+ * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventItemDamage} fires first.
  * <pre>
  * JsMacros.on("HeldItemChange", JavaWrapper.methodToJava(function (event) {
  *   const hand = event.offHand ? "off hand" : "main hand";

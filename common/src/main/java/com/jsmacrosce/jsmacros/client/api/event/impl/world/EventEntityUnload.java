@@ -11,7 +11,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires when an entity is removed from the client world. The reason is the removal reason's name;
- * the available names depend on the Minecraft version. This event is not cancellable.
+ * the available names depend on the Minecraft version.
  * <pre>
  * JsMacros.on("EntityUnload", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`${event.entity.getType()} unloaded (${event.reason})`);

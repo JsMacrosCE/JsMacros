@@ -12,12 +12,12 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires for an incoming packet before it is handled by the game. The event is cancellable; assigning
- * {@code null} to {@link #packet} also drops it. Bundled packets are reported as a single packet,
- * not as separate events for their contents. Use a filterer to restrict which packets invoke a
- * listener. Packet-buffer edits affect handling only after the decoded packet is assigned to
- * {@link #packet}; check {@link #canGetPacketBuffer()} because not every packet has a standalone
- * codec.
+ * Fires for an incoming packet before it is handled by the game. Cancelling drops the packet;
+ * assigning {@code null} to {@link #packet} has the same effect. Bundled packets are reported as a
+ * single packet, not as separate events for their contents. Use a filterer to restrict which
+ * packets invoke a listener. Packet-buffer edits affect handling only after the decoded packet is
+ * assigned to {@link #packet}; check {@link #canGetPacketBuffer()} because not every packet has a
+ * standalone codec.
  * <p>
  * <pre>
  * const filterer = JsMacros.createEventFilterer("RecvPacket").setType("HealthUpdateS2CPacket");

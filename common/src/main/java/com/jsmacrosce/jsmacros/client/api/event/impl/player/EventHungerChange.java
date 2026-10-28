@@ -7,8 +7,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires before the local player's food level is assigned, when {@code setFoodLevel} receives a
- * value different from the current one. The event reports the incoming value and does not cancel
- * the assignment.
+ * value different from the current one. The event reports the incoming value.
  * @author Wagyourtail
  * @since 1.2.7
  */

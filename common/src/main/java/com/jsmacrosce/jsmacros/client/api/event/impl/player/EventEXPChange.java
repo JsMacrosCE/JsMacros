@@ -8,7 +8,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 /**
  * Fires before the client writes the local player's experience values. The current fields contain
  * the incoming values and the {@code prev} fields contain the prior values. It fires on every set,
- * including unchanged values, and is not cancellable.
+ * including unchanged values.
  * <pre>
  * JsMacros.on("EXPChange", JavaWrapper.methodToJava(function (event) {
  *   if (event.level !== event.prevLevel) {

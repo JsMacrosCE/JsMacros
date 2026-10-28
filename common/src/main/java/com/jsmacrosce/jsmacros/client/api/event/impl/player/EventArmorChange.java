@@ -12,7 +12,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 /**
   * Fires when client-tick polling detects a change to one of the local player's four armor slots.
   * For a damage-only change, {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventItemDamage}
-  * fires first. This event is not cancellable.
+  * fires first.
  * <pre>
  * JsMacros.on("ArmorChange", JavaWrapper.methodToJava(function (event) {
  *   const now = event.item.isEmpty() ? "empty" : `${event.item.getItemId()} x${event.item.getCount()}`;

@@ -11,8 +11,7 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires after the client handles a full container-content packet; this event is not cancellable.
- * For individual slot updates, see
+ * Fires after the client handles a full container-content packet. For individual slot updates, see
  * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventSlotUpdate}. For screen
  * openings, see {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventOpenContainer}.
  * A packet for the player's inventory supplies a newly created inventory screen as {@link #screen},

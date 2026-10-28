@@ -7,7 +7,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires after the key-macro check, tick synchronizer, and server-list pinger on each client tick.
- * It fires without a player or loaded world and cannot be cancelled.
+ * It fires without a player or loaded world.
  * <pre>
  * const listener = JsMacros.on("Tick", JavaWrapper.methodToJava(function () {
  *   // runs on each client tick

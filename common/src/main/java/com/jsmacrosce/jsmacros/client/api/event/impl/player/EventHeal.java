@@ -10,8 +10,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires before the local player's health is updated to a higher value. It reports the observed
- * change rather than its cause; {@link #source} is always the generic damage type. This event is
- * not cancellable.
+ * change rather than its cause; {@link #source} is always the generic damage type.
  * <pre>
  * JsMacros.on("Heal", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`Healed ${event.change} hp, now at ${event.health} hp`);

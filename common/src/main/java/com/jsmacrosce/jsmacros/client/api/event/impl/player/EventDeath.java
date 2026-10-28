@@ -15,7 +15,7 @@ import java.util.List;
 
 /**
  * Fires while handling the server's player-combat-kill packet, before the client shows the death
- * screen. It is not cancellable. Call {@link #respawn()} on a later tick rather than during
+ * screen. Call {@link #respawn()} on a later tick rather than during
  * packet handling; this requests respawn but does not guarantee that the death screen never opens.
  * <pre>
  * JsMacros.on("Death", JavaWrapper.methodToJava(function (event) {

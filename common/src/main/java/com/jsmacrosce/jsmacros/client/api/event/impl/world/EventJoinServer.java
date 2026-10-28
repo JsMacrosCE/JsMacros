@@ -10,7 +10,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires after the login packet is handled and the local player exists; the world may still be
- * loading. This event is not cancellable.
+ * loading.
  * <pre>
  * JsMacros.on("JoinServer", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`Joined ${event.address} as ${event.player.getName().getString()}`);

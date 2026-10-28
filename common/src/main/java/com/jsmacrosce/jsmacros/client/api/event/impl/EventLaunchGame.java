@@ -7,7 +7,6 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires at the head of the client's {@code run} method and provides the client session's name.
- * This event is not cancellable.
  * <pre>
  * JsMacros.on("LaunchGame", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`client starting as ${event.playerName}`);
