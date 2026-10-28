@@ -6,7 +6,7 @@ hero:
   tagline: Automate the boring parts, react to the game, and draw your own HUD — without writing a mod.
   actions:
     - theme: brand
-      text: Start the guide
+      text: Open the guide
       link: /guide/
     - theme: alt
       text: API reference
