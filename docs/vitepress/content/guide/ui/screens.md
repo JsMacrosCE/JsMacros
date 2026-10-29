@@ -62,8 +62,10 @@ Hud.openScreen(screen);
 ```
 
 Widget callbacks are wrapped with `JavaWrapper.methodToJava` like any other Java
-callback. They receive the widget helper, which exposes the current value and
-allows the script to update the widget later.
+callback. Button and slider callbacks receive the widget helper, which exposes the
+current value and allows the script to update the widget later. Text-input callbacks
+are different: `addTextInput` passes the changed text as a string, not the field
+helper.
 
 ## Closing
 
