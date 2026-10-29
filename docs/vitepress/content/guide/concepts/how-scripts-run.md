@@ -88,8 +88,11 @@ try {
 ```
 
 Use `Client.waitTick(n)` when you need to wait for game time, and `Time.sleep(ms)`
-when you need wall-clock time. Both yield the script thread rather than blocking
-the game thread.
+when you need wall-clock time. Both yield the script task so other scripts can still run.
+In a joined listener the game is already waiting for the handler, so neither
+releases the event lock: `Client.waitTick` throws, and `Time.sleep` holds the game
+waiting until it returns. Release the event lock before such a wait in almost all cases,
+unless the wait is required to decide whether to cancel the event.
 
 ## Related pages
 
