@@ -289,6 +289,20 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
     }
 
     /**
+     * Removes all elements from this overlay without unregistering it or changing its
+     * other settings. The elements themselves are unaffected and can be added again with
+     * {@link #reAddElement(RenderElement)}.
+     *
+     * @since 2.0.0
+     */
+    @Override
+    public void clear() {
+        synchronized (elements) {
+            elements.clear();
+        }
+    }
+
+    /**
      * Removes an element from this overlay. If it is absent, this has no effect; the
      * element itself is unchanged and can be added again with
      * {@link #reAddElement(RenderElement)}. Unlike the deprecated typed removals, this
