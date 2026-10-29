@@ -53,9 +53,9 @@ a base `EntityHelper` only when it has no more specific class for the object. Th
 namespace then gives that returned type a name you can check.
 
 Use `instanceof` because a method may declare a base return type, or may return more
-than one kind of helper. If a factory returns a base helper for an object that has a
-namespace member, that is a missing specialization in the factory, not something the
-namespace can fix.
+than one kind of helper. If a factory returns a base helper for a known entity class
+that has a more-specific exported helper, that is a missing specialization in the
+factory, not something the namespace can fix.
 
 ## Constructors and static access
 
