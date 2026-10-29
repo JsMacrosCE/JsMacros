@@ -78,52 +78,30 @@ or long waits.
 
 ## Finding blocks with `WorldScanner`
 
-For anything more complex than an ID match, build a scanner. The builder has two
-stages: a **block** filter and a **block-state** filter. A state filter only sees
-the states of blocks that the block filter kept. The examples below assume a world
-is loaded.
-
-A named filter calls a public no-argument method on the helper and completes it
-with a comparison. The comparison shape follows the method's return type:
+For anything more complex than an ID match, build a scanner. It describes a
+**block** filter and a **block-state** filter, then searches an area:
 
 ```js
 const scanner = World.getWorldScanner()
   .withBlockFilter("getHardness").is(">=", 10)
   .withStateFilter("isToolRequired").is(false)
   .build();
+
+Chat.log(`${scanner.scanAroundPlayer(2).size()} hard blocks that break by hand`);
 ```
 
-A string filter compares the helper's complete `toString()` text. `contains` is a
-literal substring check; `matches` is a regular expression:
+Builders can also match on the helper's text and combine filters with `and`, `or`,
+`xor`, and `not`. When the condition is real code, pass two functions to
+`World.getWorldScanner(blockFilter, stateFilter)` instead. Either form needs a
+loaded world; guard with `World.isWorldLoaded()`.
 
-```js
-const ores = World.getWorldScanner()
-  .withStringBlockFilter().matches(".*_ore.*")
-  .build();
-```
+One behaviour is worth knowing before you reuse a scanner: a filter result is
+cached per block state for the life of that scanner, so the filter does not run
+once per block. A filter that reads changing script state therefore needs a newly
+built scanner.
 
-That is useful when you know the text of a helper, but it is also the slowest kind
-of filter. Named filters are more precise, and a Boolean or numeric comparison is
-usually cheaper than matching a long string.
-
-For a real computation, use the two-function overload. It receives block and state
-helpers and is the right choice when the condition cannot be written as a chain:
-
-```js
-if (World.isWorldLoaded()) {
-  const scanner = World.getWorldScanner(
-    JavaWrapper.methodToJava((block) => block.getId() !== "minecraft:dirt"),
-    JavaWrapper.methodToJava((state) => state.isSolid())
-  );
-  if (scanner !== null) {
-    Chat.log(`${scanner.scanAroundPlayer(2).size()} solid non-dirt blocks`);
-  }
-}
-```
-
-Both callbacks are called once per block, not once per match. A slow callback makes
-the whole scan slow. The [WorldScannerBuilder reference](/api/classes/com/jsmacrosce/jsmacros/client/api/classes/worldscanner/WorldScannerBuilder)
-has more comparison examples.
+[Finding blocks with WorldScanner](/guide/advanced/world-scanner) covers the filter
+shapes, scan areas, block counts, parallel behaviour, and the cache in detail.
 
 Scanning is synchronous and reads loaded chunks. It is fine on a script thread,
 but do not put a large scan on every tick.

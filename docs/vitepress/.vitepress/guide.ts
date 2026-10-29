@@ -48,6 +48,7 @@ export function createGuideSidebar(apiPrefix?: string): DefaultTheme.SidebarItem
     {
       text: 'Advanced',
       items: [
+        { text: 'Finding blocks with WorldScanner', link: '/guide/advanced/world-scanner' },
         { text: 'Script type namespaces', link: '/guide/advanced/script-types' },
         { text: 'Raw Minecraft access and reflection', link: '/guide/advanced/raw-minecraft' }
       ]

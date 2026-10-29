@@ -312,17 +312,19 @@ public class FWorld extends BaseLibrary {
     }
 
     /**
-     * a scanner over the current world, from two filter functions.
+     * Returns a scanner over the current world from two filter functions.
      * <p>
      * This is the free form of the scanner {@link #getWorldScanner()} builds, and it is the one
      * to reach for when a filter is a real computation rather than a chain of
-     * {@code equals} and {@code contains} checks. The block filter is called for every block in
-     * range and keeps the ones it returns {@code true} for; the state filter is called for the
-     * state of each of those and can narrow it further, and either may be {@code null} to skip
-     * that stage.<br>
-     * The filters are called a great many times, once per block rather than once per match, so
-     * a slow one makes the scan slow. The scanner uses parallel streams only when both
-     * filters support parallel execution; those filters must not access the world unsafely.
+     * {@code equals} and {@code contains} checks. The filters are stages: a block is kept when
+     * the block filter accepts it, and its state must then pass the state filter. Either may be
+     * {@code null} to skip that stage.
+     * <p>
+     * Each result is cached per distinct block state for the life of the scanner, so the filters
+     * run once per state rather than once per block, and later scans on the same scanner reuse
+     * those answers. Build a new scanner when a filter reads script state that can change. The
+     * scanner uses parallel streams only when both filters support parallel execution; those
+     * filters must not access the world unsafely.
      * <pre class="language-typescript">
      * // every loaded block that is solid and is not dirt. naming the parameter type
      * // is what tells the wrapper what it is being handed
@@ -340,10 +342,10 @@ public class FWorld extends BaseLibrary {
      * }
      * </pre>
      *
-     * @param blockFilter called for each block, keeping the ones it returns true for, or
-     *                    {@code null} to keep all of them
-     * @param stateFilter called for the state of each block the first filter kept, keeping the
-     *                    ones it returns true for, or {@code null} to keep all of those
+     * @param blockFilter called once per distinct block state, keeping the ones it returns
+     *                    {@code true} for, or {@code null} to keep all of them
+     * @param stateFilter called once per distinct state the block filter kept, keeping the ones
+     *                    it returns {@code true} for, or {@code null} to keep all of those
      * @return a scanner for the current world, or {@code null} if no world is loaded
      * @since 1.6.5
      */
