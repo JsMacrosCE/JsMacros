@@ -28,7 +28,7 @@ world](/guide/game/player-and-world), [key binds](/guide/game/keybinds),
 - **Working with the game** shows the common ways to inspect and control the
   player, world, input, and network.
 - **On screen** covers overlays and script-created screens.
-- **Advanced** explains the escape hatches: script type namespaces, raw game
+- **Advanced** explains the escape hatches: script-type namespaces, raw game
   objects, and reflection.
 
 Each page ends with links into the API reference for the exact classes and

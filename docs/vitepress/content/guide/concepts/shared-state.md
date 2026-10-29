@@ -80,17 +80,27 @@ whole map.
   profiles must not see each other's values, prefix keys by profile or write
   separate files.
 
-## Example: remember the last seen player
+## Example: remember when each player was last seen
 
 ```js
-const seen = GlobalVars.getString("lastSeen");
-const player = Player.getPlayer();
+const players = World.getPlayers();
+if (players === null) {
+  // cconsole.log outputs to the Minecraft log file (STDOUT). Chat.log wouldn't be visible given there's no chat visible.
+  console.log("join a server first");
+} else {
+  const now = Time.time();
+  for (let i = 0; i < players.size(); i += 1) {
+    const name = players.get(i).getName();
+    if (name === null) continue;
 
-if (player !== null) {
-  const name = player.getName().getString();
-  if (name !== seen) {
-    GlobalVars.putString("lastSeen", name);
-    Chat.log(`now watching ${name}`);
+    const key = `lastSeen.${name}`;
+    const stored = GlobalVars.getDouble(key);
+    const lastSeen = stored === null
+      ? "first seen"
+      : `last seen ${new Date(Number(stored)).toLocaleString()}`;
+    Chat.log(`${name}: ${lastSeen}`);
+
+    GlobalVars.putDouble(key, now);
   }
 }
 ```
@@ -100,4 +110,6 @@ if (player !== null) {
 - [How a script runs](/guide/concepts/how-scripts-run)
 - API reference: [`GlobalVars`](/api/libraries/com/jsmacrosce/jsmacros/core/library/impl/FGlobalVars),
   [`JavaUtils`](/api/libraries/com/jsmacrosce/jsmacros/api/library/FJavaUtils),
+  [`World`](/api/libraries/com/jsmacrosce/jsmacros/client/api/library/impl/FWorld),
+  [`Time`](/api/libraries/com/jsmacrosce/jsmacros/core/library/impl/FTime),
   [`FS`](/api/libraries/com/jsmacrosce/jsmacros/core/library/impl/FFS)
