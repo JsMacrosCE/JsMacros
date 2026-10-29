@@ -25,11 +25,13 @@ There are two wrappers with different scheduling:
 | Wrapper | When the callback runs | Use for |
 | --- | --- | --- |
 | `JavaWrapper.methodToJava(fn)` | The caller's thread, synchronously | Event listeners, widget callbacks, filters |
-| `JavaWrapper.methodToJavaAsync(fn)` | Scheduled on the script thread pool | Work that should not block the caller |
+| `JavaWrapper.methodToJavaAsync(fn)` | Scheduled on the script thread pool | Callbacks whose return value is ignored |
 
-`methodToJava` is the default. It keeps the callback on the thread that invoked it
-and lets the caller see the return value. `methodToJavaAsync` queues the call and
-returns immediately; exceptions are logged rather than returned to the caller.
+`methodToJava` is the default. It runs the callback on the calling thread and lets
+the caller use its return value. `methodToJavaAsync` is only for callbacks whose
+result is ignored: it queues them on the script thread pool and returns immediately,
+logging any failure. A callback that must return a value still runs synchronously,
+and its exceptions reach the caller; use `methodToJava` for filters and predicates.
 
 For event listeners, use `methodToJava`. The event system already decides how the
 listener is scheduled; wrapping it again with the async form only makes ordering
