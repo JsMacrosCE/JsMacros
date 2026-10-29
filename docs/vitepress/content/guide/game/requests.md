@@ -8,9 +8,12 @@ the usual bridge between a script and a web service: a price feed, a chat relay,
 control panel, or your own server.
 
 HTTP calls block the script thread until the server answers or the connection
-fails. That is fine on a worker thread; it is not something to do on the client
-thread. A slow request does not freeze the game, but it does keep that script
-waiting.
+fails. A slow request on a worker thread keeps that script waiting without freezing
+the game. A request from a joined listener does freeze the game, because the main
+thread is waiting for the handler: release the event lock after the cancellation
+decision, or move the request to an unjoined worker. The default request has no
+connection or read timeout, so set one with `setConnectTimeout` and `setReadTimeout`
+when the server may be slow.
 
 ## One-call requests
 
@@ -92,8 +95,9 @@ socket.onError = JavaWrapper.methodToJava((ws, error) => {
 socket.connect();
 ```
 
-The handlers receive the underlying socket as their first argument. Call
-`socket.close()` or `ws.close()` when the script is done with the connection.
+The handlers receive the underlying socket as their first argument. To close the
+connection, call `socket.close()` on the `Websocket` you created, or
+`ws.disconnect()` on the socket passed to a handler.
 
 WebSocket callbacks keep the script context alive. Close the connection explicitly
 when the script no longer needs it; do not assume the socket disappears on its own.

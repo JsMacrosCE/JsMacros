@@ -52,8 +52,9 @@ Client.runOnMainThread(JavaWrapper.methodToJava(() => {
 ```
 
 If the code is already on the client thread, it runs immediately. A thread that is
-already joined to the main thread cannot wait on the main thread; that would
-deadlock, so JsMacros throws instead.
+already joined to the main thread cannot use either form: even with `await` set to
+`false`, JsMacros throws, because queued work would not run until the handler
+returns. Release the event lock first, or move the work to an unjoined thread.
 
 ## What "joined to main" means
 

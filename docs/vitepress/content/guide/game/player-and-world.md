@@ -124,6 +124,9 @@ if (player !== null) {
 }
 ```
 
+It's important to note that `Player.clearInputs()` empties the queue shared with other scripts,
+so use it only when this script controls movement.
+
 For anything beyond the convenience methods, build a `PlayerInput`. It holds
 `movementForward` and `movementSideways` (positive is forward/left), absolute yaw
 and pitch in degrees, and the jump, sneak, and sprint flags. Yaw `0` faces south,
