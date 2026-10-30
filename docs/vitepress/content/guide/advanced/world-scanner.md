@@ -107,6 +107,13 @@ turns every state into text. Prefer a named method when one exists.
 
 ## Use a function when the condition is code
 
+A builder filter stays in Java: the scanner calls the named method, or compares
+the helper's text, without re-entering the script engine. A function filter calls
+back into your script for every distinct state, which is much slower, and it also
+turns off the parallel scan described under [Parallelism](#parallelism). Use one
+only when the test is a real computation rather than a method call or a text
+match.
+
 When the test is a real computation, pass two functions instead of a builder
 chain:
 
@@ -178,12 +185,20 @@ handle.
 
 ## Parallelism
 
-The scanner can split a scan across threads, but only when both filters support
-it. Builder filters are plain Java checks and qualify. A
-`JavaWrapper.methodToJava` wrapper carries the script context, and a normal script
-context is not multithreaded, so a function-based scanner runs sequentially. That
-is deliberate: the callback stays on one thread and can read the script context
-without racing itself.
+Chunks are scanned concurrently when the filters allow it, so a wide scan finishes
+sooner. There is no setting to turn this on or tune it; the choice is made when
+the scanner is built.
+
+Builder filters qualify, because they are plain Java checks that any thread can
+run. A `JavaWrapper.methodToJava` function does not: it carries the script
+context, and that context must not be entered from several threads at once. If
+either stage is a function, the whole scan runs sequentially. That is the
+trade-off for letting the callback read script state without racing itself, and
+it is one more reason to prefer builder filters.
+
+The unit of parallel work is a chunk, not a block. A scan covering several
+chunks, such as `scanAroundPlayer(1)` with its nine chunks, can use the extra
+threads; a scan of a single chunk or a few blocks gains little from them.
 
 ## Choose a search area
 
@@ -246,7 +261,8 @@ on every tick.
   rather than waiting on the server.
 - The first scan pays for the filter evaluation; later scans on the same scanner
   reuse the cache.
-- A function filter trades parallel speed for safe access to script state.
+- A function filter is much slower than a builder filter and runs the scan on
+  one thread; use one only for real computation.
 - A string filter is the slowest builder filter; a named numeric or boolean test
   is cheaper.
 - Keep the area small. `scanAroundPlayer(1)` covers nine chunks at full height.
