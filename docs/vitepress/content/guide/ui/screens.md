@@ -93,7 +93,8 @@ Use it when the window size changes or the script needs a fresh layout.
 
 Screen callbacks are `MethodWrapper`s, so a script with an open screen stays alive
 while those callbacks exist. If the screen is temporary, close it and let the
-callbacks go. If the script must stop immediately, call `JavaWrapper.stop()`.
+callbacks go. To stop the whole run, close the screen first, then call
+`JsMacros.stopScript()`.
 
 ## Related pages
 

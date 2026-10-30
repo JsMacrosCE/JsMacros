@@ -44,9 +44,10 @@ This is the useful part: a script can end at the bottom of the file and still ha
 a listener waiting for a chat message. The context stays open, and the callback
 runs later in the same script world.
 
-When you no longer need the listeners, turn them off or close the context
-explicitly with `JavaWrapper.stop()`. Closing releases event locks, interrupts
-threads bound to the context, and unregisters it from the runner.
+When you no longer need a listener, turn it off. To stop the entire current run,
+use `JsMacros.stopScript()`: it removes listeners registered by that run, releases
+its event locks, and interrupts its bound threads. Close resources such as sockets
+and screens first. The trigger remains enabled, so it can start another run later.
 
 ```js
 const listener = JsMacros.on("Tick", JavaWrapper.methodToJava(() => {

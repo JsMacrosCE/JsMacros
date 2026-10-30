@@ -107,7 +107,7 @@ draw.unregister();
 draw.clear();
 ```
 
-If the script should stop entirely, `JavaWrapper.stop()` closes the context.
+If the script should stop entirely, `JsMacros.stopScript()` closes the context.
 Closing releases event locks and interrupts the threads bound to the script.
 
 ## Performance
