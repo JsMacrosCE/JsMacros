@@ -68,12 +68,13 @@ with a changed control.
 The `Key` event fires before the game handles the input and is cancellable:
 
 ```js
-JsMacros.on("Key", JavaWrapper.methodToJava((event) => {
+JsMacros.on("Key", JavaWrapper.methodToJava((event, context) => {
   if (event.action !== 1) return; // 0 is release, 1 is press
   if (event.key === "key.keyboard.j" && event.mods === "key.keyboard.left.control") {
     Chat.log("ctrl+J taken by the script");
     event.cancel(); // the game does not see it
   }
+  context.releaseLock(); // release before any slow work
 }));
 ```
 

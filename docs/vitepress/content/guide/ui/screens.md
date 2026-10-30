@@ -80,7 +80,8 @@ screen.setOnClose(JavaWrapper.methodToJava((closing) => {
 }));
 ```
 
-`screen.shouldCloseOnEsc` controls whether Escape closes the screen;
+`screen.shouldCloseOnEsc` controls whether Escape closes the screen. An open
+overlay receives Escape first and is closed instead, even when the field is true.
 `screen.shouldPause` controls whether the game pauses while it is open.
 
 ## Rebuilding

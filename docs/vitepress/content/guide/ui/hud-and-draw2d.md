@@ -94,7 +94,7 @@ draw.register();
 ```
 
 `unregister()` stops rendering without removing the elements; `clear()` removes
-them. The box arguments are the two corners, the fill and outline colors, and
+them. The box arguments are the two corners, the outline and fill colors, and
 whether the box is filled.
 
 ## Lifecycle

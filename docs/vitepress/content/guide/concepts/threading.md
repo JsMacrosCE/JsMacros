@@ -58,10 +58,12 @@ returns. Release the event lock first, or move the work to an unjoined thread.
 
 ## What "joined to main" means
 
-Some events are **cancellable** or **joinable**. For those, the game waits for the
-listener to finish before it continues. The listener is joined to the main thread
-for that period. That is deliberate: if a chat message is cancelled, the game must
-not send it before the listener says so.
+For a **cancellable** event, the game waits for the listener before continuing:
+if a chat message is cancelled, the game must not send it before the listener
+says so. A non-cancellable **joinable** event only waits when the listener requests
+joining, for example with `JsMacros.on("EventName", true, callback)` for a
+joinable event. `JsMacros.on` defaults to `joined=false`. While the game waits, the
+listener is joined to the main thread.
 
 The trade-off is that a joined listener is on the critical path. Keep it short:
 
@@ -80,13 +82,14 @@ while the script waits:
 ```js
 JsMacros.on("SendMessage", JavaWrapper.methodToJava((event) => {
   if (event.message !== "/confirm") return;
+  event.cancel(); // do not send the command to the server
 
   // The current cancellable event is released while this waits.
-  const next = JsMacros.waitForEvent("RecvMessage");
+  const next = JsMacros.waitForEvent("RecvMessage", JavaWrapper.methodToJava(
+    (received) => received.text.getString() === "yes"
+  ));
   try {
-    if (next.event.text.getString() === "yes") {
-      Chat.say("confirmed");
-    }
+    Chat.say("confirmed");
   } finally {
     next.context.releaseLock();
   }

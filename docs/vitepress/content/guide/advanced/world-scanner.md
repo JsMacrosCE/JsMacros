@@ -11,8 +11,7 @@ It is worth knowing two things before you build a filter:
 
 - the scanner reads only chunks the client already has, and never asks the server
   for more;
-- it remembers the answer for each block state, so the filter is not run again for
-  a state it has already seen.
+- it caches answers by block state and reuses them after they are stored.
 
 The second point is the one that surprises people, and the one that can make a
 reused scanner feel stale. The rest of this page builds up to it.
@@ -148,14 +147,13 @@ loaded. The builder path does not add that guard, so check
 
 A chunk is stored as a small palette of block states plus a grid of palette
 indices. A single chunk section can contain thousands of blocks but often only a
-handful of distinct states. The scanner exploits that: the first time it meets a
-state it runs your filter, stores the answer, and reuses it for every other block
-with the same state.
+handful of distinct states. The scanner exploits that by storing filter answers
+per state and reusing them for blocks with the same state.
 
-So the filter does **not** run once per block, and it does not run once per match.
-It runs once per distinct block state, and the cache lives for as long as that
-scanner object does. A second `scanAroundPlayer` on the same scanner reuses the
-answers from the first.
+So the filter does **not** run once per block or once per match. Parallel scans
+can evaluate the same uncached state more than once concurrently before an answer
+is stored. The cache lives as long as the scanner object: a second
+`scanAroundPlayer` on the same scanner reuses answers from the first.
 
 That is what makes repeated scans cheap. It also means the filter must depend only
 on the block or state it is given. If it reads script state, the cached answer does
@@ -169,14 +167,18 @@ const blockFilter = JavaWrapper.methodToJava((block) =>
 );
 
 const first = World.getWorldScanner(blockFilter, null);
-first.scanAroundPlayer(1); // caches an answer for each state it meets
+if (first !== null) {
+  first.scanAroundPlayer(1); // caches an answer for each state it meets
 
-huntingOres = false;
-first.scanAroundPlayer(1); // still uses the answers cached above
+  huntingOres = false;
+  first.scanAroundPlayer(1); // still uses the answers cached above
 
-// A new scanner starts with an empty cache.
-const second = World.getWorldScanner(blockFilter, null);
-second.scanAroundPlayer(1); // evaluates the new condition
+  // A new scanner starts with an empty cache.
+  const second = World.getWorldScanner(blockFilter, null);
+  if (second !== null) {
+    second.scanAroundPlayer(1); // evaluates the new condition
+  }
+}
 ```
 
 `getCachedAmount()` reports how many distinct states a scanner has tested. Compare

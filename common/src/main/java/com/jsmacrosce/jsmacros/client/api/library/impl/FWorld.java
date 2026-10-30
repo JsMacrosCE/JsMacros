@@ -320,11 +320,11 @@ public class FWorld extends BaseLibrary {
      * the block filter accepts it, and its state must then pass the state filter. Either may be
      * {@code null} to skip that stage.
      * <p>
-     * Each result is cached per distinct block state for the life of the scanner, so the filters
-     * run once per state rather than once per block, and later scans on the same scanner reuse
-     * those answers. Build a new scanner when a filter reads script state that can change. The
-     * scanner uses parallel streams only when both filters support parallel execution; those
-     * filters must not access the world unsafely.
+     * Results are cached per block state for the life of the scanner and reused rather than
+     * evaluated for every block. Concurrent first encounters of a state may evaluate the filters
+     * more than once before an answer is cached. Build a new scanner when a filter reads script
+     * state that can change. The scanner uses parallel streams only when both filters support
+     * parallel execution; those filters must not access the world unsafely.
      * <pre class="language-typescript">
      * // every loaded block that is solid and is not dirt. naming the parameter type
      * // is what tells the wrapper what it is being handed
@@ -342,9 +342,9 @@ public class FWorld extends BaseLibrary {
      * }
      * </pre>
      *
-     * @param blockFilter called once per distinct block state, keeping the ones it returns
+     * @param blockFilter tests block states, keeping the ones it returns
      *                    {@code true} for, or {@code null} to keep all of them
-     * @param stateFilter called once per distinct state the block filter kept, keeping the ones
+     * @param stateFilter tests states the block filter kept, keeping the ones
      *                    it returns {@code true} for, or {@code null} to keep all of those
      * @return a scanner for the current world, or {@code null} if no world is loaded
      * @since 1.6.5
