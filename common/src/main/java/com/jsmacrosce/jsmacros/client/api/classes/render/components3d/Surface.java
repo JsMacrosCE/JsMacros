@@ -636,6 +636,9 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     }
 
     private void renderSurface(PoseStack matrices, RenderSink sink, float tickDelta) {
+        if (!visible) {
+            return;
+        }
         boolean seeThrough = !this.cull;
         Pos3D renderPos = resolveRenderPos(tickDelta);
         updateRotateToPlayer(renderPos);

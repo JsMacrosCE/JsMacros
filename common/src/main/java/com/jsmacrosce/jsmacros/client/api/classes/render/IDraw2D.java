@@ -168,6 +168,15 @@ public interface IDraw2D<T> {
     List<RenderElement> getElements();
 
     /**
+     * Removes all elements from this overlay without unregistering it or changing its
+     * other settings. The elements themselves are unaffected and can be added again with
+     * {@link #reAddElement(RenderElement)}.
+     *
+     * @since 2.0.0
+     */
+    void clear();
+
+    /**
      * Removes an element of any type from this overlay. If absent, it has no effect;
      * the element itself is unchanged and can be added again with
      * {@link #reAddElement(RenderElement)}. The deprecated typed removals do the same.
