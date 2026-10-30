@@ -7,7 +7,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires before the local player's air supply is set to a value divisible by {@code 20}; it does not
- * report other values. This event is not cancellable.
+ * report other values.
  * <pre>
  * JsMacros.on("AirChange", JavaWrapper.methodToJava(function (event) {
  *   if (0 >= event.air) {

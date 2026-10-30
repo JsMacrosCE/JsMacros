@@ -14,7 +14,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * It dispatches before {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventHealthChange},
  * which dispatches before {@link com.jsmacrosce.jsmacros.client.api.event.impl.world.EventEntityDamaged}.
  * The injected event supplies a generic damage source, so {@link #source} is its generic damage
- * type ID and {@link #attacker} is {@code null}. This event is not cancellable.
+ * type ID and {@link #attacker} is {@code null}.
  * <pre>
  * JsMacros.on("Damage", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`Took ${event.change} damage, ${event.health} hp left`);

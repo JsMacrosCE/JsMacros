@@ -8,7 +8,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires while the client processes a status-effect update or removal packet for the local
- * player. It is not cancellable, and listeners run before the packet's effect change is applied.
+ * player. Listeners run before the packet's effect change is applied.
  * Updates (including refreshes or downgrades) set {@link #added}; removals set {@link #removed}.
  * Effects on other entities do not raise this event.
  * <pre>

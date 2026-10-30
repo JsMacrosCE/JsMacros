@@ -13,7 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A named event with key-value arguments. Call {@link #registerEvent()} before subscribing; dispatch
- * also reaches eligible {@code ANYTHING} listeners.
+ * also reaches eligible {@code ANYTHING} listeners. Set {@link #cancelable} before dispatch to let
+ * listeners cancel this instance; check {@link #isCanceled()} after dispatch returns.
  *
  * @author Wagyourtail
  * @since 1.2.8

@@ -6,8 +6,8 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires after a full chunk-data packet has updated the client world. This event is not cancellable;
- * {@code isFull} is always {@code true} on this event path.
+ * Fires after a full chunk-data packet has updated the client world. {@code isFull} is always
+ * {@code true} on this event path.
  * <pre>
  * JsMacros.on("ChunkLoad", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`Chunk ${event.x}, ${event.z} loaded`);

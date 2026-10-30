@@ -19,19 +19,21 @@ import java.util.concurrent.atomic.AtomicReference;
  * The callback runs only when an input changes the value.
  * <pre>
  * const screen = Hud.createScreen("a screen", true);
- * const slider = screen.sliderBuilder()
- *    .pos(10, 20)
- *    .size(100, 20)
- *    .message("volume")
- *    .steps(10)
- *    .initially(5)
- *    .action(JavaWrapper.methodToJava(function (s) {
- *      Chat.log(`now ${s.getValue()}`);
- *    }))
- *    .build();
- * Hud.openScreen(screen);
+ * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+ *   const slider = self.sliderBuilder()
+ *      .pos(10, 20)
+ *      .size(100, 20)
+ *      .message("volume")
+ *      .steps(10)
+ *      .initially(5)
+ *      .action(JavaWrapper.methodToJava(function (s) {
+ *        Chat.log(`now ${s.getValue()}`);
+ *      }))
+ *      .build();
  *
- * slider.setValue(1); // move to the maximum; callback runs if this changes the value
+ *   slider.setValue(1); // move to the maximum; callback runs if this changes the value
+ * }));
+ * Hud.openScreen(screen);
  * </pre>
  *
  * @author Etheradon
@@ -193,16 +195,18 @@ public class SliderWidgetHelper extends ClickableWidgetHelper<SliderWidgetHelper
          * <p>
          * <pre>
          * const screen = Hud.createScreen("a screen", true);
-         * const builder = screen.sliderBuilder()
-         *    .pos(10, 20)
-         *    .size(100, 20)
-         *    .message("volume")
-         *    .steps(10)
-         *    .initially(5);
-         * const slider = builder.build();
+         * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+         *   const slider = self.sliderBuilder()
+         *      .pos(10, 20)
+         *      .size(100, 20)
+         *      .message("volume")
+         *      .steps(10)
+         *      .initially(5)
+         *      .build();
+         *   // step five of ten is five ninths along, not halfway
+         *   Chat.log(`built at ${slider.getValue()}`);
+         * }));
          * Hud.openScreen(screen);
-         * // step five of ten is five ninths along, not halfway
-         * Chat.log(`built at ${slider.getValue()}`);
          * </pre>
          *
          * @param value the initial value of the slider. Must be between 0 and steps - 1

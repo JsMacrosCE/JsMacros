@@ -14,8 +14,8 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires after a block-state or block-entity update packet is handled. Section updates produce one
- * {@code 'STATE'} event per block; block-entity data packets produce {@code 'ENTITY'} events. The
- * event is not cancellable. Listeners can be narrowed down with a
+ * {@code 'STATE'} event per block; block-entity data packets produce {@code 'ENTITY'} events.
+ * Listeners can be narrowed down with a
  * {@link com.jsmacrosce.jsmacros.client.api.event.filterer.FiltererBlockUpdate}, which can match
  * on position, area, block id, block states and update type.
  * <pre>

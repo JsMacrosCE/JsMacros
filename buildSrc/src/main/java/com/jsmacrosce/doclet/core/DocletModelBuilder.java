@@ -155,6 +155,7 @@ public class DocletModelBuilder {
             ClassGroup group = ClassGroup.Class;
             String alias = null;
             boolean eventCancellable = false;
+            boolean eventCancellableDynamic = false;
             String eventFilterer = null;
             String category = null;
             AnnotationMirror library = findAnnotation(type, "Library");
@@ -167,6 +168,7 @@ public class DocletModelBuilder {
                 alias = String.valueOf(getAnnotationValue(event, "value"));
                 Object cancellableValue = getAnnotationValue(event, "cancellable");
                 eventCancellable = Boolean.TRUE.equals(cancellableValue);
+                eventCancellableDynamic = overridesCancellable(type);
                 Object filtererValue = getAnnotationValue(event, "filterer");
                 if (filtererValue instanceof DeclaredType declared) {
                     String name = declared.asElement().getSimpleName().toString();
@@ -355,6 +357,7 @@ public class DocletModelBuilder {
                 alias,
                 category,
                 eventCancellable,
+                eventCancellableDynamic,
                 eventFilterer,
                 typeParams,
                 extendsTypes,
@@ -1188,6 +1191,7 @@ public class DocletModelBuilder {
             null,
             null,
             false,
+            false,
             null,
             typeParams,
             extendsTypes,
@@ -1676,6 +1680,31 @@ public class DocletModelBuilder {
             }
         }
         return null;
+    }
+
+    /**
+     * Returns whether the class overrides {@code BaseEvent.cancellable()}. The annotation flag
+     * describes the registered event type, but an override can make cancellation depend on the
+     * instance, as {@code EventCustom} does through its mutable {@code cancelable} field.
+     */
+    private boolean overridesCancellable(TypeElement type) {
+        TypeElement base = elementUtils.getTypeElement("com.jsmacrosce.jsmacros.core.event.BaseEvent");
+        if (base == null) {
+            return false;
+        }
+        for (Element member : elementUtils.getAllMembers(type)) {
+            if (member.getKind() != ElementKind.METHOD
+                || !member.getSimpleName().contentEquals("cancellable")) {
+                continue;
+            }
+            ExecutableElement method = (ExecutableElement) member;
+            if (method.getParameters().isEmpty()
+                && method.getReturnType().getKind() == TypeKind.BOOLEAN
+                && !member.getEnclosingElement().equals(base)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isNullable(Element element) {

@@ -767,7 +767,8 @@ public final class DocletLinksTest {
             }
             Path markdownRoot = root.resolve(version + "/mddoclet/content/fixture/" + version);
             String libraries = Files.readString(markdownRoot.resolve("libraries.md"));
-            contains(libraries, "- [Demo](./libraries/example/Api.LibraryFixture.md)\n  - [Result]");
+            contains(libraries, "- [Demo](./libraries/example/Api.LibraryFixture.md) — A named global fixture.\n"
+                + "  - [Result](./libraries/example/Api.LibraryFixture.Result.md) — A returned supporting type, not a global library.");
             excludes(libraries, "Uncategorized");
             String nested = Files.readString(markdownRoot.resolve("libraries/example/Api.LibraryFixture.Result.md"));
             contains(nested, "not a separate global library");

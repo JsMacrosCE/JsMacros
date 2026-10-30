@@ -12,7 +12,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * one-argument interfaces provide {@code arg1} and a null {@code arg2}, and two-argument
  * interfaces provide both, except {@code Comparator}, which forwards only its first value.
  * The wrapped script can set {@link #result} for interfaces that return a value; consumers and
- * runnables ignore it. This event is not cancellable.
+ * runnables ignore it.
  * <pre>
  * // In a wrapped two-argument function script, return a result to the Java caller.
  * event.setReturnInt(Number(event.arg1) + Number(event.arg2));

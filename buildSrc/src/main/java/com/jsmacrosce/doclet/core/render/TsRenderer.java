@@ -207,7 +207,7 @@ public class TsRenderer implements Renderer {
         indent(out, indent).append("interface ").append(event.alias());
         appendTypeParams(out, typeParams(event), null, true);
         out.append(" extends BaseEvent");
-        if (event.eventCancellable()) {
+        if (event.eventCancellable() || event.eventCancellableDynamic()) {
             out.append(", Cancellable");
         }
         out.append(" {\n");

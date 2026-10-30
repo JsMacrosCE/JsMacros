@@ -27,22 +27,24 @@ import java.util.concurrent.atomic.AtomicReference;
  * which list cycling uses; otherwise it uses the default list.
  * <pre>
  * const screen = Hud.createScreen("a screen", true);
- * const button = screen.cyclicButtonBuilder(JavaWrapper.methodToJava(function (value) {
- *   return Chat.createTextHelperFromString(String(value));
- * }))
- *    .pos(10, 20)
- *    .size(100, 20)
- *    .option("quality")
- *    .values(["low", "medium", "high"])
- *    .initially("low")
- *    .build();
- * Hud.openScreen(screen);
+ * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+ *   const button = self.cyclicButtonBuilder(JavaWrapper.methodToJava(function (value) {
+ *     return Chat.createTextHelperFromString(String(value));
+ *   }))
+ *      .pos(10, 20)
+ *      .size(100, 20)
+ *      .option("quality")
+ *      .values(["low", "medium", "high"])
+ *      .initially("low")
+ *      .build();
  *
- * // the value is whatever type the values were, and the string form is the label
- * Chat.log(`${button.getValue()}, shown as ${button.getStringValue()}`);
- * // step to the next one, forwards or backwards
- * button.forward();
- * button.backward();
+ *   // the value is whatever type the values were, and the string form is the label
+ *   Chat.log(`${button.getValue()}, shown as ${button.getStringValue()}`);
+ *   // step to the next one, forwards or backwards
+ *   button.forward();
+ *   button.backward();
+ * }));
+ * Hud.openScreen(screen);
  * </pre>
  *
  * @param <T> the type of values displayed by the button

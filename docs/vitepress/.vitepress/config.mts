@@ -1,7 +1,9 @@
 import path from 'node:path';
 import { createHighlighter } from 'shiki';
 import { defineConfig } from 'vitepress';
+import { apiLinkPlugin } from './api-links';
 import { loadApiSnapshots } from './api-snapshots';
+import { createGuideSidebar } from './guide';
 import type { ApiThemeConfig } from './theme/api-navigation';
 import { inlineHighlightPlugin } from './theme/inline-highlight';
 import { createSearchScopeFilter } from './theme/search-scope';
@@ -17,7 +19,11 @@ const targetSelector = versions.map(version => ({
     link: `${snapshot.prefix}/`
   }))
 }))
-const searchScope = createSearchScopeFilter(snapshots.map(snapshot => snapshot.prefix))
+const searchScope = createSearchScopeFilter(
+  snapshots.map(snapshot => snapshot.prefix),
+  '/guide/',
+  latest?.prefix
+)
 
 const highlighter = await createHighlighter({
   themes: ['github-light', 'github-dark'],
@@ -30,6 +36,16 @@ export default defineConfig<ApiThemeConfig>({
   description: 'Minecraft mod for JavaScript/polyglot macros.',
   srcDir: './content',
   cleanUrls: true,
+  // The home-page hero cannot read the generated snapshots from frontmatter,
+  // so point its API action at the newest target during the build.
+  transformPageData(pageData) {
+    if (!latest || pageData.relativePath !== 'index.md') return
+    const hero = (pageData.frontmatter as any)?.hero
+    if (!Array.isArray(hero?.actions)) return
+    for (const action of hero.actions) {
+      if (action?.text === 'API reference') action.link = `${latest.prefix}/`
+    }
+  },
   // The full target matrix contains thousands of pages; VitePress defaults to 64.
   buildConcurrency: 4,
   // The site data and the page hash map are the same for every page. Keeping
@@ -38,7 +54,8 @@ export default defineConfig<ApiThemeConfig>({
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
-      ...(latest ? [{ text: 'API reference', link: `${latest.prefix}/` }] : []),
+      { text: 'Guide', link: '/guide/' },
+      ...(latest ? [{ component: 'ApiReferenceLink' }] : []),
       ...(latest ? [{
         component: 'MinecraftVersionSelector',
         props: { items: targetSelector, fallbackVersion: latest.minecraftVersion }
@@ -47,7 +64,9 @@ export default defineConfig<ApiThemeConfig>({
     // Only the small target manifest belongs in global site data. The browser
     // loads one snapshot's navigation and supplies its current branch as an array.
     apiSnapshots: snapshots.map(({ version, minecraftVersion, prefix }) => ({ version, minecraftVersion, prefix })),
-    sidebar: [],
+    // The guide is version-independent. API routes replace this with the
+    // navigation loaded for their snapshot in BrowserSidebarLayout.
+    sidebar: { '/guide/': createGuideSidebar(latest?.prefix) },
     socialLinks: [
       { icon: 'github', link: 'https://github.com/JsMacrosCE/JsMacros' }
     ],
@@ -74,6 +93,7 @@ export default defineConfig<ApiThemeConfig>({
     cache: false,
     config: md => {
       md.use(inlineHighlightPlugin, highlighter)
+      md.use(apiLinkPlugin, latest?.prefix)
     }
   }
 })

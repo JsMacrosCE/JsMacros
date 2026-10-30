@@ -253,7 +253,7 @@ test('changing pages during a pending snapshot request shares the request and re
   await switchVersion(page, latest)
   delayed.release()
   await ready(page, latest)
-  assert.ok(await page.locator('#VPSidebarNav a').count() > 100, 'New overview branch replaces member branch')
+  assert.ok(await page.locator('#VPSidebarNav a').count() > 100, 'Full navigation is present after the pending request resolves')
   assert.equal(requests, 1)
 })
 
@@ -273,8 +273,12 @@ test('mobile menu retains Escape, backdrop, keyboard section controls and link c
   await menu.click()
   await sidebarClick(page, latest.prefix + '/classes')
   await page.waitForFunction(() => document.querySelector('button.menu')?.getAttribute('aria-expanded') === 'false')
+  await page.waitForFunction(href => {
+    const link = document.querySelector(`#VPSidebarNav a[href="${href}"]`)
+    return link?.closest('.VPSidebarItem')?.classList.contains('is-active')
+  }, href(latest.prefix + '/classes'))
   await menu.click()
-  const section = page.locator('#VPSidebarNav .VPSidebarItem.collapsible').first()
+  const section = page.locator(`#VPSidebarNav a[href="${href(latest.prefix + '/libraries')}"]`).locator('xpath=../..')
   assert.match(await section.getAttribute('class'), /collapsed/)
   await section.locator(':scope > .item > .caret').press('Enter')
   assert.doesNotMatch(await section.getAttribute('class'), /collapsed/)

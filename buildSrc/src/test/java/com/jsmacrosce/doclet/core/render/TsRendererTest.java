@@ -48,7 +48,22 @@ public final class TsRendererTest {
         contains(output, "function getClass<C extends string>(name: C): JavaClass<C>;\n    function getClass<C extends KnownClass>(name: C): void;");
         contains(output, "getClass<C extends string>(name: C): JavaClass<C>;\ngetClass<C extends KnownClass>(name: C): void;");
         replacementTypeParameterRoles();
+        eventCancellationInterfaces();
         System.out.println("TsRenderer: regression checks passed");
+    }
+
+    private static void eventCancellationInterfaces() {
+        var comment = new DocComment(List.of(), List.of(), List.of());
+        var dynamic = new ClassDoc("EventDynamic", "example.EventDynamic", "example", ClassKind.CLASS,
+            ClassGroup.Event, "Dynamic", null, false, true, null, List.of(), List.of(), List.of(),
+            List.of("public"), comment, List.of(), List.of(), false, false, false);
+        var plain = new ClassDoc("EventPlain", "example.EventPlain", "example", ClassKind.CLASS,
+            ClassGroup.Event, "Plain", null, false, false, null, List.of(), List.of(), List.of(),
+            List.of("public"), comment, List.of(), List.of(), false, false, false);
+        String output = new TsRenderer(new BasicTypeResolver()).render(
+            new DocletModel(List.of(new PackageDoc("example", List.of(dynamic, plain))), List.of()));
+        contains(output, "interface Dynamic extends BaseEvent, Cancellable {");
+        contains(output, "interface Plain extends BaseEvent {");
     }
 
     private static void replacementTypeParameterRoles() {

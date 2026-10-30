@@ -11,8 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.UUID;
 
 /**
- * Fired when a matching player-list entry is removed from the client player list. The event is
- * not cancellable.
+ * Fired when a matching player-list entry is removed from the client player list.
  * <pre>
  * JsMacros.on("PlayerLeave", JavaWrapper.methodToJava(function (event) {
  *   const name = event.player.getName();

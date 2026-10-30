@@ -9,7 +9,7 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires after an entity is added to the client world. This event is not cancellable.
+ * Fires after an entity is added to the client world.
  */
 @DocletCategory("World")
 @Event("EntityLoad")

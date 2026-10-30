@@ -13,22 +13,26 @@ import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
  * Base builder for screen widgets, storing their position, size, label, state flags,
  * alpha, and z-index until {@link #build()} creates and adds a widget to its screen.
  * Builders are obtained from their screen and setters return the builder for chaining.
+ * Opening a screen clears elements added before its init callback, so build widgets
+ * inside the callback passed to {@code IScreen.setOnInit}.
  * Defaults are position and width zero, height 20, empty label, active and visible,
  * alpha 1.0, and z-index zero. Subclasses may constrain properties; for example,
  * button builders fix height at 20 and text-field builders use the screen font.
  * <p>
  * <pre>
  * const screen = Hud.createScreen("a screen", true);
- * // the shared half on its own: a label, a box and the flags
- * screen.buttonBuilder()
- *    .pos(10, 20)
- *    .size(100, 20)
- *    .message("a button")
- *    .visible(true)
- *    .active(true)
- *    .alpha(0.8)
- *    .zIndex(5)
- *    .build();
+ * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+ *   // the shared half on its own: a label, a box and the flags
+ *   self.buttonBuilder()
+ *      .pos(10, 20)
+ *      .size(100, 20)
+ *      .message("a button")
+ *      .visible(true)
+ *      .active(true)
+ *      .alpha(0.8)
+ *      .zIndex(5)
+ *      .build();
+ * }));
  * Hud.openScreen(screen);
  * </pre>
  *

@@ -9,7 +9,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires while handling an item-pickup packet for the local player, before the corresponding client
- * inventory update. It is not cancellable. To watch individual slot changes, listen for
+ * inventory update. To watch individual slot changes, listen for
  * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventSlotUpdate}.
  * <pre>
  * JsMacros.on("ItemPickup", JavaWrapper.methodToJava(function (event) {
