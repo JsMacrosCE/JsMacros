@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.objects.Object2LongArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import org.jetbrains.annotations.NotNull;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.Pair;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
@@ -17,6 +18,7 @@ import com.jsmacrosce.jsmacros.core.library.impl.FJsMacros;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Manages registered script services, their running contexts, and reloads triggered by file changes.
@@ -31,6 +33,7 @@ public class ServiceManager {
 
     protected final Core<?, ?> runner;
     protected final Map<String, Pair<ServiceTrigger, EventContainer<?>>> registeredServices = new LinkedHashMap<>();
+    private final Map<BaseScriptContext<?>, Thread> stoppingContexts = new ConcurrentHashMap<>();
 
     /** Stores the core used for subsequent service operations; this constructor does not register or start services.
      * @param runner core that owns this manager
@@ -168,8 +171,17 @@ public class ServiceManager {
         if (ctx.isContextClosed()) {
             return ServiceStatus.STOPPED;
         }
+        // A stop callback may itself request that its service stop.
+        if (stoppingContexts.putIfAbsent(ctx, Thread.currentThread()) != null) return ServiceStatus.RUNNING;
 
+        try {
+            return finishStoppingService(ctx);
+        } finally {
+            stoppingContexts.remove(ctx);
+        }
+    }
 
+    private ServiceStatus finishStoppingService(BaseScriptContext<?> ctx) {
         EventService event = (EventService) ctx.getTriggeringEvent();
 
         try {
@@ -180,12 +192,16 @@ public class ServiceManager {
         }
 
         BaseEventRegistry reg = runner.eventRegistry;
+        Map<IEventListener, String> listeners;
+        synchronized (ctx) {
+            listeners = new HashMap<>(ctx.eventListeners);
+        }
         if (event.offEventsOnStop) {
-            for (Map.Entry<IEventListener, String> ent : ctx.eventListeners.entrySet()) {
+            for (Map.Entry<IEventListener, String> ent : listeners.entrySet()) {
                 reg.removeListener(ent.getValue(), ent.getKey());
             }
         } else {
-            for (Map.Entry<IEventListener, String> ent : ctx.eventListeners.entrySet()) {
+            for (Map.Entry<IEventListener, String> ent : listeners.entrySet()) {
                 IEventListener listener = ent.getKey();
                 if (!(listener instanceof FJsMacros.ScriptEventListener sel)) continue;
                 MethodWrapper<?, ?, ?, ?> wrapper = sel.getWrapper();
@@ -219,8 +235,28 @@ public class ServiceManager {
             }
         }
 
+        if (ctx.isScriptStopRequested()) {
+            ctx.removeScriptListeners();
+            disableReload(event.serviceName);
+        }
         ctx.closeContext();
         return ServiceStatus.RUNNING;
+    }
+
+    /** Stops the service only if the supplied context is its current run. */
+    @DocletIgnore
+    public synchronized boolean stopServiceContext(BaseScriptContext<?> ctx) {
+        if (!(ctx.getTriggeringEvent() instanceof EventService event)) return false;
+        Pair<ServiceTrigger, EventContainer<?>> service = registeredServices.get(event.serviceName);
+        if (service == null || service.getU() == null || service.getU().getCtx() != ctx) return false;
+        stopService(event.serviceName);
+        return true;
+    }
+
+    /** Checks for a stop request made from this service's own stop hook. */
+    @DocletIgnore
+    public boolean isStoppingOnCurrentThread(BaseScriptContext<?> ctx) {
+        return stoppingContexts.get(ctx) == Thread.currentThread();
     }
 
     /** Adds or removes the context's sync object from the shared auto-unregister keep-alive set.

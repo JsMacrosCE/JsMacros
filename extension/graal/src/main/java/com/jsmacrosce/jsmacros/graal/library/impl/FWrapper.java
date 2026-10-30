@@ -151,15 +151,19 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
             }
 
             if (ctx.isContextClosed()) {
-                throw new BaseScriptContext.ScriptAssertionError("Context closed");
+                throw new BaseScriptContext.ScriptContextClosedException("Context closed");
             }
 
             runner.threadPool.runTask(() -> {
+                boolean bound = false;
+                boolean queued = false;
                 try {
                     ctx.bindThread(Thread.currentThread());
+                    bound = true;
                     if (!ctx.isMultiThreaded()) {
                         WrappedThread wt = new WrappedThread(Thread.currentThread(), priority);
                         ctx.tasks.add(wt);
+                        queued = true;
 
                         // wait to be at the front of the queue again
                         assert ctx.tasks.peek() != null;
@@ -168,14 +172,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                         }
 
                         if (ctx.isContextClosed()) {
-                            ctx.unbindThread(Thread.currentThread());
-                            assert ctx.tasks.peek() != null;
-                            ctx.tasks.poll();
-                            WrappedThread next = ctx.tasks.peek();
-                            if (next != null) {
-                                next.notifyReady();
-                            }
-                            throw new BaseScriptContext.ScriptAssertionError("Context closed");
+                            throw new BaseScriptContext.ScriptContextClosedException("Context closed");
                         }
                     }
 
@@ -183,42 +180,41 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                     try {
                         fn.executeVoid(args);
                     } catch (Throwable ex) {
-                        runner.profile.logError(ex);
+                        if (!ctx.isScriptStopException(ex)) runner.profile.logError(ex);
                     } finally {
                         ctx.getContext().leave();
                         ctx.releaseBoundEventIfPresent(Thread.currentThread());
                         runner.profile.joinedThreadStack.remove(Thread.currentThread());
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    throw new RuntimeException(e);
-                } finally {
-                    ctx.unbindThread(Thread.currentThread());
-                    if (!ctx.isMultiThreaded()) {
-                        ctx.tasks.poll();
-                        WrappedThread next = ctx.tasks.peek();
-                        if (next != null) {
-                            next.notifyReady();
-                        }
+                    if (!ctx.isScriptStopException(e)) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
                     }
+                } finally {
+                    finishThread(bound, queued);
                 }
             });
         }
 
         private <R2> R2 innerApply(Object... args) {
             if (ctx.isContextClosed()) {
-                throw new BaseScriptContext.ScriptAssertionError("Context closed");
+                throw new BaseScriptContext.ScriptContextClosedException("Context closed");
             }
 
             if (ctx.getBoundThreads().contains(Thread.currentThread())) {
                 return (R2) fn.execute(args).as(Object.class);
             }
 
+            boolean bound = false;
+            boolean queued = false;
             try {
                 ctx.bindThread(Thread.currentThread());
+                bound = true;
                 if (!ctx.isMultiThreaded()) {
                     WrappedThread wt = new WrappedThread(Thread.currentThread(), priority);
                     ctx.tasks.add(wt);
+                    queued = true;
 
                     // wait to be at the front of the queue again
                     WrappedThread peek = ctx.tasks.peek();
@@ -227,13 +223,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                     }
 
                     if (ctx.isContextClosed()) {
-                        ctx.unbindThread(Thread.currentThread());
-                        ctx.tasks.poll();
-                        WrappedThread next = ctx.tasks.peek();
-                        if (next != null) {
-                            next.notifyReady();
-                        }
-                        throw new BaseScriptContext.ScriptAssertionError("Context closed");
+                        throw new BaseScriptContext.ScriptContextClosedException("Context closed");
                     }
                 }
 
@@ -251,15 +241,30 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                     runner.profile.joinedThreadStack.remove(Thread.currentThread());
                 }
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                if (!ctx.isScriptStopException(e)) e.printStackTrace();
                 throw new RuntimeException(e);
             } finally {
-                ctx.unbindThread(Thread.currentThread());
-                if (!ctx.isMultiThreaded()) {
+                finishThread(bound, queued);
+            }
+        }
+
+        private void finishThread(boolean bound, boolean queued) {
+            if (bound) ctx.unbindThread(Thread.currentThread());
+            if (!queued) return;
+            synchronized (ctx.tasks) {
+                WrappedThread head = ctx.tasks.peek();
+                if (head != null && head.thread == Thread.currentThread()) {
                     ctx.tasks.poll();
                     WrappedThread next = ctx.tasks.peek();
-                    if (next != null) {
-                        next.notifyReady();
+                    if (next != null) next.notifyReady();
+                } else {
+                    // An interrupted queued task must not remove another thread's active entry.
+                    for (Object entry : ctx.tasks.toArray()) {
+                        WrappedThread task = (WrappedThread) entry;
+                        if (task.thread == Thread.currentThread()) {
+                            ctx.tasks.remove(task);
+                            break;
+                        }
                     }
                 }
             }

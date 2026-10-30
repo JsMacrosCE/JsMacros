@@ -22,6 +22,7 @@ import com.jsmacrosce.jsmacros.core.language.EventContainer;
 import com.jsmacrosce.jsmacros.core.library.Library;
 import com.jsmacrosce.jsmacros.core.library.PerExecLibrary;
 import com.jsmacrosce.jsmacros.core.library.impl.classes.WrappedScript;
+import com.jsmacrosce.jsmacros.core.service.EventService;
 import com.jsmacrosce.jsmacros.core.service.ServiceManager;
 
 import java.io.IOException;
@@ -31,7 +32,9 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Script library for event listeners, script execution, and profile services.
@@ -94,6 +97,57 @@ public class FJsMacros extends PerExecLibrary {
      */
     public List<BaseScriptContext<?>> getOpenContexts() {
         return ImmutableList.copyOf(runner.getContexts());
+    }
+
+    /**
+     * Stops this script run and removes the event listeners it registered. Other runs and the
+     * trigger that started this run are not stopped. Bound event locks are released and bound
+     * threads are interrupted. Close sockets, screens, and other resources explicitly before
+     * stopping; arbitrary resources are not automatically cleaned up.
+     * <p>
+     * For a running service, its stop callbacks and configured resource cleanup also run. If
+     * called from a service stop callback, that callback finishes as shutdown is already underway.
+     */
+    public void stopScript() {
+        if (!ctx.beginScriptStop()) return;
+        if (ctx.getTriggeringEvent() instanceof EventService) {
+            // A service stop hook is already running as part of this same shutdown.
+            if (runner.services.isStoppingOnCurrentThread(ctx)) return;
+            AtomicBoolean stoppedService = new AtomicBoolean();
+            CountDownLatch finished = new CountDownLatch(1);
+            runner.threadPool.runTask(() -> {
+                try {
+                    stoppedService.set(runner.services.stopServiceContext(ctx));
+                } catch (Throwable failure) {
+                    if (!ctx.isScriptStopException(failure)) runner.profile.logError(failure);
+                } finally {
+                    finished.countDown();
+                }
+            });
+            // Service callbacks may need this script's runtime before they can close it.
+            ctx.releaseBoundEventIfPresent(Thread.currentThread());
+            try {
+                ctx.wrapSleep(finished::await);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+            } catch (IllegalStateException closed) {
+                if (!ctx.isContextClosed()) throw closed;
+            }
+            if (stoppedService.get() || ctx.isContextClosed()) return;
+        }
+        try {
+            ctx.removeScriptListeners();
+        } finally {
+            ctx.closeContext();
+        }
+    }
+
+    private static boolean isScriptStopException(MethodWrapper<?, ?, ?, ?> callback, Throwable failure) {
+        return callback.getCtx() != null && callback.getCtx().isScriptStopException(failure);
+    }
+
+    private boolean isListenerStopping(MethodWrapper<?, ?, ?, ?> callback) {
+        return ctx.isScriptStopRequested() || callback.getCtx() != null && callback.getCtx().isScriptStopRequested();
     }
 
     /**
@@ -422,6 +476,7 @@ public class FJsMacros extends PerExecLibrary {
 
             @Override
             public EventContainer<?> trigger(BaseEvent e) {
+                if (isListenerStopping(callback)) return null;
                 if (filterer != null && !filterer.test(e)) return null;
                 EventContainer<?> p = new EventContainer<>(callback.getCtx());
                 Thread ot = callback.overrideThread();
@@ -429,6 +484,7 @@ public class FJsMacros extends PerExecLibrary {
                     Thread t = Thread.currentThread();
                     t.setName(this.toString());
                     try {
+                        if (isListenerStopping(callback)) return;
                         if (e.cancellable() || joined) {
                             callback.apply(e, p);
                         } else {
@@ -436,7 +492,7 @@ public class FJsMacros extends PerExecLibrary {
                         }
                     } catch (Throwable ex) {
                         runner.eventRegistry.removeListener(event, this);
-                        runner.profile.logError(ex);
+                        if (!isScriptStopException(callback, ex)) runner.profile.logError(ex);
                     } finally {
                         p.releaseLock();
                     }
@@ -447,6 +503,7 @@ public class FJsMacros extends PerExecLibrary {
 
             @Override
             public void triggerInline(BaseEvent e) {
+                if (isListenerStopping(callback)) return;
                 if (filterer != null && !filterer.test(e)) return;
                 EventContainer<?> container = new EventContainer<>(callback.getCtx());
                 try {
@@ -457,7 +514,7 @@ public class FJsMacros extends PerExecLibrary {
                     }
                 } catch (Throwable ex) {
                     runner.eventRegistry.removeListener(event, this);
-                    runner.profile.logError(ex);
+                    if (!isScriptStopException(callback, ex)) runner.profile.logError(ex);
                 } finally {
                     container.releaseLock();
                 }
@@ -488,8 +545,7 @@ public class FJsMacros extends PerExecLibrary {
                 return String.format("ScriptEventListener:{\"creator\":\"%s\", \"event\":\"%s\"}", getCreatorName(), event);
             }
         };
-        runner.eventRegistry.addListener(event, listener);
-        ctx.eventListeners.put(listener, event);
+        ctx.registerScriptListener(event, listener);
         return listener;
     }
 
@@ -538,6 +594,7 @@ public class FJsMacros extends PerExecLibrary {
 
             @Override
             public EventContainer<?> trigger(BaseEvent e) {
+                if (isListenerStopping(callback)) return null;
                 runner.eventRegistry.removeListener(event, this);
                 EventContainer<?> p = new EventContainer<>(callback.getCtx());
                 Thread ot = callback.overrideThread();
@@ -546,13 +603,14 @@ public class FJsMacros extends PerExecLibrary {
 
                     t.setName(this.toString());
                     try {
+                        if (isListenerStopping(callback)) return;
                         if (e.cancellable() || joined) {
                             callback.apply(e, p);
                         } else {
                             callback.accept(e, p);
                         }
                     } catch (Throwable ex) {
-                        runner.profile.logError(ex);
+                        if (!isScriptStopException(callback, ex)) runner.profile.logError(ex);
                     } finally {
                         p.releaseLock();
                     }
@@ -563,6 +621,7 @@ public class FJsMacros extends PerExecLibrary {
 
             @Override
             public void triggerInline(BaseEvent e) {
+                if (isListenerStopping(callback)) return;
                 runner.eventRegistry.removeListener(event, this);
                 EventContainer<?> container = new EventContainer<>(callback.getCtx());
                 try {
@@ -572,7 +631,7 @@ public class FJsMacros extends PerExecLibrary {
                         callback.accept(e, container);
                     }
                 } catch (Throwable ex) {
-                    runner.profile.logError(ex);
+                    if (!isScriptStopException(callback, ex)) runner.profile.logError(ex);
                 } finally {
                     container.releaseLock();
                 }
@@ -604,8 +663,7 @@ public class FJsMacros extends PerExecLibrary {
             }
 
         };
-        runner.eventRegistry.addListener(event, listener);
-        ctx.eventListeners.put(listener, event);
+        ctx.registerScriptListener(event, listener);
         return listener;
     }
 
@@ -815,6 +873,9 @@ public class FJsMacros extends PerExecLibrary {
 
             // create the listener
             IEventListener listener = new ScriptEventListener() {
+                private boolean stopped;
+                private int pendingTriggers;
+
                 @Override
                 public boolean joined() {
                     return join;
@@ -822,21 +883,32 @@ public class FJsMacros extends PerExecLibrary {
 
                 @Override
                 public EventContainer<?> trigger(BaseEvent evt) {
-                    ev[0] = evt;
-                    // allow for initial thread to run its filter
-                    lock.release();
+                    synchronized (this) {
+                        if (stopped) return null;
+                        pendingTriggers++;
+                    }
                     try {
+                        ev[0] = evt;
+                        // allow for initial thread to run its filter
+                        lock.release();
                         // wait for filter to finish
                         lock2.acquire();
+                        synchronized (this) {
+                            if (stopped) return null;
+                            // if filter done, we can remove self and return the event context
+                            if (done[0]) {
+                                runner.eventRegistry.removeListener(event, this);
+                                ctx.bindEvent(th, (EventContainer) ctxCont[0]);
+                                return ctxCont[0];
+                            }
+                        }
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                         return null;
-                    }
-                    // if filter done, we can remove self and return the event context
-                    if (done[0]) {
-                        runner.eventRegistry.removeListener(event, this);
-                        ctx.bindEvent(th, (EventContainer) ctxCont[0]);
-                        return ctxCont[0];
+                    } finally {
+                        synchronized (this) {
+                            pendingTriggers--;
+                        }
                     }
                     return null;
                 }
@@ -858,6 +930,12 @@ public class FJsMacros extends PerExecLibrary {
 
                 @Override
                 public void off() {
+                    synchronized (this) {
+                        if (stopped) return;
+                        stopped = true;
+                        // Dispatchers may already be waiting for a filter that will be interrupted.
+                        lock2.release(pendingTriggers);
+                    }
                     runner.eventRegistry.removeListener(event, this);
                     th.interrupt();
                 }
@@ -868,8 +946,7 @@ public class FJsMacros extends PerExecLibrary {
                 }
             };
             // register the listener
-            runner.eventRegistry.addListener(event, listener);
-            ctx.eventListeners.put(listener, event);
+            ctx.registerScriptListener(event, listener);
 
             // run before, this is a thread-safety thing to prevent "interrupts" from going in between this and things like deferCurrentTask
             // it is thread safe because we already registered the listener so we won't miss any events

@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.graal.language.impl;
 
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.PolyglotException;
 import com.jsmacrosce.PrioryFiFoTaskQueue;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
@@ -36,6 +37,11 @@ public class GraalScriptContext extends BaseScriptContext<Context> {
         if (ctx != null) {
             ctx.close(true);
         }
+    }
+
+    @Override
+    protected boolean isLanguageCancellation(Throwable failure) {
+        return failure instanceof PolyglotException && ((PolyglotException) failure).isCancelled();
     }
 
     /** Selects a queue priority from a wrapped thread's stored priority.

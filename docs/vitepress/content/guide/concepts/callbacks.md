@@ -115,6 +115,11 @@ JsMacros.on("RecvMessage", JavaWrapper.methodToJava((event) => {
 
 ## Stopping
 
+`JsMacros.stopScript()` stops the current run and removes its event listeners.
+It does not disable the trigger or stop other runs of the same script. Close any
+sockets, screens, or other resources first; they are not automatically cleaned up.
+For a service, its stop callbacks and configured resource cleanup also run.
+
 `JavaWrapper.stop()` closes the current script context. It releases event locks,
 interrupts threads bound to the context, and unregisters the context. Use it when a
 script has finished its job but still has callbacks registered.
