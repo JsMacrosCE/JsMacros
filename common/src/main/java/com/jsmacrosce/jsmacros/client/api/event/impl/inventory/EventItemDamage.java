@@ -14,7 +14,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * com.jsmacrosce.jsmacros.client.api.event.impl.player.EventHeldItemChange} or {@link
  * com.jsmacrosce.jsmacros.client.api.event.impl.player.EventArmorChange} fires; a damage-only change
  * triggers this event first and then the corresponding stack-change event.
- * This event is not cancellable. {@link #damage} is the resulting value, not the amount changed;
+ * {@link #damage} is the resulting value, not the amount changed;
  * {@link #item} wraps the live stack and can be used to modify it.
  *
  * <pre>

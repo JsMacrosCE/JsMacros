@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.UUID;
 
 /**
- * Fired when a player-list entry is first added to the client player list. This event is not cancellable.
+ * Fired when a player-list entry is first added to the client player list.
  * <pre>
  * JsMacros.on("PlayerJoin", JavaWrapper.methodToJava(function (event) {
  *   const name = event.player.getName();

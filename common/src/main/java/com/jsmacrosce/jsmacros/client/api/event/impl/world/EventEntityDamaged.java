@@ -10,7 +10,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires before a client-side living entity's health decreases through {@code setHealth}; it does not
- * identify a damage source and is not cancellable. {@code health} is the incoming value and
+ * identify a damage source. {@code health} is the incoming value and
  * {@code damage} is the difference from the previously tracked health.
  * <pre>
  * JsMacros.on("EntityDamaged", JavaWrapper.methodToJava(function (event) {

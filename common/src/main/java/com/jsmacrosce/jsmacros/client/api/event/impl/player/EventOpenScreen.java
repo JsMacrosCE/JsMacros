@@ -11,9 +11,9 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires when the client's current screen changes, including when a screen is closed. The event
- * is dispatched after the screen field is assigned, and is not cancellable. Reassigning the
- * current screen does not fire it. On close, both {@link #screen} and {@link #screenName} are
- * {@code null}. Container screens have a separate cancellable event:
+ * is dispatched after the screen field is assigned. Reassigning the current screen does not fire
+ * it. On close, both {@link #screen} and {@link #screenName} are {@code null}. Container screens
+ * have a separate event that can be cancelled:
  * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventOpenContainer}.
  * <pre>
  * JsMacros.on("OpenScreen", JavaWrapper.methodToJava(function (event) {

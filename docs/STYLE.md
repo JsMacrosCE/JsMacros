@@ -122,6 +122,14 @@ the event dispatch/injection path. For cancellable events, distinguish
 cancelling the event from changing an underlying action; do not claim
 cancellability merely because the event name suggests it.
 
+Whether an event can be cancelled is metadata from `@Event(cancellable = ...)`;
+the website reference renders it as a pill next to the class name, so do not
+restate “this event is (not) cancellable” in the prose. Explain what cancelling
+prevents or changes only when that effect is not obvious. The website reference
+also renders `@since` as a metadata pill; text after the version is shown as a
+history note, so keep the release number first and put any migration detail
+after it.
+
 ## 2. Javadoc structure and supported tags
 
 Use a normal Javadoc body followed by block tags. Keep examples and all

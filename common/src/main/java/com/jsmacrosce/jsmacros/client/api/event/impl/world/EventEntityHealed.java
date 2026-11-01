@@ -10,7 +10,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 /**
  * Fires before a client-side living entity's {@code setHealth} call when the supplied health is
  * greater than its previous value. {@code health} is the supplied value and {@code damage} is the
- * positive increase; this event does not identify the healing source or cancel the health change.
+ * positive increase; this event does not identify the healing source.
  * <pre>
  * JsMacros.on("EntityHealed", JavaWrapper.methodToJava(function (event) {
  *   if (event.entity instanceof EntityHelpers.Villager) {

@@ -7,8 +7,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires before the local player's health is updated. {@link #change} is positive for an increase
- * and negative for a decrease. Setting health to its current value does not fire this event; it
- * is not cancellable.
+ * and negative for a decrease. Setting health to its current value does not fire this event.
  * <pre>
  * JsMacros.on("HealthChange", JavaWrapper.methodToJava(function (event) {
  *   if (event.change > 0) {

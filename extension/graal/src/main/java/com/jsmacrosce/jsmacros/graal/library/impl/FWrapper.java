@@ -17,7 +17,8 @@ import com.jsmacrosce.jsmacros.graal.language.impl.WrappedThread;
  * Wraps script callbacks for use as Java {@link MethodWrapper}s through the {@code JavaWrapper} library.
  * <p>
  * Graal contexts are entered by one thread at a time. Calls through these wrappers are coordinated
- * by a priority queue; asynchronous wrappers execute callbacks on the script thread pool.
+ * by a priority queue; asynchronous wrappers schedule void callbacks on the script thread pool,
+ * while calls that need a result run synchronously.
  *
  * @author Wagyourtail
  * @since 1.2.5, re-named from {@code consumer} in 1.4.0
@@ -55,13 +56,17 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
     }
 
     /**
-     * Wraps a callable for Java use; each wrapper call schedules the script function on the script thread pool.
+     * Wraps a callable for Java use. Calls that only need the callback to run, such as
+     * {@code accept} and {@code run}, are scheduled on the script thread pool and return
+     * immediately; their failures are logged. Calls that need a result, such as {@code apply},
+     * {@code test}, {@code get}, and {@code compare}, run synchronously on the caller and
+     * return or throw the result.
      *
      * @param c executable script function
      * @param <A> type of the first callback argument
      * @param <B> type of the second callback argument
      * @param <R> callback result type
-     * @return wrapper that schedules {@code c}; callback failures are logged, not returned to the caller
+     * @return wrapper that schedules void callbacks and runs result-returning calls synchronously
      * @since 1.3.2
      */
     @Override
@@ -71,14 +76,16 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
     }
 
     /**
-     * Wraps a callable for asynchronous execution with an explicit queue priority. The other asynchronous overloads use priority 5.
+     * Wraps a callable for asynchronous execution with an explicit queue priority. The other
+     * asynchronous overloads use priority 5. As with the no-priority form, only void callbacks
+     * are scheduled; calls that need a result run synchronously.
      *
      * @param priority queue priority used to order callback execution
      * @param c executable script function
      * @param <A> type of the first callback argument
      * @param <B> type of the second callback argument
      * @param <R> callback result type
-     * @return wrapper that schedules {@code c}; callback failures are logged, not returned to the caller
+     * @return wrapper that schedules void callbacks, with their failures logged; result-returning calls run synchronously
      */
     @Override
     public <A, B, R> MethodWrapper<A, B, R, ?> methodToJavaAsync(int priority, Value c) {
@@ -144,15 +151,19 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
             }
 
             if (ctx.isContextClosed()) {
-                throw new BaseScriptContext.ScriptAssertionError("Context closed");
+                throw new BaseScriptContext.ScriptContextClosedException("Context closed");
             }
 
             runner.threadPool.runTask(() -> {
+                boolean bound = false;
+                boolean queued = false;
                 try {
                     ctx.bindThread(Thread.currentThread());
+                    bound = true;
                     if (!ctx.isMultiThreaded()) {
                         WrappedThread wt = new WrappedThread(Thread.currentThread(), priority);
                         ctx.tasks.add(wt);
+                        queued = true;
 
                         // wait to be at the front of the queue again
                         assert ctx.tasks.peek() != null;
@@ -161,14 +172,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                         }
 
                         if (ctx.isContextClosed()) {
-                            ctx.unbindThread(Thread.currentThread());
-                            assert ctx.tasks.peek() != null;
-                            ctx.tasks.poll();
-                            WrappedThread next = ctx.tasks.peek();
-                            if (next != null) {
-                                next.notifyReady();
-                            }
-                            throw new BaseScriptContext.ScriptAssertionError("Context closed");
+                            throw new BaseScriptContext.ScriptContextClosedException("Context closed");
                         }
                     }
 
@@ -176,42 +180,41 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                     try {
                         fn.executeVoid(args);
                     } catch (Throwable ex) {
-                        runner.profile.logError(ex);
+                        if (!ctx.isScriptStopException(ex)) runner.profile.logError(ex);
                     } finally {
                         ctx.getContext().leave();
                         ctx.releaseBoundEventIfPresent(Thread.currentThread());
                         runner.profile.joinedThreadStack.remove(Thread.currentThread());
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    throw new RuntimeException(e);
-                } finally {
-                    ctx.unbindThread(Thread.currentThread());
-                    if (!ctx.isMultiThreaded()) {
-                        ctx.tasks.poll();
-                        WrappedThread next = ctx.tasks.peek();
-                        if (next != null) {
-                            next.notifyReady();
-                        }
+                    if (!ctx.isScriptStopException(e)) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
                     }
+                } finally {
+                    finishThread(bound, queued);
                 }
             });
         }
 
         private <R2> R2 innerApply(Object... args) {
             if (ctx.isContextClosed()) {
-                throw new BaseScriptContext.ScriptAssertionError("Context closed");
+                throw new BaseScriptContext.ScriptContextClosedException("Context closed");
             }
 
             if (ctx.getBoundThreads().contains(Thread.currentThread())) {
                 return (R2) fn.execute(args).as(Object.class);
             }
 
+            boolean bound = false;
+            boolean queued = false;
             try {
                 ctx.bindThread(Thread.currentThread());
+                bound = true;
                 if (!ctx.isMultiThreaded()) {
                     WrappedThread wt = new WrappedThread(Thread.currentThread(), priority);
                     ctx.tasks.add(wt);
+                    queued = true;
 
                     // wait to be at the front of the queue again
                     WrappedThread peek = ctx.tasks.peek();
@@ -220,13 +223,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                     }
 
                     if (ctx.isContextClosed()) {
-                        ctx.unbindThread(Thread.currentThread());
-                        ctx.tasks.poll();
-                        WrappedThread next = ctx.tasks.peek();
-                        if (next != null) {
-                            next.notifyReady();
-                        }
-                        throw new BaseScriptContext.ScriptAssertionError("Context closed");
+                        throw new BaseScriptContext.ScriptContextClosedException("Context closed");
                     }
                 }
 
@@ -244,15 +241,30 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                     runner.profile.joinedThreadStack.remove(Thread.currentThread());
                 }
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                if (!ctx.isScriptStopException(e)) e.printStackTrace();
                 throw new RuntimeException(e);
             } finally {
-                ctx.unbindThread(Thread.currentThread());
-                if (!ctx.isMultiThreaded()) {
+                finishThread(bound, queued);
+            }
+        }
+
+        private void finishThread(boolean bound, boolean queued) {
+            if (bound) ctx.unbindThread(Thread.currentThread());
+            if (!queued) return;
+            synchronized (ctx.tasks) {
+                WrappedThread head = ctx.tasks.peek();
+                if (head != null && head.thread == Thread.currentThread()) {
                     ctx.tasks.poll();
                     WrappedThread next = ctx.tasks.peek();
-                    if (next != null) {
-                        next.notifyReady();
+                    if (next != null) next.notifyReady();
+                } else {
+                    // An interrupted queued task must not remove another thread's active entry.
+                    for (Object entry : ctx.tasks.toArray()) {
+                        WrappedThread task = (WrappedThread) entry;
+                        if (task.thread == Thread.currentThread()) {
+                            ctx.tasks.remove(task);
+                            break;
+                        }
                     }
                 }
             }

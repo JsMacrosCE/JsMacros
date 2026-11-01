@@ -17,17 +17,19 @@ import java.util.concurrent.atomic.AtomicReference;
  * initial state.
  * <pre>
  * const screen = Hud.createScreen("a screen", true);
- * const lock = screen.lockButtonBuilder()
- *    .pos(10, 20)
- *    .action(JavaWrapper.methodToJava(function (btn) {
- *      Chat.log(`locked: ${btn.isLocked()}`);
- *    }))
- *    .build();
- * Hud.openScreen(screen);
+ * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+ *   const lock = self.lockButtonBuilder()
+ *      .pos(10, 20)
+ *      .action(JavaWrapper.methodToJava(function (btn) {
+ *        Chat.log(`locked: ${btn.isLocked()}`);
+ *      }))
+ *      .build();
  *
- * // the state can be set outright, without going through a press
- * lock.setLocked(true);
- * Chat.log(`locked: ${lock.isLocked()}`);
+ *   // the state can be set outright, without going through a press
+ *   lock.setLocked(true);
+ *   Chat.log(`locked: ${lock.isLocked()}`);
+ * }));
+ * Hud.openScreen(screen);
  * </pre>
  *
  * @author Etheradon

@@ -18,14 +18,16 @@ import java.util.concurrent.atomic.AtomicReference;
  * {@code IScreen.texturedButtonBuilder()} for a texture-based button.
  * <pre>
  * const screen = Hud.createScreen("a screen", true);
- * const button = screen.buttonBuilder()
- *    .pos(10, 20)
- *    .size(100, 20)
- *    .message("press me")
- *    .action(JavaWrapper.methodToJava(function (btn, screen) {
- *      btn.setLabel("pressed");
- *    }))
- *    .build();
+ * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+ *   const button = self.buttonBuilder()
+ *      .pos(10, 20)
+ *      .size(100, 20)
+ *      .message("press me")
+ *      .action(JavaWrapper.methodToJava(function (btn) {
+ *        btn.setLabel("pressed");
+ *      }))
+ *      .build();
+ * }));
  * Hud.openScreen(screen);
  *
  * </pre>
@@ -58,15 +60,17 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
      * Its height is fixed at 20; other properties are configured through the shared builder.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.buttonBuilder()
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .message("press me")
-     *    .action(JavaWrapper.methodToJava(function (btn, onScreen) {
-     *       // the callback is given the button and the screen
-     *       Chat.log(`pressed on the screen titled ${onScreen.getTitleText()}`);
-     *     }))
-     *    .build();
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.buttonBuilder()
+     *      .pos(10, 20)
+     *      .size(100, 20)
+     *      .message("press me")
+     *      .action(JavaWrapper.methodToJava(function (btn, onScreen) {
+     *        // the callback is given the button and the screen
+     *        Chat.log(`pressed on the screen titled ${onScreen.getTitleText()}`);
+     *      }))
+     *      .build();
+     * }));
      * Hud.openScreen(screen);
      * </pre>
      *
@@ -156,14 +160,16 @@ public class ButtonWidgetHelper<T extends Button> extends ClickableWidgetHelper<
      * states; none falls back to another. Its height is fixed at 20.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.texturedButtonBuilder()
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .enabledTexture("minecraft:item/diamond")
-     *    .disabledTexture("minecraft:item/emerald")
-     *    .enabledFocusedTexture("minecraft:item/diamond")
-     *    .disabledFocusedTexture("minecraft:item/emerald")
-     *    .build();
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.texturedButtonBuilder()
+     *      .pos(10, 20)
+     *      .size(100, 20)
+     *      .enabledTexture("minecraft:item/diamond")
+     *      .disabledTexture("minecraft:item/emerald")
+     *      .enabledFocusedTexture("minecraft:item/diamond")
+     *      .disabledFocusedTexture("minecraft:item/emerald")
+     *      .build();
+     * }));
      * Hud.openScreen(screen);
      * </pre>
      *

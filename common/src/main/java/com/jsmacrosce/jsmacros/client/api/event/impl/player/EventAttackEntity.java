@@ -9,8 +9,7 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires after the local player's entity-attack action. This event is not
- * cancellable.
+ * Fires after the local player's entity-attack action.
  * <pre>
  * JsMacros.on("AttackEntity", JavaWrapper.methodToJava(function (event) {
  *   if (event.entity instanceof EntityHelpers.Player) {

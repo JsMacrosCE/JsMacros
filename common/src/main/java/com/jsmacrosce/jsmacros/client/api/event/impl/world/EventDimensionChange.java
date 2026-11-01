@@ -10,7 +10,6 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * Fires when the client begins setting a non-null world, such as when joining or changing
  * dimensions. It does not fire when leaving a world; use
  * {@link com.jsmacrosce.jsmacros.client.api.event.impl.world.EventDisconnect Disconnect} instead.
- * This event is not cancellable.
  * <pre>
  * JsMacros.on("DimensionChange", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`Dimension changed to ${event.dimension}`);

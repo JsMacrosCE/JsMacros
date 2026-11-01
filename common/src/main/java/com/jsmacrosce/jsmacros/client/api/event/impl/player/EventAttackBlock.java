@@ -11,7 +11,6 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 /**
  * Fires when the client's {@code startDestroyBlock} call returns {@code true} for a block
  * target. This does not guarantee a new break request was sent or that the block was destroyed.
- * The event is not cancellable.
  * <pre>
  * JsMacros.on("AttackBlock", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`Breaking ${event.block.getId()} at ${event.block.getX()}, ${event.block.getY()}, ${event.block.getZ()}`);

@@ -65,8 +65,10 @@ import java.util.Locale;
  *     }
  *   }
  *
- *   // queue forward movement for one second of game time
- *   Player.moveForward(0);
+ *   // queue one second of forward movement; one call is one tick
+ *   for (let tick = 0; tick < 20; tick += 1) {
+ *     Player.moveForward(0);
+ *   }
  *   Client.waitTick(20);
  *   Player.clearInputs();
  * }

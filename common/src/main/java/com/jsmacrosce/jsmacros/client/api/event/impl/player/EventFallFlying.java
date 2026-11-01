@@ -10,7 +10,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * Fires when the local player's polled fall-flying state differs from the previous sample.
  * The state is checked once per client tick while a player is present. The previous sample is
  * retained while no player is present, including across disconnects, so a later event may compare
- * different player instances. The event is not cancellable.
+ * different player instances.
  * <pre>
  * JsMacros.on("FallFlying", JavaWrapper.methodToJava(function (event) {
  *   if (event.state) {

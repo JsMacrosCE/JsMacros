@@ -23,16 +23,31 @@ export function scopePrefix(pathname: string, prefixes: string[]): string {
  * list: it has to carry its own copy.
  */
 export function createSearchScopeFilter(
-  prefixes: string[]
+  prefixes: string[],
+  guidePrefix = '',
+  fallbackPrefix = ''
 ): (result: SearchResult) => boolean {
   const source = `function (result) {
   var prefixes = ${JSON.stringify(prefixes)}
+  var guidePrefix = ${JSON.stringify(guidePrefix)}
+  var fallbackPrefix = ${JSON.stringify(fallbackPrefix)}
   var path = window.location.pathname
+
+  var guideAt = guidePrefix ? path.indexOf(guidePrefix) : -1
+  if (guideAt >= 0) {
+    return result.id.indexOf(path.slice(0, guideAt + guidePrefix.length)) === 0
+  }
+
   for (var i = 0; i < prefixes.length; i++) {
     var at = path.indexOf(prefixes[i] + '/')
     if (at >= 0) {
       return result.id.indexOf(path.slice(0, at + prefixes[i].length + 1)) === 0
     }
+  }
+
+  if (fallbackPrefix) {
+    return result.id.indexOf(fallbackPrefix + '/') >= 0 ||
+      (guidePrefix !== '' && result.id.indexOf(guidePrefix) >= 0)
   }
   return true
 }`

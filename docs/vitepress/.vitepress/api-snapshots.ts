@@ -10,6 +10,8 @@ export type SidebarData = {
   classes: SidebarNode[]
   events: SidebarNode[]
   libraries: SidebarNode[]
+  /** Stable script names for Java types; optional so older snapshots still load. */
+  types?: SidebarEntry[]
 }
 export type ApiSnapshot = {
   version: string
@@ -35,6 +37,9 @@ export function loadApiSnapshots(contentDir: string): ApiSnapshot[] {
       }
       for (const group of ['libraries', 'classes', 'events'] as const) {
         if (!Array.isArray(sidebar[group])) throw new Error(`Invalid ${group} sidebar: ${dataPath}`)
+      }
+      if (sidebar.types !== undefined && !Array.isArray(sidebar.types)) {
+        throw new Error(`Invalid types sidebar: ${dataPath}`)
       }
       snapshots.push({ version, minecraftVersion, prefix: `/${version}/${minecraftVersion}`, sidebar })
     }

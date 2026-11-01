@@ -30,8 +30,10 @@ if (entities !== null) {
 These are real host types, not predicates based on registry IDs. Inheritance works:
 a horse helper is also an `EntityHelpers.AbstractHorse` and `EntityHelpers.Animal`.
 `ent.is("horse")` remains available when the intended question is the registry ID.
-Exports do not change factory dispatch: a helper type's presence in a namespace
-does not imply that every entity factory constructs that specialization.
+Exports do not change factory dispatch. The standard entity factory chooses the
+matching helper for known entity classes; an exported name is a stable type name
+for the object you received, not a factory override. Check the result with
+`instanceof` when the declared return type is a base helper.
 
 Members support constructors and static access when the underlying type provides
 them. Interfaces and abstract classes are useful for checks but cannot be

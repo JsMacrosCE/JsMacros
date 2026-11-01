@@ -86,19 +86,23 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
                     }
                 }
             } catch (Throwable e) {
-                try {
-                    if (catcher != null) {
-                        catcher.accept(e);
-                    } else {
-                        throw e;
+                if (ctx.getCtx().isScriptStopException(e)) {
+                    notifyStopped(then, null);
+                } else {
+                    try {
+                        if (catcher != null) {
+                            catcher.accept(e);
+                        } else {
+                            throw e;
+                        }
+                    } catch (Throwable f) {
+                        runner.profile.logError(f);
                     }
-                } catch (Throwable f) {
-                    runner.profile.logError(f);
                 }
             } finally {
                 ctx.getCtx().unbindThread(Thread.currentThread());
 
-                if (event instanceof EventService) {
+                if (event instanceof EventService && !ctx.getCtx().isScriptStopRequested()) {
                     runner.services.markCrashed(((EventService) event).serviceName);
                 }
 
@@ -134,27 +138,33 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
         runner.threadPool.runTask(() -> {
             Thread t = Thread.currentThread();
             preThread.run();
+            boolean executionFinished = false;
             try {
                 t.setName(String.format("RunScript:{\"creator\":\"%s\", \"start\":\"%d\"}", ct.getName(), System.currentTimeMillis()));
 
                 runner.addContext(ctx);
 
                 exec(ctx, lang, script, event);
+                executionFinished = true;
 
                 if (then != null) {
                     then.run();
                 }
             } catch (Throwable e) {
-                try {
-                    if (catcher != null) {
-                        catcher.accept(e);
-                    } else {
-                        throw e;
-                    }
-                } catch (Throwable f) {
-                    // Skip logging if this is a result of `BaseScriptContext.closeContext(true)`
-                    if (!"Context execution was cancelled.".equals(f.getMessage()) || !ctx.getCtx().preventLog) {
-                        runner.profile.logError(f);
+                if (!executionFinished && ctx.getCtx().isScriptStopException(e)) {
+                    notifyStopped(then, catcher);
+                } else {
+                    try {
+                        if (catcher != null) {
+                            catcher.accept(e);
+                        } else {
+                            throw e;
+                        }
+                    } catch (Throwable f) {
+                        // Skip logging if this is a result of `BaseScriptContext.closeContext(true)`
+                        if (!"Context execution was cancelled.".equals(f.getMessage()) || !ctx.getCtx().preventLog) {
+                            runner.profile.logError(f);
+                        }
                     }
                 }
             } finally {
@@ -175,6 +185,23 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
             ctx.getCtx().setMainThread(th);
         });
         return ctx;
+    }
+
+    private void notifyStopped(Runnable then, Consumer<Throwable> catcher) {
+        if (then == null) return;
+        // The stopped runtime may still cancel its worker even after the Java interrupt is cleared.
+        runner.threadPool.runTask(() -> {
+            try {
+                then.run();
+            } catch (Throwable failure) {
+                try {
+                    if (catcher != null) catcher.accept(failure);
+                    else throw failure;
+                } catch (Throwable reported) {
+                    runner.profile.logError(reported);
+                }
+            }
+        });
     }
 
     /** Retrieves shared, per-language, and per-execution libraries applicable to this context. Shared and per-language instances are reused; per-execution instances are constructed for this call. A per-execution library constructor failure propagates as a {@link RuntimeException}.

@@ -14,9 +14,9 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * player's own inventory and the creative inventory. It is raised for every click the screen
  * handles, whether the click ends up moving items or not, and the fields describe the click
  * rather than its result.<br>
- * This event is cancellable, and cancelling really does stop the click. The event is raised
- * before the click is handed to the game mode, and cancelling makes the mixin abort before that
- * call happens, so the click packet is never sent and no slot changes. This is also why
+ * Cancelling stops the click. The event is raised before the click is handed to the game mode,
+ * and cancelling makes the mixin abort before that call happens, so the click packet is never
+ * sent and no slot changes. This is also why
  * {@link EventDropSlot} is not raised for a cancelled click: the drop event is only reached once
  * the click itself has been allowed through.
  * <br>

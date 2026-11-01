@@ -2,6 +2,7 @@
 import DefaultTheme from 'vitepress/theme'
 import { useData, withBase } from 'vitepress'
 import { dataSymbol } from 'vitepress/dist/client/app/data'
+import { getSidebar } from 'vitepress/dist/client/theme-default/support/sidebar'
 import { computed, markRaw, onMounted, provide, ref, shallowRef, watch } from 'vue'
 import { snapshotForRoute, type ApiThemeConfig, type SnapshotNavigation } from './api-navigation'
 import { loadNavigation } from './sidebar-loader'
@@ -18,7 +19,9 @@ const ready = computed(() => snapshot.value && navigation.value?.prefix === snap
 // loading its data during SSR. This also keeps initial hydration/layout stable.
 const placeholder = markRaw([{ items: [] }])
 const sidebar = computed(() => {
-  if (!snapshot.value) return []
+  if (!snapshot.value) {
+    return markRaw(getSidebar(data.theme.value.sidebar, data.page.value.relativePath))
+  }
   return ready.value
     ? markRaw(navigation.value!.sidebar(data.page.value.relativePath))
     : placeholder

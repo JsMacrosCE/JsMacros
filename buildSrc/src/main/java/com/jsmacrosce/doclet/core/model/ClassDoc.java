@@ -15,6 +15,12 @@ public record ClassDoc(
     String alias,
     String category,
     boolean eventCancellable,
+    /**
+     * Whether the class decides cancellation per instance instead of from its {@code @Event}
+     * metadata. An event that overrides {@code cancellable()} can be cancellable for one
+     * dispatch and not another; the website must not reduce that to a boolean flag.
+     */
+    boolean eventCancellableDynamic,
     String eventFilterer,
     List<TypeRef> typeParams,
     List<TypeRef> extendsTypes,
@@ -61,7 +67,7 @@ public record ClassDoc(
         DocComment docComment,
         List<MemberDoc> members
     ) {
-        this(name, qualifiedName, packageName, kind, group, alias, category, eventCancellable,
+        this(name, qualifiedName, packageName, kind, group, alias, category, eventCancellable, false,
             eventFilterer, typeParams, extendsTypes, implementsTypes, modifiers, docComment, members,
             List.of(), false, false, false);
     }

@@ -9,8 +9,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires when the client disconnects, including when leaving without a disconnection screen. The
- * disconnection-screen reason is available as {@link #message} when present; this event is not
- * cancellable.
+ * disconnection-screen reason is available as {@link #message} when present.
  * <pre>
  * JsMacros.on("Disconnect", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`Left the world${event.message === null ? "" : ": " + event.message.getString()}`);

@@ -6,7 +6,7 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires after the client processes a server packet to forget a chunk. This event is not cancellable.
+ * Fires after the client processes a server packet to forget a chunk.
  * <pre>
  * JsMacros.on("ChunkUnload", JavaWrapper.methodToJava(function (event) {
  *   Chat.log(`Chunk ${event.x}, ${event.z} unloaded`);

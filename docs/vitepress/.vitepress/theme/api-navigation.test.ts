@@ -9,6 +9,8 @@ const result = client + '.Result'
 const value = result + '.Value'
 const entity = summary.prefix + '/classes/example/EntityHelper'
 const otherEntity = summary.prefix + '/classes/example/EntityHelperExtra'
+const other = summary.prefix + '/classes/Other'
+const types = [{ text: 'EntityHelpers', link: summary.prefix + '/types/EntityHelpers' }]
 
 function fixture(): SidebarData {
   return {
@@ -19,14 +21,21 @@ function fixture(): SidebarData {
       }]
     }] }],
     classes: [
-      { name: 'Uncategorized', items: [{ text: 'Other', link: summary.prefix + '/classes/Other' }] },
+      { name: 'Uncategorized', items: [{ text: 'Other', link: other }] },
       { name: 'World', items: [{ name: 'Entities', items: [
         { text: 'EntityHelper', link: entity }, { text: 'EntityHelperExtra', link: otherEntity }
       ] }] },
       { name: 'Rendering', items: [] }
     ],
-    events: []
+    events: [],
+    types
   }
+}
+
+function group(items: any[], text: string): any {
+  const found = items.find(item => item.text === text)
+  assert.ok(found, `Missing sidebar group ${text}`)
+  return found
 }
 
 test('snapshot selection uses exact version boundaries and base-free page paths', () => {
@@ -48,55 +57,63 @@ test('normalizes Markdown, clean URLs, HTML and index routes without losing dott
   assert.equal(normalizeApiRoute(`${summary.prefix}/`), summary.prefix)
 })
 
-test('member pages keep only their owner chain and preserve cross-group references', () => {
+test('every page keeps the same group headers and the full tree', () => {
   const nav = createSnapshotNavigation(fixture(), summary)
-  assert.deepEqual(nav.sidebar(`${entity}.md`), [
-    { text: 'Reference', items: [
-      { text: 'Overview', link: `${summary.prefix}/` },
-      { text: 'Libraries', link: `${summary.prefix}/libraries` },
-      { text: 'Classes', link: `${summary.prefix}/classes` },
-      { text: 'Events', link: `${summary.prefix}/events` }
-    ] },
-    { text: 'Classes', items: [{ text: 'World', collapsed: true, items: [
-      { text: 'Entities', link: undefined, collapsed: true, items: [{ text: 'EntityHelper', link: entity }] }
-    ] }] }
-  ])
-  const extra = JSON.stringify(nav.sidebar(otherEntity))
-  assert.ok(extra.includes('EntityHelperExtra'))
-  assert.ok(!extra.includes(`"link":"${entity}"`))
-  assert.deepEqual(nav.sidebar(`${entity}Unknown`), [])
+  const page = nav.sidebar(`${entity}.md`)
+  assert.deepEqual(page.map(item => item.text), ['Overview', 'Libraries', 'Classes', 'Events', 'Type namespaces'])
+  assert.equal(page[0].link, `${summary.prefix}/`)
+  assert.equal(group(page, 'Libraries').collapsed, true)
+  assert.equal(group(page, 'Classes').collapsed, false, 'the active group stays open')
+  assert.equal(group(page, 'Events').collapsed, true)
+  assert.equal(group(page, 'Type namespaces').collapsed, true)
+  assert.deepEqual(nav.sidebar(`${summary.prefix}/`).map(item => item.collapsed ?? false), [false, true, true, true, true])
+  assert.equal(group(nav.sidebar(`${summary.prefix}/classes`), 'Classes').collapsed, false)
+  assert.equal(group(nav.sidebar(`${result}.md`), 'Libraries').collapsed, false)
+  assert.equal(group(nav.sidebar(`${result}.md`), 'Classes').collapsed, true)
 })
 
-test('nested types retain their own children and no unrelated siblings', () => {
+test('group and member pages expose the full tree, not only the active branch', () => {
   const nav = createSnapshotNavigation(fixture(), summary)
-  const branch = nav.sidebar(result)
-  assert.equal(branch[1].items![0].text, 'Other libraries')
-  const owner = branch[1].items![0].items![0]
-  assert.equal(owner.link, client)
-  assert.equal(owner.items!.length, 1)
-  assert.equal(owner.items![0].link, result)
-  assert.deepEqual(owner.items![0].items, [{ text: 'Value', link: value }])
-  assert.ok(JSON.stringify(nav.sidebar(value)).includes(value))
+  const page = nav.sidebar(`${entity}.md`)
+
+  const libraries = group(page, 'Libraries')
+  assert.equal(libraries.link, `${summary.prefix}/libraries`)
+  assert.deepEqual(libraries.items, [{
+    text: 'Client', link: client, collapsed: true, items: [{
+      text: 'Result', link: result, collapsed: true, items: [{ text: 'Value', link: value }]
+    }]
+  }])
+
+  const classes = group(page, 'Classes')
+  assert.deepEqual(classes.items!.map(item => item.text), ['World', 'Other classes'])
+  assert.ok(JSON.stringify(classes).includes(otherEntity))
+  assert.ok(JSON.stringify(classes).includes(other))
+  assert.deepEqual(group(page, 'Type namespaces').items, types)
 })
 
-test('overview and group pages retain full trees, numeric categories and immutable input', () => {
+test('empty groups keep their header but have no children', () => {
+  const nav = createSnapshotNavigation(fixture(), summary)
+  const events = group(nav.sidebar(`${summary.prefix}/events`), 'Events')
+  assert.equal(events.link, `${summary.prefix}/events`)
+  assert.deepEqual(events.items, [])
+})
+
+test('routes outside the snapshot have no sidebar and metadata mismatches are rejected', () => {
   const data = fixture()
   const before = structuredClone(data)
-  const nav = createSnapshotNavigation(data, summary)
-  assert.deepEqual(nav.sidebar(`${summary.prefix}/index.md`).map(item => item.text), ['Libraries', 'Classes', 'Events'])
-  const classes = nav.sidebar(`${summary.prefix}/classes.md`)
-  assert.deepEqual(classes[1].items!.map(item => item.text), ['Rendering', 'World', 'Other classes'])
-  assert.ok(JSON.stringify(classes).includes(otherEntity))
-  assert.equal(nav.sidebar(`${summary.prefix}/libraries`)[1].items![0].text, 'Client')
-  assert.deepEqual(nav.sidebar(`${summary.prefix}/events`)[1].items, [{ text: 'Browse Events', link: summary.prefix + '/events' }])
+  assert.deepEqual(createSnapshotNavigation(data, summary).sidebar('/2.0.0/1.21.5/classes/example/EntityHelper'), [])
+  assert.throws(() => createSnapshotNavigation({ ...data, minecraftVersion: '1.21.5' }, summary), /metadata does not match/)
+  assert.throws(() => createSnapshotNavigation({ ...data, classes: null } as unknown as SidebarData, summary), /Invalid classes/)
+  assert.throws(() => createSnapshotNavigation({ ...data, types: null } as unknown as SidebarData, summary), /Invalid types/)
   assert.deepEqual(data, before)
 })
 
-test('different snapshots cannot leak routes or accept mismatched metadata', () => {
+test('snapshots without type namespaces still load', () => {
   const data = fixture()
-  assert.throws(() => createSnapshotNavigation({ ...data, minecraftVersion: '1.21.5' }, summary), /metadata does not match/)
-  assert.throws(() => createSnapshotNavigation({ ...data, classes: null } as unknown as SidebarData, summary), /Invalid classes/)
-  assert.deepEqual(createSnapshotNavigation(data, summary).sidebar('/2.0.0/1.21.5/classes/example/EntityHelper'), [])
+  delete data.types
+  const nav = createSnapshotNavigation(data, summary)
+  assert.deepEqual(nav.sidebar(`${summary.prefix}/`).map(item => item.text),
+    ['Overview', 'Libraries', 'Classes', 'Events'])
 })
 
 test('concurrent navigation shares one immutable snapshot load', async () => {

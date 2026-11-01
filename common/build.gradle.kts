@@ -174,6 +174,17 @@ tasks.named("check") {
     dependsOn(testColorMath)
 }
 
+val testDraw3DCollection = tasks.register<JavaExec>("testDraw3DCollection") {
+    group = "verification"
+    description = "Checks Draw3D element snapshots, removal, clearing and visibility state"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.Draw3DCollectionTest")
+}
+tasks.named("check") {
+    dependsOn(testDraw3DCollection)
+}
+
 // Bootstrap on 1.21.x expects the client language assets, which this test classpath does not
 // carry. The 1.21.x targets are covered by compilation; runtime checks run on 26.1+.
 if (stonecutter.current.parsed >= "26.1") {

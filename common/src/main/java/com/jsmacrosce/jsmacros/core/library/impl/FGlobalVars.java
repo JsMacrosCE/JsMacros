@@ -9,9 +9,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Stores named Java values shared by scripts in the current profile. Values remain until removed
- * or the profile is reloaded. Typed getters return {@code null} for a missing value or a value of
- * another type; they do not coerce.
+ * Stores named Java values shared by scripts in this JsMacros runtime. Values remain until removed
+ * or the game session ends; loading another profile does not clear them. Typed getters return
+ * {@code null} for a missing value or a value of another type; they do not coerce.
  * <pre>
  * GlobalVars.putInt("sessions", 0);
  * const next = GlobalVars.incrementAndGetInt("sessions");

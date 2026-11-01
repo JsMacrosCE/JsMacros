@@ -40,30 +40,30 @@ import java.util.stream.Collectors;
  * <p>
  * A script builds its own widgets with a builder rather than by hand: {@code
  * IScreen.buttonBuilder()} and its siblings hand back a builder whose {@code build()}
- * puts the widget on the screen and gives the helper to go on with.
+ * puts the widget on the screen and gives the helper to go on with. Because opening a
+ * screen clears earlier elements, build widgets inside {@code IScreen.setOnInit}.
  * <pre>
  * // a button on a screen of the script's own
  * const screen = Hud.createScreen("a screen", true);
- * const button = screen.buttonBuilder()
- *    .pos(10, 20)
- *    .size(100, 20)
- *    .message("press me")
- *    .action(JavaWrapper.methodToJava(function (btn) {
- *      // the callback is given the button, so it can change the button
- *      btn.setLabel("pressed");
- *      btn.setActive(false);
- *    }))
- *    .build();
- * Hud.openScreen(screen);
+ * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+ *   self.buttonBuilder()
+ *      .pos(10, 20)
+ *      .size(100, 20)
+ *      .message("press me")
+ *      .action(JavaWrapper.methodToJava(function (btn) {
+ *        // the callback is given the button, so it can change the button
+ *        btn.setLabel("pressed");
+ *        btn.setActive(false);
+ *      }))
+ *      .build();
  *
- * // and the screen's button widgets, wrapped as the screen hands them over
- * const open = Hud.getOpenScreen();
- * if (open !== null) {
- *   for (const widget of open.getButtonWidgets()) {
+ *   // and the same button widget, wrapped as the screen hands it over
+ *   for (const widget of self.getButtonWidgets()) {
  *     if (!(widget instanceof Widgets.Button)) continue;
  *     Chat.log(`button ${widget.getLabel()} at ${widget.getX()}, ${widget.getY()}`);
  *   }
- * }
+ * }));
+ * Hud.openScreen(screen);
  * </pre>
  *
  * @author Wagyourtail
@@ -84,14 +84,16 @@ public class ClickableWidgetHelper<B extends ClickableWidgetHelper<B, T>, T exte
      * are unchanged.
      * <pre>
      * const screen = Hud.createScreen("a screen", true);
-     * screen.buttonBuilder()
-     *    .pos(10, 20)
-     *    .size(100, 20)
-     *    .message("press me")
-     *    .action(JavaWrapper.methodToJava(function (btn) {
-     *       Widgets.Clickable.clickedOn(screen);
-     *     }))
-     *    .build();
+     * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+     *   self.buttonBuilder()
+     *      .pos(10, 20)
+     *      .size(100, 20)
+     *      .message("press me")
+     *      .action(JavaWrapper.methodToJava(function (btn) {
+     *        Widgets.Clickable.clickedOn(self);
+     *      }))
+     *      .build();
+     * }));
      * Hud.openScreen(screen);
      * </pre>
      *

@@ -1,5 +1,6 @@
 package com.jsmacrosce.jsmacros.client.api.classes.render;
 
+import com.google.common.collect.ImmutableList;
 import com.jsmacrosce.jsmacros.client.util.RenderCompat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
@@ -25,9 +26,9 @@ import java.util.List;
  * <p>
  * Elements use world-space block coordinates and are rendered relative to the camera.
  * <p>
- * Elements render only while this overlay is registered with {@link #register()};
- * {@link #unregister()} stops rendering without removing them, while {@link #clear()}
- * removes its elements.
+ * Elements render only while this overlay is registered with {@link #register()} and
+ * {@link #isVisible() visible}; {@link #unregister()} stops rendering without removing
+ * them, while {@link #clear()} removes its elements.
  * <p>
  * Duplicate entries are allowed. Elements are sorted in place before rendering, so typed
  * getters return matching entries in the current sorted order, not insertion order.
@@ -59,6 +60,15 @@ public class Draw3D implements Registrable<Draw3D> {
      * @since 1.0.6
      */
     private final List<RenderElement3D<?>> elements = new ArrayList<>();
+
+    /**
+     * Whether this overlay is rendered while registered. Changing visibility does not
+     * unregister it or alter its elements; defaults to {@code true}. Use
+     * {@link #setVisible(boolean)} to change it.
+     *
+     * @since 2.0.0
+     */
+    public boolean visible = true;
 
     /**
      * Returns a new list of this overlay's boxes in their current element order.
@@ -152,6 +162,20 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
+     * Returns an immutable snapshot of every element in this overlay, in its current
+     * order. The snapshot is separate from the overlay; later changes to the overlay do
+     * not change it.
+     *
+     * @return an immutable snapshot of this overlay's elements
+     * @since 2.0.0
+     */
+    public List<RenderElement3D<?>> getElements() {
+        synchronized (elements) {
+            return ImmutableList.copyOf(elements);
+        }
+    }
+
+    /**
      * Removes all elements from this overlay without unregistering it; other overlays
      * and references to the removed elements are unaffected.
      *
@@ -164,65 +188,79 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
-     * Adds an existing render element to this overlay. Elements built with {@code build()}
-     * are not added automatically; adding the same instance more than once creates
-     * duplicate list entries and draws it more than once.
+     * Removes an element from this overlay without modifying the element itself. If it
+     * is absent, this has no effect.
      *
+     * @param element the element to take off
+     * @return self for chaining
+     * @since 2.0.0
+     */
+    public Draw3D removeElement(RenderElement3D<?> element) {
+        synchronized (elements) {
+            elements.remove(element);
+        }
+        return this;
+    }
+
+    /**
+     * Adds an existing render element to this overlay and returns it. Elements built with
+     * {@code build()} are not added automatically; adding the same instance more than once
+     * creates duplicate list entries and draws it more than once.
+     *
+     * @param <T> the type of element to add
      * @param element the element to put back
+     * @return the element that was added
      * @since 1.8.4
      */
-    public void reAddElement(RenderElement3D<?> element) {
+    public <T extends RenderElement3D<?>> T reAddElement(T element) {
         synchronized (elements) {
             elements.add(element);
         }
+        return element;
     }
 
     /**
      * Adds an existing box to this overlay. The same box can be added more than once.
      *
      * @param box the cube to add
+     * @return the box that was added
      * @since 1.8.4
      */
-    public void addBox(Box box) {
-        synchronized (elements) {
-            elements.add(box);
-        }
+    public Box addBox(Box box) {
+        return reAddElement(box);
     }
 
     /**
      * Adds an existing straight 3D line to this overlay. The same line can be added more than once.
      *
      * @param line the line to add
+     * @return the line that was added
      * @since 1.8.4
      */
-    public void addLine(Line3D line) {
-        synchronized (elements) {
-            elements.add(line);
-        }
+    public Line3D addLine(Line3D line) {
+        return reAddElement(line);
     }
 
     /**
      * Adds an existing trace line to this overlay. The same line can be added more than once.
      *
      * @param line the trace line to add
+     * @return the trace line that was added
      * @since 1.9.0
      */
-    public void addTraceLine(TraceLine line) {
-        synchronized (elements) {
-            elements.add(line);
-        }
+    public TraceLine addTraceLine(TraceLine line) {
+        return reAddElement(line);
     }
 
     /**
      * Adds an existing surface to this overlay. The same surface can be added more than once.
      *
      * @param surface the surface to add
+     * @return the surface that was added
      * @since 1.8.4
      */
-    public void addSurface(Surface surface) {
-        synchronized (elements) {
-            elements.add(surface);
-        }
+    public Surface addSurface(Surface surface) {
+        return reAddElement(surface);
     }
 
     /**
@@ -814,12 +852,14 @@ public class Draw3D implements Registrable<Draw3D> {
      * Removes a panel from this overlay. The surface object and its elements are not modified.
      *
      * @param surface the surface to take off this overlay
+     * @return self for chaining
      * @since 1.6.5
      */
-    public void removeDraw2D(Surface surface) {
+    public Draw3D removeDraw2D(Surface surface) {
         synchronized (elements) {
             this.elements.remove(surface);
         }
+        return this;
     }
 
     /**
@@ -954,6 +994,30 @@ public class Draw3D implements Registrable<Draw3D> {
     }
 
     /**
+     * Sets whether this overlay is rendered while registered. Changing visibility does
+     * not unregister the overlay or alter its elements.
+     *
+     * @param visible whether this overlay should be rendered
+     * @return self for chaining
+     * @since 2.0.0
+     */
+    public Draw3D setVisible(boolean visible) {
+        this.visible = visible;
+        return this;
+    }
+
+    /**
+     * Returns whether this overlay will render while registered. This does not indicate
+     * whether it is currently registered.
+     *
+     * @return {@code true} if this overlay is visible; {@code false} otherwise
+     * @since 2.0.0
+     */
+    public boolean isVisible() {
+        return visible;
+    }
+
+    /**
      * Registers this overlay for rendering. Adding elements alone does not make them
      * render; registration adds this instance to the renderer's set. Re-registering an
      * already registered instance has no additional effect.
@@ -996,6 +1060,9 @@ public class Draw3D implements Registrable<Draw3D> {
 
     @DocletIgnore
     public void render(PoseStack poseStack, RenderSink sink, float tickDelta) {
+        if (!visible) {
+            return;
+        }
         Camera camera = RenderCompat.mainCamera(Minecraft.getInstance());
         Vec3 cameraPos = CameraCompat.position(camera);
 
@@ -1027,6 +1094,9 @@ public class Draw3D implements Registrable<Draw3D> {
      */
     @DocletIgnore
     public void renderDepthPass(PoseStack poseStack, RenderSink sink, float tickDelta) {
+        if (!visible) {
+            return;
+        }
         Camera camera = RenderCompat.mainCamera(Minecraft.getInstance());
         Vec3 cameraPos = CameraCompat.position(camera);
 
@@ -1060,6 +1130,9 @@ public class Draw3D implements Registrable<Draw3D> {
      */
     @DocletIgnore
     public void renderAlwaysOnTopSurfaces(PoseStack poseStack, RenderSink sink, float tickDelta) {
+        if (!visible) {
+            return;
+        }
         Camera camera = RenderCompat.mainCamera(Minecraft.getInstance());
         Vec3 cameraPos = CameraCompat.position(camera);
 
@@ -1101,6 +1174,9 @@ public class Draw3D implements Registrable<Draw3D> {
 
         List<Surface> surfaces = new ArrayList<>();
         for (Draw3D draw : draws) {
+            if (!draw.visible) {
+                continue;
+            }
             synchronized (draw.elements) {
                 for (RenderElement3D<?> element : draw.elements) {
                     if (element instanceof Surface surface && surface.cull != alwaysOnTop) {

@@ -6,9 +6,9 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires during JVM shutdown from a shutdown hook registered by JsMacros. It has no payload and is
- * not cancellable; calling {@code cancel()} throws. Listener work may not finish before the process
- * exits. This event does not fire when leaving a world while the game continues running; use
+ * Fires during JVM shutdown from a shutdown hook registered by JsMacros. It has no payload.
+ * Listener work may not finish before the process exits. This event does not fire when leaving a
+ * world while the game continues running; use
  * {@link com.jsmacrosce.jsmacros.client.api.event.impl.world.EventDisconnect} for that transition.
  * @author Etheradon
  * @since 1.8.4

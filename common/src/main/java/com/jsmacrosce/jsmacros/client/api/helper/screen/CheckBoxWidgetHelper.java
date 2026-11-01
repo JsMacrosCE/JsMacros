@@ -20,20 +20,22 @@ import java.util.concurrent.atomic.AtomicReference;
  * Scripted changes invoke the builder's change callback through the widget's press handler.
  * <pre>
  * const screen = Hud.createScreen("a screen", true);
- * const box = screen.checkBoxBuilder()
- *    .pos(10, 20)
- *    .size(20, 20)
- *    .message("enabled")
- *    .action(JavaWrapper.methodToJava(function (btn) {
- *      // the action fires on a scripted change as well as a player click
- *      Chat.log(`now ${btn.isChecked()}`);
- *    }))
- *    .build();
- * Hud.openScreen(screen);
+ * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+ *   const box = self.checkBoxBuilder()
+ *      .pos(10, 20)
+ *      .size(20, 20)
+ *      .message("enabled")
+ *      .action(JavaWrapper.methodToJava(function (btn) {
+ *        // the action fires on a scripted change as well as a player click
+ *        Chat.log(`now ${btn.isChecked()}`);
+ *      }))
+ *      .build();
  *
- * // setting a different state invokes the action
- * box.setChecked(true);
- * Chat.log(`checked: ${box.isChecked()}`);
+ *   // setting a different state invokes the action
+ *   box.setChecked(true);
+ *   Chat.log(`checked: ${box.isChecked()}`);
+ * }));
+ * Hud.openScreen(screen);
  * </pre>
  *
  * @author Etheradon

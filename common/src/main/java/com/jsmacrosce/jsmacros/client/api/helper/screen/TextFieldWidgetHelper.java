@@ -23,25 +23,27 @@ import java.util.function.Predicate;
  * Scripted {@link #setText(String)} changes invoke it when accepted.
  * <pre>
  * const screen = Hud.createScreen("a screen", true);
- * const field = screen.textFieldBuilder()
- *    .pos(10, 20)
- *    .size(120, 14)
- *    .message("type a name")
- *    .action(JavaWrapper.methodToJava(function (text) {
- *      // the callback is given the text, not the field
- *      Chat.log(`so far: ${text}`);
- *    }))
- *    .build();
- * Hud.openScreen(screen);
+ * screen.setOnInit(JavaWrapper.methodToJava(function (self) {
+ *   const field = self.textFieldBuilder()
+ *      .pos(10, 20)
+ *      .size(120, 14)
+ *      .message("type a name")
+ *      .action(JavaWrapper.methodToJava(function (text) {
+ *        // the callback is given the text, not the field
+ *        Chat.log(`so far: ${text}`);
+ *      }))
+ *      .build();
  *
- * // Accepted scripted changes invoke the callback too.
- * field.setText("hello");
- * // On 26.1+, rejected text restores the last accepted value, cursor, and selection.
- * field.setTextPredicate(JavaWrapper.methodToJava(function (text) {
- *   return 8 >= String(text).length;
+ *   // Accepted scripted changes invoke the callback too.
+ *   field.setText("hello");
+ *   // On 26.1+, rejected text restores the last accepted value, cursor, and selection.
+ *   field.setTextPredicate(JavaWrapper.methodToJava(function (text) {
+ *     return 8 >= String(text).length;
+ *   }));
+ *   field.setText("far too long to be allowed");
+ *   Chat.log(`the field still says ${field.getText()}`);
  * }));
- * field.setText("far too long to be allowed");
- * Chat.log(`the field still says ${field.getText()}`);
+ * Hud.openScreen(screen);
  * </pre>
  *
  * @author Wagyourtail

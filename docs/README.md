@@ -5,7 +5,9 @@ For package-independent runtime type checks and static class access, see
 
 JsMacrosCE uses the JDK doclet API to read Java declarations and Javadoc. Markdown,
 TypeScript declarations and Python stubs share a model; the legacy HTML renderer
-remains supported. VitePress is the primary website.
+remains supported. VitePress is the primary website. The guide lives under
+`docs/vitepress/content/guide/`; guide links written as `/api/...` are
+rewritten to the latest generated snapshot at build time.
 
 ## Minecraft targets are separate snapshots
 
@@ -46,20 +48,27 @@ and existing URLs are preserved. An otherwise unclassified index has no extra
 "Uncategorized" heading; mixed indexes use an "Other classes/libraries/events"
 section instead.
 
-A member page shows the branch of the tree it belongs to, not the whole tree:
-the group it is in, the section, and the types that hold it, plus links to the
-other groups. The group pages list every member, so the full tree is one click
-away. A search answers for the snapshot the reader is on: the index holds every
-snapshot, but results from other Minecraft versions and other mod versions are
+The API sidebar keeps the full tree for the selected snapshot. Only the group,
+category and owner chain containing the current page is expanded; other groups
+stay collapsed, so the group headers do not move when the reader changes pages.
+The generated tree also has a **Type namespaces** group for the stable script
+names such as `EntityHelpers.Horse`. The guide is version-independent; it has
+its own static sidebar and is not part of a snapshot.
+
+A search answers for the page's scope. On a snapshot page it keeps only results
+from that snapshot; on a guide page it keeps only guide results; the home page
+searches the guide and the latest reference. The index still holds every
+snapshot, so results from other Minecraft versions and other mod versions are
 dropped.
 
-The sidebar is browser-only. API prose, signatures, examples and index-page
-links are still server-rendered; visitors without JavaScript and HTTP-only agents
-do not see sidebar links. The browser fetches one hashed JSON navigation asset
-for the selected snapshot, indexes its routes, and reuses successful loads across
-page changes and version switches. Loading reserves the normal sidebar column;
-a failed request offers Retry and a link to the server-rendered API index.
-The default theme still supplies the sidebar appearance and mobile controls.
+The API sidebar is browser-only; the guide sidebar is static and server-rendered
+with the normal theme. API prose, signatures, examples and index-page links are
+still server-rendered; visitors without JavaScript and HTTP-only agents do not see
+API sidebar links. The browser fetches one hashed JSON navigation asset for the
+selected snapshot, indexes its routes, and reuses successful loads across page
+changes and version switches. Loading reserves the normal sidebar column; a failed
+request offers Retry and a link to the server-rendered API index. The default theme
+still supplies the sidebar appearance and mobile controls.
 
 Stonecutter decides which declarations exist and which names/signatures apply.
 The doclet does not interpret Stonecutter comments a second time. A method that
@@ -110,14 +119,18 @@ npm run build
 ```
 
 For a live preview while editing the site, regenerate and copy the content, then
-start the dev server in the generated directory:
+start the dev server in the generated directory. Select at least one target so the
+guide's `/api/...` links resolve:
 
 ```sh
-./gradlew copyVitepressDoc
+./gradlew -PdocsMinecraftVersions=1.21.8,26.1.2 copyVitepressDoc
 cd build/docs/vitepress
-npm ci
+npm ci   # first time only
 npm run dev
 ```
+
+Re-run `copyVitepressDoc` after editing files under `docs/vitepress`; the task
+preserves `node_modules` and the VitePress cache.
 
 The website build allows Node a 12 GiB heap, bounds VitePress build concurrency
 to four pages instead of its default 64, and disables the Markdown render cache.

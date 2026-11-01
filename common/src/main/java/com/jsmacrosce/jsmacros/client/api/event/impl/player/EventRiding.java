@@ -12,7 +12,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * the player begins removing an existing vehicle. The mount event does not establish that riding
  * succeeded. {@link #state} is {@code true} for mounting and {@code false} for dismounting;
  * {@link #entity} is the targeted entity or former vehicle, respectively. The dismount event also
- * fires for externally caused dismounts. This event is not cancellable.
+ * fires for externally caused dismounts.
  * <pre>
  * JsMacros.on("Riding", JavaWrapper.methodToJava(function (event) {
  *   if (event.state) {

@@ -288,6 +288,18 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     }
 
     @Override
+    public void clear() {
+        synchronized (elements) {
+            for (RenderElement element : elements) {
+                if (element instanceof ClickableWidgetHelper<?, ?> widget) {
+                    children.remove(widget.getRaw());
+                }
+            }
+            elements.clear();
+        }
+    }
+
+    @Override
     public IScreen removeElement(RenderElement e) {
         synchronized (elements) {
             elements.remove(e);

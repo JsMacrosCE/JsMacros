@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.core.language;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.jetbrains.annotations.Nullable;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.IEventListener;
@@ -26,6 +27,7 @@ public abstract class BaseScriptContext<T> {
     public final Core<?, ?> runner;
     protected boolean preventLog = false;
     protected boolean closed = false;
+    private volatile boolean scriptStopRequested = false;
     /** Construction timestamp in milliseconds since the Unix epoch, not the language-execution start time. */
     public final long startTime = System.currentTimeMillis();
 
@@ -136,7 +138,7 @@ public abstract class BaseScriptContext<T> {
      */
     public synchronized boolean bindThread(Thread t) {
         if (closed) {
-            throw new ScriptAssertionError("Cannot bind thread to closed context");
+            throw new ScriptContextClosedException("Cannot bind thread to closed context");
         }
         if (t == null) {
             throw new ScriptAssertionError("Cannot bind null thread");
@@ -206,6 +208,59 @@ public abstract class BaseScriptContext<T> {
         return closed;
     }
 
+    /** Starts intentional shutdown once, before listener cleanup and context closure. */
+    @DocletIgnore
+    public synchronized boolean beginScriptStop() {
+        if (closed || scriptStopRequested) return false;
+        scriptStopRequested = true;
+        return true;
+    }
+
+    /** Returns whether this run requested intentional shutdown. */
+    @DocletIgnore
+    public boolean isScriptStopRequested() {
+        return scriptStopRequested;
+    }
+
+    /** Registers a listener atomically with respect to intentional shutdown. */
+    @DocletIgnore
+    public synchronized void registerScriptListener(String event, IEventListener listener) {
+        if (closed || scriptStopRequested) {
+            throw new ScriptContextClosedException("Cannot register a listener in a stopping context");
+        }
+        runner.eventRegistry.addListener(event, listener);
+        eventListeners.put(listener, event);
+    }
+
+    /** Removes listeners registered by this run, including interrupted event waits. */
+    @DocletIgnore
+    public void removeScriptListeners() {
+        ImmutableList<IEventListener> listeners;
+        synchronized (this) {
+            listeners = ImmutableList.copyOf(eventListeners.keySet());
+            eventListeners.clear();
+        }
+        listeners.forEach(IEventListener::off);
+    }
+
+    /** Identifies cancellation caused by this run's explicit stop without hiding other failures. */
+    @DocletIgnore
+    public boolean isScriptStopException(Throwable failure) {
+        if (!scriptStopRequested) return false;
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof InterruptedException || cause instanceof ScriptContextClosedException || isLanguageCancellation(cause)) {
+                return true;
+            }
+            if (cause.getCause() == cause) break;
+        }
+        return false;
+    }
+
+    /** Lets a language recognize its own runtime's cancellation exception. */
+    protected boolean isLanguageCancellation(Throwable failure) {
+        return false;
+    }
+
     /** Closes this context and sets whether the execution wrapper suppresses its cancellation log.
      * @param preventLog whether to suppress the cancellation log
      */
@@ -269,6 +324,14 @@ public abstract class BaseScriptContext<T> {
             super(message);
         }
 
+    }
+
+    /** Distinguishes an attempt to use a closed context from unrelated script assertions. */
+    @DocletIgnore
+    public static class ScriptContextClosedException extends ScriptAssertionError {
+        public ScriptContextClosedException(String message) {
+            super(message);
+        }
     }
 
     /**

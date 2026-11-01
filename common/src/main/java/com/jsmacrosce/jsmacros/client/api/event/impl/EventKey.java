@@ -23,10 +23,10 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Fires for keyboard and mouse-button input before the game's input handling. The event is
- * cancellable; cancellation causes the game's calling input callback to be cancelled. Unknown keys and
- * repeats are dropped, and with a screen open input may be suppressed by the JsMacros setting or
- * focused-screen/widget rules. Releases for keys pressed before a screen opened are still reported.
+ * Fires for keyboard and mouse-button input before the game's input handling. Cancelling causes
+ * the game's calling input callback to be cancelled. Unknown keys and repeats are dropped, and
+ * with a screen open input may be suppressed by the JsMacros setting or focused-screen/widget
+ * rules. Releases for keys pressed before a screen opened are still reported.
  * JsMacros updates its pressed-key tracker before filtering or firing the event, so cancellation
  * does not undo that update. Use {@link #key} to distinguish keyboard keys from mouse buttons.
  * <pre>

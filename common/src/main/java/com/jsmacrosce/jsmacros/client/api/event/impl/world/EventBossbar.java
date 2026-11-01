@@ -14,7 +14,7 @@ import java.util.UUID;
 
 /**
  * Reports each boss-bar packet action after the client handles it. {@link #type} identifies the
- * action; {@link #bossBar} is the full bar state when available. This event is not cancellable.
+ * action; {@link #bossBar} is the full bar state when available.
  * <pre>
  * JsMacros.on("Bossbar", JavaWrapper.methodToJava(function (event) {
  *   if (event.bossBar === null) {

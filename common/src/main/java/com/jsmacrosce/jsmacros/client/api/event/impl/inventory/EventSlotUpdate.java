@@ -14,8 +14,8 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 /**
  * Fires for a server update to one menu slot or the cursor stack. Unlike
  * {@link com.jsmacrosce.jsmacros.client.api.event.impl.inventory.EventContainerUpdate}, it does
- * not represent a whole-container update. The event is not cancellable and is dispatched at the
- * update site before the menu receives the new stack.
+ * not represent a whole-container update. It is dispatched at the update site before the menu
+ * receives the new stack.
  * <p>
  * {@code 'HELD'} uses slot {@code -999} for the cursor. For {@code 'UNKNOWN'}, the reported screen
  * is the player inventory even though the packet addressed another menu; see the member

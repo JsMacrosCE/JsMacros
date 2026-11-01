@@ -22,6 +22,7 @@ public interface IFWrapper<T> {
 
     /**
      * Wraps a script function for Java calls that schedule the callback without returning its result to the Java caller.
+     * Callbacks that need to return a value cannot be scheduled; implementations run them synchronously.
      * @param c the script function
      * @return a Java-callable wrapper
      * @since 1.4.0

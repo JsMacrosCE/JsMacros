@@ -8,8 +8,8 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires after a local block-use attempt returns, unless the result is {@code FAIL}. The event is
- * not cancellable. {@link #result} is true when the interaction consumes an action; false means
+ * Fires after a local block-use attempt returns, unless the result is {@code FAIL}. {@link #result}
+ * is true when the interaction consumes an action; false means
  * it was passed along without consuming one, not that it failed.
  * <pre>
  * JsMacros.on("InteractBlock", JavaWrapper.methodToJava(function (event) {
