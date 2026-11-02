@@ -46,10 +46,10 @@ public class CoreConfigV2 {
     /** Configured service triggers, keyed by service name; this is not the running-service registry. */
     public Map<String, ServiceTrigger> services = new HashMap<>();
 
-    /** Seeds the default profile with its enabled, non-joined {@code ProfileLoad} {@code index.js} trigger. */
+    /** Seeds the default profile with a disabled, non-joined {@code ProfileLoad} {@code index.js} trigger. */
     public CoreConfigV2() {
         profiles.put("default", new ArrayList<>());
-        profiles.get("default").add(new ScriptTrigger(ScriptTrigger.TriggerType.EVENT, EventProfileLoad.class.getAnnotation(Event.class).value(), "index.js", true, false));
+        profiles.get("default").add(new ScriptTrigger(ScriptTrigger.TriggerType.EVENT, EventProfileLoad.class.getAnnotation(Event.class).value(), "index.js", false, false));
     }
 
     //"synthetic" option

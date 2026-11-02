@@ -17,7 +17,7 @@ default profile used at startup, and the list of profiles. The list supports
 adding, renaming, and deleting profiles. A profile's stored data is its list of
 scripts and their triggers.
 
-The default profile starts with one trigger: the `ProfileLoad` event running
+The default profile starts with one disabled trigger: the `ProfileLoad` event running
 `index.js`. A newly created profile starts empty, so it only runs what you add.
 
 ## What switches
