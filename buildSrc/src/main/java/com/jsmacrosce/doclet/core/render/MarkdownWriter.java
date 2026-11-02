@@ -45,36 +45,30 @@ public class MarkdownWriter {
     /** A release version at the start of {@code @since}, with any trailing history. */
     private static final Pattern SINCE_VERSION = Pattern.compile("^(\\d+(?:\\.\\d+)*)\\s*[,;:]?\\s*(.*)$", Pattern.DOTALL);
 
-    /** One-line orientation shown under a generated category heading, plus a guide link when one exists. */
-    private record CategoryCopy(String description, String guidePath, String guideLabel) {
-        private CategoryCopy(String description) {
-            this(description, null, null);
-        }
-    }
-
-    private static final Map<String, CategoryCopy> CLASS_CATEGORY_COPY = Map.ofEntries(
-        Map.entry("Commands", new CategoryCopy("Builders for client-side commands and argument suggestions.")),
-        Map.entry("Configuration/Profiles", new CategoryCopy("Profiles, options, and the configuration objects behind them.", "/guide/concepts/how-scripts-run", "How a script runs")),
-        Map.entry("Entity Helpers", new CategoryCopy("Typed wrappers for entities and their attributes.", "/guide/game/player-and-world", "Player and world")),
-        Map.entry("Event Filterers", new CategoryCopy("Reusable conditions that decide whether a listener receives an event.", "/guide/concepts/events", "Events")),
-        Map.entry("Events and Event Handling", new CategoryCopy("The base types and handles used to receive and control events.", "/guide/concepts/events", "Events")),
-        Map.entry("Filters/Predicates", new CategoryCopy("Comparison and grouping filters used to build world scanners.", "/guide/game/player-and-world", "Player and world")),
-        Map.entry("Inventory", new CategoryCopy("Views of the player's inventory and open containers.", "/guide/game/player-and-world", "Player and world")),
-        Map.entry("Items/Enchantments", new CategoryCopy("Item stacks, item definitions, recipes, and enchantments.")),
-        Map.entry("Misc Helpers", new CategoryCopy("Small wrappers and utilities shared by other APIs.")),
-        Map.entry("Rendering/Graphics", new CategoryCopy("2D overlays, 3D world rendering, and drawing primitives.", "/guide/ui/hud-and-draw2d", "HUD and Draw2D")),
-        Map.entry("Screen and UI Elements", new CategoryCopy("Script-created screens, widgets, and input controls.", "/guide/ui/screens", "Custom screens"))
+    /** One-line orientation shown under a generated category heading. */
+    private static final Map<String, String> CLASS_CATEGORY_COPY = Map.ofEntries(
+        Map.entry("Commands", "Builders for client-side commands and argument suggestions."),
+        Map.entry("Configuration/Profiles", "Profiles, options, and the configuration objects behind them."),
+        Map.entry("Entity Helpers", "Typed wrappers for entities and their attributes."),
+        Map.entry("Event Filterers", "Reusable conditions that decide whether a listener receives an event."),
+        Map.entry("Events and Event Handling", "The base types and handles used to receive and control events."),
+        Map.entry("Filters/Predicates", "Comparison and grouping filters used to build world scanners."),
+        Map.entry("Inventory", "Views of the player's inventory and open containers."),
+        Map.entry("Items/Enchantments", "Item stacks, item definitions, recipes, and enchantments."),
+        Map.entry("Misc Helpers", "Small wrappers and utilities shared by other APIs."),
+        Map.entry("Rendering/Graphics", "2D overlays, 3D world rendering, and drawing primitives."),
+        Map.entry("Screen and UI Elements", "Script-created screens, widgets, and input controls.")
     );
 
-    private static final Map<String, CategoryCopy> EVENT_CATEGORY_COPY = Map.ofEntries(
-        Map.entry("Core", new CategoryCopy("Events raised by JsMacros itself rather than by the game.", "/guide/concepts/events", "Events")),
-        Map.entry("Inputs/Interactions", new CategoryCopy("Keyboard, mouse, block, entity, and sign interactions.", "/guide/game/keybinds", "Key binds and input")),
-        Map.entry("Inventory", new CategoryCopy("Container contents, slot changes, pickups, and item damage.", "/guide/game/player-and-world", "Player and world")),
-        Map.entry("Network/Chat", new CategoryCopy("Chat, packets, server joins, disconnects, and player-list changes.", "/guide/concepts/events", "Events")),
-        Map.entry("Player/Stats", new CategoryCopy("Health, hunger, air, armor, effects, death, and riding changes.", "/guide/game/player-and-world", "Player and world")),
-        Map.entry("Render/UI", new CategoryCopy("Titles, boss bars, opened screens, and editor code-render hooks.", "/guide/ui/hud-and-draw2d", "HUD and Draw2D")),
-        Map.entry("System/Lifecycle", new CategoryCopy("Game launch and quit, resource packs, and command context.", "/guide/concepts/how-scripts-run", "How a script runs")),
-        Map.entry("World", new CategoryCopy("Blocks, chunks, dimensions, entities, sounds, and ticks.", "/guide/game/player-and-world", "Player and world"))
+    private static final Map<String, String> EVENT_CATEGORY_COPY = Map.ofEntries(
+        Map.entry("Core", "Events raised by JsMacros itself rather than by the game."),
+        Map.entry("Inputs/Interactions", "Keyboard, mouse, block, entity, and sign interactions."),
+        Map.entry("Inventory", "Container contents, slot changes, pickups, and item damage."),
+        Map.entry("Network/Chat", "Chat, packets, server joins, disconnects, and player-list changes."),
+        Map.entry("Player/Stats", "Health, hunger, air, armor, effects, death, and riding changes."),
+        Map.entry("Render/UI", "Titles, boss bars, opened screens, and editor code-render hooks."),
+        Map.entry("System/Lifecycle", "Game launch and quit, resource packs, and command context."),
+        Map.entry("World", "Blocks, chunks, dimensions, entities, sounds, and ticks.")
     );
     private final Map<String, ClassDoc> classByQualifiedName = new HashMap<>();
     private final Map<String, List<ClassDoc>> classByName = new HashMap<>();
@@ -139,8 +133,7 @@ public class MarkdownWriter {
             md.heading(1, namespace.name());
             md.paragraph(formatDescription(namespace.docComment(), null));
             md.paragraph("These names are available in JavaScript and Python without importing anything. "
-                + "They are read-only aliases of Java types, so `instanceof` works as usual. "
-                + MarkdownBuilder.link("Guide: Script type namespaces", "/guide/advanced/script-types") + ".");
+                + "They are read-only aliases of Java types, so `instanceof` works as usual.");
             StringBuilder table = new StringBuilder();
             table.append("| Script name | Java type | What it is |\n");
             table.append("| --- | --- | --- |\n");
@@ -170,8 +163,7 @@ public class MarkdownWriter {
         md.heading(1, "Type namespaces");
         md.paragraph("JavaScript and Python scripts get these globals automatically. They are read-only "
             + "aliases of real Java types, so `instanceof` and `isinstance` work without a package name. "
-            + "They do not change which helper a factory returns; check the object you actually received. "
-            + MarkdownBuilder.link("Guide: Script type namespaces", "/guide/advanced/script-types") + ".");
+            + "They do not change which helper a factory returns; check the object you actually received.");
         StringBuilder table = new StringBuilder();
         table.append("| Namespace | What it is | Types |\n");
         table.append("| --- | --- | --- |\n");
@@ -281,14 +273,12 @@ public class MarkdownWriter {
         md.bulletItem("`read-only` marks a field you should not write. It is not a constant and can still change over time.");
         md.bulletItem("`Since` is the JsMacros version that introduced the member, not the Minecraft version.");
         md.bulletItem("Overloads share a heading but keep separate signatures and descriptions. Read the parameters to choose one.");
-        md.bulletItem("A compatibility stub can exist on a target without the full behavior. Read the description, not just the signature. "
-            + MarkdownBuilder.link("Guide: How to read the API reference", "/guide/reference/how-to-read") + ".");
+        md.bulletItem("A compatibility stub can exist on a target without the full behavior. Read the description, not just the signature.");
 
         if (!scriptNamespaces.isEmpty()) {
             md.heading(2, "Script type namespaces");
             md.paragraph("JavaScript and Python scripts get these globals automatically. They are read-only aliases of real Java types, "
-                + "so `instanceof` and `isinstance` work without a package name. "
-                + MarkdownBuilder.link("Guide: Script type namespaces", "/guide/advanced/script-types") + ".");
+                + "so `instanceof` and `isinstance` work without a package name.");
             for (var namespace : scriptNamespaces) {
                 String summary = summary(namespace.docComment());
                 md.bulletItem(MarkdownBuilder.link(namespace.name(), "./types/" + namespace.name() + ".md")
@@ -312,13 +302,9 @@ public class MarkdownWriter {
                 if (!entry.getKey().equals(DEFAULT_CATEGORY) || categories.size() > 1) {
                     md.heading(3, entry.getKey().equals(DEFAULT_CATEGORY) ? "Other " + title.toLowerCase(Locale.ROOT) : entry.getKey());
                 }
-                CategoryCopy copy = categoryCopy(title, entry.getKey());
+                String copy = categoryCopy(title, entry.getKey());
                 if (copy != null) {
-                    String text = copy.description();
-                    if (copy.guidePath() != null) {
-                        text += " " + MarkdownBuilder.link("Guide: " + copy.guideLabel(), copy.guidePath());
-                    }
-                    md.paragraph(text);
+                    md.paragraph(copy);
                 }
                 renderGroupEntries(entry.getValue(), md);
             }
@@ -331,20 +317,16 @@ public class MarkdownWriter {
     private String groupIntro(String title) {
         return switch (title) {
             case "Libraries" -> "Libraries are the globals a script starts with. Most scripts call a library first, then follow the returned object into a class. "
-                + "Nested entries are supporting types, not additional globals. "
-                + MarkdownBuilder.link("Guide: How a script runs", "/guide/concepts/how-scripts-run") + ", "
-                + MarkdownBuilder.link("Player and world", "/guide/game/player-and-world") + ".";
+                + "Nested entries are supporting types, not additional globals.";
             case "Events" -> "Events are typed signals from the game. Subscribe with `JsMacros.on`, wait with `JsMacros.waitForEvent`, "
-                + "and read each event page for its payload and cancellation rules. High-frequency events such as `Tick` and packet events need tight filtering. "
-                + MarkdownBuilder.link("Guide: Events", "/guide/concepts/events") + ".";
+                + "and read each event page for its payload and cancellation rules. High-frequency events such as `Tick` and packet events need tight filtering.";
             case "Classes" -> "Classes are the objects libraries and events return: entities, blocks, inventories, draw elements, screens, and builders. "
-                + "Follow a library method's return type into its class. Constructors are shown only for types scripts are meant to construct. "
-                + MarkdownBuilder.link("Guide: How to read the API reference", "/guide/reference/how-to-read") + ".";
+                + "Follow a library method's return type into its class. Constructors are shown only for types scripts are meant to construct.";
             default -> "";
         };
     }
 
-    private CategoryCopy categoryCopy(String title, String category) {
+    private String categoryCopy(String title, String category) {
         if (DEFAULT_CATEGORY.equals(category)) return null;
         if (title.equals("Classes")) return CLASS_CATEGORY_COPY.get(category);
         if (title.equals("Events")) return EVENT_CATEGORY_COPY.get(category);
