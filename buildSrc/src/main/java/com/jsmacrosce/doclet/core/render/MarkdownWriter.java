@@ -135,6 +135,7 @@ public class MarkdownWriter {
         // Namespace pages are indexes of existing API pages, not duplicate class declarations.
         for (var namespace : scriptNamespaces) {
             MarkdownBuilder md = new MarkdownBuilder();
+            md.frontmatter(frontmatter(null, namespaceDescription(namespace)));
             md.heading(1, namespace.name());
             md.paragraph(formatDescription(namespace.docComment(), null));
             md.paragraph("These names are available in JavaScript and Python without importing anything. "
@@ -163,7 +164,9 @@ public class MarkdownWriter {
             return;
         }
         MarkdownBuilder md = new MarkdownBuilder();
-        md.frontmatter(Map.of("outline", "false"));
+        md.frontmatter(frontmatter("false",
+            "Stable script names for Java types in the JsMacrosCE API for Minecraft " + minecraftVersion
+                + ". Scripts use them for instanceof and static access without an import."));
         md.heading(1, "Type namespaces");
         md.paragraph("JavaScript and Python scripts get these globals automatically. They are read-only "
             + "aliases of real Java types, so `instanceof` and `isinstance` work without a package name. "
@@ -230,7 +233,8 @@ public class MarkdownWriter {
 
     private String renderOverview(Map<ClassGroup, List<ClassDoc>> grouped, String version, String mcVersion) {
         MarkdownBuilder md = new MarkdownBuilder();
-        md.frontmatter(Map.of("outline", "false"));
+        md.frontmatter(frontmatter("false", "JsMacrosCE script API reference for Minecraft " + mcVersion
+            + ": the global libraries, game events, the classes they return, and script type names."));
         md.heading(1, "JsMacros API Reference");
         md.paragraph(
             "Version: " + MarkdownBuilder.codeSpan(version) + "  \n"
@@ -296,7 +300,7 @@ public class MarkdownWriter {
 
     private String renderGroupPage(String title, List<ClassDoc> classes, Map<String, List<ClassDoc>> categories) {
         MarkdownBuilder md = new MarkdownBuilder();
-        md.frontmatter(Map.of("outline", "false"));
+        md.frontmatter(frontmatter("false", groupDescription(title)));
         md.heading(1, title);
         md.paragraph(groupIntro(title));
         if ((categories == null || categories.isEmpty()) && classes.isEmpty()) {
@@ -521,7 +525,7 @@ public class MarkdownWriter {
 
     private String renderClass(ClassDoc clz) {
         MarkdownBuilder md = new MarkdownBuilder();
-        md.frontmatter(Map.of("outline", "deep"));
+        md.frontmatter(frontmatter("deep", metaDescription(clz)));
         md.heading(1, displayTitle(clz));
         md.paragraph(wrapHtmlWithElemAndAttribs(clz.qualifiedName(), "span", "class=\"qualified-name\""));
         renderClassMetadata(md, clz);
@@ -1083,6 +1087,124 @@ public class MarkdownWriter {
 
     private String escapeTableCell(String text) {
         return text.replace("|", "\\|").replace('\n', ' ').replace('\r', ' ');
+    }
+
+    /**
+     * Frontmatter for a generated page, including the summary a search result or a
+     * link preview shows. Without it every page falls back to the site description,
+     * which is the same sentence everywhere and therefore a useless snippet.
+     *
+     * @param outline VitePress outline depth, or {@code null} to keep the site default
+     */
+    private Map<String, String> frontmatter(String outline, String description) {
+        Map<String, String> entries = new LinkedHashMap<>();
+        if (outline != null) {
+            entries.put("outline", outline);
+        }
+        // Normalised here as well, so a page description written as plain prose is
+        // held to the same length and markup rule as one taken from the Javadoc.
+        entries.put("description", yamlDoubleQuoted(cleanDescription(description)));
+        return entries;
+    }
+
+    /** A description for a class page: its first documented sentence, or a shape-of-the-page fallback. */
+    private String metaDescription(ClassDoc clz) {
+        String described = metaDescription(clz == null ? null : clz.docComment());
+        if (!described.isEmpty()) {
+            return described;
+        }
+        String kind = switch (clz.group()) {
+            case Library -> "Script library";
+            case Event -> "Script event";
+            case Class -> "Class";
+        };
+        return kind + " " + clz.qualifiedName() + " in the JsMacrosCE script API for Minecraft " + minecraftVersion + ".";
+    }
+
+    private String namespaceDescription(ScriptNamespaceDoc namespace) {
+        String described = metaDescription(namespace.docComment());
+        return described.isEmpty()
+            ? "Script type namespace " + namespace.name() + " for Minecraft " + minecraftVersion
+                + ": read-only script names for Java types."
+            : described;
+    }
+
+    /** One sentence per index page, so the index links themselves preview usefully. */
+    private String groupDescription(String title) {
+        return switch (title) {
+            case "Libraries" -> "The global libraries a JsMacrosCE script starts with, such as Chat, World, Player, "
+                + "and Hud, for Minecraft " + minecraftVersion + ".";
+            case "Events" -> "Events a JsMacrosCE script can subscribe to or wait for, with their payload fields, "
+                + "cancellation rules, and filterers, for Minecraft " + minecraftVersion + ".";
+            case "Classes" -> "Objects JsMacrosCE libraries and events return, such as entities, blocks, inventories, "
+                + "and HUD draw elements, for Minecraft " + minecraftVersion + ".";
+            default -> title + " in the JsMacrosCE script API for Minecraft " + minecraftVersion + ".";
+        };
+    }
+
+    private String metaDescription(DocComment comment) {
+        if (comment == null || comment.summary().isEmpty()) {
+            return "";
+        }
+        String text = DocBodyRenderer.toPlainText(comment.summary(),
+            link -> link.label() != null ? link.label() : linkLabel(link.signature()));
+        return cleanDescription(text);
+    }
+
+    /**
+     * Reduces rendered prose to the single line a meta description may hold.
+     *
+     * <p>The Javadoc is rendered as Markdown first, so links, code spans, and inline
+     * HTML have to be flattened before the text can be embedded in an attribute.
+     */
+    private static String cleanDescription(String text) {
+        String clean = text
+            .replaceAll("!?\\[([^\\]]*)]\\([^)]*\\)", "$1")
+            .replaceAll("<[^>]+>", " ")
+            .replace("`", "");
+        clean = decodeHtmlEntities(clean).replaceAll("\\s+", " ").trim();
+        if (clean.length() <= 160) {
+            return clean;
+        }
+        int cut = clean.lastIndexOf(' ', 158);
+        if (cut < 100) {
+            cut = 158;
+        }
+        return clean.substring(0, cut).trim() + "…";
+    }
+
+    /** Entity references that survive into the rendered summary, plus numeric ones. */
+    private static final Pattern HTML_ENTITY =
+        Pattern.compile("&(#x[0-9a-fA-F]+|#\\d+|lt|gt|amp|quot|apos|nbsp);");
+
+    private static String decodeHtmlEntities(String text) {
+        return HTML_ENTITY.matcher(text).replaceAll(match -> switch (match.group(1)) {
+            case "lt" -> "<";
+            case "gt" -> ">";
+            case "amp" -> "&";
+            case "quot" -> "\"";
+            case "apos" -> "'";
+            case "nbsp" -> " ";
+            default -> numericEntity(match.group(1));
+        });
+    }
+
+    private static String numericEntity(String entity) {
+        boolean hex = entity.startsWith("#x");
+        if (!hex && !entity.startsWith("#")) {
+            return "";
+        }
+        try {
+            int codePoint = Integer.parseInt(entity.substring(hex ? 2 : 1), hex ? 16 : 10);
+            return new String(Character.toChars(codePoint));
+        } catch (IllegalArgumentException e) {
+            return "";
+        }
+    }
+
+    /** YAML double-quoted scalar: the only form that cannot break the frontmatter block. */
+    private static String yamlDoubleQuoted(String value) {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"").replaceAll("[\\r\\n]+", " ") + "\"";
     }
 
     private boolean hasDeprecatedTag(DocComment comment) {
