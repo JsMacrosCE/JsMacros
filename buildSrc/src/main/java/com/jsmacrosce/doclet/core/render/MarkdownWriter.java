@@ -1160,7 +1160,9 @@ public class MarkdownWriter {
         Pattern.compile("&(#x[0-9a-fA-F]+|#\\d+|lt|gt|amp|quot|apos|nbsp);");
 
     private static String decodeHtmlEntities(String text) {
-        return HTML_ENTITY.matcher(text).replaceAll(match -> switch (match.group(1)) {
+        // The replacement function's result is read for $ and \ escapes, so a decoded
+        // dollar sign or backslash would otherwise fail or be treated as a group reference.
+        return HTML_ENTITY.matcher(text).replaceAll(match -> Matcher.quoteReplacement(switch (match.group(1)) {
             case "lt" -> "<";
             case "gt" -> ">";
             case "amp" -> "&";
@@ -1168,7 +1170,7 @@ public class MarkdownWriter {
             case "apos" -> "'";
             case "nbsp" -> " ";
             default -> numericEntity(match.group(1));
-        });
+        }));
     }
 
     private static String numericEntity(String entity) {

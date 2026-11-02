@@ -48,6 +48,10 @@ public final class MarkdownWriterTest {
             List.of(new DocBodyNode.Text("A short helper.")),
             List.of(new DocBodyNode.Text("A short helper.")),
             List.of());
+        var entitySummary = new DocComment(
+            List.of(new DocBodyNode.Text("Costs &#36;5 for this helper.")),
+            List.of(),
+            List.of());
         var classes = List.of(
             clz("FExample", ClassGroup.Library, "Example", null, empty, List.of(variadic)),
             clz("FExample.Result", ClassGroup.Library, null, null,
@@ -56,6 +60,7 @@ public final class MarkdownWriterTest {
             clz("OptionsHelper", ClassGroup.Class, null, "Helpers", empty, List.of()),
             clz("OptionsHelper.Controls", ClassGroup.Class, null, null, empty, List.of()),
             clz("SummaryHelper", ClassGroup.Class, null, "Helpers", summaryComment, List.of()),
+            clz("PricedHelper", ClassGroup.Class, null, "Helpers", entitySummary, List.of()),
             clz("FiltererThing", ClassGroup.Class, null, "Event Filterers", empty, List.of()),
             eventClz("EventThing", "Thing", "FiltererThing", true, empty),
             eventClz("EventPlain", "Plain", null, false, empty),
@@ -117,6 +122,10 @@ public final class MarkdownWriterTest {
         contains(detailed, "api-meta-note\">Note: renamed from <code>old</code> in 2.1.0");
         excludes(detailed, "Since:");
         excludes(result, "&lt;a");
+        // A decoded entity is data for the replacement, not replacement syntax; a bare
+        // dollar sign must reach the page instead of failing the write.
+        String priced = Files.readString(out.resolve("classes/example/PricedHelper.md"));
+        contains(priced, "description: \"Costs $5 for this helper.\"");
         // A member that only carries the @Deprecated annotation is marked by the badge alone.
         // A "Deprecated:" label with nothing after it would be noise.
         String retired = Files.readString(out.resolve("classes/example/Retired.md"));
