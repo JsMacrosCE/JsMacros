@@ -46,7 +46,9 @@ async function openMain(url, dontpush) {
     }
     const text = await req.text();
     const parser = new DOMParser();
-    const doc = parser.parseFromString(text, "text/html").getElementsByTagName("main")[0];
+    const parsed = parser.parseFromString(text, "text/html");
+    if (parsed.title) document.title = parsed.title;
+    const doc = parsed.getElementsByTagName("main")[0];
     const cname = doc.getAttribute("class");
     mainContent.setAttribute("class", cname);
     mainContent.innerHTML = doc.innerHTML;
