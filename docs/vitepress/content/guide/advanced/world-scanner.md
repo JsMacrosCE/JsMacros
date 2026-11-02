@@ -1,4 +1,5 @@
 ---
+description: "Find blocks around the player with JsMacrosCE WorldScanner: describe a block group once, then query nearby chunks."
 outline: deep
 ---
 # Finding blocks with `WorldScanner`

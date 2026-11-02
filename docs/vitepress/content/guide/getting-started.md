@@ -1,4 +1,5 @@
 ---
+description: "Install JsMacrosCE on Fabric or NeoForge and write a first JavaScript macro that reacts to a key press."
 outline: deep
 ---
 # Install and first script

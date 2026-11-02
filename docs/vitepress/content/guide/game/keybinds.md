@@ -1,4 +1,5 @@
 ---
+description: "Read and change Minecraft key states and key bindings from a JsMacrosCE script."
 outline: deep
 ---
 # Key binds and input

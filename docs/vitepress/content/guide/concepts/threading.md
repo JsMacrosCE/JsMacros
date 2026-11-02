@@ -1,4 +1,5 @@
 ---
+description: "JsMacrosCE scripts run on worker threads while Minecraft runs on the client thread. When they must meet, and what blocks."
 outline: deep
 ---
 # Threading and the main thread

@@ -1,4 +1,5 @@
 ---
+description: "When to reach past the JsMacrosCE helpers into raw Minecraft classes and reflection, and what changes between versions."
 outline: deep
 ---
 # Raw Minecraft access and reflection

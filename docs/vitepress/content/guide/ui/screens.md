@@ -1,4 +1,5 @@
 ---
+description: "Build custom Minecraft screens from a JsMacrosCE script: widgets, layouts, callbacks, and opening or closing a screen."
 outline: deep
 ---
 # Custom screens

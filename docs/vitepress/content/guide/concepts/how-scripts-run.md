@@ -1,4 +1,5 @@
 ---
+description: "How JsMacrosCE gives each script run its own execution context, which globals it gets, and when it is released."
 outline: deep
 ---
 # How a script runs

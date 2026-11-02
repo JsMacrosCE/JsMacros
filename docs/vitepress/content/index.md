@@ -1,4 +1,6 @@
 ---
+description: "Runs JavaScript inside Minecraft: react to events, read the world, and draw your own HUD, without writing a mod."
+ogTitle: "Script Minecraft with JavaScript"
 layout: home
 hero:
   name: JsMacrosCE

@@ -1,4 +1,5 @@
 ---
+description: "Use script type namespaces such as EntityHelpers.Horse for instanceof checks and static access without a package name."
 outline: deep
 ---
 # Script type namespaces

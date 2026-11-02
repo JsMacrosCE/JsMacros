@@ -1,4 +1,5 @@
 ---
+description: "Pass JavaScript functions into JsMacrosCE APIs, and understand which execution context a callback belongs to."
 outline: deep
 ---
 # Callbacks
