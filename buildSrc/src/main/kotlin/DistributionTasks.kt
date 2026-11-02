@@ -168,6 +168,14 @@ fun verifyDevkit(archive: File, minecraftVersions: List<String>, releaseVersion:
         requireEntry("README.md")
         requireEntry("serve-docs.py")
         requireEntry("vitepress/index.html")
+        // Site-wide files VitePress emits next to index.html. The deployer
+        // copies every top-level file, so a devkit that loses these ships a
+        // site with a 404 favicon and no sitemap/robots.txt.
+        requireEntry("vitepress/favicon.ico")
+        requireEntry("vitepress/favicon.svg")
+        requireEntry("vitepress/apple-touch-icon.png")
+        requireEntry("vitepress/robots.txt")
+        requireEntry("vitepress/sitemap.xml")
         check(zip.entries().asSequence().any { it.name.startsWith("vitepress/assets/") && !it.isDirectory }) {
             "Incomplete devkit: missing rendered VitePress assets"
         }

@@ -21,6 +21,8 @@ dependencies {
     implementation("com.google.code.gson:gson:2.14.0")
     implementation("commons-io:commons-io:2.7")
     implementation("dev.kikugie:stonecutter:0.8.3")
+    // Build-time bytecode patching for embedded third-party tools (Chrome Inspector).
+    implementation("org.ow2.asm:asm:9.6")
     testImplementation(gradleTestKit())
 }
 
