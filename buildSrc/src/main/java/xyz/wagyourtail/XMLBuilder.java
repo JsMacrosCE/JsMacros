@@ -5,8 +5,18 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class XMLBuilder {
+    /**
+     * Elements that HTML does not allow to have a closing tag. Without this a
+     * {@code <meta>} would be written as {@code <meta …></meta>}, which browsers
+     * recover from but which no HTML validator accepts.
+     */
+    private static final Set<String> VOID_ELEMENTS = Set.of(
+        "area", "base", "br", "col", "embed", "hr", "img", "input",
+        "link", "meta", "param", "source", "track", "wbr"
+    );
     public final Map<String, String> options = new HashMap<>();
     public final List<Object> children = new LinkedList<>();
     public final String type;
@@ -77,7 +87,9 @@ public class XMLBuilder {
         }
         builder.append(">");
         if (children.isEmpty()) {
-            builder.append("</").append(type).append(">");
+            if (!VOID_ELEMENTS.contains(type)) {
+                builder.append("</").append(type).append(">");
+            }
         } else {
             boolean inline = this.inline;
             for (Object rawChild : children) {
