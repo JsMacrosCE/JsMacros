@@ -36,12 +36,16 @@ public final class SiteMetadata {
     /**
      * Flattens prose to the single line a meta description can hold.
      *
+     * <p>Callers pass Javadoc already reduced to text by {@code ClassParser.plainText},
+     * which turns markup into spaces. A remaining {@code <...>} is therefore literal
+     * content, such as a generic argument or a code example, and must be kept; escaping
+     * for the attribute happens in {@link #attribute(String)}.
+     *
      * <p>Search engines show roughly 160 characters, and a longer value is cut
      * mid-word by the client, so cut it at a word boundary first.
      */
     public static String description(String value) {
         String clean = value == null ? "" : value
-            .replaceAll("<[^>]+>", " ")
             .replace("`", "")
             .replaceAll("\\s+", " ")
             .trim();
