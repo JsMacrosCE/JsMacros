@@ -1,4 +1,5 @@
 ---
+description: "Subscribe to game events with JsMacros.on, wait for one with waitForEvent, and handle event locks and cancellation."
 outline: deep
 ---
 # Events

@@ -1,4 +1,5 @@
 ---
+description: "Send HTTP requests and open WebSocket connections from a JsMacrosCE script with the Request library."
 outline: deep
 ---
 # HTTP and WebSockets

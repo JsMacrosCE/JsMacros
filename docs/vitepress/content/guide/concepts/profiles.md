@@ -1,4 +1,5 @@
 ---
+description: "What a JsMacrosCE profile stores, what switching a profile changes, and what it leaves untouched."
 outline: deep
 ---
 # Profiles

@@ -1,4 +1,5 @@
 ---
+description: "Share values between script runs, triggers, and profiles with GlobalVars instead of ordinary script variables."
 outline: deep
 ---
 # Sharing state between scripts

@@ -66,8 +66,16 @@ val testDocletLinks by tasks.registering(JavaExec::class) {
     args(layout.buildDirectory.dir("doclet-link-tests").get().asFile.absolutePath)
 }
 
+val testSiteMetadata by tasks.registering(JavaExec::class) {
+    group = "verification"
+    description = "Checks generated page descriptions keep literal type arguments"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.doclet.core.webdoclet.SiteMetadataTest")
+}
+
 tasks.named("check") {
-    dependsOn(testDocBodyRenderer, testTsRenderer, testExternalTypeLinks, testDocletLinks, "testMarkdownWriter", "testDistribution", "testExternalJavadocIndexes")
+    dependsOn(testDocBodyRenderer, testTsRenderer, testExternalTypeLinks, testDocletLinks, testSiteMetadata, "testMarkdownWriter", "testDistribution", "testExternalJavadocIndexes")
 }
 
 tasks.register<JavaExec>("testExternalJavadocIndexes") {

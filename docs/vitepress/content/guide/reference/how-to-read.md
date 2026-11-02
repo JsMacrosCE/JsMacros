@@ -1,4 +1,5 @@
 ---
+description: "How a generated JsMacrosCE API page is laid out: title, qualified name, since, cancellability, signatures, and examples."
 outline: deep
 ---
 # How to read the API reference

@@ -1,4 +1,5 @@
 ---
+description: "Learn the ideas behind JsMacrosCE scripts: callbacks, execution contexts, the game thread, event locks, HUD overlays, and shared state."
 outline: deep
 ---
 # JsMacrosCE Guide

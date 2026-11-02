@@ -1,4 +1,5 @@
 ---
+description: "Read and change player and world state from a JsMacrosCE script: position, health, inventory, blocks, and entities."
 outline: deep
 ---
 # Player and world

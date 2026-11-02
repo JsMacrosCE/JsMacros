@@ -248,6 +248,54 @@ The provider rule currently accepts release versions. An unknown/snapshot versio
 does not acquire a guessed Minecraft URL. New supported targets should verify
 their provider and class URLs before publication.
 
+## Search and link metadata
+
+Two outputs are HTML and both are read by crawlers and link-preview clients:
+
+- The VitePress site owns the public addresses. `.vitepress/seo.ts` builds the
+  canonical URL from the same rule VitePress uses for routes, so a canonical never
+  disagrees with the sitemap. `transformHead` adds `og:url`, `og:title`,
+  `og:description`, and `twitter:*`, marks snapshot pages as `og:type=article`,
+  and marks the 404 page `noindex` instead of giving it a canonical. Site-wide tags
+  (`og:site_name`, `twitter:card`) come from the `head` array in `config.mts`.
+  VitePress generates `sitemap.xml`; the favicon, social card, and `robots.txt`
+  are static files in the public directory.
+
+  The favicon is a dedicated mark, not the wordmark: at 16px the wordmark's three
+  colours and five letters collapse into a smudge. It is the green `CE` from the
+  wordmark on the same dark tile as the social card, and the same geometry is
+  rasterised into `favicon.ico`, `apple-touch-icon.png`, and the legacy devkit's
+  `android-chrome-*` icons and manifest. The wide wordmark stays on the card.
+
+  A page can set `ogTitle` frontmatter to phrase its link title differently from its
+  `<title>`; the home page uses it so the preview does not say "JsMacrosCE" twice,
+  once as the site name and once as the title.
+
+  The card is **square** (630×630, `summary`, not `summary_large_image`). Discord
+  and Slack choose between a full-width image and a small thumbnail from the
+  aspect ratio, not from a tag, so a square card keeps a pasted link to one short
+  block. `seo.test.ts` reads the PNG header and fails if the declared
+  `og:image:width`/`height` drift from the shipped file.
+- Generated markdown takes its `description` from the Javadoc's first sentence, so
+  `MarkdownWriter` writes one for every class, group index, type index, and
+  namespace page, and the guide pages carry their own. A page with no description
+  falls back to the site description, which reads the same on every page and makes
+  a poor snippet.
+
+Snapshot pages (`/<version>/<minecraft>/…`) carry no `og:image` at all. The same
+logo on thousands of near-identical links only makes each embed taller, while the
+title and description already say which type the link opens; home and guide pages
+keep the card. `showsSocialCard` holds that rule.
+
+The legacy HTML pages are generated per Minecraft target, so they are API pages by
+the same rule: title, description, `og:title`, and `og:description`, but no
+`og:image`, no `og:url`, and no `<link rel="canonical">`. Pointing a canonical at a
+page that may not exist is worse than none.
+
+Public files live in `docs/vitepress/content/public/` because VitePress resolves
+its public directory relative to `srcDir`. `seo.test.ts` covers the route and
+canonical rule; regenerate the site rather than assuming a tag is emitted.
+
 ## Regression checks
 
 `./gradlew -p buildSrc testDistribution` packages offline seven-target fixtures

@@ -1,4 +1,5 @@
 ---
+description: "Draw a 2D overlay on the Minecraft HUD from a JsMacrosCE script with Hud.createDraw2D: text, shapes, and images."
 outline: deep
 ---
 # HUD and Draw2D
