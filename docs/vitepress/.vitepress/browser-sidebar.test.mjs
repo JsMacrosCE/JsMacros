@@ -95,11 +95,11 @@ async function sidebarClick(page, route) {
   await page.waitForURL(url(route))
 }
 
-async function switchVersion(page, snapshot) {
+async function switchVersion(page, route) {
   const menu = page.locator('.VPNavBarMenuGroup').filter({ hasText: /\d+\.\d+/ }).last()
   await menu.locator('button').click()
-  await menu.locator(`a[href="${href(snapshot.prefix + '/')}"]`).click()
-  await page.waitForURL(url(snapshot.prefix + '/'))
+  await menu.locator(`a[href="${href(route)}"]`).click()
+  await page.waitForURL(url(route))
 }
 
 function gate() {
@@ -182,9 +182,9 @@ test('SPA navigation, history and version switching reuse successful snapshot re
   await page.goForward()
   await page.waitForURL(url(latest.client))
   await ready(page, latest)
-  await switchVersion(page, older)
+  await switchVersion(page, older.client)
   await ready(page, older)
-  await switchVersion(page, latest)
+  await switchVersion(page, latest.client)
   await ready(page, latest)
   assert.equal(await page.evaluate(() => window.__sidebarSpaMarker), true, 'Navigation stayed in the SPA')
   assert.equal(requests.length, 2, 'One JSON request per visited snapshot, not per page')
@@ -232,7 +232,7 @@ for (const failStale of [false, true]) {
     })
     await page.goto(url(latest.client), { waitUntil: 'domcontentloaded' })
     await intercepted.promise
-    await switchVersion(page, older)
+    await switchVersion(page, older.client)
     await ready(page, older)
     delayed.release()
     await completed.promise
@@ -250,7 +250,8 @@ test('changing pages during a pending snapshot request shares the request and re
   await page.route(navigationRequest, async route => { requests++; await delayed.promise; await route.continue() })
   await page.goto(url(latest.client), { waitUntil: 'domcontentloaded' })
   await page.getByRole('status').waitFor()
-  await switchVersion(page, latest)
+  await page.getByRole('link', { name: 'API reference', exact: true }).click()
+  await page.waitForURL(url(latest.prefix + '/'))
   delayed.release()
   await ready(page, latest)
   assert.ok(await page.locator('#VPSidebarNav a').count() > 100, 'Full navigation is present after the pending request resolves')
