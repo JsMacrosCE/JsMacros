@@ -159,6 +159,7 @@ fun Project.registerDistributionTasks(
 }
 
 fun verifyDevkit(archive: File, minecraftVersions: List<String>, releaseVersion: String) {
+    val docsVersion = docsDirectoryName(releaseVersion)
     ZipFile(archive).use { zip ->
         fun requireEntry(name: String) {
             check(zip.getEntry(name)?.let { !it.isDirectory && it.size > 0 } == true) {
@@ -188,7 +189,7 @@ fun verifyDevkit(archive: File, minecraftVersions: List<String>, releaseVersion:
             check(zip.entries().asSequence().any {
                 it.name.startsWith("$minecraft/python/JsMacrosAC/") && it.name.endsWith(".py") && it.size > 0
             }) { "Incomplete devkit: missing Python stubs for $minecraft" }
-            requireEntry("vitepress/$releaseVersion/$minecraft/index.html")
+            requireEntry("vitepress/$docsVersion/$minecraft/index.html")
         }
         check(zip.entries().asSequence().none {
             it.name.contains("node_modules/") || it.name.contains(".vitepress/") || it.name.endsWith(".jar")

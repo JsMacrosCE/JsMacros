@@ -34,6 +34,7 @@ fun Project.registerDocumentationTasks(supportedVersions: List<String>, defaultT
     }
     val docsRoot = layout.buildDirectory.dir("docs").get().asFile
     val modVersion = version.toString()
+    val docsVersion = docsDirectoryName(modVersion)
     val docletJar = rootProject.file("buildSrc/build/libs/buildSrc.jar")
     val extensionProjects = rootProject.allprojects.filter {
         it.path.startsWith(":extension") && it.extensions.findByType<SourceSetContainer>() != null
@@ -72,6 +73,9 @@ fun Project.registerDocumentationTasks(supportedVersions: List<String>, defaultT
                 "Web" -> "web"
                 else -> "vitepress"
             }
+            // Only the VitePress snapshot changes its published route. Legacy
+            // web, TypeScript and Python artifacts keep the real mod version.
+            val docletVersion = if (kind == "Vitepress") docsVersion else modVersion
             // Resolve compile configurations from their owning project. Gradle 9 rejects
             // a root task resolving a sibling's configuration without its project lock.
             val generate = common.tasks.register<Javadoc>("generate${kind}Doc") {
@@ -85,10 +89,10 @@ fun Project.registerDocumentationTasks(supportedVersions: List<String>, defaultT
                 javadocTool.set(tools.javadocToolFor(java.toolchain))
                 destinationDir = File(targetRoot, output)
                 inputs.property("minecraftVersion", minecraft)
-                inputs.property("modVersion", modVersion)
+                inputs.property("modVersion", docletVersion)
                 options.doclet = "com.jsmacrosce.doclet.core.$doclet.Main"
                 options.docletpath = (listOf(docletJar) + docletLibraries.files).toMutableList()
-                (options as CoreJavadocOptions).addStringOption("v", modVersion)
+                (options as CoreJavadocOptions).addStringOption("v", docletVersion)
                 if (kind == "Web" || kind == "Vitepress") {
                     (options as CoreJavadocOptions).addStringOption("mcv", minecraft)
                     (options as StandardJavadocDocletOptions).links(

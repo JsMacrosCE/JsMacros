@@ -13,6 +13,10 @@ fun main(args: Array<String>) {
     val output = File(args[0]).apply { mkdirs() }
     val repository = File(args[1])
     var checks = 0
+    check(docsDirectoryName("2.0.0") == "2.0.0")
+    check(docsDirectoryName("2.0.0-beta.3") == "2.0.0-beta.3")
+    check(docsDirectoryName("2.0.0-dev-abcdef0") == "dev")
+    checks += 3
     for (release in listOf("2.0.0", "2.0.0-beta.3", "2.0.0-dev-abcdef0")) {
         val fixture = Files.createTempDirectory(output.toPath(), "$release-").toFile()
         writeFixture(fixture, repository, release)
@@ -57,7 +61,7 @@ fun main(args: Array<String>) {
             rejectArchive(devkit, File(fixture, "missing-site-assets.zip"), { it.startsWith("vitepress/assets/") }) {
                 verifyDevkit(it, versions, release)
             }
-            rejectArchive(devkit, File(fixture, "missing-target.zip"), { it == "vitepress/$release/26.3/index.html" }) {
+            rejectArchive(devkit, File(fixture, "missing-target.zip"), { it == "vitepress/${docsDirectoryName(release)}/26.3/index.html" }) {
                 verifyDevkit(it, versions, release)
             }
             rejectArchive(devkit, File(fixture, "missing-python.zip"), { it.startsWith("1.21.5/python/JsMacrosAC/") }) {
@@ -142,12 +146,15 @@ private fun writeFixture(root: File, repository: File, release: String) {
         write("$base/typescript/headers/JsMacros-$release.d.ts", "// $mc typings\n")
         write("$base/python/README.md", "$mc Python stub instructions\n")
         write("$base/python/JsMacrosAC/Core.py", "\"\"\"$mc Python stubs\"\"\"\n")
-        write("build/docs/vitepress/.vitepress/dist/$release/$mc/index.html", "<html>$mc VitePress reference</html>")
+        write("build/docs/vitepress/.vitepress/dist/${docsDirectoryName(release)}/$mc/index.html", "<html>$mc VitePress reference</html>")
         // Raw site sources should never enter the devkit.
         write("$base/vitepress/content/unused.md", "not rendered")
     }
     write("build/docs/vitepress/.vitepress/dist/index.html", "<html>Docs home</html>")
     write("build/docs/vitepress/.vitepress/dist/assets/app.js", "// compiled site assets\n")
+    for (siteFile in listOf("favicon.ico", "favicon.svg", "apple-touch-icon.png", "robots.txt", "sitemap.xml")) {
+        write("build/docs/vitepress/.vitepress/dist/$siteFile", siteFile)
+    }
     write("build/docs/targets/99.0/typescript/headers/old.d.ts", "stale, unselected target")
     write("dist/jsmacrosce-extensions-1.21.5-$release.zip", "obsolete extension pack")
 }
