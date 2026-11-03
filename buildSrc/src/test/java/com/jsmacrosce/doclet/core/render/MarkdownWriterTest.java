@@ -150,8 +150,8 @@ public final class MarkdownWriterTest {
         contains(typeIndex, "[ExampleTypes](./ExampleTypes.md)");
         contains(typeIndex, "Names for examples.");
         String namespacePage = Files.readString(out.resolve("types/ExampleTypes.md"));
-        contains(namespacePage, "| `ExampleTypes.Helper` | [SummaryHelper]");
-        contains(namespacePage, "| A short helper. |");
+        contains(namespacePage, "| [`ExampleTypes.Helper`](/fixture/26.1.2/classes/example/SummaryHelper) | A short helper. |");
+        excludes(namespacePage, "| Java type |");
         String event = Files.readString(out.resolve("events/example/EventThing.md"));
         contains(event, "api-pill-cancellable");
         contains(event, "**Filterer:** [FiltererThing]");

@@ -135,13 +135,13 @@ public class MarkdownWriter {
             md.paragraph("These names are available in JavaScript and Python without importing anything. "
                 + "They are read-only aliases of Java types, so `instanceof` works as usual.");
             StringBuilder table = new StringBuilder();
-            table.append("| Script name | Java type | What it is |\n");
-            table.append("| --- | --- | --- |\n");
+            table.append("| Script name | What it is |\n");
+            table.append("| --- | --- |\n");
             for (var export : namespace.exports()) {
                 ClassDoc target = classByQualifiedName.get(export.target().qualifiedName());
                 if (target == null) throw new IllegalArgumentException("Undocumented script export: " + export.target().qualifiedName());
-                table.append("| ").append(MarkdownBuilder.codeSpan(namespace.name() + "." + export.name()))
-                    .append(" | ").append(MarkdownBuilder.link(target.name(), buildLinkUrl(target, null, null)))
+                table.append("| [").append(MarkdownBuilder.codeSpan(namespace.name() + "." + export.name()))
+                    .append("](").append(buildLinkUrl(target, null, null)).append(")")
                     .append(" | ").append(escapeTableCell(summary(target))).append(" |\n");
             }
             md.paragraph(table.toString());
