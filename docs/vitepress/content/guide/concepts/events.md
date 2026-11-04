@@ -8,9 +8,9 @@ An event is a typed payload delivered when something happens: a chat message, a
 tick, a key press, an inventory change, an entity loading, and so on. Most scripts
 are easier to write as reactions to events than as loops that check for changes.
 
-Each event has its own reference page for its payload fields, whether it is
-cancellable, and whether it has a filterer. This page explains the subscription
-and waiting APIs around those events.
+Each event has its own [reference page](/api/events) for its payload fields,
+whether it is cancellable, and whether it has a filterer. This page explains the
+subscription and waiting APIs around those events.
 
 ## What a context is
 
@@ -41,8 +41,8 @@ const listener = JsMacros.on("RecvMessage", JavaWrapper.methodToJava((event, con
 `event` is the typed payload. `context` is the delivery handle described above;
 this callback does not need to touch it because the callback returns immediately.
 
-`on` returns a listener handle. Pass it to `JsMacros.off(listener)` when you no
-longer want it.
+`on` returns an [`IEventListener`](/api/classes/com/jsmacrosce/jsmacros/core/event/IEventListener) listener handle.
+Pass it to `JsMacros.off(listener)` when you no longer want it.
 
 ## `once` and `off`
 
@@ -53,6 +53,9 @@ JsMacros.once("Tick", JavaWrapper.methodToJava(() => {
   Chat.log("one tick later");
 }));
 ```
+
+It returns the same [`IEventListener`](/api/classes/com/jsmacrosce/jsmacros/core/event/IEventListener) handle as `on`, so `JsMacros.off(listener)`
+can cancel a one-shot listener before it fires.
 
 `off` also accepts the event name and handle, or you can remove every script
 listener for an event:
@@ -68,13 +71,16 @@ Built-in listeners are not removed by these calls.
 ## Cancellable events
 
 Some events can be cancelled. Calling `event.cancel()` tells the game to skip its
-normal action. `SendMessage` is the common example:
+normal action. A practical use is preventing an accidental item drop: `DropSlot`
+fires for the drop key and for throwing an item out of an open inventory, and
+cancelling it leaves the item where it is.
 
 ```js
-JsMacros.on("SendMessage", JavaWrapper.methodToJava((event) => {
-  if (event.message === "/hello") {
-    event.cancel();
-  }
+// Require sneak, so a stray press of the drop key cannot throw away the held item.
+JsMacros.on("DropSlot", JavaWrapper.methodToJava((event) => {
+  const player = Player.getPlayer();
+  if (player === null || player.isSneaking()) return;
+  event.cancel();
 }));
 ```
 

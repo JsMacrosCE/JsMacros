@@ -4,6 +4,10 @@ outline: deep
 ---
 # Key binds and input
 
+The `KeyBind` library reads and changes Minecraft's input state: it presses and
+releases a physical key or a named action, reports what is held, and reads or
+changes the player's key assignments.
+
 Minecraft distinguishes two names for the same idea:
 
 - a **key name** identifies a physical input, such as `key.keyboard.w` or
