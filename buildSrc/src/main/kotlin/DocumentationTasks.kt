@@ -158,6 +158,10 @@ fun Project.registerDocumentationTasks(supportedVersions: List<String>, defaultT
         }
         targets.forEach { minecraft ->
             from(File(docsRoot, "targets/$minecraft/vitepress/content")) { into("content") }
+            // The same pages as plain markdown, published at the page route plus `.md`.
+            // VitePress copies `content/public` verbatim, so the twin of
+            // `/dev/26.3/classes/Foo` is served at `/dev/26.3/classes/Foo.md`.
+            from(File(docsRoot, "targets/$minecraft/vitepress/markdown")) { into("content/public") }
         }
         into(File(docsRoot, "vitepress"))
         // Keep installed dependencies/build caches between site assemblies.

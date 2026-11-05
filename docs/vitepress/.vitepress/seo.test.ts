@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { test } from 'node:test'
 import {
-  canonicalUrl, isReferencePage, pagePath, showsSocialCard,
+  canonicalUrl, isReferencePage, markdownTwinUrl, pagePath, showsSocialCard,
   SITE_URL, SOCIAL_IMAGE, SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_WIDTH
 } from './seo.ts'
 
@@ -32,6 +32,14 @@ test('only generated snapshots are reference pages', () => {
   assert.equal(isReferencePage('index.md', prefixes), false)
   // A longer version must not be attributed to the shorter prefix's snapshot.
   assert.equal(isReferencePage('2.0.0/1.21.80/index.md', prefixes), false)
+})
+
+test('a page twin uses the page route, with index.md for a directory', () => {
+  assert.equal(
+    markdownTwinUrl('2.0.0/1.21.8/classes/com/jsmacrosce/Pair.md'),
+    `${SITE_URL}/2.0.0/1.21.8/classes/com/jsmacrosce/Pair.md`
+  )
+  assert.equal(markdownTwinUrl('2.0.0/1.21.8/index.md'), `${SITE_URL}/2.0.0/1.21.8/index.md`)
 })
 
 test('the social image lives on the deployed origin', () => {

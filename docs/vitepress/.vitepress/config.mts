@@ -4,7 +4,7 @@ import { defineConfig } from 'vitepress';
 import { apiLinkPlugin } from './api-links';
 import { loadApiSnapshots } from './api-snapshots';
 import { createGuideSidebar } from './guide';
-import { canonicalUrl, isReferencePage, showsSocialCard, SITE_DESCRIPTION, SITE_NAME, SITE_URL, SOCIAL_IMAGE, SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_WIDTH } from './seo';
+import { canonicalUrl, isReferencePage, markdownTwinUrl, showsSocialCard, SITE_DESCRIPTION, SITE_NAME, SITE_URL, SOCIAL_IMAGE, SOCIAL_IMAGE_HEIGHT, SOCIAL_IMAGE_WIDTH } from './seo';
 import type { ApiThemeConfig } from './theme/api-navigation';
 import { inlineHighlightPlugin } from './theme/inline-highlight';
 import { createSearchScopeFilter } from './theme/search-scope';
@@ -38,6 +38,9 @@ export default defineConfig<ApiThemeConfig>({
   title: SITE_NAME,
   description: SITE_DESCRIPTION,
   srcDir: './content',
+  // Plain-markdown twins are published from `content/public`, which VitePress
+  // copies verbatim. They must not also become routed pages under `/public/`.
+  srcExclude: ['public/**'],
   cleanUrls: true,
   // The icon and social card are served from `content/public`, the public
   // directory VitePress uses when srcDir is set. robots.txt lives there too.
@@ -107,6 +110,11 @@ export default defineConfig<ApiThemeConfig>({
         ['meta', { property: 'og:image:alt', content: `${SITE_NAME} logo` }],
         ['meta', { name: 'twitter:image', content: SOCIAL_IMAGE }]
       )
+    }
+    // Generated reference pages have a plain-markdown twin at the same route plus
+    // `.md`. The guide has no generated twin yet, so it must not advertise one.
+    if (isReferencePage(pageData.relativePath, snapshotPrefixes)) {
+      tags.push(['link', { rel: 'alternate', type: 'text/markdown', href: markdownTwinUrl(pageData.relativePath) }])
     }
     return tags
   },

@@ -38,6 +38,18 @@ export function canonicalUrl(relativePath: string): string {
 }
 
 /**
+ * The published plain-markdown copy of a reference page.
+ *
+ * The doclet writes the twin at the same route with `.md` appended, and the site
+ * assembly publishes it from `public/`. Directory routes use `index.md`, matching
+ * the llms.txt convention for a page that is not already a file URL.
+ */
+export function markdownTwinUrl(relativePath: string): string {
+  const path = pagePath(relativePath)
+  return `${SITE_URL}${path.endsWith('/') ? `${path}index.md` : `${path}.md`}`
+}
+
+/**
  * Whether a page should carry the social card at all.
  *
  * A reference page repeats one logo across thousands of near-identical links, so
