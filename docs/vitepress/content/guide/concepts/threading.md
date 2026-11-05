@@ -59,18 +59,37 @@ returns. Release the event lock first, or move the work to an unjoined thread.
 
 ## What "joined to main" means
 
-For a **cancellable** event, the game waits for the listener before continuing:
-if a chat message is cancelled, the game must not send it before the listener
-says so. A non-cancellable **joinable** event only waits when the listener requests
-joining, for example with `JsMacros.on("EventName", true, callback)` for a
-joinable event. `JsMacros.on` defaults to `joined=false`. While the game waits, the
-listener is joined to the main thread.
+Whether the game can continue depends on where the event fires in the game's own
+code. Some events sit immediately before an action the game is about to take:
+sending a chat message, handling a key press, opening a container, clicking a
+slot, playing a sound, sending or receiving a packet. Those are **cancellable**,
+because there is still something to stop. The game cannot continue until it knows
+the answer, so dispatch waits for the listener: the listener is joined to the main
+thread. The event decides this, not the registration. So `joined: false` does not opt
+out of a cancellable event.
+
+Events that report something already done like a tick passing, health changing, a
+chunk loading, which have nothing to stop. Their listeners are queued instead: the game
+continues, the callback runs afterwards on the script's thread, and
+`event.cancel()` is not available.
+
+**Requesting a join** covers the middle case: an event that is not cancellable but
+whose raiser is willing to wait. A listener asks by passing `true` as the second
+argument to `JsMacros.on`, and a custom event must set `joinable = true` before it
+is triggered. Cancellable events already do this. Dispatch then waits until the
+listener releases its event lock, normally when the callback returns. The request
+is per listener: only listeners that asked are joined, and a script cannot join
+its own listener. See
+[Joinable events](/guide/concepts/events#joinable-events-making-trigger-wait-for-another-script)
+for the full rules and example.
 
 The trade-off is that a joined listener is on the critical path. Keep it short:
 
 ```js
+const blocked = ["password", "secret"];
 JsMacros.on("SendMessage", JavaWrapper.methodToJava((event) => {
-  if (event.message === "/hello") {
+  if (event.message === null) return;
+  if (blocked.some((word) => event.message.toLowerCase().includes(word))) {
     event.cancel(); // the message is not sent
   }
 }));
@@ -82,14 +101,15 @@ while the script waits:
 
 ```js
 JsMacros.on("SendMessage", JavaWrapper.methodToJava((event) => {
-  if (event.message !== "/confirm") return;
-  event.cancel(); // do not send the command to the server
+  if (event.message !== "confirm") return;
+  event.cancel(); // hold this message back until there is an answer
 
   // The current cancellable event is released while this waits.
   const next = JsMacros.waitForEvent("RecvMessage", JavaWrapper.methodToJava(
     (received) => received.text.getString() === "yes"
   ));
   try {
+    // Remember, this will trigger another SendMessage event
     Chat.say("confirmed");
   } finally {
     next.context.releaseLock();

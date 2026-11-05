@@ -13,8 +13,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A named event with key-value arguments. Call {@link #registerEvent()} before subscribing; dispatch
- * also reaches eligible {@code ANYTHING} listeners. Set {@link #cancelable} before dispatch to let
- * listeners cancel this instance; check {@link #isCanceled()} after dispatch returns.
+ * also reaches eligible {@code ANYTHING} listeners. Set {@code cancelable} before dispatch to let
+ * listeners cancel this instance; check {@link #isCanceled()} after dispatch returns. Set
+ * {@code joinable} before dispatch to let {@code trigger()} wait for listeners that asked to be
+ * awaited.
  *
  * @author Wagyourtail
  * @since 1.2.8
@@ -26,7 +28,11 @@ public class EventCustom extends BaseEvent {
     protected Map<String, Object> args = new ConcurrentHashMap<>();
     /** Name used as this custom event's dispatch and subscription-registration key. Changing it does not register the new name; call {@link #registerEvent()} separately. */
     public String eventName;
-    /** Explicit permission for joined dispatch; defaults to {@code false}. */
+    /** Whether {@code trigger()} may wait for listeners that requested joined handling; defaults to
+     * {@code false}. Set it on the instance that calls {@code trigger()}; instances created for the
+     * same name do not share it. Setting {@code cancelable} also permits joining. The wait ends when a
+     * joined listener releases its event lock, normally on callback return.
+     */
     public boolean joinable;
     /** Whether this event permits cancellation; defaults to {@code false}. */
     public boolean cancelable;
@@ -60,7 +66,9 @@ public class EventCustom extends BaseEvent {
 
     /**
      * Dispatches this event to listeners registered under its name and eligible {@code ANYTHING}
-     * listeners.
+     * listeners. If {@code joinable()} is true, waits for listeners that requested joined handling;
+     * cancellable events wait without that request. The wait ends when each joined listener releases
+     * its event lock, normally on callback return.
      *
      * @since 1.2.8
      */
@@ -69,9 +77,10 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * Dispatches the event on a thread-pool task, then runs {@code callback} after dispatch returns.
+     * Dispatches the event on a thread-pool task and returns without waiting. {@code callback} runs
+     * after dispatch returns; that does not mean every listener has finished unless dispatch joined it.
      *
-     * @param callback callback to run after dispatch
+     * @param callback callback to run after dispatch returns
      * @since 1.9.0
      */
     public void triggerAsync(MethodWrapper<Object, Object, Object, ?> callback) {

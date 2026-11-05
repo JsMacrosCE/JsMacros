@@ -125,6 +125,18 @@ tasks.named("check") {
     dependsOn(testStringHashTrie)
 }
 
+val testBuiltinEventJoinability = tasks.register<JavaExec>("testBuiltinEventJoinability") {
+    group = "verification"
+    description = "Checks built-in event joinability still matches the Events guide"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.BuiltinEventJoinabilityTest")
+    args(sourceSets.main.get().output.classesDirs.files.map { it.absolutePath })
+}
+tasks.named("check") {
+    dependsOn(testBuiltinEventJoinability)
+}
+
 // These checks inspect compiled adapters and native render state without starting a client.
 sourceSets.named("test") {
     compileClasspath += sourceSets.main.get().compileClasspath

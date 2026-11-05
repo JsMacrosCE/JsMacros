@@ -411,10 +411,13 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Registers a listener for an event; {@code joined} requests a joined callback when the event supports joining.
+     * Registers a listener for an event. {@code joined} asks a joinable event to wait for this
+     * listener; cancellable events wait regardless. Joined handling needs the listener to belong to
+     * another script, because a script cannot wait on a listener in its own run.
      *
      * @param event registered event name; script subscriptions are not remapped from old aliases
-     * @param joined whether to request joined handling for a joinable event
+     * @param joined whether to request waiting for this listener on a joinable event; the request
+     *               does nothing if the event is not joinable
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
      * @return the registered listener, or {@code null} if the callback is {@code null}
      * @see IEventListener
@@ -443,11 +446,15 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Registers a listener for an event, optionally filtering which events reach the callback; {@code joined} requests joined handling when supported.
+     * Registers a listener for an event, optionally filtering which events reach the callback.
+     * {@code joined} asks a joinable event to wait for this listener; cancellable events wait
+     * regardless. Joined handling needs the listener to belong to another script, because a script
+     * cannot wait on a listener in its own run.
      *
      * @param event registered event name; script subscriptions are not remapped from old aliases
      * @param filterer filterer that must support this event; {@code null} accepts events without filtering
-     * @param joined whether to request joined handling for a joinable event
+     * @param joined whether to request waiting for this listener on a joinable event; the request
+     *               does nothing if the event is not joinable
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
      * @return the registered listener, or {@code null} if the callback is {@code null}
      * @see IEventListener

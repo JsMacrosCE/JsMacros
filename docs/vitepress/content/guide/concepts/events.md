@@ -44,6 +44,10 @@ this callback does not need to touch it because the callback returns immediately
 `on` returns an [`IEventListener`](/api/classes/com/jsmacrosce/jsmacros/core/event/IEventListener) listener handle.
 Pass it to `JsMacros.off(listener)` when you no longer want it.
 
+The optional `true` argument asks a joinable event to wait for this listener.
+That is an advanced, multi-script feature; see
+[joinable events](#joinable-events-making-trigger-wait-for-another-script).
+
 ## `once` and `off`
 
 `once` registers a listener that removes itself after the first event:
@@ -109,20 +113,6 @@ Do not release before `event.cancel()` if you intend to cancel. The game reads t
 cancelled flag when the lock is released. See [Threading](/guide/concepts/threading)
 for the full model.
 
-## Joining a non-cancellable event
-
-A non-cancellable event can still be joinable. Pass `true` as the second argument
-to request joined handling:
-
-```js
-JsMacros.on("Tick", true, JavaWrapper.methodToJava(() => {
-  // the game waits for this callback when the event supports joining
-}));
-```
-
-Joining is a request, not a guarantee: the event must permit it. Cancellable events
-join regardless of this flag.
-
 ## Waiting for one event
 
 `waitForEvent` blocks the script until a matching event arrives:
@@ -173,9 +163,11 @@ JsMacros.on("BlockUpdate", nearbyChestFilter, JavaWrapper.methodToJava((event) =
 }));
 ```
 
-Filters are event-specific. An event page shows its `Filterer` when one exists;
-open that filterer's page for the available fields and setters. `JsMacros.on`
-rejects a filterer that does not support the event.
+Filters are event-specific. [`JsMacros.createEventFilterer`](/api/libraries/com/jsmacrosce/jsmacros/core/library/impl/FJsMacros)
+returns the filterer for an event, and the [event's page](/api/events) shows which
+filterer it has. Open that page for the available fields and setters; the shared
+behaviour is on [`EventFilterer`](/api/classes/com/jsmacrosce/jsmacros/core/event/EventFilterer).
+`JsMacros.on` rejects a filterer that does not support the event.
 
 ## Keep handlers small
 
@@ -184,10 +176,76 @@ times per second. A handler that scans the world or waits on the main thread on
 every event will hurt the game. Filter first, do the smallest amount of work, and
 defer anything expensive.
 
+## Joinable events: making `trigger()` wait for another script
+
+::: tip You probably do not need this
+Normal listeners are fire-and-forget. Joinable events are for one script that
+needs another script's listener to finish before it continues. Most scripts never
+need them.
+:::
+
+An event is **joinable** when the code that raises it is willing to wait for
+listeners. A listener must also ask for that wait by passing `true` as the second
+argument to `JsMacros.on`. Only then does `trigger()` wait for that listener.
+
+There are two separate switches:
+
+- **The event allows it.** For a custom event, set `joinable = true` on the
+  instance you are about to trigger. `registerEvent()` only makes the name
+  subscribable.
+- **The listener asks for it.** Pass `true` to `JsMacros.on`.
+
+The listener's `true` is only a request. An event that is not joinable ignores it.
+Cancellable events already wait for their listeners, so passing `true` there adds
+nothing, and a custom event with `cancelable = true` is already joinable. Among
+the built-in events, every joinable event is currently cancellable, so joining is
+practical only for custom events raised by another script.
+
+For example, script A owns a cache and answers `Lookup` requests, and script B
+needs the answer before its next line:
+
+```js
+// script A: keep state and answer requests
+const cache = { apple: 12, bread: 7 };
+JsMacros.createCustomEvent("Lookup").registerEvent();
+JsMacros.on("Lookup", true, JavaWrapper.methodToJava((event) => {
+  event.putInt("count", cache[event.getString("key")] ?? 0);
+}));
+```
+
+```js
+// script B: wait for A's answer
+const request = JsMacros.createCustomEvent("Lookup");
+request.joinable = true;
+request.putString("key", "apple");
+request.trigger();
+
+Chat.log(`count: ${request.getInt("count")}`); // filled in by script A
+```
+
+Without `joinable` or without `true`, B would continue immediately and could read
+`null` before A's callback runs.
+
+The listener must already be registered when B calls `trigger()`, so A must
+register the name before subscribing. A script cannot wait for a listener in its
+own run: the callback could not run while `trigger()` holds that script. Keep the
+listener in a different script.
+
+Joining orders work; it is not a function call. The listener's return value does
+not come back to `trigger()`, and an exception is reported in A rather than thrown
+in B. `trigger()` waits until the listener releases its event lock: a normal
+callback does that on return, but `context.releaseLock()` releases it early and
+lets B continue while the rest of A's callback still runs.
+
+If you only need to trigger without blocking the caller, `triggerAsync(callback)`
+dispatches on a background task and runs `callback` after dispatch returns. It
+does not make the next line wait.
+
 ## Related pages
 
 - [Threading and the main thread](/guide/concepts/threading)
 - [Callbacks](/guide/concepts/callbacks)
+- [Custom commands](/guide/game/custom-commands)
 - [How a script runs](/guide/concepts/how-scripts-run)
 - API reference: [`JsMacros`](/api/libraries/com/jsmacrosce/jsmacros/core/library/impl/FJsMacros),
   [`BaseEvent`](/api/classes/com/jsmacrosce/jsmacros/core/event/BaseEvent),
