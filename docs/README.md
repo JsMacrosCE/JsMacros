@@ -25,6 +25,7 @@ build/docs/targets/1.21.8/
   typescript/headers/
   web/2.0.0/
   vitepress/content/2.0.0/1.21.8/
+  vitepress/markdown/2.0.0/1.21.8/
 
 build/docs/targets/26.1.2/
   ...
@@ -39,6 +40,19 @@ Minecraft version (just the version number). It discovers only generated targets
 not an assumed list of pages. Outside an API reference, the selector shows the
 latest generated Minecraft version. A snapshot overview states its Minecraft
 target in the page; every page of a reference states it in the selector.
+
+One doclet run writes two trees from the same model. `vitepress/content` is the
+VitePress source: frontmatter, linked signature tokens and HTML overload panels.
+`vitepress/markdown` is the plain twin for agents and other machine readers: the
+same pages and prose, with fenced signatures, Markdown links ending in `.md`, and
+no HTML, frontmatter, pills or VitePress containers. Member headings keep their
+`{#qualified_name}` anchors so prose links to a specific overload stay precise.
+`copyVitepressDoc` publishes the plain tree from `content/public`, so the twin of
+`/dev/26.3/classes/Foo` is served at `/dev/26.3/classes/Foo.md`. Reference pages
+advertise it with
+`rel="alternate" type="text/markdown"`; the guide has no generated twin yet and
+must not advertise one. `srcExclude` keeps `public/**` from also becoming routed
+pages under `/public/`.
 
 Indexes and sidebars use short names and nest supporting types under their owners;
 fully qualified Java names remain on individual pages. A nested type in a library
