@@ -213,8 +213,8 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     /**
      * the packet named, built from this buffer.
      * <p>
-     * Looks up the convenience name and decodes at the current reader position. Packet-backed
-     * helpers use their saved phase; fresh helpers default to play.
+     * Looks up a registered legacy or modern packet name and decodes at the current reader
+     * position. Packet-backed helpers use their saved phase; fresh helpers default to play.
      * <br>
      * The names are the ones {@link #getPacketNames()} lists.
      *
@@ -355,11 +355,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     /**
      * whether a packet class is one the server sends to the client.
      * <p>
-     * Reads the registered packet direction rather than inferring it from a convenience name.
-     * <br>
-     * A name is the practical test for this: {@link #getPacketNames()} ends almost every
-     * clientbound one with {@code S2C} and every serverbound one with {@code C2S}, and the
-     * event's {@code type} is that same name.
+     * Reads the registered packet direction rather than inferring it from a name. Legacy names
+     * used as event types often end in {@code S2C} or {@code C2S}, but modern Mojang aliases do
+     * not encode direction; use this method or {@link #isServerbound(Class)}.
      *
      * @param packetClass the class to get the side for
      * @return {@code true} if the packet is clientbound, {@code false} if it is serverbound
@@ -486,14 +484,13 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
-     * Returns the convenience names registered for packet classes.
+     * Returns the registered packet names: every packet's modern Mojang class alias, plus the
+     * legacy name used as the packet-event {@code type} when one exists. Packet filterers accept
+     * either form.
      * <p>
-     * Names are also used as packet-event {@code type} values and by filterer
-     * {@code setType}. Most encode direction in an {@code S2C} or {@code C2S} suffix, but
-     * this is a naming convention, not authoritative direction metadata; use
-     * {@link #isClientbound(Class)} or {@link #isServerbound(Class)} when available. Names
-     * are convenience aliases and may change. {@link #getPacketName(Packet)} can return a
-     * class's simple name when that class has no registered alias.
+     * Legacy names may encode direction in an {@code S2C} or {@code C2S} suffix; modern aliases do
+     * not, so use {@link #isClientbound(Class)} or {@link #isServerbound(Class)} for direction.
+     * Names can change between game versions. Legacy names are planned for removal in 3.0.0.
      *
      * @return a list of all packet names.
      * @since 1.8.4
@@ -1874,6 +1871,21 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     }
 
     /**
+     * Tests whether a packet event's reported name matches a filterer's requested name. Legacy
+     * event type names and modern Mojang aliases both resolve to the same packet class.
+     *
+     * @param actualName the name reported by the packet event
+     * @param requestedName the name configured on the filterer, or {@code null} for no filtering
+     * @return whether the names refer to the same packet
+     */
+    @DocletIgnore
+    public static boolean packetNameMatches(String actualName, @Nullable String requestedName) {
+        if (requestedName == null || actualName.equals(requestedName)) return true;
+        Class<? extends Packet<?>> actual = PACKETS.get(actualName);
+        return actual != null && actual == PACKETS.get(requestedName);
+    }
+
+    /**
      * Populates convenience packet-name mappings and registers packet IDs, directions, and
      * supported standalone play-phase decoders using reflection. Reflective lookup failures may
      * cause an {@code IllegalStateException}.
@@ -2158,6 +2170,219 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         *///?}
 
         PACKETS.forEach((name, clazz) -> PACKET_NAMES.put(clazz, name));
+
+        // Modern Mojang class-name aliases for the 3.0.0 migration. Legacy names above
+        // remain the packet-event types until those aliases are removed.
+        PACKETS.put("ClientIntentionPacket", net.minecraft.network.protocol.handshake.ClientIntentionPacket.class);
+        PACKETS.put("ClientboundAddEntityPacket", net.minecraft.network.protocol.game.ClientboundAddEntityPacket.class);
+        PACKETS.put("ClientboundAnimatePacket", net.minecraft.network.protocol.game.ClientboundAnimatePacket.class);
+        PACKETS.put("ClientboundAwardStatsPacket", net.minecraft.network.protocol.game.ClientboundAwardStatsPacket.class);
+        PACKETS.put("ClientboundBlockChangedAckPacket", net.minecraft.network.protocol.game.ClientboundBlockChangedAckPacket.class);
+        PACKETS.put("ClientboundBlockDestructionPacket", net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket.class);
+        PACKETS.put("ClientboundBlockEntityDataPacket", net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket.class);
+        PACKETS.put("ClientboundBlockEventPacket", net.minecraft.network.protocol.game.ClientboundBlockEventPacket.class);
+        PACKETS.put("ClientboundBlockUpdatePacket", net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket.class);
+        PACKETS.put("ClientboundBossEventPacket", net.minecraft.network.protocol.game.ClientboundBossEventPacket.class);
+        PACKETS.put("ClientboundBundleDelimiterPacket", net.minecraft.network.protocol.game.ClientboundBundleDelimiterPacket.class);
+        PACKETS.put("ClientboundBundlePacket", net.minecraft.network.protocol.game.ClientboundBundlePacket.class);
+        PACKETS.put("ClientboundChangeDifficultyPacket", net.minecraft.network.protocol.game.ClientboundChangeDifficultyPacket.class);
+        PACKETS.put("ClientboundChunkBatchFinishedPacket", net.minecraft.network.protocol.game.ClientboundChunkBatchFinishedPacket.class);
+        PACKETS.put("ClientboundChunkBatchStartPacket", net.minecraft.network.protocol.game.ClientboundChunkBatchStartPacket.class);
+        PACKETS.put("ClientboundChunksBiomesPacket", net.minecraft.network.protocol.game.ClientboundChunksBiomesPacket.class);
+        PACKETS.put("ClientboundClearTitlesPacket", net.minecraft.network.protocol.game.ClientboundClearTitlesPacket.class);
+        PACKETS.put("ClientboundCommandSuggestionsPacket", net.minecraft.network.protocol.game.ClientboundCommandSuggestionsPacket.class);
+        PACKETS.put("ClientboundCommandsPacket", net.minecraft.network.protocol.game.ClientboundCommandsPacket.class);
+        PACKETS.put("ClientboundContainerClosePacket", net.minecraft.network.protocol.game.ClientboundContainerClosePacket.class);
+        PACKETS.put("ClientboundContainerSetContentPacket", net.minecraft.network.protocol.game.ClientboundContainerSetContentPacket.class);
+        PACKETS.put("ClientboundContainerSetDataPacket", net.minecraft.network.protocol.game.ClientboundContainerSetDataPacket.class);
+        PACKETS.put("ClientboundContainerSetSlotPacket", net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket.class);
+        PACKETS.put("ClientboundCookieRequestPacket", net.minecraft.network.protocol.cookie.ClientboundCookieRequestPacket.class);
+        PACKETS.put("ClientboundCooldownPacket", net.minecraft.network.protocol.game.ClientboundCooldownPacket.class);
+        PACKETS.put("ClientboundCustomChatCompletionsPacket", net.minecraft.network.protocol.game.ClientboundCustomChatCompletionsPacket.class);
+        PACKETS.put("ClientboundCustomPayloadPacket", ClientboundCustomPayloadPacket.class);
+        PACKETS.put("ClientboundCustomQueryPacket", net.minecraft.network.protocol.login.ClientboundCustomQueryPacket.class);
+        PACKETS.put("ClientboundCustomReportDetailsPacket", net.minecraft.network.protocol.common.ClientboundCustomReportDetailsPacket.class);
+        PACKETS.put("ClientboundDamageEventPacket", net.minecraft.network.protocol.game.ClientboundDamageEventPacket.class);
+        PACKETS.put("ClientboundDebugSamplePacket", net.minecraft.network.protocol.game.ClientboundDebugSamplePacket.class);
+        PACKETS.put("ClientboundDeleteChatPacket", net.minecraft.network.protocol.game.ClientboundDeleteChatPacket.class);
+        PACKETS.put("ClientboundDisconnectPacket", net.minecraft.network.protocol.common.ClientboundDisconnectPacket.class);
+        PACKETS.put("ClientboundDisguisedChatPacket", net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket.class);
+        PACKETS.put("ClientboundEntityEventPacket", net.minecraft.network.protocol.game.ClientboundEntityEventPacket.class);
+        PACKETS.put("ClientboundExplodePacket", net.minecraft.network.protocol.game.ClientboundExplodePacket.class);
+        PACKETS.put("ClientboundFinishConfigurationPacket", net.minecraft.network.protocol.configuration.ClientboundFinishConfigurationPacket.class);
+        PACKETS.put("ClientboundForgetLevelChunkPacket", net.minecraft.network.protocol.game.ClientboundForgetLevelChunkPacket.class);
+        PACKETS.put("ClientboundGameEventPacket", net.minecraft.network.protocol.game.ClientboundGameEventPacket.class);
+        PACKETS.put("ClientboundHelloPacket", net.minecraft.network.protocol.login.ClientboundHelloPacket.class);
+        PACKETS.put("ClientboundHurtAnimationPacket", net.minecraft.network.protocol.game.ClientboundHurtAnimationPacket.class);
+        PACKETS.put("ClientboundInitializeBorderPacket", net.minecraft.network.protocol.game.ClientboundInitializeBorderPacket.class);
+        PACKETS.put("ClientboundKeepAlivePacket", net.minecraft.network.protocol.common.ClientboundKeepAlivePacket.class);
+        PACKETS.put("ClientboundLevelChunkWithLightPacket", net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket.class);
+        PACKETS.put("ClientboundLevelEventPacket", net.minecraft.network.protocol.game.ClientboundLevelEventPacket.class);
+        PACKETS.put("ClientboundLevelParticlesPacket", net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket.class);
+        PACKETS.put("ClientboundLightUpdatePacket", net.minecraft.network.protocol.game.ClientboundLightUpdatePacket.class);
+        PACKETS.put("ClientboundLoginCompressionPacket", net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket.class);
+        PACKETS.put("ClientboundLoginDisconnectPacket", net.minecraft.network.protocol.login.ClientboundLoginDisconnectPacket.class);
+        PACKETS.put("ClientboundLoginFinishedPacket", net.minecraft.network.protocol.login.ClientboundLoginFinishedPacket.class);
+        PACKETS.put("ClientboundLoginPacket", net.minecraft.network.protocol.game.ClientboundLoginPacket.class);
+        PACKETS.put("ClientboundMapItemDataPacket", net.minecraft.network.protocol.game.ClientboundMapItemDataPacket.class);
+        PACKETS.put("ClientboundMerchantOffersPacket", net.minecraft.network.protocol.game.ClientboundMerchantOffersPacket.class);
+        PACKETS.put("ClientboundMoveEntityPacket", net.minecraft.network.protocol.game.ClientboundMoveEntityPacket.class);
+        PACKETS.put("ClientboundMoveEntityPacket$Pos", net.minecraft.network.protocol.game.ClientboundMoveEntityPacket.Pos.class);
+        PACKETS.put("ClientboundMoveEntityPacket$PosRot", net.minecraft.network.protocol.game.ClientboundMoveEntityPacket.PosRot.class);
+        PACKETS.put("ClientboundMoveEntityPacket$Rot", net.minecraft.network.protocol.game.ClientboundMoveEntityPacket.Rot.class);
+        PACKETS.put("ClientboundMoveVehiclePacket", net.minecraft.network.protocol.game.ClientboundMoveVehiclePacket.class);
+        PACKETS.put("ClientboundOpenBookPacket", net.minecraft.network.protocol.game.ClientboundOpenBookPacket.class);
+        PACKETS.put("ClientboundOpenScreenPacket", net.minecraft.network.protocol.game.ClientboundOpenScreenPacket.class);
+        PACKETS.put("ClientboundOpenSignEditorPacket", net.minecraft.network.protocol.game.ClientboundOpenSignEditorPacket.class);
+        PACKETS.put("ClientboundPingPacket", net.minecraft.network.protocol.common.ClientboundPingPacket.class);
+        PACKETS.put("ClientboundPlaceGhostRecipePacket", net.minecraft.network.protocol.game.ClientboundPlaceGhostRecipePacket.class);
+        PACKETS.put("ClientboundPlayerAbilitiesPacket", net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacket.class);
+        PACKETS.put("ClientboundPlayerChatPacket", net.minecraft.network.protocol.game.ClientboundPlayerChatPacket.class);
+        PACKETS.put("ClientboundPlayerCombatEndPacket", net.minecraft.network.protocol.game.ClientboundPlayerCombatEndPacket.class);
+        PACKETS.put("ClientboundPlayerCombatEnterPacket", net.minecraft.network.protocol.game.ClientboundPlayerCombatEnterPacket.class);
+        PACKETS.put("ClientboundPlayerCombatKillPacket", net.minecraft.network.protocol.game.ClientboundPlayerCombatKillPacket.class);
+        PACKETS.put("ClientboundPlayerInfoRemovePacket", net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket.class);
+        PACKETS.put("ClientboundPlayerInfoUpdatePacket", net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.class);
+        PACKETS.put("ClientboundPlayerLookAtPacket", net.minecraft.network.protocol.game.ClientboundPlayerLookAtPacket.class);
+        PACKETS.put("ClientboundPlayerPositionPacket", net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket.class);
+        PACKETS.put("ClientboundPongResponsePacket", net.minecraft.network.protocol.ping.ClientboundPongResponsePacket.class);
+        PACKETS.put("ClientboundProjectilePowerPacket", net.minecraft.network.protocol.game.ClientboundProjectilePowerPacket.class);
+        PACKETS.put("ClientboundRegistryDataPacket", net.minecraft.network.protocol.configuration.ClientboundRegistryDataPacket.class);
+        PACKETS.put("ClientboundRemoveEntitiesPacket", net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket.class);
+        PACKETS.put("ClientboundRemoveMobEffectPacket", net.minecraft.network.protocol.game.ClientboundRemoveMobEffectPacket.class);
+        PACKETS.put("ClientboundResetChatPacket", net.minecraft.network.protocol.configuration.ClientboundResetChatPacket.class);
+        PACKETS.put("ClientboundResetScorePacket", net.minecraft.network.protocol.game.ClientboundResetScorePacket.class);
+        PACKETS.put("ClientboundResourcePackPopPacket", net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket.class);
+        PACKETS.put("ClientboundResourcePackPushPacket", net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket.class);
+        PACKETS.put("ClientboundRespawnPacket", net.minecraft.network.protocol.game.ClientboundRespawnPacket.class);
+        PACKETS.put("ClientboundRotateHeadPacket", net.minecraft.network.protocol.game.ClientboundRotateHeadPacket.class);
+        PACKETS.put("ClientboundSectionBlocksUpdatePacket", net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket.class);
+        PACKETS.put("ClientboundSelectAdvancementsTabPacket", net.minecraft.network.protocol.game.ClientboundSelectAdvancementsTabPacket.class);
+        PACKETS.put("ClientboundSelectKnownPacks", net.minecraft.network.protocol.configuration.ClientboundSelectKnownPacks.class);
+        PACKETS.put("ClientboundServerDataPacket", net.minecraft.network.protocol.game.ClientboundServerDataPacket.class);
+        PACKETS.put("ClientboundServerLinksPacket", net.minecraft.network.protocol.common.ClientboundServerLinksPacket.class);
+        PACKETS.put("ClientboundSetActionBarTextPacket", net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket.class);
+        PACKETS.put("ClientboundSetBorderCenterPacket", net.minecraft.network.protocol.game.ClientboundSetBorderCenterPacket.class);
+        PACKETS.put("ClientboundSetBorderLerpSizePacket", net.minecraft.network.protocol.game.ClientboundSetBorderLerpSizePacket.class);
+        PACKETS.put("ClientboundSetBorderSizePacket", net.minecraft.network.protocol.game.ClientboundSetBorderSizePacket.class);
+        PACKETS.put("ClientboundSetBorderWarningDelayPacket", net.minecraft.network.protocol.game.ClientboundSetBorderWarningDelayPacket.class);
+        PACKETS.put("ClientboundSetBorderWarningDistancePacket", net.minecraft.network.protocol.game.ClientboundSetBorderWarningDistancePacket.class);
+        PACKETS.put("ClientboundSetCameraPacket", net.minecraft.network.protocol.game.ClientboundSetCameraPacket.class);
+        PACKETS.put("ClientboundSetChunkCacheCenterPacket", net.minecraft.network.protocol.game.ClientboundSetChunkCacheCenterPacket.class);
+        PACKETS.put("ClientboundSetChunkCacheRadiusPacket", net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket.class);
+        PACKETS.put("ClientboundSetDefaultSpawnPositionPacket", net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket.class);
+        PACKETS.put("ClientboundSetDisplayObjectivePacket", net.minecraft.network.protocol.game.ClientboundSetDisplayObjectivePacket.class);
+        PACKETS.put("ClientboundSetEntityDataPacket", net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket.class);
+        PACKETS.put("ClientboundSetEntityLinkPacket", net.minecraft.network.protocol.game.ClientboundSetEntityLinkPacket.class);
+        PACKETS.put("ClientboundSetEntityMotionPacket", net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket.class);
+        PACKETS.put("ClientboundSetEquipmentPacket", net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket.class);
+        PACKETS.put("ClientboundSetExperiencePacket", net.minecraft.network.protocol.game.ClientboundSetExperiencePacket.class);
+        PACKETS.put("ClientboundSetHealthPacket", net.minecraft.network.protocol.game.ClientboundSetHealthPacket.class);
+        PACKETS.put("ClientboundSetHeldSlotPacket", net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket.class);
+        PACKETS.put("ClientboundSetObjectivePacket", net.minecraft.network.protocol.game.ClientboundSetObjectivePacket.class);
+        PACKETS.put("ClientboundSetPassengersPacket", net.minecraft.network.protocol.game.ClientboundSetPassengersPacket.class);
+        PACKETS.put("ClientboundSetPlayerTeamPacket", net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket.class);
+        PACKETS.put("ClientboundSetScorePacket", net.minecraft.network.protocol.game.ClientboundSetScorePacket.class);
+        PACKETS.put("ClientboundSetSimulationDistancePacket", net.minecraft.network.protocol.game.ClientboundSetSimulationDistancePacket.class);
+        PACKETS.put("ClientboundSetSubtitleTextPacket", net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket.class);
+        PACKETS.put("ClientboundSetTimePacket", net.minecraft.network.protocol.game.ClientboundSetTimePacket.class);
+        PACKETS.put("ClientboundSetTitleTextPacket", net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket.class);
+        PACKETS.put("ClientboundSetTitlesAnimationPacket", net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket.class);
+        PACKETS.put("ClientboundSoundEntityPacket", net.minecraft.network.protocol.game.ClientboundSoundEntityPacket.class);
+        PACKETS.put("ClientboundSoundPacket", net.minecraft.network.protocol.game.ClientboundSoundPacket.class);
+        PACKETS.put("ClientboundStartConfigurationPacket", net.minecraft.network.protocol.game.ClientboundStartConfigurationPacket.class);
+        PACKETS.put("ClientboundStatusResponsePacket", net.minecraft.network.protocol.status.ClientboundStatusResponsePacket.class);
+        PACKETS.put("ClientboundStopSoundPacket", net.minecraft.network.protocol.game.ClientboundStopSoundPacket.class);
+        PACKETS.put("ClientboundStoreCookiePacket", net.minecraft.network.protocol.common.ClientboundStoreCookiePacket.class);
+        PACKETS.put("ClientboundSystemChatPacket", net.minecraft.network.protocol.game.ClientboundSystemChatPacket.class);
+        PACKETS.put("ClientboundTabListPacket", net.minecraft.network.protocol.game.ClientboundTabListPacket.class);
+        PACKETS.put("ClientboundTagQueryPacket", net.minecraft.network.protocol.game.ClientboundTagQueryPacket.class);
+        PACKETS.put("ClientboundTakeItemEntityPacket", net.minecraft.network.protocol.game.ClientboundTakeItemEntityPacket.class);
+        PACKETS.put("ClientboundTeleportEntityPacket", net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket.class);
+        PACKETS.put("ClientboundTickingStatePacket", net.minecraft.network.protocol.game.ClientboundTickingStatePacket.class);
+        PACKETS.put("ClientboundTickingStepPacket", net.minecraft.network.protocol.game.ClientboundTickingStepPacket.class);
+        PACKETS.put("ClientboundTransferPacket", net.minecraft.network.protocol.common.ClientboundTransferPacket.class);
+        PACKETS.put("ClientboundUpdateAdvancementsPacket", net.minecraft.network.protocol.game.ClientboundUpdateAdvancementsPacket.class);
+        PACKETS.put("ClientboundUpdateAttributesPacket", net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket.class);
+        PACKETS.put("ClientboundUpdateEnabledFeaturesPacket", net.minecraft.network.protocol.configuration.ClientboundUpdateEnabledFeaturesPacket.class);
+        PACKETS.put("ClientboundUpdateMobEffectPacket", net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket.class);
+        PACKETS.put("ClientboundUpdateRecipesPacket", net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket.class);
+        PACKETS.put("ClientboundUpdateTagsPacket", net.minecraft.network.protocol.common.ClientboundUpdateTagsPacket.class);
+        PACKETS.put("ServerboundAcceptTeleportationPacket", net.minecraft.network.protocol.game.ServerboundAcceptTeleportationPacket.class);
+        PACKETS.put("ServerboundBlockEntityTagQueryPacket", net.minecraft.network.protocol.game.ServerboundBlockEntityTagQueryPacket.class);
+        PACKETS.put("ServerboundChangeDifficultyPacket", net.minecraft.network.protocol.game.ServerboundChangeDifficultyPacket.class);
+        PACKETS.put("ServerboundChatAckPacket", net.minecraft.network.protocol.game.ServerboundChatAckPacket.class);
+        PACKETS.put("ServerboundChatCommandPacket", net.minecraft.network.protocol.game.ServerboundChatCommandPacket.class);
+        PACKETS.put("ServerboundChatCommandSignedPacket", net.minecraft.network.protocol.game.ServerboundChatCommandSignedPacket.class);
+        PACKETS.put("ServerboundChatPacket", net.minecraft.network.protocol.game.ServerboundChatPacket.class);
+        PACKETS.put("ServerboundChatSessionUpdatePacket", net.minecraft.network.protocol.game.ServerboundChatSessionUpdatePacket.class);
+        PACKETS.put("ServerboundChunkBatchReceivedPacket", net.minecraft.network.protocol.game.ServerboundChunkBatchReceivedPacket.class);
+        PACKETS.put("ServerboundClientCommandPacket", net.minecraft.network.protocol.game.ServerboundClientCommandPacket.class);
+        PACKETS.put("ServerboundClientInformationPacket", net.minecraft.network.protocol.common.ServerboundClientInformationPacket.class);
+        PACKETS.put("ServerboundCommandSuggestionPacket", net.minecraft.network.protocol.game.ServerboundCommandSuggestionPacket.class);
+        PACKETS.put("ServerboundConfigurationAcknowledgedPacket", net.minecraft.network.protocol.game.ServerboundConfigurationAcknowledgedPacket.class);
+        PACKETS.put("ServerboundContainerButtonClickPacket", net.minecraft.network.protocol.game.ServerboundContainerButtonClickPacket.class);
+        PACKETS.put("ServerboundContainerClickPacket", net.minecraft.network.protocol.game.ServerboundContainerClickPacket.class);
+        PACKETS.put("ServerboundContainerClosePacket", net.minecraft.network.protocol.game.ServerboundContainerClosePacket.class);
+        PACKETS.put("ServerboundContainerSlotStateChangedPacket", net.minecraft.network.protocol.game.ServerboundContainerSlotStateChangedPacket.class);
+        PACKETS.put("ServerboundCookieResponsePacket", net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket.class);
+        PACKETS.put("ServerboundCustomPayloadPacket", ServerboundCustomPayloadPacket.class);
+        PACKETS.put("ServerboundCustomQueryAnswerPacket", net.minecraft.network.protocol.login.ServerboundCustomQueryAnswerPacket.class);
+        PACKETS.put("ServerboundEditBookPacket", net.minecraft.network.protocol.game.ServerboundEditBookPacket.class);
+        PACKETS.put("ServerboundEntityTagQueryPacket", net.minecraft.network.protocol.game.ServerboundEntityTagQueryPacket.class);
+        PACKETS.put("ServerboundFinishConfigurationPacket", net.minecraft.network.protocol.configuration.ServerboundFinishConfigurationPacket.class);
+        PACKETS.put("ServerboundHelloPacket", net.minecraft.network.protocol.login.ServerboundHelloPacket.class);
+        PACKETS.put("ServerboundInteractPacket", net.minecraft.network.protocol.game.ServerboundInteractPacket.class);
+        PACKETS.put("ServerboundJigsawGeneratePacket", net.minecraft.network.protocol.game.ServerboundJigsawGeneratePacket.class);
+        PACKETS.put("ServerboundKeepAlivePacket", net.minecraft.network.protocol.common.ServerboundKeepAlivePacket.class);
+        PACKETS.put("ServerboundKeyPacket", net.minecraft.network.protocol.login.ServerboundKeyPacket.class);
+        PACKETS.put("ServerboundLockDifficultyPacket", net.minecraft.network.protocol.game.ServerboundLockDifficultyPacket.class);
+        PACKETS.put("ServerboundLoginAcknowledgedPacket", net.minecraft.network.protocol.login.ServerboundLoginAcknowledgedPacket.class);
+        PACKETS.put("ServerboundMovePlayerPacket", net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.class);
+        PACKETS.put("ServerboundMovePlayerPacket$Pos", net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Pos.class);
+        PACKETS.put("ServerboundMovePlayerPacket$PosRot", net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.PosRot.class);
+        PACKETS.put("ServerboundMovePlayerPacket$Rot", net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.Rot.class);
+        PACKETS.put("ServerboundMovePlayerPacket$StatusOnly", net.minecraft.network.protocol.game.ServerboundMovePlayerPacket.StatusOnly.class);
+        PACKETS.put("ServerboundMoveVehiclePacket", net.minecraft.network.protocol.game.ServerboundMoveVehiclePacket.class);
+        PACKETS.put("ServerboundPaddleBoatPacket", net.minecraft.network.protocol.game.ServerboundPaddleBoatPacket.class);
+        PACKETS.put("ServerboundPingRequestPacket", net.minecraft.network.protocol.ping.ServerboundPingRequestPacket.class);
+        PACKETS.put("ServerboundPlaceRecipePacket", net.minecraft.network.protocol.game.ServerboundPlaceRecipePacket.class);
+        PACKETS.put("ServerboundPlayerAbilitiesPacket", net.minecraft.network.protocol.game.ServerboundPlayerAbilitiesPacket.class);
+        PACKETS.put("ServerboundPlayerActionPacket", net.minecraft.network.protocol.game.ServerboundPlayerActionPacket.class);
+        PACKETS.put("ServerboundPlayerCommandPacket", net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket.class);
+        PACKETS.put("ServerboundPlayerInputPacket", net.minecraft.network.protocol.game.ServerboundPlayerInputPacket.class);
+        PACKETS.put("ServerboundPongPacket", net.minecraft.network.protocol.common.ServerboundPongPacket.class);
+        PACKETS.put("ServerboundRecipeBookChangeSettingsPacket", net.minecraft.network.protocol.game.ServerboundRecipeBookChangeSettingsPacket.class);
+        PACKETS.put("ServerboundRecipeBookSeenRecipePacket", net.minecraft.network.protocol.game.ServerboundRecipeBookSeenRecipePacket.class);
+        PACKETS.put("ServerboundRenameItemPacket", net.minecraft.network.protocol.game.ServerboundRenameItemPacket.class);
+        PACKETS.put("ServerboundResourcePackPacket", net.minecraft.network.protocol.common.ServerboundResourcePackPacket.class);
+        PACKETS.put("ServerboundSeenAdvancementsPacket", net.minecraft.network.protocol.game.ServerboundSeenAdvancementsPacket.class);
+        PACKETS.put("ServerboundSelectKnownPacks", net.minecraft.network.protocol.configuration.ServerboundSelectKnownPacks.class);
+        PACKETS.put("ServerboundSelectTradePacket", net.minecraft.network.protocol.game.ServerboundSelectTradePacket.class);
+        PACKETS.put("ServerboundSetBeaconPacket", net.minecraft.network.protocol.game.ServerboundSetBeaconPacket.class);
+        PACKETS.put("ServerboundSetCarriedItemPacket", net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket.class);
+        PACKETS.put("ServerboundSetCommandBlockPacket", net.minecraft.network.protocol.game.ServerboundSetCommandBlockPacket.class);
+        PACKETS.put("ServerboundSetCommandMinecartPacket", net.minecraft.network.protocol.game.ServerboundSetCommandMinecartPacket.class);
+        PACKETS.put("ServerboundSetCreativeModeSlotPacket", net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket.class);
+        PACKETS.put("ServerboundSetJigsawBlockPacket", net.minecraft.network.protocol.game.ServerboundSetJigsawBlockPacket.class);
+        PACKETS.put("ServerboundSetStructureBlockPacket", net.minecraft.network.protocol.game.ServerboundSetStructureBlockPacket.class);
+        PACKETS.put("ServerboundSignUpdatePacket", net.minecraft.network.protocol.game.ServerboundSignUpdatePacket.class);
+        PACKETS.put("ServerboundStatusRequestPacket", net.minecraft.network.protocol.status.ServerboundStatusRequestPacket.class);
+        PACKETS.put("ServerboundTeleportToEntityPacket", net.minecraft.network.protocol.game.ServerboundTeleportToEntityPacket.class);
+        PACKETS.put("ServerboundUseItemOnPacket", net.minecraft.network.protocol.game.ServerboundUseItemOnPacket.class);
+        PACKETS.put("ServerboundUseItemPacket", net.minecraft.network.protocol.game.ServerboundUseItemPacket.class);
+        //? if <26.3 {
+        PACKETS.put("ServerboundSwingPacket", net.minecraft.network.protocol.game.ServerboundSwingPacket.class);
+        //?}
+        //? if <1.21.11 {
+        PACKETS.put("ClientboundHorseScreenOpenPacket", net.minecraft.network.protocol.game.ClientboundHorseScreenOpenPacket.class);
+        //?}
+        //? if <1.21.8 {
+        /*PACKETS.put("ServerboundDebugSampleSubscriptionPacket", net.minecraft.network.protocol.game.ServerboundDebugSampleSubscriptionPacket.class);
+        *///?}
+        //? if >=26.3 {
+        /*PACKETS.put("ServerboundPunchPacket", net.minecraft.network.protocol.game.ServerboundPunchPacket.class);
+        *///?}
         registerPacketCodecsAndMetadata();
     }
 
