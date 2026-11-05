@@ -1889,7 +1889,6 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
 //            }
 //        }
 
-        // TODO: Update this with latest
         PACKETS.put("WorldBorderWarningTimeChangedS2CPacket", net.minecraft.network.protocol.game.ClientboundSetBorderWarningDelayPacket.class);
         PACKETS.put("SelectMerchantTradeC2SPacket", net.minecraft.network.protocol.game.ServerboundSelectTradePacket.class);
         PACKETS.put("SelectAdvancementTabS2CPacket", net.minecraft.network.protocol.game.ClientboundSelectAdvancementsTabPacket.class);
@@ -2095,12 +2094,68 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         //? if <1.21.8 {
         /*PACKETS.put("DebugSampleSubscriptionC2SPacket", net.minecraft.network.protocol.game.ServerboundDebugSampleSubscriptionPacket.class);
         *///?}
+        //? if >=1.21.8 <1.21.10 {
+        PACKETS.put("ServerboundDebugSampleSubscriptionPacket", net.minecraft.network.protocol.game.ServerboundDebugSampleSubscriptionPacket.class);
+        //?}
+        //? if >=1.21.10 {
+        /*PACKETS.put("ServerboundDebugSubscriptionRequestPacket", net.minecraft.network.protocol.game.ServerboundDebugSubscriptionRequestPacket.class);
+        *///?}
         PACKETS.put("ServerLinksS2CPacket", net.minecraft.network.protocol.common.ClientboundServerLinksPacket.class);
         PACKETS.put("CookieResponseC2SPacket", net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket.class);
         PACKETS.put("UpdateTickRateS2CPacket", net.minecraft.network.protocol.game.ClientboundTickingStatePacket.class);
         PACKETS.put("BundleDelimiterS2CPacket", net.minecraft.network.protocol.game.ClientboundBundleDelimiterPacket.class);
         PACKETS.put("CustomReportDetailsS2CPacket", net.minecraft.network.protocol.common.ClientboundCustomReportDetailsPacket.class);
         PACKETS.put("ScoreboardScoreResetS2CPacket", net.minecraft.network.protocol.game.ClientboundResetScorePacket.class);
+
+        PACKETS.put("ClientboundEntityPositionSyncPacket", net.minecraft.network.protocol.game.ClientboundEntityPositionSyncPacket.class);
+        PACKETS.put("ClientboundMoveMinecartPacket", net.minecraft.network.protocol.game.ClientboundMoveMinecartPacket.class);
+        PACKETS.put("ClientboundPlayerRotationPacket", net.minecraft.network.protocol.game.ClientboundPlayerRotationPacket.class);
+        PACKETS.put("ClientboundRecipeBookAddPacket", net.minecraft.network.protocol.game.ClientboundRecipeBookAddPacket.class);
+        PACKETS.put("ClientboundRecipeBookRemovePacket", net.minecraft.network.protocol.game.ClientboundRecipeBookRemovePacket.class);
+        PACKETS.put("ClientboundRecipeBookSettingsPacket", net.minecraft.network.protocol.game.ClientboundRecipeBookSettingsPacket.class);
+        PACKETS.put("ClientboundSetCursorItemPacket", net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket.class);
+        PACKETS.put("ClientboundSetPlayerInventoryPacket", net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket.class);
+        PACKETS.put("ClientboundTestInstanceBlockStatus", net.minecraft.network.protocol.game.ClientboundTestInstanceBlockStatus.class);
+        PACKETS.put("ServerboundClientTickEndPacket", net.minecraft.network.protocol.game.ServerboundClientTickEndPacket.class);
+        PACKETS.put("ServerboundPickItemFromBlockPacket", net.minecraft.network.protocol.game.ServerboundPickItemFromBlockPacket.class);
+        PACKETS.put("ServerboundPickItemFromEntityPacket", net.minecraft.network.protocol.game.ServerboundPickItemFromEntityPacket.class);
+        PACKETS.put("ServerboundPlayerLoadedPacket", net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket.class);
+        PACKETS.put("ServerboundSelectBundleItemPacket", net.minecraft.network.protocol.game.ServerboundSelectBundleItemPacket.class);
+        PACKETS.put("ServerboundSetTestBlockPacket", net.minecraft.network.protocol.game.ServerboundSetTestBlockPacket.class);
+        PACKETS.put("ServerboundTestInstanceBlockActionPacket", net.minecraft.network.protocol.game.ServerboundTestInstanceBlockActionPacket.class);
+        //? if >=1.21.8 {
+        PACKETS.put("ClientboundClearDialogPacket", net.minecraft.network.protocol.common.ClientboundClearDialogPacket.class);
+        PACKETS.put("ClientboundShowDialogPacket", net.minecraft.network.protocol.common.ClientboundShowDialogPacket.class);
+        PACKETS.put("ClientboundTrackedWaypointPacket", net.minecraft.network.protocol.game.ClientboundTrackedWaypointPacket.class);
+        PACKETS.put("ServerboundChangeGameModePacket", net.minecraft.network.protocol.game.ServerboundChangeGameModePacket.class);
+        PACKETS.put("ServerboundCustomClickActionPacket", net.minecraft.network.protocol.common.ServerboundCustomClickActionPacket.class);
+        //?}
+        //? if >=1.21.10 {
+        /*PACKETS.put("ClientboundCodeOfConductPacket", net.minecraft.network.protocol.configuration.ClientboundCodeOfConductPacket.class);
+        PACKETS.put("ClientboundDebugBlockValuePacket", net.minecraft.network.protocol.game.ClientboundDebugBlockValuePacket.class);
+        PACKETS.put("ClientboundDebugChunkValuePacket", net.minecraft.network.protocol.game.ClientboundDebugChunkValuePacket.class);
+        PACKETS.put("ClientboundDebugEntityValuePacket", net.minecraft.network.protocol.game.ClientboundDebugEntityValuePacket.class);
+        PACKETS.put("ClientboundDebugEventPacket", net.minecraft.network.protocol.game.ClientboundDebugEventPacket.class);
+        PACKETS.put("ClientboundGameTestHighlightPosPacket", net.minecraft.network.protocol.game.ClientboundGameTestHighlightPosPacket.class);
+        PACKETS.put("ServerboundAcceptCodeOfConductPacket", net.minecraft.network.protocol.configuration.ServerboundAcceptCodeOfConductPacket.class);
+        *///?}
+        //? if >=26.1 {
+        /*PACKETS.put("ClientboundGameRuleValuesPacket", net.minecraft.network.protocol.game.ClientboundGameRuleValuesPacket.class);
+        PACKETS.put("ClientboundLowDiskSpaceWarningPacket", net.minecraft.network.protocol.game.ClientboundLowDiskSpaceWarningPacket.class);
+        PACKETS.put("ServerboundAttackPacket", net.minecraft.network.protocol.game.ServerboundAttackPacket.class);
+        PACKETS.put("ServerboundSetGameRulePacket", net.minecraft.network.protocol.game.ServerboundSetGameRulePacket.class);
+        *///?}
+        //? if >=26.1 <26.2 {
+        /*PACKETS.put("ServerboundSpectateEntityPacket", net.minecraft.network.protocol.game.ServerboundSpectateEntityPacket.class);
+        *///?}
+        //? if >=26.2 {
+        /*PACKETS.put("ServerboundSpectatorActionPacket", net.minecraft.network.protocol.game.ServerboundSpectatorActionPacket.class);
+        *///?}
+        //? if >=26.3 {
+        /*PACKETS.put("ClientboundPostEffectsPacket", net.minecraft.network.protocol.common.ClientboundPostEffectsPacket.class);
+        PACKETS.put("ClientboundAddTransientBlockPacket", net.minecraft.network.protocol.game.ClientboundAddTransientBlockPacket.class);
+        PACKETS.put("ClientboundSwingAnimationPacket", net.minecraft.network.protocol.game.ClientboundSwingAnimationPacket.class);
+        *///?}
 
         PACKETS.forEach((name, clazz) -> PACKET_NAMES.put(clazz, name));
         registerPacketCodecsAndMetadata();
