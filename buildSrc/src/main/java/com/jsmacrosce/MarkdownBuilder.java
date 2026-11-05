@@ -117,7 +117,11 @@ public class MarkdownBuilder {
     }
 
     /**
-     * Emits a heading with a VitePress custom anchor: {@code ## text {#anchor}}.
+     * Emits a heading with a stable anchor: {@code ## text {#anchor}}.
+     *
+     * <p>VitePress reads the suffix as the heading id. Plain Markdown readers see a
+     * short, conventional suffix, which keeps cross-page links to a specific member
+     * precise in both outputs.
      *
      * @param level  ATX heading level (1–6)
      * @param text   heading text
@@ -163,6 +167,30 @@ public class MarkdownBuilder {
         beginBlock();
         sb.append("**").append(label).append("**\n");
         state = State.LIST;
+        return this;
+    }
+
+    /**
+     * Emits a fenced code block. The fence is always three backticks, which is
+     * enough for API signatures; a type name or Javadoc example that contains
+     * a backtick run would need a longer fence and should use {@link #raw}.
+     *
+     * @param language optional info string such as {@code js}; may be blank
+     * @param code     code text, newline-terminated by this method
+     * @return {@code this}
+     */
+    public MarkdownBuilder codeBlock(String language, String code) {
+        beginBlock();
+        sb.append("```");
+        if (language != null && !language.isBlank()) {
+            sb.append(language);
+        }
+        sb.append("\n").append(code);
+        if (!code.endsWith("\n")) {
+            sb.append("\n");
+        }
+        sb.append("```\n");
+        state = State.BLOCK;
         return this;
     }
 

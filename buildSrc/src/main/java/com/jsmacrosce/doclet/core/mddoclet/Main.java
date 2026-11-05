@@ -68,10 +68,23 @@ public class Main implements Doclet {
             return false;
         }
 
-        MarkdownWriter writer = new MarkdownWriter();
-        writer.setExternalPackages(Links.externalPackages);
+        // The same model produces both trees in one javadoc run. VitePress source
+        // keeps links, tokens and frontmatter; the plain tree is what agents fetch.
+        File plainDir = OutputDirectory.outputDir.toPath().resolve("markdown")
+            .resolve(Version.version).resolve(McVersion.mcVersion).toFile();
+        if (!plainDir.exists() && !plainDir.mkdirs()) {
+            reporter.print(Diagnostic.Kind.ERROR, "Failed to create plain markdown dir\n");
+            return false;
+        }
+
         try {
+            MarkdownWriter writer = new MarkdownWriter();
+            writer.setExternalPackages(Links.externalPackages);
             writer.write(model, outDir, Version.version, McVersion.mcVersion);
+
+            MarkdownWriter plain = new MarkdownWriter(MarkdownWriter.Flavor.PLAIN);
+            plain.setExternalPackages(Links.externalPackages);
+            plain.write(model, plainDir, Version.version, McVersion.mcVersion);
         } catch (IOException e) {
             e.printStackTrace();
             return false;

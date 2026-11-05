@@ -35,9 +35,13 @@ public final class MarkdownWriterTest {
             null, null, null, null, List.of("public"), false, memberSince);
         var stringType = new TypeRef(TypeKind.DECLARED, "String", "java.lang.String", List.of(), false, false, null, false);
         var stringArray = new TypeRef(TypeKind.ARRAY, "String", "java.lang.String", List.of(stringType), true, false, null, false);
+        var variadicDoc = new DocComment(List.of(), List.of(), List.of(
+            new DocTag(DocTagKind.SINCE, null, List.of(new DocBodyNode.Text("member-release"))),
+            new DocTag(DocTagKind.PARAM, "types",
+                List.of(new DocBodyNode.Text("the type names to select")))));
         var variadic = new MemberDoc(MemberKind.METHOD, "select", "select-String[]-",
             List.of(new ParamDoc("types", stringArray, true, "")), List.of(), stringType,
-            null, null, null, List.of("public"), false, memberSince);
+            null, null, null, List.of("public"), false, variadicDoc);
         var deprecatedOnly = new MemberDoc(MemberKind.METHOD, "legacy", "legacy-",
             List.of(), List.of(), stringType,
             null, null, null, List.of("public"), false, deprecatedWithoutText);
@@ -82,9 +86,11 @@ public final class MarkdownWriterTest {
                 List.of(),
                 false))
         );
-        new MarkdownWriter().write(new DocletModel(List.of(new PackageDoc("example", classes)), List.of(),
-                List.of(), java.util.Set.of(), List.of(exampleTypes)),
-            out.toFile(), "fixture", "26.1.2");
+        var model = new DocletModel(List.of(new PackageDoc("example", classes)), List.of(),
+            List.of(), java.util.Set.of(), List.of(exampleTypes));
+        new MarkdownWriter().write(model, out.toFile(), "fixture", "26.1.2");
+        Path plainOut = out.resolveSibling(out.getFileName() + "-plain");
+        new MarkdownWriter(MarkdownWriter.Flavor.PLAIN).write(model, plainOut.toFile(), "fixture", "26.1.2");
         String libraries = Files.readString(out.resolve("libraries.md"));
         contains(libraries, "- [Example](./libraries/example/FExample.md)\n  - [Result](./libraries/example/FExample.Result.md)\n    - [Details]");
         excludes(libraries, "Uncategorized");
@@ -164,6 +170,45 @@ public final class MarkdownWriterTest {
         contains(dynamicEvent, "api-pill-conditional");
         contains(dynamicEvent, ">Cancellable per instance</span>");
         excludes(dynamicEvent, "api-pill-neutral");
+        // The plain flavour must carry the same pages and facts without HTML.
+        String plainLibrary = Files.readString(plainOut.resolve("libraries/example/FExample.md"));
+        if (!plainLibrary.startsWith("# Example\n")) {
+            throw new AssertionError("Plain page must start with its H1, not frontmatter:\n" + plainLibrary);
+        }
+        contains(plainLibrary, "```js\nselect(String... types): String\n```");
+        contains(plainLibrary, "**Parameters:**\n- `types`: the type names to select");
+        contains(plainLibrary, "### select {#example.FExample_select-String[]-}");
+        contains(plainLibrary, "[Result](FExample.Result.md)");
+        contains(plainLibrary, "**Since:** member-release");
+        excludes(plainLibrary, "<div");
+        excludes(plainLibrary, "<span");
+        excludes(plainLibrary, "&#10;");
+        excludes(plainLibrary, "api-pill");
+        String plainDetailed = Files.readString(plainOut.resolve("classes/example/Detailed.md"));
+        contains(plainDetailed, "**Since:** 2.0.0");
+        contains(plainDetailed, "**Note:** renamed from `old` in 2.1.0");
+        String plainRetired = Files.readString(plainOut.resolve("classes/example/Retired.md"));
+        contains(plainRetired, "**Deprecated:** use other() instead");
+        String plainEventNoCancel = Files.readString(plainOut.resolve("events/example/EventPlain.md"));
+        contains(plainEventNoCancel, "**Cancellable:** No. Calling `event.cancel()` throws `UnsupportedOperationException`.");
+        String plainDynamic = Files.readString(plainOut.resolve("events/example/EventDynamic.md"));
+        contains(plainDynamic, "**Cancellable:** Per instance.");
+        String plainCancellable = Files.readString(plainOut.resolve("events/example/EventThing.md"));
+        contains(plainCancellable, "**Cancellable:** Yes.");
+        // Both trees describe exactly the same pages; only the sidebar data is site-only.
+        List<Path> richPages;
+        List<Path> plainPages;
+        try (var stream = Files.walk(out)) {
+            richPages = stream.filter(path -> path.toString().endsWith(".md"))
+                .map(out::relativize).sorted().toList();
+        }
+        try (var stream = Files.walk(plainOut)) {
+            plainPages = stream.filter(path -> path.toString().endsWith(".md"))
+                .map(plainOut::relativize).sorted().toList();
+        }
+        if (!richPages.equals(plainPages)) {
+            throw new AssertionError("Page sets differ\nrich=" + richPages + "\nplain=" + plainPages);
+        }
         System.out.println("MarkdownWriter: nested indexes, labels, summaries, type namespaces, event metadata, constructors, global notices and anchor rendering passed");
     }
 
