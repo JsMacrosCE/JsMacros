@@ -27,7 +27,7 @@ world](/guide/game/player-and-world), [key binds](/guide/game/keybinds),
 - **Concepts** explain the runtime: how scripts start and stop, why callbacks are
   wrapped, how events hold the main thread, and how scripts share state.
 - **Working with the game** shows the common ways to inspect and control the
-  player, world, input, and network.
+  player, world, input, network, and custom commands.
 - **On screen** covers overlays and script-created screens.
 - **Advanced** goes deeper: scanning for blocks with `WorldScanner`, script-type
   namespaces, and the escape hatches of raw game objects and reflection.

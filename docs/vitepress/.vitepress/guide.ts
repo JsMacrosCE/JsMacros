@@ -35,6 +35,7 @@ export function createGuideSidebar(apiPrefix?: string): DefaultTheme.SidebarItem
       items: [
         { text: 'Player and world', link: '/guide/game/player-and-world' },
         { text: 'Key binds and input', link: '/guide/game/keybinds' },
+        { text: 'Custom commands', link: '/guide/game/custom-commands' },
         { text: 'HTTP and WebSockets', link: '/guide/game/requests' }
       ]
     },
