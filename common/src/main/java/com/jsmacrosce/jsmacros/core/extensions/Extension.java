@@ -5,11 +5,15 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.jsmacrosce.jsmacros.core.Core;
 
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -126,15 +130,33 @@ public interface Extension {
         return dependenciesSet;
     }
 
-    /** Reads this extension's translations from its {@code assets/jsmacros/<name>/lang/} resource directory.
+    /** Reads this extension's translations from its {@code assets/<namespace>/<name>/lang/} resource directory.
+     * <p>
+     * The namespaces are searched in order, and the first one that holds the requested language
+     * file wins. An extension that keeps its translations somewhere else overrides this method.
      *
      * @param lang language-code filename component, such as {@code en_us}
-     * @return translation values keyed by their JSON object keys; empty if reading or parsing fails
-     *         or the JSON root is not an object. Values that cannot be converted to strings can
-     *         cause a runtime exception.
+     * @return translation values keyed by their JSON object keys; empty if no language file is
+     *         present, if reading or parsing fails, or if the JSON root is not an object. Values
+     *         that cannot be converted to strings can cause a runtime exception.
      */
     default Map<String, String> getTranslations(String lang) {
-        return getTranslationsInternal(this.getClass(), "assets/jsmacros/" + getExtensionName() + "/lang/" + lang + ".json");
+        for (String namespace : translationNamespaces()) {
+            String path = "assets/" + namespace + "/" + getExtensionName() + "/lang/" + lang + ".json";
+            if (this.getClass().getResource("/" + path) != null) {
+                return getTranslationsInternal(this.getClass(), path);
+            }
+        }
+        return Collections.emptyMap();
+    }
+
+    /**
+     * Returns the resource namespaces an extension's translations may live in, in search order.
+     *
+     * @return the namespaces to search
+     */
+    private static List<String> translationNamespaces() {
+        return List.of("jsmacros", "jsmacrosce");
     }
 
     /**
@@ -148,14 +170,22 @@ public interface Extension {
      */
     static Map<String, String> getTranslationsInternal(Class<?> clazz, String fname) {
         JsonElement json;
-        try (Reader reader = new InputStreamReader(clazz.getResourceAsStream("/" + fname))) {
-            json = new JsonParser().parse(reader);
+        try (InputStream stream = clazz.getResourceAsStream("/" + fname)) {
+            if (stream == null) {
+                return new HashMap<>();
+            }
+            try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+                json = JsonParser.parseReader(reader);
+            }
         } catch (Exception e) {
+            // Translations are optional: a broken language file must not stop the extension or
+            // the client's own language loading.
             return new HashMap<>();
         }
 
         if (json.isJsonObject()) {
-            return json.getAsJsonObject().entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, v -> v.getValue().getAsString()));
+            return json.getAsJsonObject().entrySet().stream()
+                    .collect(Collectors.toMap(Map.Entry::getKey, v -> v.getValue().getAsString()));
         }
         return new HashMap<>();
     }
