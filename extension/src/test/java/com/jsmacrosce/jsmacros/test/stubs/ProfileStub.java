@@ -3,7 +3,7 @@ package com.jsmacrosce.jsmacros.test.stubs;
 import org.slf4j.Logger;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.config.BaseProfile;
-import com.jsmacrosce.jsmacros.core.language.BaseWrappedException;
+import com.jsmacrosce.jsmacros.core.language.ThrowableFormatter;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -43,8 +43,10 @@ public class ProfileStub extends BaseProfile {
     @Override
     public void logError(Throwable ex) {
         errors.add(ex);
-        BaseWrappedException<?> e = CoreInstanceCreator.core.wrapException(ex);
-        LOGGER.error(e.message, ex);
+        // Format directly rather than through Core.wrapException: wrapping consults the loaded
+        // language extensions, and logging an error must not trigger extension loading or depend
+        // on which core this profile belongs to.
+        LOGGER.error(ThrowableFormatter.format(ex), ex);
     }
 
     @Override
