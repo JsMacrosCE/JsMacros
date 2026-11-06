@@ -37,26 +37,6 @@ public interface Extension {
      */
     String getExtensionName();
 
-    /**
-     * Returns the extension's declared minimum JsMacros core version.
-     *
-     * @return the minimum core version declared by the extension
-     * @since 1.9.0
-     */
-    default String minCoreVersion() {
-        return "2.0.0";
-    }
-
-    /**
-     * Returns the extension's declared maximum JsMacros core version.
-     *
-     * @return the maximum core version declared by the extension
-     * @since 1.9.0
-     */
-    default String maxCoreVersion() {
-        return "2.1.0";
-    }
-
     /** Called by the loader after dependencies are loaded and before this extension's libraries are registered.
      *
      * @param runner core instance supplied by the loader
