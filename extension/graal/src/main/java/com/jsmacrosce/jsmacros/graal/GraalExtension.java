@@ -22,6 +22,12 @@ import java.util.Iterator;
 import java.util.Set;
 
 /** Provides Graal language support and the {@code JavaWrapper} library through the extension loader; it is not a script global.
+ * <p>
+ * The language definition and its engine are process-wide. The first core that asks for the
+ * language creates them and later cores receive the same instance, so this extension assumes one
+ * core per process: a second core would run scripts against the first core's profile and
+ * libraries. Giving each core its own language is tracked for 3.0.0, when the language contract
+ * can change.
  * <pre>
  * const extension = context.getCtx().runner.extensions.getExtensionForName("graal");
  * if (extension !== null) {
