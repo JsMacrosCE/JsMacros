@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.jsmacrosce.jsmacros.core.Core;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -12,7 +13,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,69 +46,93 @@ public interface Extension {
 
     /**
      * Reads this extension's dependency descriptor, {@code jsmacrosce.ext.<name>.json}.
-     * Missing dependency entries are reported to standard error and skipped; descriptor read or
-     * parse failures are propagated as runtime exceptions.
+     * A missing descriptor means the extension declares no dependencies.
      *
-     * @return resolved dependency resource URLs; empty when no entries resolve or the descriptor
-     *         has no dependencies or the literal {@code ${dependencies}} placeholder
+     * @return resolved dependency resource URLs in the order the descriptor lists them; empty when
+     *         the descriptor has no dependencies or none of them resolve
+     * @throws IllegalStateException if the descriptor exists but cannot be read, is not valid
+     *                               JSON, or does not have the expected shape
      */
     default Set<URL> getDependencies() {
         return getDependenciesInternal(this.getClass(), "jsmacrosce.ext." + getExtensionName() + ".json");
     }
 
     /**
-     * Resolves dependency URLs from a root-classpath JSON descriptor. A primitive
-     * {@code dependencies} value is split on spaces and each entry is prefixed with
-     * {@code META-INF/jsmacrosdeps/}; an array supplies root-relative resource paths directly.
-     * The exact {@code ${dependencies}} primitive is treated as empty. Unresolved resources are
-     * reported to standard error and skipped. Descriptor read or parse failures and unsupported
-     * dependency formats cause runtime exceptions; other malformed data or value-conversion
-     * failures can also cause runtime exceptions.
+     * Resolves dependency URLs from a root-classpath JSON descriptor.
+     * <p>
+     * The descriptor is a JSON object whose {@code dependencies} value is an array of resource
+     * paths relative to the classpath root, for example
+     * {@code {"dependencies": ["META-INF/jsmacroscedeps/graal-sdk.jar"]}}. Each path names an
+     * archive inside the extension's own jar. Entries resolve in the order listed, which is the
+     * order the loader hands them to the class loader, so the first archive to contain a class
+     * wins.
+     * <p>
+     * A missing descriptor and an absent {@code dependencies} member both mean "no dependencies".
+     * An unreadable, unparsable, or wrongly shaped descriptor throws, because a declaration that
+     * cannot be understood must not be mistaken for "no dependencies".
+     * <p>
+     * A declared path that the classpath does not provide is reported and skipped instead of
+     * failing the extension. The descriptor lists archives that are embedded in the extension's
+     * own jar, and a development run or other flat classpath may supply the same classes without
+     * that archive existing at the declared path. The report names the descriptor and the path, so
+     * a dependency that really is missing can still be traced from the warning.
      *
      * @param clazz class used to look up the descriptor and its dependency resources
      * @param fname descriptor path relative to the classpath root, without a leading slash
-     * @return resolved dependency resource URLs, or an empty set when dependencies are absent or
-     *         the placeholder is used
+     * @return resolved dependency resource URLs, in descriptor order
+     * @throws IllegalStateException if the descriptor cannot be read or is malformed
      */
     static Set<URL> getDependenciesInternal(Class<?> clazz, String fname) {
         JsonElement json;
-        try (Reader reader = new InputStreamReader(clazz.getResourceAsStream("/" + fname))) {
-            json = new JsonParser().parse(reader);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        try (InputStream stream = clazz.getResourceAsStream("/" + fname)) {
+            if (stream == null) {
+                return new LinkedHashSet<>();
+            }
+            try (Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8)) {
+                // A descriptor is a declaration, not user data: parse failures must not be
+                // mistaken for "no dependencies".
+                json = JsonParser.parseReader(reader);
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not read extension descriptor " + fname, e);
+        } catch (RuntimeException e) {
+            throw new IllegalStateException("Could not parse extension descriptor " + fname, e);
+        }
+
+        if (!json.isJsonObject()) {
+            throw new IllegalStateException("Extension descriptor " + fname + " must be a JSON object");
         }
         JsonElement dependencies = json.getAsJsonObject().get("dependencies");
-        if (dependencies == null) {
-            return new HashSet<>();
+        if (dependencies == null || dependencies.isJsonNull()) {
+            return new LinkedHashSet<>();
         }
-        String[] dependenciesArray;
-        if (dependencies.isJsonPrimitive()) {
-            String dependenciesString = dependencies.getAsString();
-            if (dependenciesString.equals("${dependencies}")) {
-                return new HashSet<>();
-            }
-            dependenciesArray = dependenciesString.split(" ");
-            for (int i = 0; i < dependenciesArray.length; i++) {
-                dependenciesArray[i] = "META-INF/jsmacrosdeps/" + dependenciesArray[i].trim();
-            }
-        } else if (dependencies.isJsonArray()) {
-            dependenciesArray = new String[dependencies.getAsJsonArray().size()];
-            for (int i = 0; i < dependenciesArray.length; i++) {
-                dependenciesArray[i] = dependencies.getAsJsonArray().get(i).getAsString();
-            }
-        } else {
-            throw new RuntimeException("Invalid dependencies format");
+        if (!dependencies.isJsonArray()) {
+            throw new IllegalStateException("Extension descriptor " + fname
+                    + " must declare dependencies as a JSON array of classpath paths");
         }
-        Set<URL> dependenciesSet = new HashSet<>();
-        for (String dependency : dependenciesArray) {
+
+        Set<URL> resolved = new LinkedHashSet<>();
+        for (JsonElement entry : dependencies.getAsJsonArray()) {
+            if (!entry.isJsonPrimitive() || !entry.getAsJsonPrimitive().isString()) {
+                throw new IllegalStateException("Extension descriptor " + fname
+                        + " has a dependencies entry that is not a string");
+            }
+            String dependency = entry.getAsString().trim();
+            if (dependency.isEmpty()) {
+                continue;
+            }
             URL resource = clazz.getResource("/" + dependency);
-            if (resource != null) {
-                dependenciesSet.add(resource);
-            } else {
-                System.err.println("[JsMacrosExtensionManager] Could not find dependency: " + dependency);
+            if (resource == null) {
+                System.err.println("[JsMacrosExtensionManager] Extension descriptor " + fname
+                        + " declares dependency " + dependency
+                        + ", which is not on the classpath; skipping it");
+                continue;
             }
+            // De-duplicate while keeping declaration order: the loader's first-archive-wins
+            // class lookup depends on it.
+            resolved.add(resource);
         }
-        return dependenciesSet;
+        return resolved;
     }
 
     /** Reads this extension's translations from its {@code assets/<namespace>/<name>/lang/} resource directory.
