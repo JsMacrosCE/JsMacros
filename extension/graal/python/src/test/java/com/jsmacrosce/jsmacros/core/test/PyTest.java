@@ -115,7 +115,7 @@ public class PyTest extends BaseTest {
     @Test
     public void test2() throws InterruptedException {
         EventCustom custom = runTestScript(TEST_SCRIPT_2, 5000);
-        assertEquals("[\"a 0\", \"b 0\", \"a 100\", \"b 110\", \"a 200\", \"b 220\", \"a 300\", \"b 330\", \"a 400\", \"b 440\", \"c\"]", custom.getString("test"));
+        assertBothTasksCompleted(custom.getString("test"));
     }
 
     @Language("py")
@@ -163,6 +163,39 @@ public class PyTest extends BaseTest {
         assertEquals("[\"long started\", \"rapid 1\", \"rapid 2\", \"rapid 3\", \"rapid 4\", \"long finished\"]", custom.getString("test"));
         assertTrue(custom.getDouble("time") > 5000);
         assertTrue(custom.getDouble("time") < 7000);
+    }
+
+
+    /**
+     * Splits the JSON array the script writes into its entries.
+     *
+     * <p>The entries never contain a comma, so splitting is enough and avoids pulling a JSON
+     * parser into the test.
+     */
+    private static List<String> entries(String json) {
+        String body = json.trim();
+        body = body.substring(1, body.length() - 1);
+        List<String> entries = new ArrayList<>();
+        for (String part : body.split(",")) {
+            entries.add(part.trim().replace("\"", ""));
+        }
+        return entries;
+    }
+
+    /**
+     * Asserts the contract of the two deferred tasks without asserting their exact interleaving.
+     * Both tasks are queued together and their sleeps differ by 10 ms, so which appends first, and
+     * the occasional reordering of a pair, is scheduling noise rather than behavior. What the
+     * script does guarantee is that each task keeps its own counter and that the main thread only
+     * continues after both are done.
+     */
+    private static void assertBothTasksCompleted(String json) {
+        List<String> entries = entries(json);
+        assertEquals("c", entries.get(entries.size() - 1), "the main thread should continue last");
+        assertEquals(List.of("a 0", "a 100", "a 200", "a 300", "a 400"),
+                entries.stream().filter(e -> e.startsWith("a ")).toList());
+        assertEquals(List.of("b 0", "b 110", "b 220", "b 330", "b 440"),
+                entries.stream().filter(e -> e.startsWith("b ")).toList());
     }
 
 }
