@@ -5,10 +5,19 @@ import org.junit.jupiter.api.Test;
 import com.jsmacrosce.jsmacros.core.event.impl.EventCustom;
 import com.jsmacrosce.jsmacros.test.BaseTest;
 
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.BeforeAll;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PyTest extends BaseTest {
+
+    @BeforeAll
+    static void warmUpLanguageRuntime() throws InterruptedException {
+        warmUpLanguage("py");
+    }
 
     @Override
     public String getLang() {
