@@ -28,14 +28,4 @@ public class ExtensionClassLoader extends URLClassLoader {
         super(urls, ExtensionClassLoader.class.getClassLoader());
     }
 
-    /**
-     * Appends a URL to this loader's search path. A {@code null} URL, a duplicate URL,
-     * or an addition after the loader is closed is ignored.
-     * @param url URL to append; {@code null} is ignored
-     */
-    @Override
-    public void addURL(URL url) {
-        super.addURL(url);
-    }
-
 }
