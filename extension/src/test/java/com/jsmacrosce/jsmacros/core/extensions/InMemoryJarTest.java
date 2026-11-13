@@ -71,6 +71,25 @@ class InMemoryJarTest {
     }
 
     @Test
+    void readsAnEmptyDeflatedEntry() throws IOException {
+        InMemoryJar jar = new InMemoryJar(deflatedArchive("empty.txt", new byte[0]), "test.jar");
+
+        assertArrayEquals(new byte[0], jar.read("empty.txt"));
+    }
+
+    private static byte[] deflatedArchive(String name, byte[] content) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(out)) {
+            ZipEntry entry = new ZipEntry(name);
+            entry.setMethod(ZipEntry.DEFLATED);
+            zip.putNextEntry(entry);
+            zip.write(content);
+            zip.closeEntry();
+        }
+        return out.toByteArray();
+    }
+
+    @Test
     void rejectsDataThatIsNotAnArchive() {
         assertThrows(IOException.class, () -> new InMemoryJar("not a zip file at all".getBytes(), "broken.jar"));
     }

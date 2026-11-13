@@ -59,6 +59,16 @@ public class ExtensionClassLoader extends URLClassLoader {
         memoryJars.add(new InMemoryJar(bytes, name));
     }
 
+    /**
+     * Adds an archive that has already been parsed. Callers use this to validate a whole batch
+     * before publishing any of it, so a later parse failure cannot leave earlier archives behind.
+     *
+     * @param jar parsed archive to add
+     */
+    void addMemoryJar(InMemoryJar jar) {
+        memoryJars.add(jar);
+    }
+
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         Class<?> found = findInMemoryClass(name);
@@ -78,12 +88,16 @@ public class ExtensionClassLoader extends URLClassLoader {
             if (!jar.contains(name)) {
                 continue;
             }
-            byte[] bytes = jar.read(name);
-            if (bytes != null) {
-                URL url = memoryUrl(jar, name, bytes);
-                if (url != null) {
-                    found.add(url);
+            try {
+                byte[] bytes = jar.read(name);
+                if (bytes != null) {
+                    URL url = memoryUrl(jar, name, bytes);
+                    if (url != null) {
+                        found.add(url);
+                    }
                 }
+            } catch (IOException e) {
+                // A damaged archive entry is treated as missing, matching single-resource lookup.
             }
         }
         Enumeration<URL> fromFiles = super.findResources(name);

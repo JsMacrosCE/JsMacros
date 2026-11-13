@@ -188,6 +188,9 @@ final class InMemoryJar {
                                 + " inflates beyond its declared size");
                     }
                     out.write(chunk, 0, read);
+                } else if (inflater.finished()) {
+                    // A valid empty deflated entry produces no bytes and finishes immediately.
+                    break;
                 } else if (inflater.needsInput() || inflater.needsDictionary()) {
                     throw new IOException("Truncated entry " + entryName + " in " + this.name);
                 } else {

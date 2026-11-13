@@ -9,7 +9,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Collections;
+import java.util.List;
 import java.util.ServiceLoader;
+import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -178,6 +181,79 @@ class ExtensionClassLoaderTest {
         withDependency.addMemoryJar("dependency.jar", dependencyJar);
         Class<?> loaded = withDependency.loadClass("com.example.memory.Dependency");
         assertEquals("dependency", loaded.getMethod("value").invoke(null));
+    }
+
+    @Test
+    void skipsADamagedArchiveEntryDuringResourceEnumeration() throws Exception {
+        byte[] damaged = storedArchive(entry("data/hello.txt", "damaged".getBytes()));
+        int content = indexOf(damaged, "damaged".getBytes());
+        damaged[content] ^= 1;
+
+        ExtensionClassLoader loader = new ExtensionClassLoader(new URL[0]);
+        loader.addMemoryJar("damaged.jar", damaged);
+        loader.addMemoryJar("healthy.jar", archive(entry("data/hello.txt", "healthy".getBytes())));
+
+        List<URL> resources = Collections.list(loader.findResources("data/hello.txt"));
+
+        assertEquals(1, resources.size(), "the damaged archive should be skipped");
+        try (InputStream in = resources.get(0).openStream()) {
+            assertEquals("healthy", new String(in.readAllBytes()));
+        }
+    }
+
+    @Test
+    void servesAnEmptyDeflatedResource() throws Exception {
+        ExtensionClassLoader loader = new ExtensionClassLoader(new URL[0]);
+        loader.addMemoryJar("empty.jar", deflatedArchive(entry("data/empty.txt", new byte[0])));
+
+        URL resource = loader.findResource("data/empty.txt");
+        assertNotNull(resource);
+        try (InputStream in = resource.openStream()) {
+            assertEquals(0, in.readAllBytes().length);
+        }
+        assertEquals(1, Collections.list(loader.findResources("data/empty.txt")).size());
+    }
+
+    private static byte[] storedArchive(Entry entry) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(out)) {
+            ZipEntry zipEntry = new ZipEntry(entry.name());
+            zipEntry.setMethod(ZipEntry.STORED);
+            zipEntry.setSize(entry.content().length);
+            zipEntry.setCompressedSize(entry.content().length);
+            CRC32 crc = new CRC32();
+            crc.update(entry.content());
+            zipEntry.setCrc(crc.getValue());
+            zip.putNextEntry(zipEntry);
+            zip.write(entry.content());
+            zip.closeEntry();
+        }
+        return out.toByteArray();
+    }
+
+    private static byte[] deflatedArchive(Entry entry) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(out)) {
+            ZipEntry zipEntry = new ZipEntry(entry.name());
+            zipEntry.setMethod(ZipEntry.DEFLATED);
+            zip.putNextEntry(zipEntry);
+            zip.write(entry.content());
+            zip.closeEntry();
+        }
+        return out.toByteArray();
+    }
+
+    private static int indexOf(byte[] haystack, byte[] needle) {
+        outer:
+        for (int i = 0; i <= haystack.length - needle.length; i++) {
+            for (int j = 0; j < needle.length; j++) {
+                if (haystack[i + j] != needle[j]) {
+                    continue outer;
+                }
+            }
+            return i;
+        }
+        throw new IllegalArgumentException("content not found in archive");
     }
 
     @Test
