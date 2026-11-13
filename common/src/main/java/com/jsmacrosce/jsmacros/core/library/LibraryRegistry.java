@@ -47,6 +47,14 @@ public class LibraryRegistry {
     private final Map<String, Class<? extends BaseLibrary>> globalOwners = new LinkedHashMap<>();
 
     /**
+     * Language restrictions supplied at registration for shared and per-execution libraries,
+     * keyed by their annotation. Those kinds are stored without a language key, so the explicit
+     * list must be kept separately for retrieval; per-language kinds already encode it in their
+     * map keys. An absent entry means the annotation decides.
+     */
+    private final Map<Library, List<Class<? extends BaseLanguage<?, ?>>>> explicitLanguages = new LinkedHashMap<>();
+
+    /**
      * Stores the core used to instantiate shared and per-language libraries during registration.
      *
      * @param runner core used for subsequent library instantiation
@@ -83,7 +91,7 @@ public class LibraryRegistry {
         Map<String, BaseLibrary> libs = new LinkedHashMap<>();
 
         for (Map.Entry<Library, BaseLibrary> lib : libraries.entrySet()) {
-            if (lib.getKey().languages().length == 0 || Arrays.stream(lib.getKey().languages()).anyMatch(e -> e.equals(language.getClass()))) {
+            if (appliesTo(lib.getKey(), language)) {
                 libs.put(lib.getKey().value(), lib.getValue());
             }
         }
@@ -113,7 +121,7 @@ public class LibraryRegistry {
         Map<String, BaseLibrary> libs = new LinkedHashMap<>();
 
         for (Map.Entry<Library, Class<? extends PerExecLibrary>> lib : perExec.entrySet()) {
-            if (lib.getKey().languages().length == 0 || Arrays.stream(lib.getKey().languages()).anyMatch(e -> e.equals(language.getClass()))) {
+            if (appliesTo(lib.getKey(), language)) {
                 try {
                     libs.put(lib.getKey().value(), lib.getValue().getConstructor(BaseScriptContext.class).newInstance(context));
                 } catch (IllegalAccessException | InstantiationException | NoSuchMethodException |
@@ -138,6 +146,23 @@ public class LibraryRegistry {
         }
 
         return libs;
+    }
+
+    /**
+     * Returns whether a shared or per-execution library applies to a language. An explicit
+     * registration list replaces the annotation's list; an absent one falls back to the
+     * annotation. Both use an exact class match, mirroring the {@link Library} contract.
+     *
+     * @param library  the library annotation identifying the registration
+     * @param language the language a script is running in
+     * @return {@code true} when the library is unrestricted or lists this language's class
+     */
+    private boolean appliesTo(Library library, BaseLanguage<?, ?> language) {
+        List<Class<? extends BaseLanguage<?, ?>>> allowed = explicitLanguages.get(library);
+        if (allowed == null) {
+            allowed = Arrays.asList(library.languages());
+        }
+        return allowed.isEmpty() || allowed.stream().anyMatch(type -> type.equals(language.getClass()));
     }
 
     /**
@@ -194,7 +219,8 @@ public class LibraryRegistry {
      * the language it is restricted to may live in an extension's loader. A class reference in
      * an annotation is resolved against the loader that defined the annotated class, so such a
      * reference could not be read back. The supplied languages take precedence over the ones in
-     * the annotation.
+     * the annotation. For shared and per-execution libraries they restrict which languages
+     * receive the stored instance; for per-language libraries they select the registration keys.
      *
      * @param clazz     the library class to register
      * @param languages the languages the library applies to; empty means the annotation decides
@@ -207,6 +233,12 @@ public class LibraryRegistry {
         }
         Library ann = clazz.getAnnotation(Library.class);
         List<Class<? extends BaseLanguage<?, ?>>> applicable = languages.isEmpty() ? Arrays.asList(ann.languages()) : languages;
+
+        if (languages.isEmpty()) {
+            explicitLanguages.remove(ann);
+        } else {
+            explicitLanguages.put(ann, List.copyOf(languages));
+        }
 
         Class<? extends BaseLibrary> previous = globalOwners.putIfAbsent(ann.value(), clazz);
         if (previous != null && previous != clazz) {
@@ -237,6 +269,44 @@ public class LibraryRegistry {
             } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
                 throw new RuntimeException("Failed to instantiate library, ", e);
             }
+        }
+    }
+
+    /**
+     * Registers several libraries as one batch. If any registration fails, every registry map is
+     * restored to its state before the batch and the failure is rethrown, so an extension whose
+     * later library fails does not leave its earlier globals usable.
+     *
+     * @param classes library classes to register in order
+     * @throws RuntimeException if a class lacks a {@link Library} annotation or construction fails
+     */
+    public synchronized void addLibraries(Iterable<Class<? extends BaseLibrary>> classes) {
+        Map<Library, BaseLibrary> librariesBefore = new LinkedHashMap<>(libraries);
+        Map<Library, Class<? extends PerExecLibrary>> perExecBefore = new LinkedHashMap<>(perExec);
+        Map<Class<? extends BaseLanguage<?, ?>>, Map<Library, PerLanguageLibrary>> perLanguageBefore = new LinkedHashMap<>();
+        perLanguage.forEach((language, instances) -> perLanguageBefore.put(language, new LinkedHashMap<>(instances)));
+        Map<Class<? extends BaseLanguage<?, ?>>, Map<Library, Class<? extends PerExecLanguageLibrary<?, ?>>>> perExecLanguageBefore = new LinkedHashMap<>();
+        perExecLanguage.forEach((language, classesByLibrary) -> perExecLanguageBefore.put(language, new LinkedHashMap<>(classesByLibrary)));
+        Map<String, Class<? extends BaseLibrary>> globalOwnersBefore = new LinkedHashMap<>(globalOwners);
+        Map<Library, List<Class<? extends BaseLanguage<?, ?>>>> explicitLanguagesBefore = new LinkedHashMap<>(explicitLanguages);
+        try {
+            for (Class<? extends BaseLibrary> clazz : classes) {
+                addLibrary(clazz);
+            }
+        } catch (RuntimeException | Error failure) {
+            libraries.clear();
+            libraries.putAll(librariesBefore);
+            perExec.clear();
+            perExec.putAll(perExecBefore);
+            perLanguage.clear();
+            perLanguage.putAll(perLanguageBefore);
+            perExecLanguage.clear();
+            perExecLanguage.putAll(perExecLanguageBefore);
+            globalOwners.clear();
+            globalOwners.putAll(globalOwnersBefore);
+            explicitLanguages.clear();
+            explicitLanguages.putAll(explicitLanguagesBefore);
+            throw failure;
         }
     }
 
