@@ -8,6 +8,10 @@ import java.util.zip.ZipFile
 fun main(args: Array<String>) {
     val output = File(args[0]).apply { mkdirs() }
     var checks = 0
+    // Windows forbids quotes in file names, so the shared fixture is portable there. Unix keeps
+    // the quote case, which also checks that the generated manifest escapes the name as JSON.
+    val quotedName = if (File.separatorChar == '\\') "quoted-é.jar" else "quoted-\"é.jar"
+    val quotedInScript = quotedName.replace("\\", "\\\\").replace("\"", "\\\"")
     for (resources in listOf(false, true)) {
         val fixture = Files.createTempDirectory(output.toPath(), "manifest-$resources-").toFile()
         fun write(path: String, text: String) = File(fixture, path).apply {
@@ -16,7 +20,7 @@ fun main(args: Array<String>) {
         }
         write("settings.gradle.kts", "rootProject.name = \"manifest-fixture\"\n")
         write("deps/first.jar", "first")
-        write("deps/quoted-\"é.jar", "quoted")
+        write("deps/$quotedName", "quoted")
         write("deps/added.jar", "added")
         write("other/first.jar", "collision")
         write("patch/marker.txt", "patched dependency")
@@ -36,7 +40,7 @@ fun main(args: Array<String>) {
                 "added" -> listOf("deps/added.jar", "deps/first.jar")
                 "duplicate" -> listOf("deps/first.jar", "other/first.jar")
                 "missing" -> listOf("deps/missing.jar")
-                else -> listOf("deps/first.jar", "deps/quoted-\"é.jar")
+                else -> listOf("deps/first.jar", "deps/$quotedInScript")
             }.let { if (providers.gradleProperty("reverse").isPresent) it.reversed() else it }
             val embedded = files(selected)
             if (selection == "normal") embedded.from(patched.flatMap { it.archiveFile })
@@ -79,8 +83,8 @@ fun main(args: Array<String>) {
         check(initial.task(":patchedJar")?.outcome == TaskOutcome.SUCCESS)
         check(initial.tasks.indexOfFirst { it.path == ":patchedJar" } <
             initial.tasks.indexOfFirst { it.path == ":processResources" })
-        check(paths() == expected("first.jar", "quoted-\"é.jar", "patched.jar"))
-        check(packagedContent("META-INF/jsmacroscedeps/quoted-\"é.jar") == "quoted")
+        check(paths() == expected("first.jar", quotedName, "patched.jar"))
+        check(packagedContent("META-INF/jsmacroscedeps/$quotedName") == "quoted")
         checks += 4
 
         val repeat = run("verifyDependencyManifest")
@@ -90,7 +94,7 @@ fun main(args: Array<String>) {
 
         val reversed = run("verifyDependencyManifest", "-Preverse")
         check(reversed.task(":generateDependencyManifest")?.outcome == TaskOutcome.SUCCESS)
-        check(paths() == expected("quoted-\"é.jar", "first.jar", "patched.jar"))
+        check(paths() == expected(quotedName, "first.jar", "patched.jar"))
         checks += 2
 
         write("deps/first.jar", "changed content")
