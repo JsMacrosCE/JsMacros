@@ -14,7 +14,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -135,33 +134,31 @@ public interface Extension {
         return resolved;
     }
 
-    /** Reads this extension's translations from its {@code assets/<namespace>/<name>/lang/} resource directory.
+    /** Reads this extension's language files from {@code assets/jsmacrosce/}, for example
+     * {@code assets/jsmacrosce/graal/lang/en_us.json} for the {@code graal} extension.
      * <p>
-     * The namespaces are searched in order, and the first one that holds the requested language
-     * file wins. An extension that keeps its translations somewhere else overrides this method.
+     * Files under the legacy {@code assets/jsmacros/} namespace are ignored. If the requested language
+     * exists only at the legacy path, a warning names the file and its required destination.
+     * An extension that keeps its translations somewhere else overrides this method.
      *
      * @param lang language-code filename component, such as {@code en_us}
-     * @return translation values keyed by their JSON object keys; empty if no language file is
+     * @return translation values keyed by their JSON object keys; empty if no supported language file is
      *         present, if reading or parsing fails, or if the JSON root is not an object. Values
      *         that cannot be converted to strings can cause a runtime exception.
      */
     default Map<String, String> getTranslations(String lang) {
-        for (String namespace : translationNamespaces()) {
-            String path = "assets/" + namespace + "/" + getExtensionName() + "/lang/" + lang + ".json";
-            if (this.getClass().getResource("/" + path) != null) {
-                return getTranslationsInternal(this.getClass(), path);
-            }
+        String name = getExtensionName();
+        String path = "assets/jsmacrosce/" + name + "/lang/" + lang + ".json";
+        if (this.getClass().getResource("/" + path) != null) {
+            return getTranslationsInternal(this.getClass(), path);
+        }
+
+        String legacyPath = "assets/jsmacros/" + name + "/lang/" + lang + ".json";
+        if (this.getClass().getResource("/" + legacyPath) != null) {
+            System.err.println("[JsMacrosExtensionManager] Extension '" + name
+                    + "' has legacy translations at " + legacyPath + ", which are ignored; move them to " + path);
         }
         return Collections.emptyMap();
-    }
-
-    /**
-     * Returns the resource namespaces an extension's translations may live in, in search order.
-     *
-     * @return the namespaces to search
-     */
-    private static List<String> translationNamespaces() {
-        return List.of("jsmacros", "jsmacrosce");
     }
 
     /**
