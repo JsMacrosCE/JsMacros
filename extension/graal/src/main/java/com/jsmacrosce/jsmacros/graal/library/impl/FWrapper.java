@@ -187,7 +187,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                     } catch (Throwable ex) {
                         if (!ctx.isScriptStopException(ex)) runner.profile.logError(ex);
                     } finally {
-                        ctx.getContext().leave();
+                        leaveContext();
                         ctx.releaseBoundEventIfPresent(Thread.currentThread());
                         runner.profile.joinedThreadStack.remove(Thread.currentThread());
                     }
@@ -241,7 +241,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                 } catch (Throwable ex) {
                     throw new RuntimeException(ex);
                 } finally {
-                    ctx.getContext().leave();
+                    leaveContext();
                     ctx.releaseBoundEventIfPresent(Thread.currentThread());
                     runner.profile.joinedThreadStack.remove(Thread.currentThread());
                 }
@@ -250,6 +250,21 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                 throw new RuntimeException(e);
             } finally {
                 finishThread(bound, queued);
+            }
+        }
+
+        /**
+         * Leaves the Graal runtime unless a concurrent stop already closed it. Closing the
+         * runtime from another thread also leaves it for this thread, so a later leave throws
+         * "The context is not entered explicity"; that is cancellation noise, not a failure.
+         */
+        private void leaveContext() {
+            try {
+                ctx.getContext().leave();
+            } catch (IllegalStateException alreadyLeft) {
+                if (!ctx.isContextClosed()) {
+                    throw alreadyLeft;
+                }
             }
         }
 
