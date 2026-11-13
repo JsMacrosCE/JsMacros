@@ -2,8 +2,13 @@ package com.jsmacrosce.jsmacros.core.extensions;
 
 import com.jsmacrosce.jsmacros.core.Core;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ResourceLock(Resources.SYSTEM_ERR)
 class ExtensionTest {
 
     /** Extension whose translations live under the {@code jsmacrosce} namespace. */
@@ -28,7 +34,7 @@ class ExtensionTest {
         }
     }
 
-    /** Extension whose translations live under the legacy {@code jsmacros} namespace. */
+    /** Extension whose translations still use the unsupported {@code jsmacros} namespace. */
     public static class LegacyExtension implements Extension {
         @Override
         public String getExtensionName() {
@@ -53,20 +59,42 @@ class ExtensionTest {
     }
 
     @Test
-    void readsTranslationsFromTheNamespacedResourceDirectory() {
-        Map<String, String> translations = new NamespacedExtension().getTranslations("en_us");
-        assertEquals("value", translations.get("testext.key"));
+    void readsOnlyNamespacedTranslationsEvenWhenLegacyResourcesExist() {
+        String warnings = captureWarnings(() -> {
+            Map<String, String> translations = new NamespacedExtension().getTranslations("en_us");
+            assertEquals(Map.of("testext.key", "value"), translations);
+        });
+        assertTrue(warnings.isEmpty(), "current translations should not trigger a migration warning");
     }
 
     @Test
-    void readsTranslationsFromTheLegacyResourceDirectory() {
-        Map<String, String> translations = new LegacyExtension().getTranslations("en_us");
-        assertEquals("legacy value", translations.get("testlegacy.key"));
+    void ignoresLegacyTranslationsAndReportsTheMigrationPath() {
+        String warnings = captureWarnings(() ->
+                assertTrue(new LegacyExtension().getTranslations("en_us").isEmpty()));
+
+        assertTrue(warnings.contains("testlegacy"), "the warning should identify the extension");
+        assertTrue(warnings.contains("assets/jsmacros/testlegacy/lang/en_us.json"));
+        assertTrue(warnings.contains("assets/jsmacrosce/testlegacy/lang/en_us.json"));
+        assertTrue(warnings.contains("ignored"), "the warning should explain that translations were not loaded");
     }
 
     @Test
     void reportsNoTranslationsForAnUnknownLanguage() {
-        assertTrue(new NamespacedExtension().getTranslations("xx_xx").isEmpty());
+        String warnings = captureWarnings(() ->
+                assertTrue(new NamespacedExtension().getTranslations("xx_xx").isEmpty()));
+        assertTrue(warnings.isEmpty(), "optional translations should not warn when neither path exists");
+    }
+
+    private static String captureWarnings(Runnable action) {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        PrintStream previous = System.err;
+        try (PrintStream capture = new PrintStream(output, true, StandardCharsets.UTF_8)) {
+            System.setErr(capture);
+            action.run();
+        } finally {
+            System.setErr(previous);
+        }
+        return output.toString(StandardCharsets.UTF_8);
     }
 
     @Test
