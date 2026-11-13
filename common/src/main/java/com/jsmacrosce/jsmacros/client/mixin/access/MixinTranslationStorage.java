@@ -23,9 +23,11 @@ public class MixinTranslationStorage {
     /**
      * Adds extension-provided labels to the client's language table.
      * <p>
-     * Resource packs win: the client's own table is filled first and extension labels are only
-     * added where no label exists. Between two extensions defining the same key, the extension the
-     * loader registered first wins, so the result does not depend on hash iteration order.
+     * Resource packs win: extension labels are inserted first, then the client's own language
+     * files overwrite them, so an extension label remains only where the client has no entry.
+     * Between two extensions defining the same key in the same language, the extension the loader
+     * registered first wins. Languages are merged in the order Minecraft loads them, so a label
+     * from the selected language replaces the English fallback from the same extension.
      */
     @Inject(at = @At(value = "INVOKE", target = "Ljava/util/List;iterator()Ljava/util/Iterator;", remap = false), method = "loadFrom(Lnet/minecraft/server/packs/resources/ResourceManager;Ljava/util/List;Z)Lnet/minecraft/client/resources/language/ClientLanguage;", locals = LocalCapture.CAPTURE_FAILHARD)
     private static void insertFabricLanguageData(ResourceManager resourceManager, List<String> definitions, boolean rightToLeft, CallbackInfoReturnable<ClientLanguage> cir, Map<String, String> map) {
@@ -34,9 +36,11 @@ public class MixinTranslationStorage {
         // the per-language path and makes the ordering contract above explicit.
         List<Extension> extensions = List.copyOf(JsMacrosClient.clientCore.extensions.getAllExtensions());
         for (String lang : definitions) {
+            Map<String, String> languageTranslations = new LinkedHashMap<>();
             for (Extension extension : extensions) {
-                extension.getTranslations(lang).forEach(translations::putIfAbsent);
+                extension.getTranslations(lang).forEach(languageTranslations::putIfAbsent);
             }
+            translations.putAll(languageTranslations);
         }
         translations.forEach(map::putIfAbsent);
     }
