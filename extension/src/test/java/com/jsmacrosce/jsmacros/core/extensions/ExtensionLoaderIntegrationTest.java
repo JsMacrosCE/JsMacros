@@ -97,6 +97,43 @@ class ExtensionLoaderIntegrationTest {
     }
 
     @Test
+    void letsAnExtensionQueryTheLoaderDuringInit() throws Exception {
+        writeExtensionJar("reentrant.jar", reentrantJar());
+
+        Core<ProfileStub, EventRegistryStub> core = core();
+
+        assertNotNull(core.extensions.getExtensionForName("reentrant"));
+        assertEquals("ok", IntegrationProbe.value("reentrant"),
+                "a query during init must return instead of starting another load");
+        assertEquals(1, IntegrationProbe.count("reentrant"));
+    }
+
+    @Test
+    void skipsAProviderWhoseNameCannotBeRead() throws Exception {
+        writeExtensionJar("fixture.jar", fixtureJar());
+        writeExtensionJar("unnamed.jar", throwingNameJar());
+
+        Core<ProfileStub, EventRegistryStub> core = core();
+
+        assertNotNull(core.extensions.getExtensionForName("fixture"),
+                "an unreadable name must not abort the rest of the load");
+        assertEquals("ok", IntegrationProbe.value("fixture"));
+    }
+
+    @Test
+    void doesNotPublishDependenciesWhenALaterDependencyIsInvalid() throws Exception {
+        writeExtensionJar("a-batch.jar", batchJar());
+        writeExtensionJar("b-observer.jar", observerJar());
+
+        Core<ProfileStub, EventRegistryStub> core = core();
+        core.extensions.loadExtensions();
+
+        assertNull(core.extensions.getExtensionForName("batch"));
+        assertEquals("missing", IntegrationProbe.value("observer"),
+                "a dependency from the failed batch must not remain visible");
+    }
+
+    @Test
     void loadsExtensionsOncePerLoader() throws Exception {
         writeExtensionJar("fixture.jar", fixtureJar());
         Core<ProfileStub, EventRegistryStub> core = core();
@@ -206,6 +243,64 @@ class ExtensionLoaderIntegrationTest {
             }
         }
         return out.toByteArray();
+    }
+
+
+    private byte[] reentrantJar() throws Exception {
+        return archive(
+                entry(SERVICE_FILE, "com.example.fixture.Reentrant\n".getBytes(StandardCharsets.UTF_8)),
+                entry("com/example/fixture/Reentrant.class", extensionClass("com.example.fixture.Reentrant",
+                        "public java.lang.String getExtensionName() { return \"reentrant\"; }",
+                        """
+                        public void init(com.jsmacrosce.jsmacros.core.Core runner) {
+                            runner.extensions.getAllExtensions();
+                            com.jsmacrosce.jsmacros.core.extensions.IntegrationProbe.record("reentrant", "ok");
+                        }
+                        """))
+        );
+    }
+
+    private byte[] throwingNameJar() throws Exception {
+        return archive(
+                entry(SERVICE_FILE, "com.example.fixture.Unnamed\n".getBytes(StandardCharsets.UTF_8)),
+                entry("com/example/fixture/Unnamed.class", extensionClass("com.example.fixture.Unnamed",
+                        "public java.lang.String getExtensionName() { throw new java.lang.RuntimeException(\"name failed\"); }",
+                        "public void init(com.jsmacrosce.jsmacros.core.Core runner) {}"))
+        );
+    }
+
+    private byte[] batchJar() throws Exception {
+        byte[] dependency = archive(entry("com/example/dep/Marker.class", plainClass("com.example.dep.Marker")));
+        return archive(
+                entry(SERVICE_FILE, "com.example.fixture.Batch\n".getBytes(StandardCharsets.UTF_8)),
+                entry("com/example/fixture/Batch.class", extensionClass("com.example.fixture.Batch",
+                        "public java.lang.String getExtensionName() { return \"batch\"; }",
+                        "public void init(com.jsmacrosce.jsmacros.core.Core runner) {}")),
+                entry("jsmacrosce.ext.batch.json",
+                        "{\"dependencies\": [\"META-INF/jsmacroscedeps/good.jar\", \"META-INF/jsmacroscedeps/bad.jar\"]}"
+                                .getBytes(StandardCharsets.UTF_8)),
+                entry("META-INF/jsmacroscedeps/good.jar", dependency),
+                entry("META-INF/jsmacroscedeps/bad.jar", "not a zip".getBytes(StandardCharsets.UTF_8))
+        );
+    }
+
+    private byte[] observerJar() throws Exception {
+        return archive(
+                entry(SERVICE_FILE, "com.example.fixture.Observer\n".getBytes(StandardCharsets.UTF_8)),
+                entry("com/example/fixture/Observer.class", extensionClass("com.example.fixture.Observer",
+                        "public java.lang.String getExtensionName() { return \"observer\"; }",
+                        """
+                        public void init(com.jsmacrosce.jsmacros.core.Core runner) {
+                            java.lang.String state = "missing";
+                            try {
+                                java.lang.Class.forName("com.example.dep.Marker");
+                                state = "present";
+                            } catch (java.lang.Throwable ignored) {
+                            }
+                            com.jsmacrosce.jsmacros.core.extensions.IntegrationProbe.record("observer", state);
+                        }
+                        """))
+        );
     }
 
 }

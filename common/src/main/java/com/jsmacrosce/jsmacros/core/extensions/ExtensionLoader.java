@@ -34,6 +34,9 @@ public class ExtensionLoader {
 
     private boolean loadingDone;
 
+    /** Set while a load is in progress on this thread, so an extension's init query cannot start a second one. */
+    private boolean loading;
+
     private final Path extPath;
 
     /** Stores the core and resolves its configured {@code Extensions} directory without loading extensions or creating that directory.
@@ -160,46 +163,55 @@ public class ExtensionLoader {
      * instantiated.
      * <p>
      * A failure that prevents the load from starting at all leaves the loader unchanged, so a
-     * later query can try again. The current thread's context class loader is set to the
-     * extension class loader before extensions initialize, because an extension may load classes
-     * of its own while initializing, and is left set afterwards.
+     * later query can try again. A query made while an extension is initializing returns the
+     * extensions registered so far; it does not start another discovery pass. The current
+     * thread's context class loader is set to the extension class loader before extensions
+     * initialize, because an extension may load classes of its own while initializing, and is
+     * left set afterwards.
      */
     public synchronized void loadExtensions() {
         if (classLoader != null) {
             System.err.println("Extensions already loaded");
             return;
         }
-
-        ExtensionClassLoader loader = null;
-        try {
-            loader = new ExtensionClassLoader(listLocalArchives().toArray(URL[]::new));
-            addBundledArchives(loader);
-
-            List<Extension> discovered = discover(loader);
-            System.out.println("Discovered " + discovered.size() + " extension providers");
-
-            List<Extension> ordered = deduplicate(discovered);
-
-            Thread.currentThread().setContextClassLoader(loader);
-            for (Extension extension : ordered) {
-                initialize(extension, loader);
-            }
-            // Report what was actually registered: a discovered extension can still be skipped
-            // when its dependencies or its init fail.
-            System.out.println("Loaded " + extensions.size() + " extensions");
-        } catch (Exception e) {
-            if (loader != null) {
-                try {
-                    loader.close();
-                } catch (IOException ignored) {
-                    // The loader is being discarded; a failure to close it is not actionable.
-                }
-            }
-            throw new RuntimeException("Failed to load extensions", e);
+        if (loading) {
+            return;
         }
+        loading = true;
+        try {
+            ExtensionClassLoader loader = null;
+            try {
+                loader = new ExtensionClassLoader(listLocalArchives().toArray(URL[]::new));
+                addBundledArchives(loader);
 
-        classLoader = loader;
-        loadingDone = true;
+                List<Extension> discovered = discover(loader);
+                System.out.println("Discovered " + discovered.size() + " extension providers");
+
+                List<Extension> ordered = deduplicate(discovered);
+
+                Thread.currentThread().setContextClassLoader(loader);
+                for (Extension extension : ordered) {
+                    initialize(extension, loader);
+                }
+                // Report what was actually registered: a discovered extension can still be skipped
+                // when its dependencies or its init fail.
+                System.out.println("Loaded " + extensions.size() + " extensions");
+            } catch (Exception e) {
+                if (loader != null) {
+                    try {
+                        loader.close();
+                    } catch (IOException ignored) {
+                        // The loader is being discarded; a failure to close it is not actionable.
+                    }
+                }
+                throw new RuntimeException("Failed to load extensions", e);
+            }
+
+            classLoader = loader;
+            loadingDone = true;
+        } finally {
+            loading = false;
+        }
     }
 
     /**
@@ -299,9 +311,17 @@ public class ExtensionLoader {
     private List<Extension> deduplicate(List<Extension> discovered) {
         Map<String, Extension> byName = new LinkedHashMap<>();
         for (Extension extension : discovered) {
-            Extension kept = byName.putIfAbsent(extension.getExtensionName(), extension);
+            String name;
+            try {
+                name = extension.getExtensionName();
+            } catch (Throwable t) {
+                report("Skipping extension provider " + extension.getClass().getName()
+                        + " because its name could not be read", t);
+                continue;
+            }
+            Extension kept = byName.putIfAbsent(name, extension);
             if (kept != null) {
-                System.out.println("Ignoring duplicate extension '" + extension.getExtensionName() + "' from "
+                System.out.println("Ignoring duplicate extension '" + name + "' from "
                         + extension.getClass().getName() + "; already loaded " + kept.getClass().getName());
             }
         }
@@ -332,9 +352,7 @@ public class ExtensionLoader {
 
         if (extension instanceof LibraryExtension libExt) {
             try {
-                for (Class<? extends BaseLibrary> lib : libExt.getLibraries()) {
-                    core.libraryRegistry.addLibrary(lib);
-                }
+                core.libraryRegistry.addLibraries(libExt.getLibraries());
             } catch (Throwable t) {
                 report("Failed to register libraries for extension '" + extension.getExtensionName() + "'", t);
                 return;
@@ -360,10 +378,13 @@ public class ExtensionLoader {
             System.out.println("No dependencies for extension: " + extension.getClass().getName());
             return;
         }
+        List<InMemoryJar> batch = new ArrayList<>();
         for (URL dependency : dependencies) {
-            String name = fileName(dependency);
-            System.out.println("Adding dependency " + name + " for extension " + extension.getExtensionName());
-            loader.addMemoryJar(name, readAll(dependency));
+            batch.add(new InMemoryJar(readAll(dependency), fileName(dependency)));
+        }
+        for (InMemoryJar jar : batch) {
+            System.out.println("Adding dependency " + jar.name() + " for extension " + extension.getExtensionName());
+            loader.addMemoryJar(jar);
         }
     }
 
