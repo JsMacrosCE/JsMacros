@@ -48,3 +48,6 @@ docs/web/[0-9]*
 # General working dir for anything that is needed during development
 working/
 .opencode/
+
+# Local review notes kept on disk but not published with the branch
+docs/EXTENSION_SYSTEM_AUDIT.md
