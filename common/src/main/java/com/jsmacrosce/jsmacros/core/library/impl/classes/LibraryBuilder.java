@@ -108,11 +108,12 @@ public class LibraryBuilder extends ClassBuilder<BaseLibrary> {
         if (!hasConstructorSet) {
             ConstructorBuilder cb = addConstructor();
             StringBuilder body = new StringBuilder("{super(");
+            // Javassist reserves $0 for the receiver; constructor parameters start at $1.
             for (int i = 0; i < cb.params.length; i++) {
                 if (i > 0) {
                     body.append(", ");
                 }
-                body.append("$").append(i);
+                body.append("$").append(i + 1);
             }
             body.append(");}");
             cb.body(body.toString());
