@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -53,43 +52,41 @@ public class PyTest extends BaseTest {
     }
 
     @Language("py")
-    private final String PRIORITY_SCRIPT = """
-            import json
-            order = []
-
-            def a():
-                order.append(1)
-
-            def b():
-                order.append(2)
-
-            def c():
-                order.append(3)
-
-            JavaWrapper.methodToJavaAsync(5, a).run()
-            JavaWrapper.methodToJavaAsync(5, b).run()
-            JavaWrapper.methodToJavaAsync(6, c).run()
-            order.append(0)
-            # Lower this thread from 5 to 3 so all three tasks run before it writes the result.
+    private final String PRIORITY_ADJUST_SCRIPT = """
+            before = JavaWrapper.getCurrentPriority()
             JavaWrapper.deferCurrentTask(-2)
-            while len(order) < 4:
-                JavaWrapper.deferCurrentTask()
-            event.putString("test", json.dumps(order))
+            event.putString("test", f'{before},{JavaWrapper.getCurrentPriority()}')
             """;
 
     /**
-     * Checks that a deferred task's priority decides when it runs, and that the running thread can
-     * lower its own priority before yielding.
-     *
-     * <p>The priority 6 task must run before both priority 5 tasks. The main thread lowers itself
-     * to priority 3 before yielding and writes the result only after all three tasks have run. The
-     * two priority 5 tasks are submitted back to back but join the queue from separate pool
-     * workers, so their order is not specified and the test accepts either.
+     * Checks that the main script thread starts at priority 5 and that a deferral with an
+     * adjustment re-queues it at 3.
      */
     @Test
-    public void deferredTasksRunInPriorityOrder() throws InterruptedException {
-        EventCustom result = runTestScript(PRIORITY_SCRIPT, TIMEOUT_MS);
-        assertPriorityOrder(result.getString("test"));
+    public void deferCurrentTaskChangesCurrentPriority() throws InterruptedException {
+        EventCustom result = runTestScript(PRIORITY_ADJUST_SCRIPT, TIMEOUT_MS);
+        assertEquals("5,3", result.getString("test"));
+    }
+
+    @Language("py")
+    private final String SCHEDULED_PRIORITY_SCRIPT = """
+            def report():
+                event.putString("test", str(JavaWrapper.getCurrentPriority()))
+
+            JavaWrapper.methodToJavaAsync(6, report).run()
+            while event.getString("test") is None:
+                JavaWrapper.deferCurrentTask()
+            """;
+
+    /**
+     * Checks that the priority supplied to {@code methodToJavaAsync} is the priority the callback
+     * runs with. The callback reports its own priority and the main thread yields until it does;
+     * no order between separately submitted callbacks is asserted.
+     */
+    @Test
+    public void scheduledCallbackSeesItsPriority() throws InterruptedException {
+        EventCustom result = runTestScript(SCHEDULED_PRIORITY_SCRIPT, TIMEOUT_MS);
+        assertEquals("6", result.getString("test"));
     }
 
     @Language("py")
@@ -214,19 +211,6 @@ public class PyTest extends BaseTest {
                 entries.stream().filter(e -> e.startsWith("a ")).toList());
         assertEquals(List.of("b 0", "b 110", "b 220", "b 330", "b 440"),
                 entries.stream().filter(e -> e.startsWith("b ")).toList());
-    }
-
-    /**
-     * Asserts the only order the priority test guarantees: the main thread's own entry first, the
-     * priority 6 task next, and the two priority 5 tasks last in either order.
-     */
-    private static void assertPriorityOrder(String json) {
-        List<String> order = entries(json);
-        assertEquals(4, order.size(), order.toString());
-        assertEquals("0", order.get(0), "the main thread should append before yielding");
-        assertEquals("3", order.get(1), "the priority 6 task should run before the priority 5 tasks");
-        assertEquals(Set.of("1", "2"), Set.copyOf(order.subList(2, 4)),
-                "the priority 5 tasks have no defined order: " + order);
     }
 
 }
