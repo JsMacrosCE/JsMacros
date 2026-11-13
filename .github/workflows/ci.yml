@@ -116,7 +116,10 @@ jobs:
             :extension:test \
             :extension:graal:test \
             :extension:graal:js:test \
-            :extension:graal:python:test
+            :extension:graal:python:test \
+            :extension:graal:verifyDependencyManifest \
+            :extension:graal:js:verifyDependencyManifest \
+            :extension:graal:python:verifyDependencyManifest
 
   documentation:
     name: Documentation
