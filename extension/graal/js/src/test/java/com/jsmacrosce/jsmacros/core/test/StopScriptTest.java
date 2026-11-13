@@ -10,6 +10,7 @@ import com.jsmacrosce.jsmacros.core.library.impl.FJsMacros;
 import com.jsmacrosce.jsmacros.core.service.EventService;
 import com.jsmacrosce.jsmacros.core.service.ServiceTrigger;
 import com.jsmacrosce.jsmacros.test.BaseTest;
+import org.junit.jupiter.api.BeforeAll;
 import com.jsmacrosce.jsmacros.test.stubs.CoreInstanceCreator;
 import com.jsmacrosce.jsmacros.test.stubs.EventRegistryStub;
 import com.jsmacrosce.jsmacros.test.stubs.ProfileStub;
@@ -26,6 +27,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
 
 class StopScriptTest extends BaseTest {
+
+    @BeforeAll
+    static void warmUpLanguageRuntime() throws InterruptedException {
+        warmUpLanguage("js");
+    }
+
     private final Core<ProfileStub, EventRegistryStub> core = CoreInstanceCreator.createCore();
 
     private static final class TestRegistrable implements Registrable<Object> {

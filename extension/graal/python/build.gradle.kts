@@ -1,5 +1,4 @@
 import org.gradle.api.artifacts.ResolvedArtifact
-import org.gradle.language.jvm.tasks.ProcessResources
 
 plugins {
     id("jsmacros-extension")
@@ -68,26 +67,10 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-// Collect embedded dependency paths for the json file
-fun getEmbeddedDepPaths(): String =
-    filteredEmbedFiles.get().joinToString(", ") { file ->
-        "\"META-INF/jsmacroscedeps/${file.name}\""
-    }
+registerEmbeddedDependencies("jsmacrosce.ext.graalpy.json", filteredEmbedFiles)
 
-// Process resources to expand dependencies placeholder
-tasks.named<ProcessResources>("processResources") {
-    inputs.files(filteredEmbedFiles)
-    filesMatching("jsmacrosce.ext.graalpy.json") {
-        expand(mapOf("dependencies" to getEmbeddedDepPaths()))
-    }
-}
-
-// Embed dependencies into the extension jar
 tasks.named<Jar>("jar") {
     dependsOn(embedDeps)
-    from(filteredEmbedFiles) {
-        into("META-INF/jsmacroscedeps")
-    }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
 

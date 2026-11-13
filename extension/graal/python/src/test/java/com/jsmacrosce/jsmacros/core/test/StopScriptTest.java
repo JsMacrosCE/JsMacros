@@ -4,6 +4,7 @@ import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.event.impl.EventCustom;
 import com.jsmacrosce.jsmacros.core.language.EventContainer;
 import com.jsmacrosce.jsmacros.test.BaseTest;
+import org.junit.jupiter.api.BeforeAll;
 import com.jsmacrosce.jsmacros.test.stubs.CoreInstanceCreator;
 import com.jsmacrosce.jsmacros.test.stubs.EventRegistryStub;
 import com.jsmacrosce.jsmacros.test.stubs.ProfileStub;
@@ -14,6 +15,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.*;
 
 class StopScriptTest extends BaseTest {
+
+    @BeforeAll
+    static void warmUpLanguageRuntime() throws InterruptedException {
+        warmUpLanguage("py");
+    }
+
     @Override
     public String getLang() {
         return "py";

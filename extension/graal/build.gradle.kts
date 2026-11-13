@@ -1,5 +1,3 @@
-import org.gradle.language.jvm.tasks.ProcessResources
-
 plugins {
     id("jsmacros-extension")
 }
@@ -88,27 +86,7 @@ configurations.named("testRuntimeClasspath") {
     exclude(group = "org.graalvm.tools", module = "chromeinspector-tool")
 }
 
-// Collect embedded dependency paths for the json file
-fun getEmbeddedDepPaths(): String =
-    embedDeps.files.joinToString(", ") { file ->
-        "\"META-INF/jsmacroscedeps/${file.name}\""
-    }
-
-// Process resources to expand dependencies placeholder
-tasks.named<ProcessResources>("processResources") {
-    dependsOn(patchChromeInspector)
-    filesMatching("jsmacrosce.ext.graal.json") {
-        expand(mapOf("dependencies" to getEmbeddedDepPaths()))
-    }
-}
-
-// Embed dependencies into the extension jar
-tasks.named<Jar>("jar") {
-    dependsOn(embedDeps, patchChromeInspector)
-    from(embedDeps) {
-        into("META-INF/jsmacroscedeps")
-    }
-}
+registerEmbeddedDependencies("jsmacrosce.ext.graal.json", embedDeps)
 
 tasks.test {
     useJUnitPlatform()

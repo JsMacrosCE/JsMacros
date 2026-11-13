@@ -43,7 +43,18 @@
     -->
         <h3>Installation</h3>
         To install jsmacros extensions, place the jar files in the
-        <code>.minecraft/config/jsMacros/LanguageExtensions/</code> folder.
+        <code>.minecraft/config/jsMacros/Extensions/</code> folder.
+        <br>
+        <br>
+        An extension is read from that folder when it is first needed. Its own dependencies are read from inside its
+        jar, so nothing is unpacked to disk.
+        <br>
+        <br>
+        The folder is scanned once per game session, so adding or replacing an extension jar requires restarting the
+        game before it is loaded.
+        <br>
+        <br>
+        An extension that cannot be loaded is reported in the log and skipped; the other extensions still load.
         <h2>Benchmarks</h2>
         <img src="img/updated_bm.png" alt="Everything's faster than JavaScript, except wasm/groovy interop" />
         <br>
