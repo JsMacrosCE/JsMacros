@@ -1,18 +1,29 @@
 package com.jsmacrosce.jsmacros.core.test;
 
-import org.intellij.lang.annotations.Language;
-import org.junit.jupiter.api.Test;
 import com.jsmacrosce.jsmacros.core.event.impl.EventCustom;
 import com.jsmacrosce.jsmacros.test.BaseTest;
+import org.intellij.lang.annotations.Language;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.jupiter.api.BeforeAll;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Exercises the Python language and the deferred-task scheduling shared by the Graal extensions.
+ *
+ * <p>A callback submitted with {@code JavaWrapper.methodToJavaAsync(...).run()} is handed to a
+ * pool worker and joins the script queue from that worker. Two submissions from the same script
+ * can therefore join in either order. The tests below do not assert that order; where one task
+ * must start first, the script waits for it to run before submitting the next.
+ */
 public class PyTest extends BaseTest {
+
+    private static final int TIMEOUT_MS = 15_000;
 
     @BeforeAll
     static void warmUpLanguageRuntime() throws InterruptedException {
@@ -42,132 +53,139 @@ public class PyTest extends BaseTest {
     }
 
     @Language("py")
-    private final String TEST_SCRIPT = """
+    private final String PRIORITY_SCRIPT = """
             import json
             order = []
-            
+
             def a():
                 order.append(1)
-                print(1)
-                event.putString("test", json.dumps(order))
-            
-            JavaWrapper.methodToJavaAsync(5, a).run()
-            
+
             def b():
                 order.append(2)
-                print(2)
-                event.putString("test", json.dumps(order))
-            
-            JavaWrapper.methodToJavaAsync(5, b).run()
-            
+
             def c():
                 order.append(3)
-                print(3)
-                event.putString("test", json.dumps(order))
-            
+
+            JavaWrapper.methodToJavaAsync(5, a).run()
+            JavaWrapper.methodToJavaAsync(5, b).run()
             JavaWrapper.methodToJavaAsync(6, c).run()
             order.append(0)
-            print(0)
-            JavaWrapper.deferCurrentTask(-2) # change priority of this thread from 5 -> 3
+            # Lower this thread from 5 to 3 so all three tasks run before it writes the result.
+            JavaWrapper.deferCurrentTask(-2)
+            while len(order) < 4:
+                JavaWrapper.deferCurrentTask()
             event.putString("test", json.dumps(order))
             """;
 
+    /**
+     * Checks that a deferred task's priority decides when it runs, and that the running thread can
+     * lower its own priority before yielding.
+     *
+     * <p>The priority 6 task must run before both priority 5 tasks. The main thread lowers itself
+     * to priority 3 before yielding and writes the result only after all three tasks have run. The
+     * two priority 5 tasks are submitted back to back but join the queue from separate pool
+     * workers, so their order is not specified and the test accepts either.
+     */
     @Test
-    public void test() throws InterruptedException {
-        EventCustom custom = runTestScript(TEST_SCRIPT);
-        assertEquals("[0, 3, 1, 2]", custom.getString("test"));
+    public void deferredTasksRunInPriorityOrder() throws InterruptedException {
+        EventCustom result = runTestScript(PRIORITY_SCRIPT, TIMEOUT_MS);
+        assertPriorityOrder(result.getString("test"));
     }
 
     @Language("py")
-    private final String TEST_SCRIPT_2 = """
+    private final String TWO_TASKS_SCRIPT = """
             import json
             j = []
-            atime = 0
-            btime = 0
-            
+
             def a():
-                global atime
-                while len(j) < 10:
-                    j.append(f'a {atime}')
-                    atime += 100
+                for i in range(5):
+                    j.append(f'a {i * 100}')
                     Time.sleep(100)
-            
-            JavaWrapper.methodToJavaAsync(a).run()
 
             def b():
-                global btime
-                while len(j) < 10:
-                    j.append(f'b {btime}')
-                    btime += 110        
+                for i in range(5):
+                    j.append(f'b {i * 110}')
                     Time.sleep(110)
 
+            JavaWrapper.methodToJavaAsync(a).run()
             JavaWrapper.methodToJavaAsync(b).run()
             JavaWrapper.deferCurrentTask(-1)
 
             while len(j) < 10:
                 JavaWrapper.deferCurrentTask()
 
-            
             j.append('c')
             event.putString("test", json.dumps(j))
             """;
 
+    /**
+     * Checks that two deferred tasks each run to completion while the main thread yields, and that
+     * the main thread resumes only after both are done.
+     *
+     * <p>The tasks sleep for different durations, so how their entries interleave changes between
+     * runs. The test asserts each task's own sequence and the main thread's marker at the end; it
+     * does not assert any particular interleaving.
+     */
     @Test
-    public void test2() throws InterruptedException {
-        EventCustom custom = runTestScript(TEST_SCRIPT_2, 5000);
-        assertBothTasksCompleted(custom.getString("test"));
+    public void deferredTasksRunToCompletionBeforeMainResumes() throws InterruptedException {
+        EventCustom result = runTestScript(TWO_TASKS_SCRIPT, TIMEOUT_MS);
+        assertEachTaskCompleted(result.getString("test"));
     }
 
     @Language("py")
-    private final String TEST_SCRIPT_3 = """
+    private final String SLEEP_YIELD_SCRIPT = """
             import json
 
             start = Time.time()
             a = []
+
             def long():
                 a.append("long started")
                 Time.sleep(5000)
-                a.append('long finished')
-                done()
-            
+                a.append("long finished")
+
             def rapid():
-                a.append('rapid 1')
-                Time.sleep(500)
-                a.append('rapid 2')
-                Time.sleep(500)
-                a.append('rapid 3')
-                Time.sleep(500)
-                a.append('rapid 4')
-                done()
-            
-            isDone = False
-            def done():
-                if len(a) == 6:
-                    event.putString("test", json.dumps(a))
-                    event.putDouble("time", Time.time() - start)
-                    isDone = True
-            
-            def runAsync(fn):
+                for i in range(1, 5):
+                    a.append(f'rapid {i}')
+                    Time.sleep(250)
+
+            def run_async(fn):
                 JavaWrapper.methodToJavaAsync(fn).run()
-            
-            runAsync(long)
-            runAsync(rapid)
-            while not isDone:
+
+            run_async(long)
+            # Two submissions can join the queue in either order, so wait until the long task
+            # has announced itself before submitting the rapid one.
+            while len(a) == 0:
                 JavaWrapper.deferCurrentTask()
+            run_async(rapid)
+            while len(a) < 6:
+                JavaWrapper.deferCurrentTask()
+
+            event.putString("test", json.dumps(a))
+            event.putDouble("time", Time.time() - start)
             """;
 
+    /**
+     * Checks that sleeping in one deferred task yields the runtime instead of blocking it.
+     *
+     * <p>The long task announces itself and then sleeps for five seconds. The rapid task appends
+     * four entries a quarter of a second apart. Seeing all four rapid entries before
+     * {@code "long finished"} can only happen if the sleep released the runtime. The rapid task is
+     * submitted only after the long one has run, because two submissions are not ordered.
+     */
     @Test
-    public void test3() throws InterruptedException {
-        EventCustom custom = runTestScript(TEST_SCRIPT_3);
-        System.out.println("Time: " + custom.getDouble("time"));
-        assertEquals("[\"long started\", \"rapid 1\", \"rapid 2\", \"rapid 3\", \"rapid 4\", \"long finished\"]", custom.getString("test"));
-        assertTrue(custom.getDouble("time") > 5000);
-        assertTrue(custom.getDouble("time") < 7000);
+    public void sleepingTaskYieldsToOtherDeferredTasks() throws InterruptedException {
+        EventCustom result = runTestScript(SLEEP_YIELD_SCRIPT, TIMEOUT_MS);
+        assertEquals(
+                "[\"long started\", \"rapid 1\", \"rapid 2\", \"rapid 3\", \"rapid 4\", \"long finished\"]",
+                result.getString("test")
+        );
+        assertTrue(result.getDouble("time") >= 5000,
+                "the long task must sleep for five seconds: " + result.getDouble("time"));
     }
 
-
     /**
-     * Splits the JSON array the script writes into its entries.
+     * Splits the JSON array the scheduling scripts write into its entries.
      *
      * <p>The entries never contain a comma, so splitting is enough and avoids pulling a JSON
      * parser into the test.
@@ -183,19 +201,32 @@ public class PyTest extends BaseTest {
     }
 
     /**
-     * Asserts the contract of the two deferred tasks without asserting their exact interleaving.
-     * Both tasks are queued together and their sleeps differ by 10 ms, so which appends first, and
-     * the occasional reordering of a pair, is scheduling noise rather than behavior. What the
-     * script does guarantee is that each task keeps its own counter and that the main thread only
-     * continues after both are done.
+     * Asserts that both tasks appended their own sequence and that the main thread resumed last.
+     *
+     * <p>The entries of the two tasks may interleave in any order; only each task's sequence and
+     * the main thread's marker are guaranteed.
      */
-    private static void assertBothTasksCompleted(String json) {
+    private static void assertEachTaskCompleted(String json) {
         List<String> entries = entries(json);
-        assertEquals("c", entries.get(entries.size() - 1), "the main thread should continue last");
+        assertEquals(11, entries.size(), entries.toString());
+        assertEquals("c", entries.get(entries.size() - 1), "the main thread should resume after both tasks");
         assertEquals(List.of("a 0", "a 100", "a 200", "a 300", "a 400"),
                 entries.stream().filter(e -> e.startsWith("a ")).toList());
         assertEquals(List.of("b 0", "b 110", "b 220", "b 330", "b 440"),
                 entries.stream().filter(e -> e.startsWith("b ")).toList());
+    }
+
+    /**
+     * Asserts the only order the priority test guarantees: the main thread's own entry first, the
+     * priority 6 task next, and the two priority 5 tasks last in either order.
+     */
+    private static void assertPriorityOrder(String json) {
+        List<String> order = entries(json);
+        assertEquals(4, order.size(), order.toString());
+        assertEquals("0", order.get(0), "the main thread should append before yielding");
+        assertEquals("3", order.get(1), "the priority 6 task should run before the priority 5 tasks");
+        assertEquals(Set.of("1", "2"), Set.copyOf(order.subList(2, 4)),
+                "the priority 5 tasks have no defined order: " + order);
     }
 
 }
