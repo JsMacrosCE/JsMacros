@@ -34,6 +34,11 @@ result is ignored: it queues them on the script thread pool and returns immediat
 logging any failure. A callback that must return a value still runs synchronously,
 and its exceptions reach the caller; use `methodToJava` for filters and predicates.
 
+Scheduled callbacks are independent. Two `methodToJavaAsync` callbacks have no
+defined start order relative to each other. If one must run before another, do both
+steps in one callback or coordinate them with an explicit signal instead of relying
+on submission order.
+
 For event listeners, use `methodToJava`. The event system already decides how the
 listener is scheduled; wrapping it again with the async form only makes ordering
 harder to reason about.

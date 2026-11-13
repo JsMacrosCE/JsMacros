@@ -62,6 +62,10 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
      * {@code test}, {@code get}, and {@code compare}, run synchronously on the caller and
      * return or throw the result.
      *
+     * <p>A scheduled callback joins the script queue from the pool worker that runs it, so two
+     * callbacks submitted by one script may start in either order. Priority decides which queued
+     * callback runs next; it does not make separate submissions start in submission order.
+     *
      * @param c executable script function
      * @param <A> type of the first callback argument
      * @param <B> type of the second callback argument
@@ -78,7 +82,8 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
     /**
      * Wraps a callable for asynchronous execution with an explicit queue priority. The other
      * asynchronous overloads use priority 5. As with the no-priority form, only void callbacks
-     * are scheduled; calls that need a result run synchronously.
+     * are scheduled; calls that need a result run synchronously. Priority orders callbacks that
+     * are already queued; it does not order the submissions that put them there.
      *
      * @param priority queue priority used to order callback execution
      * @param c executable script function
