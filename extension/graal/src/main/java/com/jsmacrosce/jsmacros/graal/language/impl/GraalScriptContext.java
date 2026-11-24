@@ -74,6 +74,26 @@ public class GraalScriptContext extends BaseScriptContext<Context> {
         return false;
     }
 
+    /**
+     * Enters the runtime for a queued task. Closing the context interrupts queued threads, so a
+     * thread waking from {@code wrapSleep} can reach the entry after the runtime was closed while
+     * another thread is still unwinding the stop. Graal reports that as concurrent access; it is
+     * the stop, so report the closed context instead.
+     */
+    public void enterRuntime() {
+        if (isContextClosed()) {
+            throw new BaseScriptContext.ScriptContextClosedException("Context closed");
+        }
+        try {
+            getContext().enter();
+        } catch (PolyglotException failure) {
+            if (isContextClosed()) {
+                throw new BaseScriptContext.ScriptContextClosedException("Context closed");
+            }
+            throw failure;
+        }
+    }
+
     /** Selects a queue priority from a wrapped thread's stored priority.
      * @param thread wrapped thread whose queue priority to inspect
      * @return the negated stored priority; negating {@code Integer.MIN_VALUE} leaves it unchanged
@@ -144,7 +164,7 @@ public class GraalScriptContext extends BaseScriptContext<Context> {
                 }
             }
         } finally {
-            getContext().enter();
+            enterRuntime();
         }
     }
 

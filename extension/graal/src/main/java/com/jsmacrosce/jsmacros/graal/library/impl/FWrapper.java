@@ -181,7 +181,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                         }
                     }
 
-                    ctx.getContext().enter();
+                    ctx.enterRuntime();
                     try {
                         fn.executeVoid(args);
                     } catch (Throwable ex) {
@@ -232,7 +232,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                     }
                 }
 
-                ctx.getContext().enter();
+                ctx.enterRuntime();
                 try {
                     if (await && runner.profile.checkJoinedThreadStack()) {
                         runner.profile.joinedThreadStack.add(Thread.currentThread());
