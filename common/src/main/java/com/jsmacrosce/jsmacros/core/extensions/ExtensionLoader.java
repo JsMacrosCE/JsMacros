@@ -4,16 +4,24 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import com.jsmacrosce.Pair;
 import com.jsmacrosce.jsmacros.core.Core;
-import com.jsmacrosce.jsmacros.core.library.BaseLibrary;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 /** Discovers and initializes extensions associated with a core; queries other than {@code notLoaded()} trigger loading when completion has not been recorded. Returned extension sets are independent live backing sets; mutating one does not reconcile the others or registered libraries.
@@ -148,31 +156,38 @@ public class ExtensionLoader {
         return extensions.stream().filter(e -> e.getExtensionName().equals(extName)).findFirst().orElse(null);
     }
 
-    /** Attempts extension discovery, initialization, and library registration unless a class loader has already been assigned; in that case, prints a diagnostic and returns.
+    /** Attempts extension discovery, initialization, and library registration unless a class loader has already been assigned; in that case, logs a diagnostic and returns.
      * <p>
-     * Archives that the user dropped into the {@code Extensions} directory are read from disk, and
-     * the extension archives shipped inside the mod jar are read into memory, because the JDK
-     * cannot open an archive that is nested inside another archive. Extension dependencies are
-     * read the same way, so nothing is ever copied to a temporary directory.
+     * User archives are read from the {@code Extensions} directory. An archive that is itself an
+     * entry of another archive — an extension bundled in the mod jar, or a dependency nested in an
+     * extension jar — cannot be opened by {@link java.net.URLClassLoader} where it lies, so
+     * {@link ExtensionArchiveCache} copies it to a file under {@code Extensions/.cache} first. A
+     * nested jar entry is named from the source archive and entry metadata; a URL that provides no
+     * reliable metadata is named from a digest of its bytes. A cache file is reused when it is
+     * still a readable jar and its key still matches the source, and is removed at the end of the
+     * load if this load did not use it.
      * <p>
      * Discovery order is fixed: providers the parent class loader can see come first, then the
      * archives named by the bundled manifest in the order it lists them, then the user's archives
      * by file name. Within an archive, providers are visited in the order its service file lists
      * them. An extension that shares its name with an already discovered one is ignored, and the
      * first one found wins — so a user archive cannot replace a bundled extension of the same
-     * name.
+     * name. Dependencies are appended to the search path after the initial archives.
      * <p>
      * Each extension is handled on its own. A failure to load an extension's dependencies,
      * initialize it, or register its libraries is reported and skips that extension only; the
      * remaining extensions still load. The same applies to a provider that cannot be
-     * instantiated.
+     * instantiated. An extension's dependencies are all materialized and validated before any of
+     * them joins the search path, so a later invalid archive cannot publish the earlier ones.
      * <p>
-     * A failure that prevents the load from starting at all leaves the loader unchanged, so a
-     * later query can try again. A query made while an extension is initializing returns the
-     * extensions registered so far; it does not start another discovery pass. The current
-     * thread's context class loader is set to the extension class loader before extensions
-     * initialize, because an extension may load classes of its own while initializing, and is
-     * left set afterwards.
+     * A failure that prevents the load from completing does not mark loading complete, so a
+     * later query can try again. Extensions registered before the failure are not rolled back, so
+     * a retry starts beside that partial state rather than from an empty loader. A query made
+     * while an extension is initializing returns the extensions registered so far; it does not
+     * start another discovery pass. The current thread's context class loader is set to the
+     * extension class loader before extensions initialize, because an extension may load classes
+     * of its own while initializing, and is left set on success. A failed load restores the
+     * caller's previous context class loader.
      */
     public synchronized void loadExtensions() {
         if (classLoader != null) {
@@ -183,45 +198,69 @@ public class ExtensionLoader {
             return;
         }
         loading = true;
+        ClassLoader previousContextLoader = Thread.currentThread().getContextClassLoader();
+        ExtensionArchiveCache cache = null;
+        ExtensionClassLoader loader = null;
         try {
-            ExtensionClassLoader loader = null;
-            try {
-                loader = new ExtensionClassLoader(listLocalArchives().toArray(URL[]::new));
-                addBundledArchives(loader);
+            cache = ExtensionArchiveCache.open(extPath, logger);
 
-                List<Extension> discovered = discover(loader);
-                logger.debug("Discovered {} extension providers", discovered.size());
+            List<Path> bundledArchives = extractBundledArchives(cache);
+            List<URL> searchPath = new ArrayList<>();
+            for (Path archive : bundledArchives) {
+                searchPath.add(archive.toUri().toURL());
+            }
+            // User archives follow the bundled ones so that a bundled extension still wins when
+            // both declare the same name, matching the documented discovery order.
+            searchPath.addAll(listLocalArchives());
 
-                List<Extension> ordered = deduplicate(discovered);
-
-                Thread.currentThread().setContextClassLoader(loader);
-                for (Extension extension : ordered) {
-                    initialize(extension, loader);
-                }
-                // Report what was actually registered: a discovered extension can still be skipped
-                // when its dependencies or its init fail.
-                logger.info("Loaded {} extensions", extensions.size());
-            } catch (Exception e) {
-                if (loader != null) {
-                    try {
-                        loader.close();
-                    } catch (IOException ignored) {
-                        // The loader is being discarded; a failure to close it is not actionable.
-                    }
-                }
-                throw new RuntimeException("Failed to load extensions", e);
+            loader = new ExtensionClassLoader(searchPath.toArray(URL[]::new));
+            for (Path archive : bundledArchives) {
+                cache.markInUse(archive);
             }
 
-            classLoader = loader;
-            loadingDone = true;
+            List<Extension> discovered = discover(loader);
+            logger.debug("Discovered {} extension providers", discovered.size());
+
+            List<Extension> ordered = deduplicate(discovered);
+
+            Thread.currentThread().setContextClassLoader(loader);
+            for (Extension extension : ordered) {
+                initialize(extension, loader, cache);
+            }
+            // Report what was actually registered: a discovered extension can still be skipped
+            // when its dependencies or its init fail.
+            logger.info("Loaded {} extensions", extensions.size());
+        } catch (Exception e) {
+            // Do not leave the thread pointing at a loader that failed and is about to close.
+            try {
+                Thread.currentThread().setContextClassLoader(previousContextLoader);
+            } catch (SecurityException restoreFailure) {
+                e.addSuppressed(restoreFailure);
+            }
+            if (loader != null) {
+                try {
+                    loader.close();
+                } catch (IOException ignored) {
+                    // The loader is being discarded; a failure to close it is not actionable.
+                }
+            }
+            throw new RuntimeException("Failed to load extensions", e);
         } finally {
+            if (cache != null) {
+                cache.removeUnusedArchives();
+            }
             loading = false;
         }
+
+        classLoader = loader;
+        loadingDone = true;
     }
 
     /**
      * Lists the archives the user placed in the {@code Extensions} directory, ordered by file name
-     * so that discovery does not depend on the order the file system happens to report.
+     * so that discovery does not depend on the order the file system happens to report. The
+     * loader's own {@code .cache} child is reserved for the archive cache and is skipped even when
+     * it is not a directory.
      *
      * @return the local archive URLs; empty when the directory does not exist
      */
@@ -236,6 +275,9 @@ public class ExtensionLoader {
         }
         try (Stream<Path> files = Files.list(extPath)) {
             return files.filter(Files::isRegularFile)
+                    // Normally a directory, but the cache path can also be a file when the cache
+                    // is unusable; either way it is not an extension archive.
+                    .filter(path -> !path.getFileName().toString().equals(ExtensionArchiveCache.CACHE_DIRECTORY_NAME))
                     .map(Path::getFileName)
                     .sorted()
                     .map(name -> {
@@ -252,33 +294,36 @@ public class ExtensionLoader {
     }
 
     /**
-     * Reads the extension archives that ship inside the mod jar into the loader's memory.
+     * Materializes the extension archives that ship inside the mod jar and returns their file URLs.
      * <p>
      * A manifest that cannot be read is reported rather than thrown: the loader can still work
      * with the archives the user installed, and a broken build manifest is a packaging problem,
-     * not a reason to disable every extension. The archives it names are added in the listed
-     * order.
+     * not a reason to disable every extension. The archives it names are returned in the listed
+     * order. An archive that cannot be materialized or is not a readable jar fails the load,
+     * because the resulting search path would silently omit an extension that the mod ships.
      *
-     * @param loader loader to add the archives to
-     * @throws IOException if a named archive cannot be read
+     * @param cache extraction cache to materialize the archives with
+     * @return the cached archive files, in manifest order
+     * @throws IOException if a named archive cannot be materialized or is not a readable jar
      */
-    private void addBundledArchives(ExtensionClassLoader loader) throws IOException {
+    private List<Path> extractBundledArchives(ExtensionArchiveCache cache) throws IOException {
         if (ExtensionLoader.class.getResource("/jsmacrosce.extension.json") == null) {
             report("The mod jar has no jsmacrosce.extension.json, so no bundled extension will be loaded", null);
-            return;
+            return List.of();
         }
         Set<URL> archives;
         try {
             archives = Extension.getDependenciesInternal(ExtensionLoader.class, "jsmacrosce.extension.json");
         } catch (IllegalStateException e) {
             report("Could not read the bundled extension manifest; no bundled extension will be loaded", e);
-            return;
+            return List.of();
         }
+        List<Path> extracted = new ArrayList<>();
         for (URL archive : archives) {
-            String name = fileName(archive);
-            logger.debug("Adding bundled extension archive: {}", name);
-            loader.addMemoryJar(name, readAll(archive));
+            logger.debug("Extracting bundled extension archive: {}", archive);
+            extracted.add(cache.materialize(archive));
         }
+        return extracted;
     }
 
     /**
@@ -339,10 +384,11 @@ public class ExtensionLoader {
      *
      * @param extension the extension to load
      * @param loader    loader to add the extension's dependencies to
+     * @param cache     extraction cache to materialize nested dependencies with
      */
-    private void initialize(Extension extension, ExtensionClassLoader loader) {
+    private void initialize(Extension extension, ExtensionClassLoader loader, ExtensionArchiveCache cache) {
         try {
-            loadDependencies(extension, loader);
+            loadDependencies(extension, loader, cache);
         } catch (Throwable t) {
             report("Failed to load dependencies for extension '" + extension.getExtensionName() + "'", t);
             return;
@@ -371,49 +417,60 @@ public class ExtensionLoader {
     }
 
     /**
-     * Reads an extension's declared dependency archives into the loader's memory.
+     * Materializes and validates an extension's declared dependency archives, then appends them to
+     * the loader's search path.
+     * <p>
+     * A declaration that does not name a {@code .jar} file is reported and skipped. Extension
+     * descriptors occasionally list non-archive artifacts, and an extension should not be
+     * disabled because of one. A declared jar that cannot be materialized or is not readable still
+     * fails the extension.
+     * <p>
+     * The whole batch is materialized before any URL is published, so a later invalid archive
+     * cannot leave the earlier dependencies visible to an extension that failed to load. Cache
+     * files created for the failed batch are not marked in use and are removed by the cache
+     * cleanup at the end of the load.
      *
      * @param extension the extension whose dependencies to load
      * @param loader    loader to add the dependencies to
-     * @throws IOException if a dependency cannot be read
+     * @param cache     extraction cache to materialize nested dependencies with
+     * @throws IOException if a declared jar cannot be materialized or is not a readable jar
      */
-    private void loadDependencies(Extension extension, ExtensionClassLoader loader) throws IOException {
+    private void loadDependencies(Extension extension, ExtensionClassLoader loader, ExtensionArchiveCache cache) throws IOException {
         Set<URL> dependencies = extension.getDependencies();
         if (dependencies.isEmpty()) {
             logger.debug("No dependencies for extension: {}", extension.getClass().getName());
             return;
         }
-        List<InMemoryJar> batch = new ArrayList<>();
+        List<Path> batch = new ArrayList<>();
         for (URL dependency : dependencies) {
-            batch.add(new InMemoryJar(readAll(dependency), fileName(dependency)));
+            String name = dependencyFileName(dependency);
+            if (!name.toLowerCase(Locale.ROOT).endsWith(".jar")) {
+                report("Skipping dependency '" + name + "' declared by extension '"
+                        + extension.getExtensionName() + "' because it is not a jar archive", null);
+                continue;
+            }
+            batch.add(cache.materialize(dependency));
         }
-        for (InMemoryJar jar : batch) {
-            logger.debug("Adding dependency {} for extension {}", jar.name(), extension.getExtensionName());
-            loader.addMemoryJar(jar);
+        if (batch.isEmpty()) {
+            logger.debug("No usable dependency archives for extension: {}", extension.getExtensionName());
+            return;
         }
-    }
-
-    /**
-     * Reads the whole content of a URL.
-     *
-     * @param url the URL to read
-     * @return the bytes read
-     * @throws IOException if the URL cannot be read
-     */
-    private static byte[] readAll(URL url) throws IOException {
-        try (InputStream stream = url.openStream()) {
-            return stream.readAllBytes();
+        for (Path dependency : batch) {
+            logger.debug("Adding dependency {} for extension {}", dependency.getFileName(), extension.getExtensionName());
+            cache.markInUse(dependency);
+            loader.addURL(dependency.toUri().toURL());
         }
     }
 
     /**
-     * Returns the file name part of a URL's path.
+     * Returns the last path segment of a dependency URL. The URL is not opened: only the declared
+     * name matters here, so a non-jar entry can be skipped before any extraction is attempted.
      *
-     * @param url the URL to inspect
-     * @return the last path segment
+     * @param dependency dependency URL from an extension descriptor
+     * @return the entry or file name, or an empty string when the URL has no name
      */
-    private static String fileName(URL url) {
-        String path = url.getPath();
+    private static String dependencyFileName(URL dependency) {
+        String path = dependency.getPath();
         return path.substring(path.lastIndexOf('/') + 1);
     }
 

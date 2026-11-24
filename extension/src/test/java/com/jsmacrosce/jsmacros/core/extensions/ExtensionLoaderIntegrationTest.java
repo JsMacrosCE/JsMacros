@@ -14,21 +14,27 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.jar.JarFile;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Exercises the loader the way the game does: extension jars on disk, one of them carrying its
  * own dependency archive inside itself.
  *
- * <p>The other loader tests run providers from the test classpath, which the parent class loader
- * would find anyway; they never reach the archive handling. Here every provider comes from a jar
- * written by the test, so discovery, dependency loading from a nested archive, first-archive-wins
+ * <p>The other loader tests run providers from the test classpath, so they cover discovery and
+ * query behavior but not nested archive extraction. Here every provider comes from a jar written
+ * by the test, so discovery, dependency extraction from a nested archive, first-archive-wins
  * duplicate handling, and per-extension failure isolation are all covered end to end.
  *
  * <p>Working directories are created under {@code build/} rather than in a temp directory: the
@@ -56,6 +62,116 @@ class ExtensionLoaderIntegrationTest {
         assertEquals("ok", IntegrationProbe.value("fixture"),
                 "the extension's init should be able to load a class from its nested dependency archive");
         assertEquals(1, IntegrationProbe.count("fixture"), "an extension should be initialized once");
+    }
+
+    @Test
+    void extractsANestedDependencyIntoTheCache() throws Exception {
+        writeExtensionJar("fixture.jar", fixtureJar());
+
+        Core<ProfileStub, EventRegistryStub> core = core();
+
+        assertNotNull(core.extensions.getExtensionForName("fixture"));
+        assertEquals("ok", IntegrationProbe.value("fixture"),
+                "the extension should load a class from the extracted dependency");
+
+        List<Path> cached = cachedJars();
+        assertEquals(1, cached.size(), "the nested dependency should be materialized in the cache");
+        boolean found = false;
+        for (Path jar : cached) {
+            try (JarFile file = new JarFile(jar.toFile())) {
+                found |= file.getEntry("com/example/dep/Marker.class") != null;
+            }
+        }
+        assertTrue(found, "the cached dependency should contain the class the extension loaded");
+    }
+
+    @Test
+    void loadsTheJarDependencyWhenANonJarIsAlsoDeclared() throws Exception {
+        writeExtensionJar("mixed-deps.jar", mixedDependenciesJar());
+
+        Core<ProfileStub, EventRegistryStub> core = core();
+
+        assertNotNull(core.extensions.getExtensionForName("mixed"),
+                "a non-jar declaration should not disable the extension");
+        assertEquals("ok", IntegrationProbe.value("mixed"),
+                "the declared jar dependency should still be on the search path");
+    }
+
+    @Test
+    void reusesACachedDependencyOnTheNextLoad() throws Exception {
+        writeExtensionJar("fixture.jar", fixtureJar());
+        core().extensions.getAllExtensions();
+
+        List<Path> cached = cachedJars();
+        assertEquals(1, cached.size());
+        Path dependency = cached.get(0);
+        FileTime pinned = FileTime.fromMillis(1_000_000_000_000L);
+        Files.setLastModifiedTime(dependency, pinned);
+
+        IntegrationProbe.reset();
+        Core<ProfileStub, EventRegistryStub> second = core();
+
+        assertNotNull(second.extensions.getExtensionForName("fixture"));
+        assertEquals("ok", IntegrationProbe.value("fixture"),
+                "the second core should load the extension from the reused cache file");
+        assertEquals(pinned.toMillis(), Files.getLastModifiedTime(dependency).toMillis(),
+                "a second load should reuse the cached file instead of rewriting it");
+    }
+
+    @Test
+    void reextractsACacheFileThatIsNotAReadableJar() throws Exception {
+        writeExtensionJar("fixture.jar", fixtureJar());
+        core().extensions.getAllExtensions();
+
+        List<Path> cached = cachedJars();
+        assertEquals(1, cached.size());
+        Path dependency = cached.get(0);
+        // A cache hit is only trusted when the file still opens as a jar and has the expected
+        // length. Replace it with non-archive bytes so the next load has to throw it away.
+        Files.write(dependency, "not a jar".getBytes(StandardCharsets.UTF_8));
+
+        IntegrationProbe.reset();
+        Core<ProfileStub, EventRegistryStub> second = core();
+
+        assertNotNull(second.extensions.getExtensionForName("fixture"));
+        assertEquals("ok", IntegrationProbe.value("fixture"),
+                "the corrupted cache file should be replaced by a fresh extraction");
+        try (JarFile file = new JarFile(cachedJars().get(0).toFile())) {
+            assertNotNull(file.getEntry("com/example/dep/Marker.class"),
+                    "the replacement cache file should be the dependency jar");
+        }
+    }
+
+    @Test
+    void removesCacheFilesThatTheCurrentLoadDidNotUse() throws Exception {
+        writeExtensionJar("fixture.jar", fixtureJar());
+        Path cache = cacheDirectory();
+        Files.createDirectories(cache);
+        Path stale = cache.resolve("stale.jar");
+        // A readable jar, so removal proves the file was unused rather than merely broken. Give it
+        // an old timestamp: cleanup deliberately leaves files newer than the load's start alone so
+        // it cannot delete a concurrent load's fresh cache file.
+        Files.write(stale, archive(entry("stale.txt", "stale".getBytes(StandardCharsets.UTF_8))));
+        Files.setLastModifiedTime(stale, FileTime.fromMillis(1_000_000_000_000L));
+
+        Core<ProfileStub, EventRegistryStub> core = core();
+
+        assertNotNull(core.extensions.getExtensionForName("fixture"));
+        assertFalse(Files.exists(stale), "a cache file not used by this load should be removed");
+        assertEquals(1, cachedJars().size(), "the dependency used by this load should remain");
+    }
+
+    @Test
+    void fallsBackToATemporaryCacheWhenTheCachePathIsAFile() throws Exception {
+        writeExtensionJar("fixture.jar", fixtureJar());
+        Files.write(workDir.resolve("Extensions").resolve(".cache"),
+                "not a directory".getBytes(StandardCharsets.UTF_8));
+
+        Core<ProfileStub, EventRegistryStub> core = core();
+
+        assertNotNull(core.extensions.getExtensionForName("fixture"));
+        assertEquals("ok", IntegrationProbe.value("fixture"),
+                "the fallback cache should still materialize the nested dependency");
     }
 
     @Test
@@ -131,6 +247,8 @@ class ExtensionLoaderIntegrationTest {
         assertNull(core.extensions.getExtensionForName("batch"));
         assertEquals("missing", IntegrationProbe.value("observer"),
                 "a dependency from the failed batch must not remain visible");
+        assertTrue(cachedJars().isEmpty(),
+                "archives materialized for the failed batch should be removed from the cache");
     }
 
     @Test
@@ -148,6 +266,23 @@ class ExtensionLoaderIntegrationTest {
 
     private Core<ProfileStub, EventRegistryStub> core() {
         return CoreInstanceCreator.createIsolatedCore(workDir.toFile());
+    }
+
+    private Path cacheDirectory() {
+        return workDir.resolve("Extensions").resolve(".cache");
+    }
+
+    private List<Path> cachedJars() throws IOException {
+        Path cache = cacheDirectory();
+        if (!Files.isDirectory(cache)) {
+            return List.of();
+        }
+        try (Stream<Path> files = Files.list(cache)) {
+            return files.filter(Files::isRegularFile)
+                    .filter(file -> file.getFileName().toString().endsWith(".jar"))
+                    .sorted()
+                    .toList();
+        }
     }
 
     private byte[] fixtureJar() throws Exception {
@@ -169,6 +304,33 @@ class ExtensionLoaderIntegrationTest {
                         """)),
                 entry("jsmacrosce.ext.fixture.json",
                         "{\"dependencies\": [\"META-INF/jsmacroscedeps/dependency.jar\"]}".getBytes(StandardCharsets.UTF_8)),
+                entry("META-INF/jsmacroscedeps/dependency.jar", dependency)
+        );
+    }
+
+    private byte[] mixedDependenciesJar() throws Exception {
+        byte[] dependency = archive(entry("com/example/dep/Marker.class", plainClass("com.example.dep.Marker")));
+        return archive(
+                entry(SERVICE_FILE, "com.example.fixture.Mixed\n".getBytes(StandardCharsets.UTF_8)),
+                entry("com/example/fixture/Mixed.class", extensionClass("com.example.fixture.Mixed",
+                        "public java.lang.String getExtensionName() { return \"mixed\"; }",
+                        """
+                        public void init(com.jsmacrosce.jsmacros.core.Core runner) {
+                            java.lang.String state = "ok";
+                            try {
+                                java.lang.Class.forName("com.example.dep.Marker");
+                            } catch (java.lang.Throwable t) {
+                                state = "missing";
+                            }
+                            com.jsmacrosce.jsmacros.core.extensions.IntegrationProbe.record("mixed", state);
+                        }
+                        """)),
+                entry("jsmacrosce.ext.mixed.json",
+                        ("{\"dependencies\": [\"META-INF/jsmacroscedeps/llvm-native-community-24.0.1.pom\","
+                                + " \"META-INF/jsmacroscedeps/dependency.jar\"]}")
+                                .getBytes(StandardCharsets.UTF_8)),
+                entry("META-INF/jsmacroscedeps/llvm-native-community-24.0.1.pom",
+                        "<project/>".getBytes(StandardCharsets.UTF_8)),
                 entry("META-INF/jsmacroscedeps/dependency.jar", dependency)
         );
     }
