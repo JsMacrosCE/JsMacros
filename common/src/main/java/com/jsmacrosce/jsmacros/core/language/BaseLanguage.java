@@ -88,7 +88,7 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
                 }
             } catch (Throwable e) {
                 if (ctx.getCtx().isScriptStopException(e)) {
-                    notifyStopped(then, null);
+                    notifyStopped(ctx.getCtx(), then, null);
                 } else {
                     try {
                         if (catcher != null) {
@@ -153,7 +153,7 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
                 }
             } catch (Throwable e) {
                 if (!executionFinished && ctx.getCtx().isScriptStopException(e)) {
-                    notifyStopped(then, catcher);
+                    notifyStopped(ctx.getCtx(), then, catcher);
                 } else {
                     try {
                         if (catcher != null) {
@@ -188,7 +188,7 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
         return ctx;
     }
 
-    private void notifyStopped(Runnable then, Consumer<Throwable> catcher) {
+    private void notifyStopped(BaseScriptContext<?> stoppedContext, Runnable then, Consumer<Throwable> catcher) {
         if (then == null) return;
         // A completion callback owned by the stopped run cannot run after that context closes;
         // invoking it only produces a "Context closed" failure in the profile. Callbacks owned by
@@ -213,7 +213,7 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
                 if (catcher instanceof MethodWrapper<?, ?, ?, ?> wrapper
                         && wrapper.getCtx() != null
                         && wrapper.getCtx().isContextClosed()) {
-                    if (!wrapper.getCtx().isScriptStopException(failure)) {
+                    if (!stoppedContext.isScriptStopException(failure)) {
                         runner.profile.logError(failure);
                     }
                     return;
