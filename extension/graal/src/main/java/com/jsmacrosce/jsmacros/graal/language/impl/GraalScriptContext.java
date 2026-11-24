@@ -47,24 +47,20 @@ public class GraalScriptContext extends BaseScriptContext<Context> {
      */
     @Override
     protected boolean isLanguageCancellation(Throwable failure) {
-        if (!(failure instanceof PolyglotException exception)) {
-            return false;
-        }
-        if (exception.isCancelled() || exception.isInterrupted()) {
+        if (isCancellation(failure)) {
             return true;
         }
-        return exception.isHostException() && containsCancellation(exception.asHostException());
+        return failure instanceof PolyglotException exception
+                && exception.isHostException()
+                && containsCancellation(exception.asHostException());
     }
 
     /** Walks a host exception and its causes for a cancellation, including a nested polyglot wrapper. */
     private static boolean containsCancellation(Throwable failure) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
             if (cause instanceof InterruptedException
-                    || cause instanceof BaseScriptContext.ScriptContextClosedException) {
-                return true;
-            }
-            if (cause instanceof PolyglotException exception
-                    && (exception.isCancelled() || exception.isInterrupted())) {
+                    || cause instanceof BaseScriptContext.ScriptContextClosedException
+                    || isCancellation(cause)) {
                 return true;
             }
             if (cause.getCause() == cause) {
@@ -72,6 +68,25 @@ public class GraalScriptContext extends BaseScriptContext<Context> {
             }
         }
         return false;
+    }
+
+    /**
+     * Recognizes the shapes Graal uses for a cancelled execution. Closing a context can throw its
+     * internal CancelExecution, a ThreadDeath, or deliver it as a PolyglotException that does not
+     * report itself as cancelled; in both cases the public identity is the message. It can also
+     * reach Java wrapped in another exception.
+     */
+    private static boolean isCancellation(Throwable failure) {
+        if (failure instanceof PolyglotException exception) {
+            return exception.isCancelled() || exception.isInterrupted() || isCancelledMessage(failure);
+        }
+        return failure instanceof ThreadDeath && isCancelledMessage(failure);
+    }
+
+    /** Checks the message Graal attaches to a context closed during execution. */
+    private static boolean isCancelledMessage(Throwable failure) {
+        return failure.getMessage() != null
+                && failure.getMessage().startsWith("Context execution was cancelled");
     }
 
     /**
