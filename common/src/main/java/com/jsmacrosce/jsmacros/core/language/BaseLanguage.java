@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.core.language;
 
 import com.jsmacrosce.jsmacros.core.Core;
+import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import com.jsmacrosce.jsmacros.core.config.ScriptTrigger;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.extensions.Extension;
@@ -189,15 +190,37 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
 
     private void notifyStopped(Runnable then, Consumer<Throwable> catcher) {
         if (then == null) return;
+        // A completion callback owned by the stopped run cannot run after that context closes;
+        // invoking it only produces a "Context closed" failure in the profile. Callbacks owned by
+        // a still-open caller (such as the parent that started a stopped child) do run.
+        if (then instanceof MethodWrapper<?, ?, ?, ?> callback
+                && callback.getCtx() != null
+                && callback.getCtx().isContextClosed()) {
+            return;
+        }
         // The stopped runtime may still cancel its worker even after the Java interrupt is cleared.
         runner.threadPool.runTask(() -> {
             try {
                 then.run();
             } catch (Throwable failure) {
+                // A callback wrapper behind a Java lambda can also report the same closed
+                // context; nothing can run there, so the completion notification is dropped.
+                if (failure instanceof BaseScriptContext.ScriptContextClosedException) {
+                    return;
+                }
+                // The failure handler can be a callback of the same closed run.
+                if (catcher instanceof MethodWrapper<?, ?, ?, ?> wrapper
+                        && wrapper.getCtx() != null
+                        && wrapper.getCtx().isContextClosed()) {
+                    return;
+                }
                 try {
                     if (catcher != null) catcher.accept(failure);
                     else throw failure;
                 } catch (Throwable reported) {
+                    if (reported instanceof BaseScriptContext.ScriptContextClosedException) {
+                        return;
+                    }
                     runner.profile.logError(reported);
                 }
             }
