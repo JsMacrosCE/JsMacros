@@ -47,12 +47,18 @@ public class LibraryRegistry {
     private final Map<String, Class<? extends BaseLibrary>> globalOwners = new LinkedHashMap<>();
 
     /**
-     * Language restrictions supplied at registration for shared and per-execution libraries,
-     * keyed by their annotation. Those kinds are stored without a language key, so the explicit
-     * list must be kept separately for retrieval; per-language kinds already encode it in their
-     * map keys. An absent entry means the annotation decides.
+     * Language lists supplied at registration for shared libraries. Those libraries are stored
+     * without a language key, so the explicit list is kept separately for retrieval; per-language
+     * kinds already encode it in their map keys. An absent entry means the annotation decides.
      */
-    private final Map<Library, List<Class<? extends BaseLanguage<?, ?>>>> explicitLanguages = new LinkedHashMap<>();
+    private final Map<Library, List<Class<? extends BaseLanguage<?, ?>>>> explicitSharedLanguages = new LinkedHashMap<>();
+
+    /**
+     * Language lists supplied at registration for per-execution libraries. Kept separately from
+     * the shared list because a shared and a per-execution library may carry the same annotation,
+     * and each registration must keep its own restriction.
+     */
+    private final Map<Library, List<Class<? extends BaseLanguage<?, ?>>>> explicitPerExecLanguages = new LinkedHashMap<>();
 
     /**
      * Stores the core used to instantiate shared and per-language libraries during registration.
@@ -91,7 +97,7 @@ public class LibraryRegistry {
         Map<String, BaseLibrary> libs = new LinkedHashMap<>();
 
         for (Map.Entry<Library, BaseLibrary> lib : libraries.entrySet()) {
-            if (appliesTo(lib.getKey(), language)) {
+            if (appliesTo(lib.getKey(), language, explicitSharedLanguages)) {
                 libs.put(lib.getKey().value(), lib.getValue());
             }
         }
@@ -121,7 +127,7 @@ public class LibraryRegistry {
         Map<String, BaseLibrary> libs = new LinkedHashMap<>();
 
         for (Map.Entry<Library, Class<? extends PerExecLibrary>> lib : perExec.entrySet()) {
-            if (appliesTo(lib.getKey(), language)) {
+            if (appliesTo(lib.getKey(), language, explicitPerExecLanguages)) {
                 try {
                     libs.put(lib.getKey().value(), lib.getValue().getConstructor(BaseScriptContext.class).newInstance(context));
                 } catch (IllegalAccessException | InstantiationException | NoSuchMethodException |
@@ -153,12 +159,13 @@ public class LibraryRegistry {
      * registration list replaces the annotation's list; an absent one falls back to the
      * annotation. Both use an exact class match, mirroring the {@link Library} contract.
      *
-     * @param library  the library annotation identifying the registration
-     * @param language the language a script is running in
+     * @param library      the library annotation identifying the registration
+     * @param language     the language a script is running in
+     * @param restrictions the restrictions for this library kind, keyed by annotation
      * @return {@code true} when the library is unrestricted or lists this language's class
      */
-    private boolean appliesTo(Library library, BaseLanguage<?, ?> language) {
-        List<Class<? extends BaseLanguage<?, ?>>> allowed = explicitLanguages.get(library);
+    private static boolean appliesTo(Library library, BaseLanguage<?, ?> language, Map<Library, List<Class<? extends BaseLanguage<?, ?>>>> restrictions) {
+        List<Class<? extends BaseLanguage<?, ?>>> allowed = restrictions.get(library);
         if (allowed == null) {
             allowed = Arrays.asList(library.languages());
         }
@@ -234,12 +241,6 @@ public class LibraryRegistry {
         Library ann = clazz.getAnnotation(Library.class);
         List<Class<? extends BaseLanguage<?, ?>>> applicable = languages.isEmpty() ? Arrays.asList(ann.languages()) : languages;
 
-        if (languages.isEmpty()) {
-            explicitLanguages.remove(ann);
-        } else {
-            explicitLanguages.put(ann, List.copyOf(languages));
-        }
-
         Class<? extends BaseLibrary> previous = globalOwners.putIfAbsent(ann.value(), clazz);
         if (previous != null && previous != clazz) {
             runner.profile.LOGGER.warn("Library global '{}' is provided by both {} and {}; the last one registered is used",
@@ -248,6 +249,7 @@ public class LibraryRegistry {
 
         if (PerExecLibrary.class.isAssignableFrom(clazz)) {
             perExec.put(ann, clazz.asSubclass(PerExecLibrary.class));
+            restrictTo(explicitPerExecLanguages, ann, languages);
         } else if (PerExecLanguageLibrary.class.isAssignableFrom(clazz)) {
             for (Class<? extends BaseLanguage<?, ?>> lang : applicable) {
                 perExecLanguage.computeIfAbsent(lang, k -> new LinkedHashMap<>())
@@ -264,11 +266,33 @@ public class LibraryRegistry {
                 }
             }
         } else {
+            BaseLibrary instance;
             try {
-                libraries.put(ann, clazz.getConstructor(Core.class).newInstance(runner));
+                instance = clazz.getConstructor(Core.class).newInstance(runner);
             } catch (IllegalAccessException | InstantiationException | NoSuchMethodException | InvocationTargetException e) {
                 throw new RuntimeException("Failed to instantiate library, ", e);
             }
+            libraries.put(ann, instance);
+            restrictTo(explicitSharedLanguages, ann, languages);
+        }
+    }
+
+    /**
+     * Records the language list for one registration, or removes a previous restriction when the
+     * new registration is unrestricted. Called only after the registration succeeded, so a
+     * constructor failure cannot change the restriction of an older instance that is still
+     * registered.
+     *
+     * @param restrictions the restriction map for the library kind
+     * @param library      the library annotation identifying the registration
+     * @param languages    the explicit languages supplied at registration; empty means the
+     *                     annotation decides
+     */
+    private static void restrictTo(Map<Library, List<Class<? extends BaseLanguage<?, ?>>>> restrictions, Library library, List<Class<? extends BaseLanguage<?, ?>>> languages) {
+        if (languages.isEmpty()) {
+            restrictions.remove(library);
+        } else {
+            restrictions.put(library, List.copyOf(languages));
         }
     }
 
@@ -288,7 +312,8 @@ public class LibraryRegistry {
         Map<Class<? extends BaseLanguage<?, ?>>, Map<Library, Class<? extends PerExecLanguageLibrary<?, ?>>>> perExecLanguageBefore = new LinkedHashMap<>();
         perExecLanguage.forEach((language, classesByLibrary) -> perExecLanguageBefore.put(language, new LinkedHashMap<>(classesByLibrary)));
         Map<String, Class<? extends BaseLibrary>> globalOwnersBefore = new LinkedHashMap<>(globalOwners);
-        Map<Library, List<Class<? extends BaseLanguage<?, ?>>>> explicitLanguagesBefore = new LinkedHashMap<>(explicitLanguages);
+        Map<Library, List<Class<? extends BaseLanguage<?, ?>>>> explicitSharedLanguagesBefore = new LinkedHashMap<>(explicitSharedLanguages);
+        Map<Library, List<Class<? extends BaseLanguage<?, ?>>>> explicitPerExecLanguagesBefore = new LinkedHashMap<>(explicitPerExecLanguages);
         try {
             for (Class<? extends BaseLibrary> clazz : classes) {
                 addLibrary(clazz);
@@ -304,8 +329,10 @@ public class LibraryRegistry {
             perExecLanguage.putAll(perExecLanguageBefore);
             globalOwners.clear();
             globalOwners.putAll(globalOwnersBefore);
-            explicitLanguages.clear();
-            explicitLanguages.putAll(explicitLanguagesBefore);
+            explicitSharedLanguages.clear();
+            explicitSharedLanguages.putAll(explicitSharedLanguagesBefore);
+            explicitPerExecLanguages.clear();
+            explicitPerExecLanguages.putAll(explicitPerExecLanguagesBefore);
             throw failure;
         }
     }

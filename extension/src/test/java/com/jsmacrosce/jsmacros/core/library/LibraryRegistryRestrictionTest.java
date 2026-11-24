@@ -71,6 +71,45 @@ class LibraryRegistryRestrictionTest {
         assertFalse(core.libraryRegistry.getOnceLibraries(annotated).containsKey("ExplicitOverrideProbe"));
     }
 
+    @Test
+    void sharedAndPerExecutionRestrictionsDoNotReplaceEachOther() {
+        Core<?, ?> core = CoreInstanceCreator.createIsolatedCore(tempDir.toFile());
+        ProbeLanguageA allowedForShared = new ProbeLanguageA(core);
+        ProbeLanguageB allowedForPerExec = new ProbeLanguageB(core);
+        BaseScriptContext<Object> context = new BaseScriptContext<>(core, null, null) {
+            @Override
+            public boolean isMultiThreaded() {
+                return false;
+            }
+        };
+
+        core.libraryRegistry.addLibrary(CrossKindSharedProbe.class, List.of(ProbeLanguageA.class));
+        core.libraryRegistry.addLibrary(CrossKindPerExecProbe.class, List.of(ProbeLanguageB.class));
+
+        assertTrue(core.libraryRegistry.getOnceLibraries(allowedForShared).containsKey("ExplicitCrossKindProbe"),
+                "the shared library keeps its own language restriction");
+        assertFalse(core.libraryRegistry.getOnceLibraries(allowedForPerExec).containsKey("ExplicitCrossKindProbe"),
+                "the per-execution restriction must not move the shared library to another language");
+        assertTrue(core.libraryRegistry.getPerExecLibraries(allowedForPerExec, context).containsKey("ExplicitCrossKindProbe"));
+        assertFalse(core.libraryRegistry.getPerExecLibraries(allowedForShared, context).containsKey("ExplicitCrossKindProbe"));
+    }
+
+    @Test
+    void failedReplacementKeepsThePreviousRestriction() {
+        Core<?, ?> core = CoreInstanceCreator.createIsolatedCore(tempDir.toFile());
+        ProbeLanguageA allowed = new ProbeLanguageA(core);
+        ProbeLanguageB other = new ProbeLanguageB(core);
+        core.libraryRegistry.addLibrary(ReplaceableProbe.class, List.of(ProbeLanguageA.class));
+
+        assertThrows(RuntimeException.class,
+                () -> core.libraryRegistry.addLibrary(FailingReplacementProbe.class));
+
+        assertTrue(core.libraryRegistry.getOnceLibraries(allowed).containsKey("ExplicitReplaceableProbe"),
+                "the library registered before the failed replacement is still available where it was");
+        assertFalse(core.libraryRegistry.getOnceLibraries(other).containsKey("ExplicitReplaceableProbe"),
+                "a failed replacement must not widen the restriction of the retained instance");
+    }
+
     @Library("ExplicitSharedProbe")
     public static final class SharedProbe extends BaseLibrary {
         public SharedProbe(Core<?, ?> core) {
@@ -119,6 +158,35 @@ class LibraryRegistryRestrictionTest {
         public BatchBadProbe(Core<?, ?> core) {
             super(core);
             throw new IllegalStateException("batch member failed on purpose");
+        }
+    }
+
+    @Library("ExplicitCrossKindProbe")
+    public static final class CrossKindSharedProbe extends BaseLibrary {
+        public CrossKindSharedProbe(Core<?, ?> core) {
+            super(core);
+        }
+    }
+
+    @Library("ExplicitCrossKindProbe")
+    public static final class CrossKindPerExecProbe extends PerExecLibrary {
+        public CrossKindPerExecProbe(BaseScriptContext<?> context) {
+            super(context);
+        }
+    }
+
+    @Library("ExplicitReplaceableProbe")
+    public static final class ReplaceableProbe extends BaseLibrary {
+        public ReplaceableProbe(Core<?, ?> core) {
+            super(core);
+        }
+    }
+
+    @Library("ExplicitReplaceableProbe")
+    public static final class FailingReplacementProbe extends BaseLibrary {
+        public FailingReplacementProbe(Core<?, ?> core) {
+            super(core);
+            throw new IllegalStateException("replacement failed on purpose");
         }
     }
 
