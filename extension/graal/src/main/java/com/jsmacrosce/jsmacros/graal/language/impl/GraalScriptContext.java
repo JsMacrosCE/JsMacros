@@ -39,9 +39,39 @@ public class GraalScriptContext extends BaseScriptContext<Context> {
         }
     }
 
+    /**
+     * Recognizes Graal's cancellation and the host exceptions it wraps. A stop thrown from guest
+     * code reaches Java as a {@code PolyglotException}; when that exception represents a host
+     * exception, the stop itself is in {@link PolyglotException#asHostException()} rather than in
+     * the cause chain, so checking the cause chain alone misses it.
+     */
     @Override
     protected boolean isLanguageCancellation(Throwable failure) {
-        return failure instanceof PolyglotException && ((PolyglotException) failure).isCancelled();
+        if (!(failure instanceof PolyglotException exception)) {
+            return false;
+        }
+        if (exception.isCancelled() || exception.isInterrupted()) {
+            return true;
+        }
+        return exception.isHostException() && containsCancellation(exception.asHostException());
+    }
+
+    /** Walks a host exception and its causes for a cancellation, including a nested polyglot wrapper. */
+    private static boolean containsCancellation(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof InterruptedException
+                    || cause instanceof BaseScriptContext.ScriptContextClosedException) {
+                return true;
+            }
+            if (cause instanceof PolyglotException exception
+                    && (exception.isCancelled() || exception.isInterrupted())) {
+                return true;
+            }
+            if (cause.getCause() == cause) {
+                return false;
+            }
+        }
+        return false;
     }
 
     /** Selects a queue priority from a wrapped thread's stored priority.
