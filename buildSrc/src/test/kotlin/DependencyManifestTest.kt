@@ -22,6 +22,7 @@ fun main(args: Array<String>) {
         write("deps/first.jar", "first")
         write("deps/$quotedName", "quoted")
         write("deps/added.jar", "added")
+        write("deps/metadata.pom", "<project/>")
         write("other/first.jar", "collision")
         write("patch/marker.txt", "patched dependency")
         write("extra/META-INF/jsmacroscedeps/undeclared.jar", "undeclared")
@@ -40,6 +41,7 @@ fun main(args: Array<String>) {
                 "added" -> listOf("deps/added.jar", "deps/first.jar")
                 "duplicate" -> listOf("deps/first.jar", "other/first.jar")
                 "missing" -> listOf("deps/missing.jar")
+                "pom" -> listOf("deps/metadata.pom")
                 else -> listOf("deps/first.jar", "deps/$quotedInScript")
             }.let { if (providers.gradleProperty("reverse").isPresent) it.reversed() else it }
             val embedded = files(selected)
@@ -115,6 +117,10 @@ fun main(args: Array<String>) {
         check(collision.output.contains("Embedded dependency filenames collide"))
         run("generateDependencyManifest", "-Pselection=missing", fail = true)
         checks += 2
+
+        val nonJar = run("generateDependencyManifest", "-Pselection=pom", fail = true)
+        check(nonJar.output.contains("Embedded dependencies must be jar archives"))
+        checks++
 
         for (broken in listOf("missing", "manifest", "extra", "content")) {
             val result = run("verifyDependencyManifest", "-Pbroken=$broken", fail = true)

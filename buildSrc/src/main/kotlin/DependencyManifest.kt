@@ -45,6 +45,12 @@ abstract class GenerateDependencyManifest : DefaultTask() {
         val duplicates = paths.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
         check(duplicates.isEmpty()) { "Embedded dependency filenames collide: $duplicates" }
         check(archives.files.all { it.isFile }) { "Embedded dependencies must be files" }
+        // The manifest tells the extension loader what to put on the classpath, and the loader
+        // rejects anything that is not a jar. Fail here instead of packaging metadata such as a
+        // POM that a platform configuration can resolve. Do not filter silently: a wrong selection
+        // should name the offending files so the module can decide what to embed.
+        val nonJars = archives.files.filterNot { it.name.endsWith(".jar") }
+        check(nonJars.isEmpty()) { "Embedded dependencies must be jar archives, not metadata: $nonJars" }
         val dependencies = JsonArray().apply { paths.forEach { add(it) } }
         val manifest = JsonObject().apply { add("dependencies", dependencies) }
         val output = manifestFile.get().asFile

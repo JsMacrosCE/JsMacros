@@ -35,6 +35,11 @@ val filteredEmbedFiles = providers.provider {
 
     embedDeps.resolvedConfiguration.resolvedArtifacts
         .map(ResolvedArtifact::getFile)
+        // A POM-packaged platform module (llvm-native-community) resolves to a .pom here; that
+        // file is dependency metadata, not a classpath archive, so it must not be embedded or
+        // declared. The loader treats every declared dependency as a jar and rejects the extension
+        // otherwise. The module's actual jars arrive through its transitive dependencies.
+        .filter { it.name.endsWith(".jar") }
         .filter { it.name !in parentNames }
 }
 
