@@ -193,8 +193,6 @@ final class ExtensionArchiveCache {
         }
 
         Path jarPath = fileOf(jarUrl);
-        long sourceSize = Files.size(jarPath);
-        long sourceModified = Files.getLastModifiedTime(jarPath).toMillis();
 
         JarFile jar;
         try {
@@ -208,10 +206,21 @@ final class ExtensionArchiveCache {
                 throw new IOException("Extension archive " + source + " does not contain " + entryName);
             }
             long declaredSize = entry.getSize();
+            // A cache file can itself be the container of a nested dependency — a bundled
+            // extension jar holds its own dependencies. Identify the container by its file
+            // name in that case, not its modification time: a cache hit refreshes the timestamp
+            // below, and that would otherwise change every dependent's key on every load.
+            String container;
+            Path parent = normalize(jarPath).getParent();
+            if (parent != null && parent.equals(normalize(directory))) {
+                container = "cache/" + jarPath.getFileName();
+            } else {
+                container = jarUrl.toExternalForm() + "\n"
+                        + Files.size(jarPath) + "\n"
+                        + Files.getLastModifiedTime(jarPath).toMillis();
+            }
             String descriptor = CACHE_KEY_VERSION + "\njar\n"
-                    + jarUrl.toExternalForm() + "\n"
-                    + sourceSize + "\n"
-                    + sourceModified + "\n"
+                    + container + "\n"
                     + entryName + "\n"
                     + declaredSize + "\n"
                     + entry.getCrc();
