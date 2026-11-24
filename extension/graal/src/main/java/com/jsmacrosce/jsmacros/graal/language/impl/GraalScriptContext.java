@@ -86,7 +86,7 @@ public class GraalScriptContext extends BaseScriptContext<Context> {
         }
         try {
             getContext().enter();
-        } catch (PolyglotException failure) {
+        } catch (PolyglotException | IllegalStateException failure) {
             if (isContextClosed()) {
                 throw new BaseScriptContext.ScriptContextClosedException("Context closed");
             }
