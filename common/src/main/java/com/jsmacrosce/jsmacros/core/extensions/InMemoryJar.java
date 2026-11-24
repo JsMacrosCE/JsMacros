@@ -45,10 +45,17 @@ final class InMemoryJar {
     private static final int ZIP64_SENTINEL = 0xffffffff;
 
     /**
-     * Largest entry this reader will hand out. Classes and language files are far smaller; the
-     * bound keeps a corrupt or hostile archive from turning one read into an out-of-memory error.
+     * Largest entry this reader will hand out. Class files and language files are far smaller;
+     * the exception is a nested dependency archive, because that archive is itself an entry of
+     * its extension. GraalPython's language jar is about 84 MiB uncompressed, so the bound has
+     * to leave room above the currently shipped runtimes. It still keeps a corrupt or hostile
+     * archive from turning one read into an out-of-memory error.
+     * <p>
+     * A large data file is a poor fit for this reader: {@link #read} returns the whole inflated
+     * entry as one array. Extensions that need a model or similar asset should download and cache
+     * it themselves instead of embedding it in the jar.
      */
-    private static final int MAX_ENTRY_BYTES = 64 * 1024 * 1024;
+    private static final int MAX_ENTRY_BYTES = 256 * 1024 * 1024;
 
     /** Location, size, and checksum of one archive entry, as declared by the central directory. */
     private record Entry(int method, int dataOffset, int compressedSize, int uncompressedSize, int crc) {
@@ -135,7 +142,8 @@ final class InMemoryJar {
             return null;
         }
         if (entry.uncompressedSize() < 0 || entry.uncompressedSize() > MAX_ENTRY_BYTES) {
-            throw new IOException("Entry " + name + " in " + this.name + " declares an unsupported size");
+            throw new IOException("Entry " + name + " in " + this.name + " declares "
+                    + entry.uncompressedSize() + " bytes, above the " + MAX_ENTRY_BYTES + "-byte limit");
         }
         if (readInt(entry.dataOffset()) != LOCAL_HEADER_SIGNATURE) {
             throw new IOException("Malformed local header for entry " + name + " in " + this.name);
