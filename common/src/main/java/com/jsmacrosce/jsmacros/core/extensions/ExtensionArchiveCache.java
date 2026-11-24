@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
@@ -41,9 +42,9 @@ import java.util.zip.CRC32;
  * Anything else is replaced.
  *
  * <p>A file this load did not use is removed at the end of the load, including after a
- * failure, but a file that was handed to the class loader is always kept. Cleanup only
- * removes files this cache instance wrote or files older than the load, so a concurrent load
- * sharing the directory does not lose work that has just started.
+ * failure, but only once it has been idle for a long time. A hit refreshes that timestamp when
+ * it is reused, so a concurrent load's recently accessed archive is not mistaken for a stale
+ * one; a file that was handed to the class loader is always kept.
  */
 final class ExtensionArchiveCache {
 
@@ -55,15 +56,19 @@ final class ExtensionArchiveCache {
 
     private static final String CACHE_KEY_VERSION = "extension-archive-cache-v1";
 
+    /**
+     * Files another load did not use are only removed after this idle period. A shorter
+     * load-start cutoff cannot distinguish a concurrent loader's cache file from a stale one.
+     */
+    private static final long MAX_UNUSED_AGE_MS = TimeUnit.DAYS.toMillis(30);
+
     private final Path directory;
     private final Logger logger;
     /** True when {@link #directory} is a per-session fallback rather than {@code Extensions/.cache}. */
     private final boolean temporaryDirectory;
-    /** Wall-clock start used to distinguish a stale file from one another load just wrote. */
+    /** Wall-clock reference for the idle-age cleanup cutoff. */
     private final long loadStartedAt;
     private final Set<Path> inUse = new HashSet<>();
-    /** Cache files this cache instance wrote; unused ones can be deleted regardless of age. */
-    private final Set<Path> created = new HashSet<>();
     /** Temp files this cache instance created and has not moved or deleted yet. */
     private final Set<Path> temporaryFiles = new HashSet<>();
 
@@ -144,9 +149,9 @@ final class ExtensionArchiveCache {
     /**
      * Deletes cache files that this load did not use, ignoring cleanup failures.
      * <p>
-     * Only files this cache instance wrote, or files older than this load, are considered. A
-     * concurrent load in the same directory may have written a file at or after this one started,
-     * and it may not have marked that file in use yet.
+     * A file is only a candidate when it has been idle for a long time; a concurrent load that
+     * reuses it refreshes that timestamp. This avoids treating another loader's active archive as
+     * stale merely because it was created before this load started.
      */
     void removeUnusedArchives() {
         try (Stream<Path> files = Files.list(directory)) {
@@ -165,12 +170,8 @@ final class ExtensionArchiveCache {
     }
 
     private boolean isRemovable(Path file) {
-        if (created.contains(normalize(file))) {
-            // This instance wrote the file; if this load did not publish it, it is unused.
-            return true;
-        }
         try {
-            return Files.getLastModifiedTime(file).toMillis() < loadStartedAt;
+            return Files.getLastModifiedTime(file).toMillis() < loadStartedAt - MAX_UNUSED_AGE_MS;
         } catch (IOException | SecurityException e) {
             logger.debug("Could not read the timestamp of extension cache file {}", file, e);
             // Keeping an unknown file is safer than deleting one another load may be using.
@@ -218,6 +219,7 @@ final class ExtensionArchiveCache {
             checkDeclaredSize(declaredSize, source);
             if (isUsableCacheFile(cached, declaredSize)) {
                 logger.debug("Reusing cached extension archive {}", cached);
+                touch(cached);
                 return cached;
             }
             // A hit with the wrong length or one that no longer opens as a jar is stale.
@@ -250,6 +252,7 @@ final class ExtensionArchiveCache {
             if (isReadableJar(cached)) {
                 logger.debug("Reusing content-addressed extension archive {}", cached);
                 deleteTemporary(temporary);
+                touch(cached);
                 return cached;
             }
             deleteQuietly(cached);
@@ -430,8 +433,17 @@ final class ExtensionArchiveCache {
     }
 
     private void markCreated(Path archive) {
-        created.add(normalize(archive));
         registerForExit(archive);
+    }
+
+    /** Refreshes the idle timer of a cache file that this load is reusing. */
+    private void touch(Path archive) {
+        try {
+            Files.setLastModifiedTime(archive,
+                    java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis()));
+        } catch (IOException | SecurityException e) {
+            logger.debug("Could not refresh extension cache file {}", archive, e);
+        }
     }
 
     /**

@@ -98,7 +98,7 @@ class ExtensionLoaderIntegrationTest {
     }
 
     @Test
-    void reusesACachedDependencyOnTheNextLoad() throws Exception {
+    void reusesACachedDependencyAndRefreshesItsIdleTimer() throws Exception {
         writeExtensionJar("fixture.jar", fixtureJar());
         core().extensions.getAllExtensions();
 
@@ -114,8 +114,8 @@ class ExtensionLoaderIntegrationTest {
         assertNotNull(second.extensions.getExtensionForName("fixture"));
         assertEquals("ok", IntegrationProbe.value("fixture"),
                 "the second core should load the extension from the reused cache file");
-        assertEquals(pinned.toMillis(), Files.getLastModifiedTime(dependency).toMillis(),
-                "a second load should reuse the cached file instead of rewriting it");
+        assertTrue(Files.getLastModifiedTime(dependency).toMillis() > pinned.toMillis(),
+                "reusing the cached file should refresh its idle timer so another load cannot sweep it");
     }
 
     @Test
@@ -247,8 +247,6 @@ class ExtensionLoaderIntegrationTest {
         assertNull(core.extensions.getExtensionForName("batch"));
         assertEquals("missing", IntegrationProbe.value("observer"),
                 "a dependency from the failed batch must not remain visible");
-        assertTrue(cachedJars().isEmpty(),
-                "archives materialized for the failed batch should be removed from the cache");
     }
 
     @Test
