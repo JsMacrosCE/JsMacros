@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.core.extensions;
 
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 import com.jsmacrosce.Pair;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.library.BaseLibrary;
@@ -39,12 +40,16 @@ public class ExtensionLoader {
 
     private final Path extPath;
 
+    /** Mod logger, shared with the core's profile; the profile exists before this loader is created. */
+    private final Logger logger;
+
     /** Stores the core and resolves its configured {@code Extensions} directory without loading extensions or creating that directory.
      * @param core associated core with initialized configuration
      */
     public ExtensionLoader(Core<?, ?> core) {
         this.core = core;
         this.extPath = core.config.configFolder.toPath().resolve("Extensions");
+        this.logger = core.profile.LOGGER;
     }
 
     /** Loads extensions if needed, then checks for an exact extension-name match in the registered set.
@@ -171,7 +176,7 @@ public class ExtensionLoader {
      */
     public synchronized void loadExtensions() {
         if (classLoader != null) {
-            System.err.println("Extensions already loaded");
+            logger.debug("Extensions are already loaded; ignoring the repeated request");
             return;
         }
         if (loading) {
@@ -185,7 +190,7 @@ public class ExtensionLoader {
                 addBundledArchives(loader);
 
                 List<Extension> discovered = discover(loader);
-                System.out.println("Discovered " + discovered.size() + " extension providers");
+                logger.debug("Discovered {} extension providers", discovered.size());
 
                 List<Extension> ordered = deduplicate(discovered);
 
@@ -195,7 +200,7 @@ public class ExtensionLoader {
                 }
                 // Report what was actually registered: a discovered extension can still be skipped
                 // when its dependencies or its init fail.
-                System.out.println("Loaded " + extensions.size() + " extensions");
+                logger.info("Loaded {} extensions", extensions.size());
             } catch (Exception e) {
                 if (loader != null) {
                     try {
@@ -271,7 +276,7 @@ public class ExtensionLoader {
         }
         for (URL archive : archives) {
             String name = fileName(archive);
-            System.out.println("Adding bundled extension archive: " + name);
+            logger.debug("Adding bundled extension archive: {}", name);
             loader.addMemoryJar(name, readAll(archive));
         }
     }
@@ -321,8 +326,8 @@ public class ExtensionLoader {
             }
             Extension kept = byName.putIfAbsent(name, extension);
             if (kept != null) {
-                System.out.println("Ignoring duplicate extension '" + name + "' from "
-                        + extension.getClass().getName() + "; already loaded " + kept.getClass().getName());
+                logger.warn("Ignoring duplicate extension '{}' from {}; already loaded {}",
+                        name, extension.getClass().getName(), kept.getClass().getName());
             }
         }
         return new ArrayList<>(byName.values());
@@ -375,7 +380,7 @@ public class ExtensionLoader {
     private void loadDependencies(Extension extension, ExtensionClassLoader loader) throws IOException {
         Set<URL> dependencies = extension.getDependencies();
         if (dependencies.isEmpty()) {
-            System.out.println("No dependencies for extension: " + extension.getClass().getName());
+            logger.debug("No dependencies for extension: {}", extension.getClass().getName());
             return;
         }
         List<InMemoryJar> batch = new ArrayList<>();
@@ -383,7 +388,7 @@ public class ExtensionLoader {
             batch.add(new InMemoryJar(readAll(dependency), fileName(dependency)));
         }
         for (InMemoryJar jar : batch) {
-            System.out.println("Adding dependency " + jar.name() + " for extension " + extension.getExtensionName());
+            logger.debug("Adding dependency {} for extension {}", jar.name(), extension.getExtensionName());
             loader.addMemoryJar(jar);
         }
     }
@@ -419,9 +424,10 @@ public class ExtensionLoader {
      * @param error   the failure, or {@code null} when there is none
      */
     private void report(String message, Throwable error) {
-        System.err.println("[JsMacrosExtensionManager] " + message + (error == null ? "" : ": " + error));
-        if (error != null) {
-            error.printStackTrace();
+        if (error == null) {
+            logger.warn(message);
+        } else {
+            logger.warn(message, error);
         }
     }
 
