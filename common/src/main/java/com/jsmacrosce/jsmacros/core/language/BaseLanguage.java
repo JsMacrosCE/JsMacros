@@ -208,10 +208,14 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
                 if (failure instanceof BaseScriptContext.ScriptContextClosedException) {
                     return;
                 }
-                // The failure handler can be a callback of the same closed run.
+                // The failure handler can be a callback of the same closed run. It cannot
+                // receive the failure, but a real failure must still reach the profile.
                 if (catcher instanceof MethodWrapper<?, ?, ?, ?> wrapper
                         && wrapper.getCtx() != null
                         && wrapper.getCtx().isContextClosed()) {
+                    if (!wrapper.getCtx().isScriptStopException(failure)) {
+                        runner.profile.logError(failure);
+                    }
                     return;
                 }
                 try {
