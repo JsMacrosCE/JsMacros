@@ -49,7 +49,7 @@
         An extension is loaded from that folder when it is first needed. Dependency jars inside an extension jar, and
         extensions bundled with the mod, are extracted into a cache folder under the Extensions folder; a jar you place
         in that folder is loaded in place. The loader reuses the cache across loads and game sessions and cleans it up
-        itself.
+        itself. The old <code>tmp</code> extraction folder from previous versions is removed automatically.
         <br>
         <br>
         The folder is scanned once per game session, so adding or replacing an extension jar requires restarting the

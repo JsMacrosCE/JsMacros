@@ -162,6 +162,21 @@ class ExtensionLoaderIntegrationTest {
     }
 
     @Test
+    void removesTheLegacyTmpDirectory() throws Exception {
+        writeExtensionJar("fixture.jar", fixtureJar());
+        Path legacy = workDir.resolve("Extensions").resolve("tmp");
+        Files.createDirectories(legacy.resolve("nested"));
+        Files.writeString(legacy.resolve("old.jar"), "old extraction");
+        Files.writeString(legacy.resolve("nested/stale.txt"), "stale");
+
+        Core<ProfileStub, EventRegistryStub> core = core();
+
+        assertNotNull(core.extensions.getExtensionForName("fixture"));
+        assertFalse(Files.exists(legacy),
+                "the old extraction directory has served its purpose and should be removed");
+    }
+
+    @Test
     void fallsBackToATemporaryCacheWhenTheCachePathIsAFile() throws Exception {
         writeExtensionJar("fixture.jar", fixtureJar());
         Files.write(workDir.resolve("Extensions").resolve(".cache"),

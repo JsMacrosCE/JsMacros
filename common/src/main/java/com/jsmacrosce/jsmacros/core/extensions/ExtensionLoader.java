@@ -9,8 +9,12 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -47,6 +51,9 @@ public class ExtensionLoader {
     private boolean loading;
 
     private final Path extPath;
+
+    /** Directory the previous loader unpacked extensions into; removed on load with no migration. */
+    private static final String LEGACY_TMP_DIRECTORY = "tmp";
 
     /** Mod logger, shared with the core's profile; the profile exists before this loader is created. */
     private final Logger logger;
@@ -203,6 +210,7 @@ public class ExtensionLoader {
         ExtensionClassLoader loader = null;
         try {
             cache = ExtensionArchiveCache.open(extPath, logger);
+            removeLegacyTemporaryDirectory();
 
             List<Path> bundledArchives = extractBundledArchives(cache);
             List<URL> searchPath = new ArrayList<>();
@@ -254,6 +262,39 @@ public class ExtensionLoader {
 
         classLoader = loader;
         loadingDone = true;
+    }
+
+    /**
+     * Deletes the directory the previous extraction-based loader wrote into. Its contents were
+     * copies of extension jars, so there is nothing to migrate; the new cache replaces it. A
+     * failure is reported and does not prevent extensions from loading.
+     */
+    private void removeLegacyTemporaryDirectory() {
+        Path legacy = extPath.resolve(LEGACY_TMP_DIRECTORY);
+        if (!Files.exists(legacy, LinkOption.NOFOLLOW_LINKS)) {
+            return;
+        }
+        try {
+            Files.walkFileTree(legacy, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path directory, IOException failure) throws IOException {
+                    if (failure != null) {
+                        throw failure;
+                    }
+                    Files.delete(directory);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+            logger.info("Removed the old extension extraction directory {}", legacy);
+        } catch (IOException | SecurityException e) {
+            logger.warn("Could not remove the old extension extraction directory {}", legacy, e);
+        }
     }
 
     /**
