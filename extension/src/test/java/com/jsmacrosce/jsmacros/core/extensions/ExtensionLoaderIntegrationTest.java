@@ -277,6 +277,22 @@ class ExtensionLoaderIntegrationTest {
         assertEquals(1, IntegrationProbe.count("fixture"), "a second load should not re-initialize an extension");
     }
 
+    @Test
+    void notifiesRegisteredExtensionsAfterLaterDependenciesAreAvailable() throws Exception {
+        writeExtensionJar("a-post-load.jar", postLoadJar());
+        writeExtensionJar("b-fixture.jar", fixtureJar());
+        Core<ProfileStub, EventRegistryStub> core = core();
+
+        core.extensions.loadExtensions();
+        core.extensions.loadExtensions();
+
+        assertEquals("ok", IntegrationProbe.value("post-load"),
+                "the callback should see later extensions and their nested dependencies");
+        assertEquals(1, IntegrationProbe.count("post-load"));
+        assertNotNull(core.extensions.getExtensionForName("post-load"),
+                "a failing post-load callback should leave the extension registered");
+    }
+
     private Core<ProfileStub, EventRegistryStub> core() {
         return CoreInstanceCreator.createIsolatedCore(workDir.toFile());
     }
@@ -318,6 +334,30 @@ class ExtensionLoaderIntegrationTest {
                 entry("jsmacrosce.ext.fixture.json",
                         "{\"dependencies\": [\"META-INF/jsmacroscedeps/dependency.jar\"]}".getBytes(StandardCharsets.UTF_8)),
                 entry("META-INF/jsmacroscedeps/dependency.jar", dependency)
+        );
+    }
+
+    private byte[] postLoadJar() throws Exception {
+        return archive(
+                entry(SERVICE_FILE, "com.example.fixture.PostLoad\n".getBytes(StandardCharsets.UTF_8)),
+                entry("com/example/fixture/PostLoad.class", extensionClass("com.example.fixture.PostLoad",
+                        "public java.lang.String getExtensionName() { return \"post-load\"; }",
+                        "public void init(com.jsmacrosce.jsmacros.core.Core runner) {}",
+                        """
+                        public void onExtensionsLoaded(com.jsmacrosce.jsmacros.core.Core runner) {
+                            if (runner.extensions.notLoaded() || !runner.extensions.isExtensionLoaded("fixture")) {
+                                throw new java.lang.IllegalStateException("extensions are still loading");
+                            }
+                            try {
+                                java.lang.Class.forName("com.example.dep.Marker", true,
+                                        java.lang.Thread.currentThread().getContextClassLoader());
+                            } catch (java.lang.ClassNotFoundException e) {
+                                throw new java.lang.RuntimeException(e);
+                            }
+                            com.jsmacrosce.jsmacros.core.extensions.IntegrationProbe.record("post-load", "ok");
+                            throw new java.lang.RuntimeException("post-load callback failed on purpose");
+                        }
+                        """))
         );
     }
 

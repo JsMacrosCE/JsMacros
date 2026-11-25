@@ -20,12 +20,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @DocletIgnore
 public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptContext> {
     private static volatile Engine engine = null;
-    public static final boolean isJsInstalled;
     /**
      * Shared host lookup for Graal contexts, preserving reflection lookup and
      * legacy package aliases while exposing extension-owned adapter dependencies.
@@ -35,18 +35,9 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
             GraalLanguageDefinition.class.getClassLoader(),
             FReflection::redirectWagYourTail);
 
-    static {
-        // Create a temporary engine just to check available languages
-        try (Engine tempEngine = Engine.newBuilder()
-                .option("engine.WarnInterpreterOnly", "false")
-                .build()) {
-            isJsInstalled = tempEngine.getLanguages().containsKey("js");
-        }
-    }
-
     public GraalLanguageDefinition(Extension extension, Core<?, ?> runner) {
         super(extension, runner);
-        engine = getOrCreateEngine(runner);
+        getOrCreateEngine(runner);
     }
 
     public static Engine getOrCreateEngine(Core<?, ?> runner) {
@@ -60,7 +51,8 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
                     .option("engine.WarnInterpreterOnly", "false");
 
             final GraalConfig conf = runner.config.getOptions(GraalConfig.class);
-            for (Map.Entry<String, String> e2 : conf.extraEngineOptions.entrySet()) {
+            Map<String, String> options = conf.extraEngineOptions == null ? Map.of() : conf.extraEngineOptions;
+            for (Map.Entry<String, String> e2 : options.entrySet()) {
                 try {
                     b.option(e2.getKey(), e2.getValue());
                     runner.profile.LOGGER.info("Added GraalVM engine option from config: {} = {}", e2.getKey(), e2.getValue());
@@ -73,8 +65,40 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
         }
     }
 
-    protected Context buildContext(File currentDir, String lang, Map<String, String> extraLangOptions, Map<String, Object> globals, Map<String, BaseLibrary> libs) throws IOException {
+    public static void warmUp(Core<?, ?> runner) {
+        try {
+            GraalConfig config = runner.config.getOptions(GraalConfig.class);
+            // Custom options can start instruments (such as the debugger) or change what a
+            // language runs at initialization. Leave those setups to the first real script.
+            if (hasOptions(config.extraEngineOptions)
+                    || System.getProperties().stringPropertyNames().stream().anyMatch(key -> key.startsWith("polyglot."))) {
+                return;
+            }
+            Engine sharedEngine = getOrCreateEngine(runner);
+            for (String lang : List.of("js", "python")) {
+                Map<String, String> options = config.extraLangOptions == null ? null : config.extraLangOptions.get(lang);
+                if (!sharedEngine.getLanguages().containsKey(lang) || hasOptions(options)) {
+                    continue;
+                }
+                try (Context context = contextBuilder(runner, sharedEngine, null, lang, Map.of()).build()) {
+                    context.initialize(lang);
+                } catch (IOException | RuntimeException | LinkageError failure) {
+                    runner.profile.LOGGER.warn("Could not warm up Graal language '{}'; scripts can still initialize it on demand", lang, failure);
+                    continue;
+                }
+                runner.profile.LOGGER.debug("Warmed up Graal language '{}'", lang);
+            }
+        } catch (RuntimeException | LinkageError failure) {
+            runner.profile.LOGGER.warn("Could not warm up the Graal engine; scripts can still initialize it on demand", failure);
+        }
+    }
 
+    private static boolean hasOptions(Map<String, String> options) {
+        return options != null && !options.isEmpty();
+    }
+
+    private static Builder contextBuilder(Core<?, ?> runner, Engine engine, File currentDir, String lang,
+                                          Map<String, String> extraLangOptions) throws IOException {
         Builder build = Context.newBuilder()
                 .engine(engine)
                 .allowAllAccess(true)
@@ -96,17 +120,19 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
         }
         build.currentWorkingDirectory(currentDir.toPath().toAbsolutePath());
 
-        if (isJsInstalled && lang.equals("js")) {
+        if (lang.equals("js")) {
             build.option("js.commonjs-require", "true");
             build.option("js.commonjs-require-cwd", currentDir.getCanonicalPath());
         }
 
-        final Context con = build.build();
+        return build;
+    }
 
-        // Set Bindings
-        final Value binds = con.getBindings(lang);
+    protected Context buildContext(File currentDir, String lang, Map<String, String> extraLangOptions, Map<String, Object> globals, Map<String, BaseLibrary> libs) throws IOException {
+        final Context con = contextBuilder(runner, engine, currentDir, lang, extraLangOptions).build();
 
         try {
+            final Value binds = con.getBindings(lang);
             if (globals != null) {
                 globals.forEach(binds::putMember);
             }
@@ -141,7 +167,7 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
         Map<String, BaseLibrary> lib = retrieveLibs(ctx.getCtx());
         String lang = Source.findLanguage(ctx.getCtx().getFile());
         if (!engine.getLanguages().containsKey(lang)) {
-            if (isJsInstalled) {
+            if (engine.getLanguages().containsKey("js")) {
                 lang = "js";
             } else {
                 lang = engine.getLanguages().keySet().stream().findFirst().orElseThrow(() -> new RuntimeException("No GraalVM languages installed!"));
@@ -187,7 +213,7 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
         Map<String, BaseLibrary> lib = retrieveLibs(ctx.getCtx());
         lang = Source.findLanguage(new File(lang.startsWith(".") ? lang : "." + lang));
         if (!engine.getLanguages().containsKey(lang)) {
-            if (isJsInstalled) {
+            if (engine.getLanguages().containsKey("js")) {
                 lang = "js";
             } else {
                 lang = engine.getLanguages().keySet().stream().findFirst().orElseThrow(() -> new RuntimeException("No GraalVM languages installed!"));
