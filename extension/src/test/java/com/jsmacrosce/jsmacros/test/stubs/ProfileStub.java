@@ -43,9 +43,6 @@ public class ProfileStub extends BaseProfile {
     @Override
     public void logError(Throwable ex) {
         errors.add(ex);
-        // Format directly rather than through Core.wrapException: wrapping consults the loaded
-        // language extensions, and logging an error must not trigger extension loading or depend
-        // on which core this profile belongs to.
         LOGGER.error(ThrowableFormatter.format(ex), ex);
     }
 
