@@ -12,8 +12,6 @@ import io.netty.buffer.Unpooled;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
-import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.*;
 import net.minecraft.core.registries.Registries;
@@ -26,8 +24,21 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.PacketType;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
+import net.minecraft.network.protocol.common.CommonPacketTypes;
 import net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket;
+import net.minecraft.network.protocol.configuration.ConfigurationPacketTypes;
+import net.minecraft.network.protocol.configuration.ConfigurationProtocols;
+import net.minecraft.network.protocol.cookie.CookiePacketTypes;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.GamePacketTypes;
+import net.minecraft.network.protocol.game.GameProtocols;
+import net.minecraft.network.protocol.handshake.HandshakePacketTypes;
+import net.minecraft.network.protocol.handshake.HandshakeProtocols;
+import net.minecraft.network.protocol.login.LoginPacketTypes;
+import net.minecraft.network.protocol.login.LoginProtocols;
+import net.minecraft.network.protocol.ping.PingPacketTypes;
+import net.minecraft.network.protocol.status.StatusPacketTypes;
+import net.minecraft.network.protocol.status.StatusProtocols;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.ChunkPos;
@@ -55,6 +66,7 @@ import com.jsmacrosce.jsmacros.util.ChunkPosCompat;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.security.PublicKey;
 import java.time.Instant;
@@ -100,8 +112,14 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * the matching codec directly.
      */
     public static final Map<Class<? extends Packet<?>>, Function<FriendlyByteBuf, ? extends Packet<?>>> BUFFER_TO_PACKET = new HashMap<>();
-    private static final Object2BooleanMap<Class<? extends Packet<?>>> PACKET_SIDES = new Object2BooleanArrayMap<>();
-    private static final Map<Class<? extends Packet<?>>, Map<ConnectionProtocol, Integer>> PACKET_IDS_BY_PROTOCOL = new HashMap<>();
+    /**
+     * What the game reports about each packet class, gathered once by {@link #init()}.
+     * <p>
+     * Cached rather than reflected per use because packet classes, phases, directions and codecs
+     * are fixed for a running game, and packet events are frequent enough that walking fields for
+     * every send and receive would be wasted work.
+     */
+    private static final Map<Class<? extends Packet<?>>, PacketInfo> PACKET_INFO = new HashMap<>();
     /**
      * These names are subject to change and only exist for convenience.
      */
@@ -171,17 +189,10 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         base.markWriterIndex();
 
         // Bundles do not have standalone codecs and cannot be serialized here.
-        try {
-            Class<?> packetClass = packet.getClass();
-            Field codecField = findCodecField(packetClass, protocol);
-
-            if (codecField == null) throw new IllegalArgumentException("Packet has no standalone codec: " + packetClass);
-            StreamCodec<FriendlyByteBuf, Packet<?>> codec =
-                    (StreamCodec<FriendlyByteBuf, Packet<?>>) codecField.get(null);
-            codec.encode(base, packet);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
+        Class<?> packetClass = packet.getClass();
+        StreamCodec<ByteBuf, Packet<?>> codec = codecFor(packetClass, resolveProtocol(protocol));
+        if (codec == null) throw new IllegalArgumentException("Packet has no standalone codec: " + packetClass);
+        codec.encode(base, packet);
 
         this.original = base.copy();
         this.originalRegistryAccess = base instanceof RegistryFriendlyByteBuf registryBuffer ? registryBuffer.registryAccess() : null;
@@ -275,15 +286,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      */
     public Packet<?> toPacket(Class<? extends Packet> clazz, String protocol) {
         getPacketId((Class<? extends Packet<?>>) clazz, protocol);
-        Field field = findCodecField(clazz, protocol);
-        if (field == null) throw new IllegalArgumentException("Packet has no supported codec: " + clazz);
-        try {
-            StreamCodec<FriendlyByteBuf, ? extends Packet<?>> codec =
-                    (StreamCodec<FriendlyByteBuf, ? extends Packet<?>>) field.get(null);
-            return codec.decode(base);
-        } catch (IllegalAccessException e) {
-            throw new IllegalStateException("Cannot read packet codec for " + clazz, e);
-        }
+        StreamCodec<ByteBuf, Packet<?>> codec = codecFor(clazz, resolveProtocol(protocol));
+        if (codec == null) throw new IllegalArgumentException("Packet has no supported codec: " + clazz);
+        return codec.decode(base);
     }
 
     /**
@@ -297,8 +302,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public int getPacketId(Class<? extends Packet<?>> packetClass) {
-        Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packetClass);
-        if (ids == null || ids.isEmpty()) throw new IllegalArgumentException("Unknown packet: " + packetClass);
+        Map<ConnectionProtocol, Integer> ids = idsFor(packetClass);
         if (ids.size() != 1) throw new IllegalArgumentException("Packet occurs in multiple protocols; use getPacketId(packetClass, protocol): " + packetClass);
         return ids.values().iterator().next();
     }
@@ -311,9 +315,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @return the registered packet ID
      */
     public int getPacketId(Class<? extends Packet<?>> packetClass, String protocol) {
-        Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packetClass);
+        Map<ConnectionProtocol, Integer> ids = idsFor(packetClass);
         ConnectionProtocol phase = resolveProtocol(protocol);
-        if (ids == null || !ids.containsKey(phase)) throw new IllegalArgumentException("Packet is not registered in " + protocol + ": " + packetClass);
+        if (!ids.containsKey(phase)) throw new IllegalArgumentException("Packet is not registered in " + protocol + ": " + packetClass);
         return ids.get(phase);
     }
 
@@ -332,8 +336,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public int getNetworkStateId(Class<? extends Packet<?>> packetClass) {
-        Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packetClass);
-        if (ids == null || ids.isEmpty()) throw new IllegalArgumentException("Unknown packet: " + packetClass);
+        Map<ConnectionProtocol, Integer> ids = idsFor(packetClass);
         if (ids.size() != 1) throw new IllegalArgumentException("Packet occurs in multiple protocols; use getNetworkStateId(packetClass, protocol): " + packetClass);
         return ids.keySet().iterator().next().ordinal();
     }
@@ -346,9 +349,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @return the requested protocol's ordinal
      */
     public int getNetworkStateId(Class<? extends Packet<?>> packetClass, String protocol) {
-        Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packetClass);
+        Map<ConnectionProtocol, Integer> ids = idsFor(packetClass);
         ConnectionProtocol phase = resolveProtocol(protocol);
-        if (ids == null || !ids.containsKey(phase)) throw new IllegalArgumentException("Packet is not registered in " + protocol + ": " + packetClass);
+        if (!ids.containsKey(phase)) throw new IllegalArgumentException("Packet is not registered in " + protocol + ": " + packetClass);
         return phase.ordinal();
     }
 
@@ -365,8 +368,9 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @since 1.8.4
      */
     public boolean isClientbound(Class<? extends Packet<?>> packetClass) {
-        if (!PACKET_SIDES.containsKey(packetClass)) throw new IllegalArgumentException("Unknown packet: " + packetClass);
-        return PACKET_SIDES.getBoolean(packetClass);
+        PacketInfo info = PACKET_INFO.get(packetClass);
+        if (info == null) throw new IllegalArgumentException("Unknown packet: " + packetClass);
+        return info.type().flow() == PacketFlow.CLIENTBOUND;
     }
 
     /**
@@ -2386,75 +2390,181 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
         registerPacketCodecsAndMetadata();
     }
 
+    /**
+     * A packet class together with where the game registers it and how it is encoded.
+     * <p>
+     * Ids and codecs are recorded per network phase. The packet type supplies the direction.
+     * The bundle delimiter packet is registered without a codec, so a codecs map can be empty.
+     */
+    private record PacketInfo(
+            PacketType<?> type,
+            Map<ConnectionProtocol, Integer> ids,
+            Map<ConnectionProtocol, StreamCodec<? extends ByteBuf, ? extends Packet<?>>> codecs) {
+        PacketInfo(PacketType<?> type) {
+            this(type, new EnumMap<>(ConnectionProtocol.class), new EnumMap<>(ConnectionProtocol.class));
+        }
+    }
+
+    /**
+     * Collects packet ids, directions and standalone codecs from the game's protocol definitions
+     * once at startup.
+     * <p>
+     * Nothing here may depend on Mojang class or field names: production Fabric remaps those to
+     * intermediary names, while string literals such as {@code "net.minecraft...HandshakePacketTypes"}
+     * or the field name {@code STREAM_CODEC} keep their spelling and fail. Class literals are
+     * remapped by the loader, protocol templates are recognised by their
+     * {@link ProtocolInfo.DetailsProvider} type, and packet codecs by their generic signature,
+     * which also survives remapping.
+     */
     private static void registerPacketCodecsAndMetadata() {
-        String root = "net.minecraft.network.protocol.";
-        String[] phases = {"handshake", "status", "login", "configuration", "game"};
+        Map<PacketType<?>, Class<? extends Packet<?>>> classes = packetClasses();
+        Class<?>[] protocols = {
+                HandshakeProtocols.class,
+                StatusProtocols.class,
+                LoginProtocols.class,
+                ConfigurationProtocols.class,
+                GameProtocols.class
+        };
+        try {
+            for (Class<?> protocolClass : protocols) {
+                for (Field template : protocolClass.getFields()) {
+                    if (!ProtocolInfo.DetailsProvider.class.isAssignableFrom(template.getType())) continue;
+                    ProtocolInfo.Details details = ((ProtocolInfo.DetailsProvider) template.get(null)).details();
+                    // SimpleUnboundProtocol<T, B> and UnboundProtocol<T, B, C> both name the
+                    // phase's buffer as the template's second type argument.
+                    Class<?> phaseBuffer = typeArgument(template, 1);
+                    details.listPackets((type, id) -> {
+                        Class<? extends Packet<?>> packetClass = classes.get(type);
+                        if (packetClass == null) return;
+                        PacketInfo info = PACKET_INFO.computeIfAbsent(packetClass, key -> new PacketInfo(type));
+                        info.ids().put(details.id(), id);
+                        StreamCodec<? extends ByteBuf, ? extends Packet<?>> codec = selectCodec(packetClass, phaseBuffer);
+                        if (codec != null) info.codecs().putIfAbsent(details.id(), codec);
+                    });
+                }
+            }
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Cannot read packet protocols", e);
+        }
+        for (Map.Entry<Class<? extends Packet<?>>, PacketInfo> entry : PACKET_INFO.entrySet()) {
+            StreamCodec<ByteBuf, Packet<?>> codec = codecFor(entry.getKey(), ConnectionProtocol.PLAY);
+            if (codec != null) BUFFER_TO_PACKET.put(entry.getKey(), codec::decode);
+        }
+    }
+
+    /**
+     * Maps every advertised packet type to the packet class it creates. The class comes from the
+     * {@code PacketType<PacketClass>} field's generic signature, because production Fabric
+     * remaps the field name itself.
+     */
+    private static Map<PacketType<?>, Class<? extends Packet<?>>> packetClasses() {
+        Class<?>[] types = {
+                HandshakePacketTypes.class,
+                StatusPacketTypes.class,
+                LoginPacketTypes.class,
+                ConfigurationPacketTypes.class,
+                GamePacketTypes.class,
+                CommonPacketTypes.class,
+                CookiePacketTypes.class,
+                PingPacketTypes.class
+        };
         Map<PacketType<?>, Class<? extends Packet<?>>> classes = new HashMap<>();
-        String[] typePackages = {"handshake", "status", "login", "configuration", "game", "common", "cookie", "ping"};
-        for (String phase : typePackages) {
+        for (Class<?> typeClass : types) {
             try {
-                Class<?> types = Class.forName(root + phase + "." + switch (phase) {
-                    case "game" -> "GamePacketTypes";
-                    default -> Character.toUpperCase(phase.charAt(0)) + phase.substring(1) + "PacketTypes";
-                });
-                for (Field field : types.getFields()) {
+                for (Field field : typeClass.getFields()) {
                     if (!(field.getGenericType() instanceof ParameterizedType generic) ||
                             !(generic.getActualTypeArguments()[0] instanceof Class<?> packetClass) ||
                             !Packet.class.isAssignableFrom(packetClass)) continue;
                     classes.put((PacketType<?>) field.get(null), (Class<? extends Packet<?>>) packetClass);
                 }
             } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException("Cannot read packet types for " + phase, e);
+                throw new IllegalStateException("Cannot read packet types for " + typeClass.getName(), e);
             }
         }
-        for (String phase : phases) {
+        return classes;
+    }
+
+    /**
+     * Selects the packet's own static codec that the given phase can actually use.
+     * <p>
+     * A packet may declare several codecs because the same packet can exist in more than one
+     * phase with a different buffer type, as {@code ClientboundCustomPayloadPacket} does. The
+     * phase buffer comes from the protocol template, so a codec is usable only when its declared
+     * buffer can accept that buffer; among usable codecs the most specific buffer wins. This
+     * rejects, for example, the configuration codec of a play packet instead of merely ranking it
+     * lower.
+     */
+    @Nullable
+    private static StreamCodec<? extends ByteBuf, ? extends Packet<?>> selectCodec(Class<?> clazz, @Nullable Class<?> phaseBuffer) {
+        if (phaseBuffer == null) return null;
+        StreamCodec<? extends ByteBuf, ? extends Packet<?>> best = null;
+        int bestDistance = Integer.MAX_VALUE;
+        for (Field field : clazz.getFields()) {
+            if (!Modifier.isStatic(field.getModifiers()) || !StreamCodec.class.isAssignableFrom(field.getType())) continue;
+            if (typeArgument(field, 1) != clazz) continue;
+            int distance = supertypeDistance(phaseBuffer, typeArgument(field, 0));
+            if (distance < 0 || distance >= bestDistance) continue;
             try {
-                Class<?> protocols = Class.forName(root + phase + "." + switch (phase) {
-                    case "game" -> "GameProtocols";
-                    default -> Character.toUpperCase(phase.charAt(0)) + phase.substring(1) + "Protocols";
-                });
-                for (Field field : protocols.getFields()) {
-                    if (!field.getName().endsWith("_TEMPLATE")) continue;
-                    ProtocolInfo.Details details = ((ProtocolInfo.DetailsProvider) field.get(null)).details();
-                    details.listPackets((type, index) -> {
-                        Class<? extends Packet<?>> packetClass = classes.get(type);
-                        if (packetClass == null) return;
-                        PACKET_IDS_BY_PROTOCOL.computeIfAbsent(packetClass, key -> new EnumMap<>(ConnectionProtocol.class))
-                                .put(details.id(), index);
-                        PACKET_SIDES.put(packetClass, details.flow() == PacketFlow.CLIENTBOUND);
-                    });
-                }
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException("Cannot read packet protocols for " + phase, e);
-            }
-        }
-        for (Class<? extends Packet<?>> clazz : classes.values()) {
-            try {
-                Field codecField = findCodecField(clazz, "play");
-                if (codecField == null) continue;
-                StreamCodec<FriendlyByteBuf, ? extends Packet<?>> codec = (StreamCodec<FriendlyByteBuf, ? extends Packet<?>>) codecField.get(null);
-                BUFFER_TO_PACKET.put(clazz, codec::decode);
+                best = (StreamCodec<? extends ByteBuf, ? extends Packet<?>>) field.get(null);
+                bestDistance = distance;
             } catch (IllegalAccessException e) {
                 throw new IllegalStateException("Cannot read codec for " + clazz, e);
             }
         }
+        return best;
+    }
+
+    /**
+     * How many supertypes separate {@code type} from {@code supertype}, or {@code -1} when a
+     * {@code type} value cannot be passed where a {@code supertype} is expected. Used to prefer
+     * the most specific codec buffer, so one declared for {@link FriendlyByteBuf} beats one
+     * declared for {@link ByteBuf} when both would work.
+     */
+    private static int supertypeDistance(Class<?> type, @Nullable Class<?> supertype) {
+        if (supertype == null) return -1;
+        Deque<Class<?>> pending = new ArrayDeque<>();
+        Set<Class<?>> seen = new HashSet<>();
+        pending.add(type);
+        int distance = 0;
+        while (!pending.isEmpty()) {
+            for (int i = pending.size(); i > 0; i--) {
+                Class<?> current = pending.removeFirst();
+                if (!seen.add(current)) continue;
+                if (current == supertype) return distance;
+                if (current.getSuperclass() != null) pending.addLast(current.getSuperclass());
+                Collections.addAll(pending, current.getInterfaces());
+            }
+            distance++;
+        }
+        return -1;
     }
 
     @Nullable
-    private static Field findCodecField(Class<?> clazz, String protocol) {
-        String preferred = null;
-        if (protocol.equalsIgnoreCase("configuration")) {
-            if (clazz == ClientboundCustomPayloadPacket.class) preferred = "CONFIG_STREAM_CODEC";
-            else if (clazz.getSimpleName().equals("ClientboundShowDialogPacket")) preferred = "CONTEXT_FREE_STREAM_CODEC";
-        } else if (clazz == ClientboundCustomPayloadPacket.class) {
-            preferred = "GAMEPLAY_STREAM_CODEC";
-        }
-        String codecName = preferred;
-        return Arrays.stream(clazz.getFields())
-                .filter(field -> StreamCodec.class.isAssignableFrom(field.getType()))
-                .filter(field -> field.getName().equals("STREAM_CODEC") || field.getName().equals(codecName))
-                .sorted(Comparator.comparingInt(field -> field.getName().equals(codecName) ? 0 : 1))
-                .findFirst().orElse(null);
+    private static Class<?> typeArgument(Field field, int index) {
+        if (!(field.getGenericType() instanceof ParameterizedType type) ||
+                type.getActualTypeArguments().length <= index ||
+                !(type.getActualTypeArguments()[index] instanceof Class<?> argument)) return null;
+        return argument;
+    }
+
+    /**
+     * Returns the codec registered for a phase, or {@code null} when the packet has none there.
+     * <p>
+     * The cast hides that a codec may require a buffer narrower than {@link ByteBuf}: callers
+     * must pass the buffer of the phase the codec was selected for.
+     */
+    @Nullable
+    @SuppressWarnings("unchecked")
+    private static StreamCodec<ByteBuf, Packet<?>> codecFor(Class<?> clazz, ConnectionProtocol phase) {
+        PacketInfo info = PACKET_INFO.get(clazz);
+        if (info == null) return null;
+        return (StreamCodec<ByteBuf, Packet<?>>) info.codecs().get(phase);
+    }
+
+    private static Map<ConnectionProtocol, Integer> idsFor(Class<?> packetClass) {
+        PacketInfo info = PACKET_INFO.get(packetClass);
+        if (info == null || info.ids().isEmpty()) throw new IllegalArgumentException("Unknown packet: " + packetClass);
+        return info.ids();
     }
 
     private static ConnectionProtocol resolveProtocol(String protocol) {
@@ -2477,8 +2587,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
     public static boolean canSerialize(@Nullable Packet<?> packet) {
         if (packet == null) return false;
         try {
-            String protocol = preferredProtocol(packet, mc.getConnection() == null ? null : mc.getConnection().protocol());
-            return findCodecField(packet.getClass(), protocol) != null;
+            return codecFor(packet.getClass(), preferredPhase(packet, mc.getConnection() == null ? null : mc.getConnection().protocol())) != null;
         } catch (IllegalArgumentException e) {
             return false;
         }
@@ -2494,10 +2603,13 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @return the selected phase identifier
      */
     public static String preferredProtocol(Packet<?> packet, @Nullable ConnectionProtocol current) {
-        Map<ConnectionProtocol, Integer> ids = PACKET_IDS_BY_PROTOCOL.get(packet.getClass());
-        if (ids == null || ids.isEmpty()) throw new IllegalArgumentException("Unknown packet: " + packet.getClass());
-        if (current != null && ids.containsKey(current)) return current.id();
-        if (ids.size() == 1) return ids.keySet().iterator().next().id();
+        return preferredPhase(packet, current).id();
+    }
+
+    private static ConnectionProtocol preferredPhase(Packet<?> packet, @Nullable ConnectionProtocol current) {
+        Map<ConnectionProtocol, Integer> ids = idsFor(packet.getClass());
+        if (current != null && ids.containsKey(current)) return current;
+        if (ids.size() == 1) return ids.keySet().iterator().next();
         throw new IllegalArgumentException("Packet occurs in multiple protocols; specify its phase: " + packet.getClass());
     }
 
