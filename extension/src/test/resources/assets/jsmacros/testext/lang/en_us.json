@@ -1,0 +1,4 @@
+{
+  "testext.key": "legacy value",
+  "testext.legacyOnly": "must not be loaded"
+}

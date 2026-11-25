@@ -78,7 +78,16 @@ val testSiteMetadata by tasks.registering(JavaExec::class) {
 }
 
 tasks.named("check") {
-    dependsOn(testDocBodyRenderer, testTsRenderer, testExternalTypeLinks, testDocletLinks, testSiteMetadata, "testMarkdownWriter", "testDistribution", "testExternalJavadocIndexes")
+    dependsOn(testDocBodyRenderer, testTsRenderer, testExternalTypeLinks, testDocletLinks, testSiteMetadata, "testMarkdownWriter", "testDistribution", "testExternalJavadocIndexes", "testDependencyManifest")
+}
+
+tasks.register<JavaExec>("testDependencyManifest") {
+    group = "verification"
+    description = "Checks generated dependency manifests, incremental inputs and packaged entries"
+    dependsOn(tasks.named("testClasses"), tasks.named("pluginUnderTestMetadata"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("DependencyManifestTestKt")
+    args(layout.buildDirectory.dir("dependency-manifest-tests").get().asFile.absolutePath)
 }
 
 tasks.register<JavaExec>("testExternalJavadocIndexes") {

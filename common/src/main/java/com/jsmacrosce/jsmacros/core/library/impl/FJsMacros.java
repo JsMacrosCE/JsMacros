@@ -107,9 +107,15 @@ public class FJsMacros extends PerExecLibrary {
      * <p>
      * For a running service, its stop callbacks and configured resource cleanup also run. If
      * called from a service stop callback, that callback finishes as shutdown is already underway.
+     * Everywhere else the call does not return to the script: it throws
+     * {@link BaseScriptContext.ScriptContextClosedException}, whether this call or another thread
+     * started the shutdown, so a statement after {@code stopScript()} cannot run.
      */
     public void stopScript() {
-        if (!ctx.beginScriptStop()) return;
+        if (!ctx.beginScriptStop()) {
+            stopCallingScript();
+            return;
+        }
         if (ctx.getTriggeringEvent() instanceof EventService) {
             // A service stop hook is already running as part of this same shutdown.
             if (runner.services.isStoppingOnCurrentThread(ctx)) return;
@@ -133,13 +139,23 @@ public class FJsMacros extends PerExecLibrary {
             } catch (IllegalStateException closed) {
                 if (!ctx.isContextClosed()) throw closed;
             }
-            if (stoppedService.get() || ctx.isContextClosed()) return;
+            if (stoppedService.get() || ctx.isContextClosed()) {
+                stopCallingScript();
+                return;
+            }
         }
         try {
             ctx.removeScriptListeners();
         } finally {
             ctx.closeContext();
         }
+        stopCallingScript();
+    }
+
+    /** Aborts the calling script unless it is the service stop callback that owns this shutdown. */
+    private void stopCallingScript() {
+        if (runner.services.isStoppingOnCurrentThread(ctx)) return;
+        throw new BaseScriptContext.ScriptContextClosedException("Script stopped");
     }
 
     private static boolean isScriptStopException(MethodWrapper<?, ?, ?, ?> callback, Throwable failure) {

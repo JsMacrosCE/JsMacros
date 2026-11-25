@@ -39,9 +39,74 @@ public class GraalScriptContext extends BaseScriptContext<Context> {
         }
     }
 
+    /**
+     * Recognizes Graal's cancellation and the host exceptions it wraps. A stop thrown from guest
+     * code reaches Java as a {@code PolyglotException}; when that exception represents a host
+     * exception, the stop itself is in {@link PolyglotException#asHostException()} rather than in
+     * the cause chain, so checking the cause chain alone misses it.
+     */
     @Override
     protected boolean isLanguageCancellation(Throwable failure) {
-        return failure instanceof PolyglotException && ((PolyglotException) failure).isCancelled();
+        if (isCancellation(failure)) {
+            return true;
+        }
+        return failure instanceof PolyglotException exception
+                && exception.isHostException()
+                && containsCancellation(exception.asHostException());
+    }
+
+    /** Walks a host exception and its causes for a cancellation, including a nested polyglot wrapper. */
+    private static boolean containsCancellation(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof InterruptedException
+                    || cause instanceof BaseScriptContext.ScriptContextClosedException
+                    || isCancellation(cause)) {
+                return true;
+            }
+            if (cause.getCause() == cause) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Recognizes the shapes Graal uses for a cancelled execution. Closing a context can throw its
+     * internal CancelExecution, a ThreadDeath, or deliver it as a PolyglotException that does not
+     * report itself as cancelled; in both cases the public identity is the message. It can also
+     * reach Java wrapped in another exception.
+     */
+    private static boolean isCancellation(Throwable failure) {
+        if (failure instanceof PolyglotException exception) {
+            return exception.isCancelled() || exception.isInterrupted() || isCancelledMessage(failure);
+        }
+        return failure instanceof ThreadDeath && isCancelledMessage(failure);
+    }
+
+    /** Checks the message Graal attaches to a context closed during execution. */
+    private static boolean isCancelledMessage(Throwable failure) {
+        return failure.getMessage() != null
+                && failure.getMessage().startsWith("Context execution was cancelled");
+    }
+
+    /**
+     * Enters the runtime for a queued task. Closing the context interrupts queued threads, so a
+     * thread waking from {@code wrapSleep} can reach the entry after the runtime was closed while
+     * another thread is still unwinding the stop. Graal reports that as concurrent access; it is
+     * the stop, so report the closed context instead.
+     */
+    public void enterRuntime() {
+        if (isContextClosed()) {
+            throw new BaseScriptContext.ScriptContextClosedException("Context closed");
+        }
+        try {
+            getContext().enter();
+        } catch (PolyglotException | IllegalStateException failure) {
+            if (isContextClosed()) {
+                throw new BaseScriptContext.ScriptContextClosedException("Context closed");
+            }
+            throw failure;
+        }
     }
 
     /** Selects a queue priority from a wrapped thread's stored priority.
@@ -114,7 +179,7 @@ public class GraalScriptContext extends BaseScriptContext<Context> {
                 }
             }
         } finally {
-            getContext().enter();
+            enterRuntime();
         }
     }
 

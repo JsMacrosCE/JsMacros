@@ -113,24 +113,9 @@ dependencies {
     add(extensionJars.name, project(mapOf("path" to ":extension:graal:js", "configuration" to "archives")))
 }
 
-// Collect extension jar names for dependencies property
-fun getExtensionJarPaths(): String =
-    extensionJars.files.joinToString(", ") { file ->
-        "\"META-INF/jsmacroscedeps/${file.name}\""
-    }
+registerEmbeddedDependencies("jsmacrosce.extension.json", extensionJars, embedInResources = true)
 
 tasks.named<ProcessResources>("processResources") {
-    // Embed extension jars into the final jar
-    dependsOn(extensionJars)
-    from(extensionJars) {
-        into("META-INF/jsmacroscedeps")
-    }
-
-    // Add dependencies expansion for jsmacrosce.extension.json
-    filesMatching("jsmacrosce.extension.json") {
-        expand(mapOf("dependencies" to getExtensionJarPaths()))
-    }
-    
     // Expand neoforge.mods.toml with version properties
     filesMatching("META-INF/neoforge.mods.toml") {
         expand(mapOf(

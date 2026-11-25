@@ -29,6 +29,7 @@ public class LibraryBuilder extends ClassBuilder<BaseLibrary> {
     final Core<?, ?> runner;
     final boolean languages;
     final boolean perExec;
+    final List<Class<? extends BaseLanguage<?, ?>>> languageClasses;
     boolean hasConstructorSet = false;
 
     /**
@@ -36,6 +37,12 @@ public class LibraryBuilder extends ClassBuilder<BaseLibrary> {
      * {@link Library} alias and resolved language types. Registration happens in
      * {@link #finishBuildAndFreeze()}, not during construction. A requested extension that is
      * missing or is not a {@link LanguageExtension} causes {@link IllegalArgumentException}.
+     * <p>
+     * The resolved languages are handed to the library registry rather than written into the
+     * {@link Library} annotation. A generated class is defined by the core's class loader, and a
+     * class reference in an annotation is resolved against the loader that defined the annotated
+     * class, so a reference to a language that lives in an extension's loader could not be read
+     * back.
      *
      * @param runner core providing the extensions used for language resolution
      * @param name generated class name and script-global library alias
@@ -47,30 +54,31 @@ public class LibraryBuilder extends ClassBuilder<BaseLibrary> {
                 PerLanguageLibrary.class : BaseLibrary.class)));
         this.runner = runner;
         AnnotationBuilder b = this.addAnnotation(Library.class).putString("value", name);
-        List<Class<?>> allowed = new ArrayList<>();
+        List<Class<? extends BaseLanguage<?, ?>>> resolved = new ArrayList<>();
         for (int i = 0; i < allowedLangs.length; i++) {
             Extension ext = runner.extensions.getExtensionForName(allowedLangs[i]);
             if (ext instanceof LanguageExtension l) {
-                allowed.add(l.getLanguage(runner).getClass());
+                BaseLanguage<?, ?> language = l.getLanguage(runner);
+                Class<?> languageClass = language.getClass();
+                @SuppressWarnings("unchecked")
+                Class<? extends BaseLanguage<?, ?>> typed = (Class<? extends BaseLanguage<?, ?>>) languageClass;
+                resolved.add(typed);
             } else {
                 throw new IllegalArgumentException("Language not found: " + allowedLangs[i]);
             }
         }
-        AnnotationBuilder.AnnotationArrayBuilder ab = b.putArray("allowedLanguages");
-        for (Class<?> c : allowed) {
-            ab.putClass(c);
-        }
-        ab.finish();
         b.finish();
+        this.languageClasses = resolved;
         this.perExec = perExec;
         languages = allowedLangs.length > 0;
     }
 
     /**
-     * Adds the library constructor with parameters determined by the builder configuration:
-     * context when per-execution, followed by language class when languages were specified.
-     * The constructor is public. Its body must invoke the matching superclass constructor;
-     * when omitted, {@link #finishBuildAndFreeze()} supplies a body that forwards all parameters.
+     * Adds the library constructor with the parameters the library registry constructs it with:
+     * the run context for a per-execution library and the core for a shared one, followed by the
+     * language class when languages were specified. The constructor is public. Its body must
+     * invoke the matching superclass constructor; when omitted, {@link #finishBuildAndFreeze()}
+     * supplies a body that forwards all parameters.
      *
      * @return a builder for the constructor, which is public and has a body still to be given
      * @throws NotFoundException if a parameter class could not be resolved
@@ -78,11 +86,9 @@ public class LibraryBuilder extends ClassBuilder<BaseLibrary> {
     public ConstructorBuilder addConstructor() throws NotFoundException {
         hasConstructorSet = true;
         List<Class<?>> params = new ArrayList<>();
-        if (perExec) {
-            params.add(BaseScriptContext.class);
-        }
+        params.add(perExec ? BaseScriptContext.class : Core.class);
         if (languages) {
-            params.add(BaseLanguage.class);
+            params.add(Class.class);
         }
         ConstructorBuilder cb = addConstructor(params.toArray(new Class<?>[0]));
         cb.makePublic();
@@ -102,17 +108,18 @@ public class LibraryBuilder extends ClassBuilder<BaseLibrary> {
         if (!hasConstructorSet) {
             ConstructorBuilder cb = addConstructor();
             StringBuilder body = new StringBuilder("{super(");
+            // Javassist reserves $0 for the receiver; constructor parameters start at $1.
             for (int i = 0; i < cb.params.length; i++) {
                 if (i > 0) {
                     body.append(", ");
                 }
-                body.append("$").append(i);
+                body.append("$").append(i + 1);
             }
             body.append(");}");
             cb.body(body.toString());
         }
         Class<? extends BaseLibrary> clazz = super.finishBuildAndFreeze();
-        runner.libraryRegistry.addLibrary(clazz);
+        runner.libraryRegistry.addLibrary(clazz, languageClasses);
         return clazz;
     }
 

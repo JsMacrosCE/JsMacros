@@ -1,5 +1,3 @@
-import org.gradle.language.jvm.tasks.ProcessResources
-
 plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ksp)
@@ -46,24 +44,7 @@ dependencies {
     add(extensionJars.name, project(mapOf("path" to ":extension:graal:js", "configuration" to "archives")))
 }
 
-fun getExtensionJarPaths(): String =
-    extensionJars.files.joinToString(", ") { file ->
-        "\"META-INF/jsmacroscedeps/${file.name}\""
-    }
-
-tasks.named<ProcessResources>("processResources") {
-    dependsOn(extensionJars)
-    from(extensionJars) {
-        into("META-INF/jsmacroscedeps")
-    }
-
-    filesMatching("jsmacrosce.extension.json") {
-        expand(mapOf("dependencies" to getExtensionJarPaths()))
-    }
-
-    // fabric.mod.json5 is expanded by multiloader-common, which already supplies version,
-    // minecraft_version, fabric_minecraft_version_range and access_widener.
-}
+registerEmbeddedDependencies("jsmacrosce.extension.json", extensionJars, embedInResources = true)
 
 loom {
     accessWidenerPath.set(

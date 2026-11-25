@@ -4,9 +4,16 @@ import java.net.URL;
 import java.net.URLClassLoader;
 
 /**
- * Loads classes from an initial URL search path and allows URLs to be appended.
- * Its parent is the class loader that defined {@code ExtensionClassLoader};
- * class loading otherwise follows the inherited parent-first delegation model.
+ * Loads extension classes and resources from jar files on a URL search path.
+ *
+ * <p>Every archive this loader reads exists as a file first. The extension loader copies a nested
+ * archive, such as a dependency inside an extension jar, out of its container before adding it
+ * here, because a {@link URLClassLoader} cannot open an archive that is itself an entry of another
+ * archive.
+ *
+ * <p>The parent is the class loader that defined {@code ExtensionClassLoader}; class loading
+ * otherwise follows the inherited parent-first delegation model, so an extension always uses the
+ * core's own classes.
  * <pre>
  * const Loader = Java.type("com.jsmacrosce.jsmacros.core.extensions.ExtensionClassLoader");
  * const urls = Java.to([], "java.net.URL[]");
@@ -29,12 +36,23 @@ public class ExtensionClassLoader extends URLClassLoader {
     }
 
     /**
-     * Appends a URL to this loader's search path. A {@code null} URL, a duplicate URL,
-     * or an addition after the loader is closed is ignored.
+     * Appends a jar file to this loader's search path, for example an extension dependency that
+     * has already been extracted from its parent archive.
+     * <p>
+     * A {@code null} URL and a URL that is already on the path are ignored.
+     *
      * @param url URL to append; {@code null} is ignored
      */
     @Override
-    public void addURL(URL url) {
+    public synchronized void addURL(URL url) {
+        if (url == null) {
+            return;
+        }
+        for (URL existing : getURLs()) {
+            if (existing.toExternalForm().equals(url.toExternalForm())) {
+                return;
+            }
+        }
         super.addURL(url);
     }
 

@@ -128,6 +128,7 @@ public class Core<T extends BaseProfile, U extends BaseEventRegistry> {
      * @param then callback run after successful script execution
      * @param catcher callback given an execution failure
      * @return the event container for the script execution
+     * @throws IllegalStateException if no language extension is loaded to run the script
      */
     public EventContainer<?> exec(ScriptTrigger macro, BaseEvent event, Runnable then,
                                   Consumer<Throwable> catcher) {
@@ -142,6 +143,10 @@ public class Core<T extends BaseProfile, U extends BaseEventRegistry> {
         if (l == null) {
             l = extensions.getHighestPriorityExtension();
         }
+        if (l == null) {
+            throw new IllegalStateException("No language extension is loaded, so " + file
+                    + " cannot be run. Install an extension that provides this script type.");
+        }
         return l.getLanguage(this).trigger(macro, event, then, catcher);
     }
 
@@ -154,11 +159,15 @@ public class Core<T extends BaseProfile, U extends BaseEventRegistry> {
      * @param then callback run after successful script execution
      * @param catcher callback given an execution failure
      * @return the event container for the script execution
+     * @throws IllegalArgumentException if no loaded language extension matches {@code lang}
      * @since 1.7.0
      */
     public EventContainer<?> exec(String lang, String script, File fakeFile, BaseEvent event, Runnable then, Consumer<Throwable> catcher) {
         LanguageExtension l = extensions.getExtensionForFile(fakeFile != null ? fakeFile : new File(lang.startsWith(".") ? lang : "." + lang));
-        assert l != null;
+        if (l == null) {
+            throw new IllegalArgumentException("No language extension matches '" + lang
+                    + "'. Install an extension that provides this script type.");
+        }
         return l.getLanguage(this).trigger(lang, script, fakeFile, event, then, catcher);
     }
 

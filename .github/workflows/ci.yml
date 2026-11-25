@@ -85,7 +85,7 @@ jobs:
                <(tail -n +2 "$dir/${{ matrix.mc_version }}-jsmacrosce-official.accesswidener")
 
   extensions:
-    name: Compile extensions
+    name: Test extensions
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -108,17 +108,18 @@ jobs:
 
       # These subprojects share a Java 21 binary and compile against the oldest
       # supported core (1.21.5), independently of stonecutter.active.
-      # :extension has no main sources (just the test stubs the graal modules
-      # need) and its test task is disabled.
-      - name: Compile extension modules
+      # :extension has no main sources; it holds the test stubs the graal modules
+      # need and the tests for the extension loader.
+      - name: Test extension modules
         run: |
           ./gradlew --console=plain --stacktrace \
-            :extension:testClasses \
-            :extension:graal:classes \
-            :extension:graal:js:classes \
-            :extension:graal:js:testClasses \
-            :extension:graal:python:classes \
-            :extension:graal:python:testClasses
+            :extension:test \
+            :extension:graal:test \
+            :extension:graal:js:test \
+            :extension:graal:python:test \
+            :extension:graal:verifyDependencyManifest \
+            :extension:graal:js:verifyDependencyManifest \
+            :extension:graal:python:verifyDependencyManifest
 
   documentation:
     name: Documentation
