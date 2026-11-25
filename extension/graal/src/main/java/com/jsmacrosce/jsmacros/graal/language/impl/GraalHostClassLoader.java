@@ -1,9 +1,16 @@
 package com.jsmacrosce.jsmacros.graal.language.impl;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 /**
- * Provides host-class lookup across the mod/script loader and the separately
+ * Looks up host classes and resources across the mod/script loader and the separately
  * loaded Graal extension.
  *
  * <p>Lookup preserves the reflection loader's precedence, then tries legacy
@@ -15,6 +22,9 @@ import java.util.function.UnaryOperator;
  * Delegating to the existing extension loader makes those references available
  * while preserving the runtime's class identities; this loader does not define
  * copies of mod or Graal classes.</p>
+ *
+ * <p>Graal also uses the host loader when initializing a language context. It
+ * needs to see service descriptors such as GraalPython's, not just their classes.</p>
  */
 final class GraalHostClassLoader extends ClassLoader {
     private final ClassLoader extensionLoader;
@@ -63,5 +73,23 @@ final class GraalHostClassLoader extends ClassLoader {
             // Generated Graal adapters reference Value; it must have the runtime's original class identity.
             return extensionLoader.loadClass(redirected);
         }
+    }
+
+    @Override
+    protected URL findResource(String name) {
+        return extensionLoader.getResource(name);
+    }
+
+    @Override
+    public Enumeration<URL> getResources(String name) throws IOException {
+        // Keep the reflection loader first, but report a shared resource only once.
+        Map<String, URL> resources = new LinkedHashMap<>();
+        for (Enumeration<URL> matches : List.of(super.getResources(name), extensionLoader.getResources(name))) {
+            while (matches.hasMoreElements()) {
+                URL match = matches.nextElement();
+                resources.putIfAbsent(match.toExternalForm(), match);
+            }
+        }
+        return Collections.enumeration(resources.values());
     }
 }
