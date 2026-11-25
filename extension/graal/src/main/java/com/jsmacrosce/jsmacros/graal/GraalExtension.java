@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.graal;
 
 import com.google.common.collect.Sets;
+import com.jsmacrosce.doclet.DocletIgnore;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.SourceSection;
@@ -20,14 +21,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Provides Graal language support and the {@code JavaWrapper} library through the extension loader; it is not a script global.
  * <p>
- * The language definition and its engine are process-wide. The first core that asks for the
- * language creates them and later cores receive the same instance, so this extension assumes one
- * core per process: a second core would run scripts against the first core's profile and
- * libraries. Giving each core its own language is tracked for 3.0.0, when the language contract
- * can change.
+ * The language definition and its engine are shared by all cores that load this class. The engine
+ * uses the configuration of the core that first builds it, whether during warmup or script
+ * selection. This extension assumes one core per process: a second core would use the profile and
+ * libraries of the core that first requested the language definition.
  * <pre>
  * const extension = context.getCtx().runner.extensions.getExtensionForName("graal");
  * if (extension !== null) {
@@ -38,6 +39,7 @@ import java.util.Set;
 public class GraalExtension implements LanguageExtension, LibraryExtension {
     private Core<?, ?> runner;
     private static GraalLanguageDefinition languageDefinition;
+    private static final AtomicBoolean WARMUP_SCHEDULED = new AtomicBoolean();
 
     /** Returns the loader registration identifier {@code "graal"}.
      * @return this extension's registration identifier
@@ -59,6 +61,16 @@ public class GraalExtension implements LanguageExtension, LibraryExtension {
             runner.config.addOptions("graal", GraalConfig.class);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @DocletIgnore
+    @Override
+    public void onExtensionsLoaded(Core<?, ?> runner) {
+        // Graal discovers languages when it builds the engine. The JS and Python providers'
+        // dependency jars may not be visible yet during init.
+        if (WARMUP_SCHEDULED.compareAndSet(false, true)) {
+            runner.threadPool.runTask(() -> GraalLanguageDefinition.warmUp(runner));
         }
     }
 

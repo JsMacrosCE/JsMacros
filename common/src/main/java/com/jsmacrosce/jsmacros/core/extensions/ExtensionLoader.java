@@ -45,7 +45,7 @@ public class ExtensionLoader {
 
     private LanguageExtension highestPriorityExtension;
 
-    private boolean loadingDone;
+    private volatile boolean loadingDone;
 
     /** Set while a load is in progress on this thread, so an extension's init query cannot start a second one. */
     private boolean loading;
@@ -186,6 +186,8 @@ public class ExtensionLoader {
      * remaining extensions still load. The same applies to a provider that cannot be
      * instantiated. An extension's dependencies are all materialized and validated before any of
      * them joins the search path, so a later invalid archive cannot publish the earlier ones.
+     * Once registration is complete, registered extensions receive the post-load callback.
+     * A callback failure is logged without unregistering the extension.
      * <p>
      * A failure that prevents the load from completing does not mark loading complete, so a
      * later query can try again. Extensions registered before the failure are not rolled back, so
@@ -260,8 +262,16 @@ public class ExtensionLoader {
             loading = false;
         }
 
+        List<Extension> registered = List.copyOf(extensions);
         classLoader = loader;
         loadingDone = true;
+        for (Extension extension : registered) {
+            try {
+                extension.onExtensionsLoaded(core);
+            } catch (Throwable t) {
+                report("Post-load callback failed for extension " + extension.getClass().getName(), t);
+            }
+        }
     }
 
     /**

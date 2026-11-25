@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.core.extensions;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.core.Core;
 
 import java.io.IOException;
@@ -42,6 +43,17 @@ public interface Extension {
      * @param runner core instance supplied by the loader
      */
     void init(Core<?, ?> runner);
+
+    /**
+     * Lets an extension start work that needs other extensions' dependencies or libraries.
+     * Runs once after successful registration, on the loading thread with the extension class
+     * loader in place. Schedule slow work rather than doing it in this callback.
+     *
+     * @param runner core whose extensions have finished loading
+     */
+    @DocletIgnore
+    default void onExtensionsLoaded(Core<?, ?> runner) {
+    }
 
     /**
      * Reads this extension's dependency descriptor, {@code jsmacrosce.ext.<name>.json}.
