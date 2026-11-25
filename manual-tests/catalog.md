@@ -47,6 +47,9 @@ Modes: `auto` (headless, chat report), `screen` (suite page controls),
 | `HUD-DEBUG-001` | Debug Screen Overlay | `observe` | The registered `Draw2D` overlay renders on top of the F3 debug screen (Fabric-only `MixinDebugHud`). | [suite.js](suite.js) | Visual, chat verdict, Fabric only |
 | `EVENT-SIGNEDIT-001` | Sign Edit Event | `event` | Front and back sign editors fire `SignEdit` with position, side and four text lines. | [suite.js](suite.js) | Event, requires world and a sign |
 | `EVENT-DROP-001` | Drop Slot Event | `event` | Hotbar drop fires `DropSlot` with a player-inventory slot and can be cancelled. | [suite.js](suite.js) | Event, requires a hotbar item |
+| `PACKET-NAMES-001` | Packet Names and Aliases | `auto` | Legacy packet names and modern Mojang aliases are both registered, unique and cover both directions. | [suite.js](suite.js) | Automatic |
+| `PACKET-DECODE-001` | Packet Decoding | `auto` | Buffers decode by legacy name and alias, phase ids resolve, and a two-codec packet decodes with the configuration codec. | [suite.js](suite.js) | Automatic |
+| `PACKET-EVENT-001` | Packet Events and Aliases | `event` | `SendPacket` reports the legacy type, both filterer names match, and the event buffer decodes. | [suite.js](suite.js) | Event, requires world and hotbar keys |
 
 > Surfaces render on every supported version: rects, lines, text, images and items.
 > On 1.21.11+ they draw from the Gizmos pass; on 1.21.5-1.21.10 from the direct

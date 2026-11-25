@@ -1984,6 +1984,140 @@ const TESTS = [
             }
         },
         timeoutSeconds: 60
+    },
+    {
+        id: "PACKET-NAMES-001",
+        category: "Network",
+        mode: "auto",
+        title: "Packet Names and Aliases",
+        run(state) {
+            const names = Client.createPacketByteBuffer().getPacketNames();
+            check(state, listSize(names) > 100, "Packet names are registered at startup");
+            check(state, names.contains("ChatMessageS2CPacket"), "A legacy receive name is registered");
+            check(state, names.contains("ClientboundPlayerChatPacket"), "The modern alias for the same packet is registered");
+            check(state, names.contains("UpdateSelectedSlotC2SPacket"), "A legacy send name is registered");
+            check(state, names.contains("ServerboundSetCarriedItemPacket"), "The modern alias for the send packet is registered");
+            check(state, names.contains("KeepAliveS2CPacket") && names.contains("KeepAliveC2SPacket"), "Both keep-alive directions keep their legacy names");
+            const unique = new Set();
+            for (let i = 0; i < names.size(); i++) {
+                unique.add(String(names.get(i)));
+            }
+            check(state, unique.size === names.size(), "Packet names are unique");
+        }
+    },
+    {
+        id: "PACKET-DECODE-001",
+        category: "Network",
+        mode: "auto",
+        title: "Packet Decoding",
+        run(state) {
+            const helper = Client.createPacketByteBuffer();
+
+            // ClientboundPingPacket carries a single int, so the body is predictable.
+            helper.writeInt(1234);
+            const ping = helper.toPacket("CommonPingS2CPacket");
+            check(state, ping != null, "A play packet decodes from its legacy name");
+            check(state, helper.readerIndex() === 4, "Decoding consumed the four-byte body");
+
+            helper.setReaderIndex(0);
+            const alias = helper.toPacket("ClientboundPingPacket");
+            check(state, alias != null, "The modern alias decodes the same bytes");
+            check(state, helper.readerIndex() === 4, "The alias consumed the same body");
+
+            let rejected = false;
+            try {
+                helper.toPacket("NotAPacket");
+            } catch (error) {
+                rejected = true;
+            }
+            check(state, rejected, "An unknown packet name is rejected");
+
+            const pingClass = ping.getClass();
+            check(state, helper.isClientbound(pingClass), "The decoded ping is clientbound");
+            check(state, helper.getPacketId(pingClass, "play") >= 0, "The ping has a play-phase id");
+            check(state, helper.getPacketId(pingClass, "configuration") >= 0, "The ping has a configuration-phase id");
+            let needsPhase = false;
+            try {
+                helper.getPacketId(pingClass);
+            } catch (error) {
+                needsPhase = true;
+            }
+            check(state, needsPhase, "A packet registered in two phases requires an explicit phase");
+
+            // ClientboundCustomPayloadPacket has separate play and configuration codecs.
+            helper.reset();
+            helper.writeIdentifier("minecraft:brand");
+            helper.writeString("jsmacrosce");
+            const payload = helper.toPacket("ClientboundCustomPayloadPacket", "configuration");
+            check(state, payload != null, "A configuration custom payload decodes with the configuration codec");
+            check(state, helper.readerIndex() > 0, "The configuration decode consumed the payload");
+
+            // Direction comes from the packet type, not from the name.
+            helper.reset();
+            helper.writeLong(42);
+            const reply = helper.toPacket("KeepAliveC2SPacket");
+            check(state, !helper.isClientbound(reply.getClass()), "The decoded keep-alive reply is serverbound");
+        }
+    },
+    {
+        id: "PACKET-EVENT-001",
+        category: "Network",
+        mode: "event",
+        title: "Packet Events and Aliases",
+        instructions: [
+            "Close chat, then switch to a different hotbar slot with the 1-9 keys.",
+            "The test only reads the outgoing packet; the slot change still happens."
+        ],
+        prepare(state) {
+            state.sent = [];
+            state.aliasType = null;
+            state.decodeError = null;
+            const legacy = JsMacros.createEventFilterer("SendPacket").setType("UpdateSelectedSlotC2SPacket");
+            const alias = JsMacros.createEventFilterer("SendPacket").setType("ServerboundSetCarriedItemPacket");
+            state.legacyListener = JsMacros.on("SendPacket", legacy, wrap((event, context) => {
+                if (state.sent.length > 0) return;
+                let canBuffer = false;
+                try {
+                    canBuffer = event.canGetPacketBuffer();
+                } catch (error) {
+                    state.decodeError = String(error);
+                }
+                state.sent.push({ type: String(event.type), canBuffer: canBuffer });
+                if (!canBuffer) return;
+                try {
+                    // Decode the event's own wire bytes back into a packet.
+                    event.getPacketBuffer().toPacket(event.type);
+                } catch (error) {
+                    state.decodeError = String(error);
+                }
+            }));
+            state.aliasListener = JsMacros.on("SendPacket", alias, wrap((event, context) => {
+                state.aliasType = String(event.type);
+            }));
+            return true;
+        },
+        done(state) {
+            return state.sent.length > 0 && state.aliasType != null;
+        },
+        verify(state) {
+            check(state, state.sent.length > 0, "Switching hotbar slots fired SendPacket");
+            check(state, state.sent.length > 0 && state.sent[0].type === "UpdateSelectedSlotC2SPacket", "The event keeps the legacy name as its type");
+            check(state, state.aliasType != null, "A filterer set to the modern alias matches the same packet");
+            check(state, state.sent.length > 0 && state.sent[0].canBuffer, "The slot-change packet has a standalone codec");
+            check(state, state.decodeError === null, "The event buffer decodes back to the reported name"
+                + (state.decodeError == null ? "" : ": " + state.decodeError));
+        },
+        teardown(state) {
+            if (state.legacyListener != null) {
+                state.legacyListener.off();
+                state.legacyListener = null;
+            }
+            if (state.aliasListener != null) {
+                state.aliasListener.off();
+                state.aliasListener = null;
+            }
+        },
+        timeoutSeconds: 60
     }
 ];
 
