@@ -19,12 +19,14 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
@@ -41,6 +43,7 @@ import com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockPosHelper;
 import com.jsmacrosce.jsmacros.client.api.helper.world.BlockStateHelper;
 import com.jsmacrosce.jsmacros.client.util.InteractionCompat;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Locale;
@@ -408,46 +411,103 @@ public class ClientPlayerEntityHelper<T extends LocalPlayer> extends PlayerEntit
      * @since 1.8.4
      */
     public boolean tryLookAt(BlockPosHelper pos) {
-        BlockState state = Minecraft.getInstance().level.getBlockState(pos.getRaw());
-        VoxelShape shape = state.getShape(Minecraft.getInstance().level, pos.getRaw());
-        if (shape.isEmpty()) {
+        float[] angles = tryFindAngles(pos);
+        if (angles == null) {
             return false;
         }
-        Pos3D eyePos = getEyePos();
-        double distance = base.getEyePosition().distanceTo(new Vec3(pos.getX(), pos.getY(), pos.getZ()));
+        lookAt(angles[0], angles[1]);
+        return true;
+    }
 
-        List<AABB> bounds = shape.toAabbs().stream().map(b -> b.move(pos.getRaw())).collect(Collectors.toList());
-        // Scale offset with distance to the target. Closer targets should have more rays to find a possible angle
+    /**
+     * Finds a way to aim at a block without turning the player.
+     * The search checks for an unobstructed ray to the block's outline, not whether
+     * the block is within interaction reach.
+     *
+     * @param pos the block to aim at
+     * @return {@code [yaw, pitch]} in degrees, or {@code null} if no hit was found
+     * @since 2.1.0
+     */
+    @Nullable
+    public float[] tryFindAngles(BlockPosHelper pos) {
+        return findBlockAngles(base.level(), pos.getRaw(), base.getEyePosition(), null, CollisionContext.of(base));
+    }
+
+    /**
+     * Finds a way to aim at a particular face of a block without turning the player.
+     * Like {@link #tryFindAngles(BlockPosHelper)}, this does not check interaction reach.
+     *
+     * @param pos the block to aim at
+     * @param face the side to hit: {@code north}, {@code south}, {@code east}, {@code west},
+     *             {@code up}, or {@code down}, ignoring case
+     * @return {@code [yaw, pitch]} in degrees, or {@code null} if the face is unknown,
+     *         missing, or no hit on that face was found
+     * @since 2.1.0
+     */
+    @Nullable
+    public float[] tryFindAngles(BlockPosHelper pos, @Nullable String face) {
+        Direction direction = face == null ? null : Direction.byName(face.toLowerCase(Locale.ROOT));
+        if (direction == null) {
+            return null;
+        }
+        return findBlockAngles(base.level(), pos.getRaw(), base.getEyePosition(), direction, CollisionContext.of(base));
+    }
+
+    @Nullable
+    static float[] findBlockAngles(BlockGetter level, BlockPos pos, Vec3 eyes, @Nullable Direction face, CollisionContext context) {
+        VoxelShape shape = level.getBlockState(pos).getShape(level, pos);
+        if (shape.isEmpty()) {
+            return null;
+        }
+        double distance = eyes.distanceTo(new Vec3(pos.getX(), pos.getY(), pos.getZ()));
+        // Nearby blocks span more of the view, so sample them more densely.
         double offset = Math.min(0.25, 0.01 * Math.max(distance, 0.5));
-        for (AABB bound : bounds) {
+        for (AABB localBound : shape.toAabbs()) {
+            AABB bound = localBound.move(pos);
             Vec3 center = bound.getCenter();
             double xDiff = (bound.maxX - bound.minX) / 2;
             double yDiff = (bound.maxY - bound.minY) / 2;
             double zDiff = (bound.maxZ - bound.minZ) / 2;
-            // Round the offsets down so they perfectly fit the bounds
-            double xOffset = xDiff / Math.ceil(xDiff / offset);
-            double yOffset = yDiff / Math.ceil(yDiff / offset);
-            double zOffset = zDiff / Math.ceil(zDiff / offset);
-            // Iterate alternating around the center to iterate outwards which will give more pleasing results
-            for (int yc = 0; yc < (int) (yDiff / yOffset) * 2 + 2; yc++) {
-                for (int xc = 0; xc < (int) (xDiff / xOffset) * 2 + 2; xc++) {
-                    for (int zc = 0; zc < (int) (zDiff / zOffset) * 2 + 2; zc++) {
-                        // Don't remove the integer division, because we want to round down the value
-                        // The 0.999 helps with edge cases, literally
-                        double x = center.x + ((xc & 1) == 0 ? 1 : -1) * xOffset * (xc / 2) * 0.999;
-                        double y = center.y + ((yc & 1) == 0 ? 1 : -1) * yOffset * (yc / 2) * 0.999;
-                        double z = center.z + ((zc & 1) == 0 ? 1 : -1) * zOffset * (zc / 2) * 0.999;
-                        BlockHitResult result = base.level().clip(new ClipContext(base.getEyePosition(), new Vec3(x, y, z), ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, base));
-                        if (result.getType() == HitResult.Type.BLOCK && result.getBlockPos().equals(pos.getRaw())) {
-                            Vec3D vec = new Vec3D(eyePos, new Pos3D(x, y, z));
-                            lookAt(vec.getYaw(), vec.getPitch());
-                            return true;
+            if (face != null) {
+                // End rays just inside the surface so a hit doesn't depend on touching an exact boundary.
+                center = center.add(
+                        face.getStepX() * Math.max(0, xDiff - 1.0e-4),
+                        face.getStepY() * Math.max(0, yDiff - 1.0e-4),
+                        face.getStepZ() * Math.max(0, zDiff - 1.0e-4));
+                switch (face.getAxis()) {
+                    case X -> xDiff = 0;
+                    case Y -> yDiff = 0;
+                    case Z -> zDiff = 0;
+                }
+            }
+            int xSteps = (int) Math.ceil(xDiff / offset);
+            int ySteps = (int) Math.ceil(yDiff / offset);
+            int zSteps = (int) Math.ceil(zDiff / offset);
+            double xStep = xSteps == 0 ? 0 : xDiff / xSteps * 0.999;
+            double yStep = ySteps == 0 ? 0 : yDiff / ySteps * 0.999;
+            double zStep = zSteps == 0 ? 0 : zDiff / zSteps * 0.999;
+            for (int yc = 0; yc <= ySteps * 2; yc++) {
+                double y = center.y + centeredSampleIndex(yc) * yStep;
+                for (int xc = 0; xc <= xSteps * 2; xc++) {
+                    double x = center.x + centeredSampleIndex(xc) * xStep;
+                    for (int zc = 0; zc <= zSteps * 2; zc++) {
+                        double z = center.z + centeredSampleIndex(zc) * zStep;
+                        BlockHitResult result = level.clip(new ClipContext(eyes, new Vec3(x, y, z), ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, context));
+                        if (result.getType() == HitResult.Type.BLOCK && result.getBlockPos().equals(pos)
+                                && (face == null || result.getDirection() == face)) {
+                            Vec3D vec = new Vec3D(eyes.x, eyes.y, eyes.z, x, y, z);
+                            return new float[]{vec.getYaw(), vec.getPitch()};
                         }
                     }
                 }
             }
         }
-        return false;
+        return null;
+    }
+
+    // Sample outward from the center: 0, +1, -1, +2, -2, ...
+    private static int centeredSampleIndex(int index) {
+        return (index & 1) == 0 ? -index / 2 : (index + 1) / 2;
     }
 
     /**

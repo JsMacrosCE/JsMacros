@@ -218,8 +218,15 @@ if (stonecutter.current.parsed >= "26.1") {
         classpath = sourceSets["test"].runtimeClasspath
         mainClass.set("com.jsmacrosce.BlockStateHelperTest")
     }
+    val testBlockAim = tasks.register<JavaExec>("testBlockAim") {
+        group = "verification"
+        description = "Checks which block and face the computed aim angles hit without starting a client"
+        dependsOn(tasks.named("testClasses"))
+        classpath = sourceSets["test"].runtimeClasspath
+        mainClass.set("com.jsmacrosce.jsmacros.client.api.helper.world.entity.BlockAimTest")
+    }
     tasks.named("check") {
-        dependsOn(testBlockStateHelper)
+        dependsOn(testBlockStateHelper, testBlockAim)
     }
 }
 
