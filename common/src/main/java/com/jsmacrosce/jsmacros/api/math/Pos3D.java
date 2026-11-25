@@ -53,7 +53,7 @@ public class Pos3D extends Pos2D {
      * Copies another position into a separate object.
      *
      * @param pos the position to copy
-     * @since 1.2.6
+     * @since 2.1.0
      */
     public Pos3D(Pos3D pos) {
         this(pos.getX(), pos.getY(), pos.getZ());

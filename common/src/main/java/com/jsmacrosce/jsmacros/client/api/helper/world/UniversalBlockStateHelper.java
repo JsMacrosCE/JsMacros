@@ -1133,7 +1133,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @since 2.0.0
+     * @since 2.1.0
      * @return whether the crafter is crafting.
      */
     public boolean isCrafting() {
@@ -1141,7 +1141,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @since 2.0.0
+     * @since 2.1.0
      * @return the trial spawner state's serialized name.
      */
     public String getTrialSpawnerState() {
@@ -1149,7 +1149,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @since 2.0.0
+     * @since 2.1.0
      * @return the vault state's serialized name.
      */
     public String getVaultState() {
@@ -1157,7 +1157,7 @@ public class UniversalBlockStateHelper extends BlockStateHelper {
     }
 
     /**
-     * @since 2.0.0
+     * @since 2.1.0
      * @return whether the vault is ominous.
      */
     public boolean isOminous() {

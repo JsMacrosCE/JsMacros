@@ -216,7 +216,7 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
      * available on Minecraft versions newer than 1.21.8.
      *
      * @return the cape texture URL, or {@code null} when unavailable
-     * @since 2.0.0
+     * @since 2.1.0
      */
     //? if >1.21.8 {
     /*@Nullable
@@ -245,7 +245,7 @@ public class PlayerListEntryHelper extends BaseHelper<PlayerInfo> {
      * available on Minecraft versions newer than 1.21.8.
      *
      * @return the url to the elytra texture, or {@code null} if the client has not downloaded one.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     //? if >1.21.8 {
     /*@Nullable

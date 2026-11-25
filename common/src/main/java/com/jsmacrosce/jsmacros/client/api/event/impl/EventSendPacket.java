@@ -74,7 +74,7 @@ public class EventSendPacket extends BaseEvent {
      * This does not guarantee that encoding its contents will succeed; bundles are unsupported.
      *
      * @return whether a standalone packet buffer is supported
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public boolean canGetPacketBuffer() {
         return PacketByteBufferHelper.canSerialize(packet);

@@ -2582,7 +2582,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      *
      * @param packet the packet to check, or {@code null}
      * @return whether the packet has a supported standalone codec
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public static boolean canSerialize(@Nullable Packet<?> packet) {
         if (packet == null) return false;

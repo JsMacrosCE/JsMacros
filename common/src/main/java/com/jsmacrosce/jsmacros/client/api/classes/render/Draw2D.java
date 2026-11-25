@@ -293,7 +293,7 @@ public class Draw2D implements IDraw2D<Draw2D>, Registrable<Draw2D> {
      * other settings. The elements themselves are unaffected and can be added again with
      * {@link #reAddElement(RenderElement)}.
      *
-     * @since 2.0.0
+     * @since 2.1.0
      */
     @Override
     public void clear() {

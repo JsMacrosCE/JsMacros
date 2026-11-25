@@ -77,7 +77,7 @@ public class ScriptScreen extends BaseScreen {
      * @param title non-null literal screen title, not a translation key
      * @param menuBackground whether to draw the game's menu background overlay
      * @param blurredBackground whether to blur the world behind the screen
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public ScriptScreen(String title, boolean menuBackground, boolean blurredBackground) {
         super(Component.literal(title), null);

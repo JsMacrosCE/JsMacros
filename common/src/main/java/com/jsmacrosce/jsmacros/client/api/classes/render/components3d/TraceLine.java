@@ -163,7 +163,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
      * Returns a new position containing the target endpoint; modifying it does not move the line.
      *
      * @return the position of the line's target.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public Pos3D getPos() {
         return render.getPos2();
@@ -200,7 +200,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
      * Returns the RGB colour without its alpha byte; use {@link #getAlpha()} to read alpha.
      *
      * @return the color of the line.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public int getColor() {
         return render.getColor();
@@ -221,7 +221,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
      * Returns the alpha byte of the packed colour, from {@code 0} (transparent) to {@code 255} (opaque).
      *
      * @return the alpha value of the line's color.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public int getAlpha() {
         return render.getAlpha();
@@ -231,7 +231,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
      * Sets whether depth testing is disabled ({@code true}, draws over terrain) or enabled ({@code false}).
      *
      * @param alwaysOnTop whether the line should render on top of everything else.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public void setAlwaysOnTop(boolean alwaysOnTop) {
         render.setAlwaysOnTop(alwaysOnTop);
@@ -242,7 +242,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
      * Constructors without an {@code alwaysOnTop} argument default to {@code true}.
      *
      * @return whether the line renders on top of everything else.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public boolean isAlwaysOnTop() {
         return render.isAlwaysOnTop();
@@ -534,7 +534,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
          *
          * @param alwaysOnTop whether terrain depth should be ignored when drawing the line
          * @return self for chaining
-         * @since 2.0.0
+         * @since 2.1.0
          */
         public Builder alwaysOnTop(boolean alwaysOnTop) {
             this.alwaysOnTop = alwaysOnTop;

@@ -194,7 +194,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
     /**
      * Selects full-bright, world-sampled, or custom lighting for the surface's elements.
      *
-     * @since 2.0.0
+     * @since 2.1.0
      */
     private enum LightMode { FULL_BRIGHT, WORLD, CUSTOM }
 
@@ -461,7 +461,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
      * Makes all elements on this surface render at full brightness, ignoring world lighting.
      *
      * @return self for chaining.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public Surface setFullBrightLight() {
         this.lightMode = LightMode.FULL_BRIGHT;
@@ -474,7 +474,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
      * modelled. If no world is loaded, this uses full-bright lighting.
      *
      * @return self for chaining.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public Surface setWorldLight() {
         this.lightMode = LightMode.WORLD;
@@ -487,7 +487,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
      * @param blockLight block light level, 0-15 (e.g. 15 next to a torch)
      * @param skyLight   sky light level, 0-15 (e.g. 15 outdoors in daylight)
      * @return self for chaining.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public Surface setLight(int blockLight, int skyLight) {
         this.lightMode = LightMode.CUSTOM;
@@ -1401,7 +1401,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
          * Renders all elements at full brightness, ignoring world lighting.
          *
          * @return self for chaining.
-         * @since 2.0.0
+         * @since 2.1.0
          */
         public Builder fullBrightLight() {
             this.lightMode = LightMode.FULL_BRIGHT;
@@ -1413,7 +1413,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
          * world is loaded, lighting is full bright; sky light accounts for sky darkening.
          *
          * @return self for chaining.
-         * @since 2.0.0
+         * @since 2.1.0
          */
         public Builder worldLight() {
             this.lightMode = LightMode.WORLD;
@@ -1426,7 +1426,7 @@ public class Surface extends Draw2D implements RenderElement, RenderElement3D<Su
          * @param blockLight block light level, 0-15 (e.g. 15 next to a torch)
          * @param skyLight   sky light level, 0-15 (e.g. 15 outdoors in daylight)
          * @return self for chaining.
-         * @since 2.0.0
+         * @since 2.1.0
          */
         public Builder light(int blockLight, int skyLight) {
             this.lightMode = LightMode.CUSTOM;

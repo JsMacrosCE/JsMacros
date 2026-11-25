@@ -964,7 +964,7 @@ public class FWorld extends BaseLibrary {
      * </pre>
      *
      * @return a snapshot of the current dimension's active timeline holders, or an empty list when no world is loaded.
-     * @since 2.0.0
+     * @since 2.1.0
      ^/
     public List<Holder<Timeline>> getTimelines() {
         ClientLevel world = mc.level;
@@ -980,7 +980,7 @@ public class FWorld extends BaseLibrary {
      * is loaded.
      *
      * @return the active Mojang clock manager, or {@code null} when unavailable.
-     * @since 2.0.0
+     * @since 2.1.0
      ^/
     @Nullable
     public ClockManager getClockManager() {

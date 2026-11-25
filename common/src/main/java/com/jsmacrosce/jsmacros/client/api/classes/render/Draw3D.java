@@ -66,7 +66,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * unregister it or alter its elements; defaults to {@code true}. Use
      * {@link #setVisible(boolean)} to change it.
      *
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public boolean visible = true;
 
@@ -167,7 +167,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * not change it.
      *
      * @return an immutable snapshot of this overlay's elements
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public List<RenderElement3D<?>> getElements() {
         synchronized (elements) {
@@ -193,7 +193,7 @@ public class Draw3D implements Registrable<Draw3D> {
      *
      * @param element the element to take off
      * @return self for chaining
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public Draw3D removeElement(RenderElement3D<?> element) {
         synchronized (elements) {
@@ -609,7 +609,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param yOffset how far above the entity's feet to aim, in blocks
      * @param alwaysOnTop whether to draw over the world instead of allowing terrain to hide the line
      * @return the added line
-     * @since 1.9.0
+     * @since 2.1.0
      */
     public EntityTraceLine addEntityTraceLine(EntityHelper<?> entity, int color, int alpha, double yOffset, boolean alwaysOnTop) {
         EntityTraceLine l = new EntityTraceLine(entity, color, alpha, yOffset, alwaysOnTop);
@@ -999,7 +999,7 @@ public class Draw3D implements Registrable<Draw3D> {
      *
      * @param visible whether this overlay should be rendered
      * @return self for chaining
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public Draw3D setVisible(boolean visible) {
         this.visible = visible;
@@ -1011,7 +1011,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * whether it is currently registered.
      *
      * @return {@code true} if this overlay is visible; {@code false} otherwise
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public boolean isVisible() {
         return visible;

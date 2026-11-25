@@ -348,7 +348,7 @@ public class EntityTraceLine extends TraceLine {
          *
          * @param alwaysOnTop whether the line should render on top of everything else.
          * @return self for chaining
-         * @since 2.0.0
+         * @since 2.1.0
          */
         public Builder alwaysOnTop(boolean alwaysOnTop) {
             this.alwaysOnTop = alwaysOnTop;

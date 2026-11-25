@@ -145,7 +145,7 @@ public class Line3D implements RenderElement3D<Line3D> {
      * Returns a copy of the line's endpoint coordinates.
      *
      * @return the positions of the line.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public Vec3D getPos() {
         return new Vec3D(pos);
@@ -155,7 +155,7 @@ public class Line3D implements RenderElement3D<Line3D> {
      * Returns a new position for the first endpoint; modifying it does not move the line.
      *
      * @return the first position of the line.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public Pos3D getPos1() {
         return new Pos3D(pos.x1, pos.y1, pos.z1);
@@ -165,7 +165,7 @@ public class Line3D implements RenderElement3D<Line3D> {
      * Returns a new position for the second endpoint; modifying it does not move the line.
      *
      * @return the second position of the line.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public Pos3D getPos2() {
         return new Pos3D(pos.x2, pos.y2, pos.z2);
@@ -199,7 +199,7 @@ public class Line3D implements RenderElement3D<Line3D> {
      * {@link #getAlpha()}.
      *
      * @return the RGB colour, without alpha.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public int getColor() {
         return color & 0xFFFFFF;
@@ -219,7 +219,7 @@ public class Line3D implements RenderElement3D<Line3D> {
      * Returns the packed colour's top byte.
      *
      * @return the alpha byte, from 0 to 255.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public int getAlpha() {
         return (color >> 24) & 0xFF;
@@ -229,7 +229,7 @@ public class Line3D implements RenderElement3D<Line3D> {
      * Sets {@code cull} to the inverse of {@code alwaysOnTop}; this replaces its current value.
      *
      * @param alwaysOnTop whether to disable depth testing for the line
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public void setAlwaysOnTop(boolean alwaysOnTop) {
         this.cull = !alwaysOnTop;
@@ -239,7 +239,7 @@ public class Line3D implements RenderElement3D<Line3D> {
      * Returns the inverse of the line's {@code cull} setting.
      *
      * @return {@code true} when depth testing is disabled.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public boolean isAlwaysOnTop() {
         return !cull;

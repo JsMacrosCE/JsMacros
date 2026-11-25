@@ -441,7 +441,7 @@ public class OptionsHelper extends BaseHelper<Options> {
      * automatically call this method; call it manually when those changes need to be
      * broadcast.
      *
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public void sendSyncedOptions() {
         base.broadcastOptions();

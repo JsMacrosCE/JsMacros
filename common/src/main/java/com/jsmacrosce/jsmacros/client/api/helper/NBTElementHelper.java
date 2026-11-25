@@ -220,7 +220,7 @@ public class NBTElementHelper<T extends Tag> extends BaseHelper<T> {
      * Returns Minecraft's pretty-printed representation of this tag as styled text.
      *
      * @return the pretty-printed tag as styled text
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public TextHelper asText() {
         return TextHelper.wrap(NbtUtils.toPrettyComponent(base));

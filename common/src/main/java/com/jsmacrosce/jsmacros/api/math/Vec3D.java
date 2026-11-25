@@ -74,7 +74,7 @@ public class Vec3D extends Vec2D {
      * touch {@code vec}.
      *
      * @param vec the vector to copy
-     * @since 1.2.6
+     * @since 2.1.0
      */
     public Vec3D(Vec3D vec) {
         super(vec);

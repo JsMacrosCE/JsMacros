@@ -94,7 +94,7 @@ public class ScoreboardObjectiveHelper extends BaseHelper<Objective> {
      * use {@link #getPlayerScores()} or {@link #scoreToDisplayName()} to retrieve them.
      *
      * @return the names the sidebar draws for this objective, highest score first
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public List<TextHelper> getTexts() {
         return base.getScoreboard().listPlayerScores(base).stream()

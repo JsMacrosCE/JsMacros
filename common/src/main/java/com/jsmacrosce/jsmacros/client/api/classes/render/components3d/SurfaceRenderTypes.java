@@ -37,7 +37,7 @@ import java.util.Map;
  * lines, and textured quads. The quad and image pipelines are used by the 2D
  * elements; the line pipelines are constructed lazily if requested.
  *
- * @since 2.0.0
+ * @since 2.1.0
  */
 public final class SurfaceRenderTypes {
 
@@ -62,7 +62,7 @@ public final class SurfaceRenderTypes {
      * @param cull whether back faces are discarded
      * @param depthTest whether the geometry is depth tested against what is already drawn
      * @return the cached render type for that combination, built on the first call for it
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public static RenderType quads(boolean cull, boolean depthTest) {
         if (cull) {
@@ -95,7 +95,7 @@ public final class SurfaceRenderTypes {
      *
      * @param depthTest whether the geometry is depth tested against what is already drawn
      * @return the cached render type for that setting, built on the first call for it
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public static RenderType lines(boolean depthTest) {
         if (depthTest) {
@@ -118,7 +118,7 @@ public final class SurfaceRenderTypes {
      * @param texture the texture to bind into the pipeline
      * @param depthTest whether the geometry is depth tested against what is already drawn
      * @return the cached render type, created on the first call for this texture and setting
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public static RenderType images(ResourceLocation texture, boolean depthTest) {
         Map<ResourceLocation, RenderType> cache = depthTest ? imageDepth : imageNoDepth;

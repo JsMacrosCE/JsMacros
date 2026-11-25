@@ -235,7 +235,7 @@ public class LivingEntityHelper<T extends LivingEntity> extends EntityHelper<T> 
      * the entity's armor-toughness attribute value.
      *
      * @return the entity's armor toughness.
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public double getArmorToughness() {
         return base.getAttributeValue(Attributes.ARMOR_TOUGHNESS);

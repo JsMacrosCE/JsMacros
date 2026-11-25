@@ -172,7 +172,7 @@ public interface IDraw2D<T> {
      * other settings. The elements themselves are unaffected and can be added again with
      * {@link #reAddElement(RenderElement)}.
      *
-     * @since 2.0.0
+     * @since 2.1.0
      */
     void clear();
 

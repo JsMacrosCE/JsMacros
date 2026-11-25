@@ -71,7 +71,7 @@ public class Vec2D {
      * Copies the endpoint coordinates of another segment.
      *
      * @param vec the vector to copy
-     * @since 1.2.6
+     * @since 2.1.0
      */
     public Vec2D(Vec2D vec) {
         this.x1 = vec.x1;

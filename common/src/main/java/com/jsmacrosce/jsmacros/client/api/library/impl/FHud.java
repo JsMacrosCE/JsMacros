@@ -96,7 +96,7 @@ public class FHud extends BaseLibrary {
      * @param menuBackground whether to draw the game's menu background overlay
      * @param blurredBackground whether to blur the world behind the screen
      * @return the new screen, not opened automatically
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public ScriptScreen createScreen(String title, boolean menuBackground, boolean blurredBackground) {
         return new ScriptScreen(title, menuBackground, blurredBackground);

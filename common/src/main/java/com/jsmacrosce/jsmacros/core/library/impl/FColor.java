@@ -26,7 +26,7 @@ import com.jsmacrosce.jsmacros.util.ColorMath;
  * const white = Color.fromPacked(0xFFFFFFFF);
  * </pre>
  *
- * @since 2.0.0
+ * @since 2.1.0
  */
 @Library("Color")
 @SuppressWarnings("unused")
@@ -50,7 +50,7 @@ public class FColor extends BaseLibrary {
      * @param blue blue component, 0-255
      * @return the packed color
      * @throws IllegalArgumentException if a component is outside 0-255
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public int argb(int alpha, int red, int green, int blue) {
         return ColorMath.argb(alpha, red, green, blue);
@@ -64,7 +64,7 @@ public class FColor extends BaseLibrary {
      * @param blue blue component, 0-255
      * @return the packed opaque color
      * @throws IllegalArgumentException if a component is outside 0-255
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public int rgb(int red, int green, int blue) {
         return ColorMath.rgb(red, green, blue);
@@ -81,7 +81,7 @@ public class FColor extends BaseLibrary {
      *               {@code 0xFFFFFFFF}
      * @return the corresponding signed 32-bit color
      * @throws IllegalArgumentException if the value is outside the 32-bit ARGB range
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public int fromPacked(long packed) {
         return ColorMath.fromPacked(packed);
@@ -92,7 +92,7 @@ public class FColor extends BaseLibrary {
      *
      * @param color packed color
      * @return alpha component, 0-255
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public int alpha(int color) {
         return ColorMath.alpha(color);
@@ -103,7 +103,7 @@ public class FColor extends BaseLibrary {
      *
      * @param color packed color
      * @return red component, 0-255
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public int red(int color) {
         return ColorMath.red(color);
@@ -114,7 +114,7 @@ public class FColor extends BaseLibrary {
      *
      * @param color packed color
      * @return green component, 0-255
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public int green(int color) {
         return ColorMath.green(color);
@@ -125,7 +125,7 @@ public class FColor extends BaseLibrary {
      *
      * @param color packed color
      * @return blue component, 0-255
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public int blue(int color) {
         return ColorMath.blue(color);
@@ -138,7 +138,7 @@ public class FColor extends BaseLibrary {
      * @param alpha new alpha component, 0-255
      * @return the repacked color
      * @throws IllegalArgumentException if {@code alpha} is outside 0-255
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public int withAlpha(int color, int alpha) {
         return ColorMath.withAlpha(color, alpha);

@@ -87,7 +87,7 @@ public class FakeServerCommandSource extends CommandSourceStack {
      * completions are present, the result contains the online player names alone.
      *
      * @return custom completions and online player names from the client provider
-     * @since 1.8.4
+     * @since 2.1.0
      */
     //? if >=26.1 {
     /*@Override

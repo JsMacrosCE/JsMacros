@@ -278,7 +278,7 @@ public class FPlayer extends BaseLibrary {
      * @param message the message to write
      * @return whether a sign editor is open
      * @throws IndexOutOfBoundsException if the index is outside zero to three
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public boolean writeSign(int index, String message) {
         if ((index & ~3) != 0) {
@@ -388,7 +388,7 @@ public class FPlayer extends BaseLibrary {
      *                 exist, and its {@code screenshots} child is created
      * @param callback called with the capture routine's message as a text helper, or {@code null}
      *                 for none
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public void takePanorama(String folder, @Nullable MethodWrapper<TextHelper, Object, Object, ?> callback) {
         takePanorama(folder, 4096, 4096, callback);
@@ -408,7 +408,7 @@ public class FPlayer extends BaseLibrary {
      * Returns a helper over the local player's statistics counters. A player must be present.
      *
      * @return a handle on the player's statistics
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public StatsHelper getStatistics() {
         assert mc.player != null;
@@ -575,7 +575,7 @@ public class FPlayer extends BaseLibrary {
      * Enables or disables drawing predicted positions for queued movement inputs.
      *
      * @param val {@code true} to show the predicted positions, {@code false} to hide them
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public void setDrawPredictions(boolean val) {
         MovementQueue.setDrawPredictions(val);

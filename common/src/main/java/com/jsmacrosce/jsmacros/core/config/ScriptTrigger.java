@@ -132,7 +132,7 @@ public class ScriptTrigger {
 
     /**
      * Returns the configured script path.
-     * @since 2.0.0
+     * @since 2.1.0
      * @return the script path
      */
     public Path getScriptPath() {

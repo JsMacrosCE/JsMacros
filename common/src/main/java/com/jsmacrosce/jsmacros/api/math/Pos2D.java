@@ -41,7 +41,7 @@ public class Pos2D {
      * Copies the coordinates from a vanilla two-component vector.
      *
      * @param vec the vector to copy the coordinates out of
-     * @since 1.2.6
+     * @since 2.1.0
      */
     public Pos2D(Vec2 vec) {
         this(vec.x, vec.y);
@@ -51,7 +51,7 @@ public class Pos2D {
      * Copies another position into a separate object.
      *
      * @param pos the position to copy
-     * @since 1.2.6
+     * @since 2.1.0
      */
     public Pos2D(Pos2D pos) {
         this(pos.getX(), pos.getY());

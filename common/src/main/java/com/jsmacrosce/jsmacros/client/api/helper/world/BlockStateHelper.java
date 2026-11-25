@@ -63,7 +63,7 @@ public class BlockStateHelper extends StateHelper<BlockState> {
      *
      * @param tag the block tag id, optionally prefixed with {@code #} or missing its namespace
      * @return {@code true} if this state's block is in the tag
-     * @since 2.0.0
+     * @since 2.1.0
      */
     @DocletReplaceParams("tag: CanOmitNamespace<BlockTag>")
     public boolean hasTag(String tag) {

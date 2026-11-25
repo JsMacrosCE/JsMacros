@@ -73,7 +73,7 @@ public class EventRecvPacket extends BaseEvent {
      * validate packet contents. Bundles are unsupported.
      *
      * @return whether a standalone packet buffer is supported
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public boolean canGetPacketBuffer() {
         return PacketByteBufferHelper.canSerialize(packet);

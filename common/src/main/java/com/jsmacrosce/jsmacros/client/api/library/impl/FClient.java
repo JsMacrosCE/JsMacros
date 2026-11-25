@@ -718,7 +718,7 @@ public class FClient extends PerExecLibrary {
      * Returns the clipboard text through the client's keyboard handler.
      *
      * @return clipboard text, or an empty string if the underlying clipboard read returns no text
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public String getClipboard() {
         return mc.keyboardHandler.getClipboard();
@@ -729,7 +729,7 @@ public class FClient extends PerExecLibrary {
      * so passing {@code ""} does not clear the clipboard.
      *
      * @param text the text to set
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public void setClipboard(String text) {
         mc.keyboardHandler.setClipboard(text);

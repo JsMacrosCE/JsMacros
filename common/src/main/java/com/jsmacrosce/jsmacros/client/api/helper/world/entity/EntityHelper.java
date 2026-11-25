@@ -192,7 +192,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     /**
      * Interpolated entity position, used for render-time placement.
      *
-     * @since 2.0.0
+     * @since 2.1.0
      */
     @DocletIgnore
     public Pos3D getInterpolatedPos(float partialTicks) {

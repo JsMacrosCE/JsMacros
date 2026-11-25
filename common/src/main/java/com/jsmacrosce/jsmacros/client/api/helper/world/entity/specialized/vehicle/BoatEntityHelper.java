@@ -78,7 +78,7 @@ public class BoatEntityHelper extends EntityHelper<AbstractBoat> {
      * Returns the game's pick-result stack for this boat, with a count of one.
      *
      * @return a newly created stack for the boat's pick-result item
-     * @since 2.0.0
+     * @since 2.1.0
      */
     public ItemStackHelper getBoatItem() {
         return new ItemStackHelper(base.getPickResult());
