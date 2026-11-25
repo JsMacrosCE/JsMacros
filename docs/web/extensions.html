@@ -44,19 +44,6 @@
         <h3>Installation</h3>
         To install jsmacros extensions, place the jar files in the
         <code>.minecraft/config/jsMacros/Extensions/</code> folder.
-        <br>
-        <br>
-        An extension is loaded from that folder when it is first needed. Dependency jars inside an extension jar, and
-        extensions bundled with the mod, are extracted into a cache folder under the Extensions folder; a jar you place
-        in that folder is loaded in place. The loader reuses the cache across loads and game sessions and cleans it up
-        itself. The old <code>tmp</code> extraction folder from previous versions is removed automatically.
-        <br>
-        <br>
-        The folder is scanned once per game session, so adding or replacing an extension jar requires restarting the
-        game before it is loaded.
-        <br>
-        <br>
-        An extension that cannot be loaded is reported in the log and skipped; the other extensions still load.
         <h2>Benchmarks</h2>
         <img src="img/updated_bm.png" alt="Everything's faster than JavaScript, except wasm/groovy interop" />
         <br>
