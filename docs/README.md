@@ -23,14 +23,14 @@ The mod version and Minecraft version are independent:
 build/docs/targets/1.21.8/
   python/JsMacrosAC/
   typescript/headers/
-  web/2.0.0/
-  vitepress/content/2.0.0/1.21.8/
-  vitepress/markdown/2.0.0/1.21.8/
+  web/2.1.0/
+  vitepress/content/2.1.0/1.21.8/
+  vitepress/markdown/2.1.0/1.21.8/
 
 build/docs/targets/26.1.2/
   ...
 
-build/docs/vitepress/content/2.0.0/
+build/docs/vitepress/content/2.1.0/
   1.21.8/
   26.1.2/
 ```

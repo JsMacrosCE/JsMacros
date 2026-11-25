@@ -253,16 +253,27 @@ gradle.projectsEvaluated {
     val githubCommitish = providers.environmentVariable("GITHUB_SHA").orElse("main")
     val githubTagName = providers.provider { "v${project.version}" }
 
+    val releaseVersion = project.version.toString()
+    val releaseNotes = if (releaseType == ReleaseType.STABLE && releaseVersion.matches(Regex("""\d+\.\d+\.\d+"""))) {
+        providers.fileContents(layout.projectDirectory.file("docs/releases/$releaseVersion.md"))
+            .asText.orNull?.trim().orEmpty()
+    } else {
+        ""
+    }
+
+    fun withReleaseNotes(summary: String): String =
+        if (releaseNotes.isEmpty()) summary else "$summary\n\n$releaseNotes"
+
     fun modrinthChangelog(loader: String, targetMcVersion: String): String = """
         JsMacrosCE ${project.version} for $loader on Minecraft $targetMcVersion.
         Source: https://github.com/JsMacrosCE/JsMacros
-    """.trimIndent()
+    """.trimIndent().let(::withReleaseNotes)
 
     fun githubChangelog(): String = """
         ${releaseType.toString().lowercase(Locale.getDefault()).capitalized()} Release for JsMacrosCE ${project.version}.
         Supported Minecraft versions: ${mcVersionsToBuild.joinToString(", ")}.
         Alpha, beta, and release builds are available on Modrinth: https://modrinth.com/mod/jsmacrosce/versions
-    """.trimIndent()
+    """.trimIndent().let(::withReleaseNotes)
 
     publishMods {
         val publishModrinth = modrinthToken.isPresent && channel != "dev"
