@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
 import com.jsmacrosce.jsmacros.client.util.GuiCompat;
+import com.jsmacrosce.jsmacros.client.util.ScreenDimensions;
 import com.google.common.collect.ImmutableList;
 
 import net.minecraft.client.Minecraft;
@@ -133,14 +134,18 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     public abstract boolean handleComponentClicked(@Nullable Style style);
     //? }
 
+    /**
+     * Screens that reserve a border, such as Sodium's video settings screen, expose their content
+     * rectangle instead of the raw fields; see {@link ScreenDimensions}.
+     */
     @Override
     public int getWidth() {
-        return width;
+        return ScreenDimensions.widthOf(this, width);
     }
 
     @Override
     public int getHeight() {
-        return height;
+        return ScreenDimensions.heightOf(this, height);
     }
 
     @Override

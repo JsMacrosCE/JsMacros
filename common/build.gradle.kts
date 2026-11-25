@@ -164,6 +164,17 @@ tasks.named("check") {
     dependsOn(testClientCompat)
 }
 
+val testScreenDimensions = tasks.register<JavaExec>("testScreenDimensions") {
+    group = "verification"
+    description = "Checks screens that publish their own content rectangle are measured correctly"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.ScreenDimensionsTest")
+}
+tasks.named("check") {
+    dependsOn(testScreenDimensions)
+}
+
 val testFormattingCompat = tasks.register<JavaExec>("testFormattingCompat") {
     group = "verification"
     description = "Checks legacy formatting IDs and color lookup boundaries"
