@@ -10,7 +10,8 @@ You need a Minecraft Java Edition installation with a supported **Fabric** or
 **NeoForge** loader, and the matching JsMacrosCE build from
 [Modrinth](https://modrinth.com/mod/jsmacrosce) or the
 [GitHub releases](https://github.com/JsMacrosCE/JsMacros/releases). JavaScript is
-built into the mod. Python and other languages are optional extensions.
+built into the mod. For Python and other languages, see
+[Install an extension](/guide/advanced/extensions#install-an-extension).
 
 The mod creates its configuration under your Minecraft instance:
 

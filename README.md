@@ -19,10 +19,10 @@ website: <https://jsmacrosce.com>
 
 ## Extensions
 
-Extensions allow you to code in languages other than the default language JavaScript, and some even have performance
-benefits.
-
-#### [More about extensions](https://jsmacrosce.com/?/extensions.html)
+Extensions add scripting languages or give scripts new libraries to call.
+The [extension guide](https://jsmacrosce.com/guide/advanced/extensions) shows
+how to install an extension and build your own from the
+[Example Extension](https://github.com/JsMacrosCE/JsMacrosCE-Example-Extension).
 
 ## Nightly Builds
 

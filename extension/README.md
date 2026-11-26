@@ -1,5 +1,8 @@
 # Developing extensions
 
+For a complete walkthrough with the example project, see the
+[extension guide](../docs/vitepress/content/guide/advanced/extensions.md).
+
 Standalone language and library extensions can compile against the Java 21
 JsMacrosCE core API in their own Gradle project:
 

@@ -30,7 +30,8 @@ world](/guide/game/player-and-world), [key binds](/guide/game/keybinds),
   player, world, input, network, and custom commands.
 - **On screen** covers overlays and script-created screens.
 - **Advanced** goes deeper: scanning for blocks with `WorldScanner`, script-type
-  namespaces, and the escape hatches of raw game objects and reflection.
+  namespaces, raw game objects and reflection, and
+  [building extensions](/guide/advanced/extensions).
 
 Each page ends with links into the API reference for the exact classes and
 methods it mentions.
