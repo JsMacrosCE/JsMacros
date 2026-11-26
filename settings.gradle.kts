@@ -61,6 +61,7 @@ rootProject.name = "JsMacrosCE"
 include("common")
 include("fabric")
 include("neoforge")
+include("extension-api")
 include("extension")
 include("extension:graal")
 include("extension:graal:js")

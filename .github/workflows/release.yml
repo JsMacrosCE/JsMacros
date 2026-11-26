@@ -82,3 +82,40 @@ jobs:
         with:
           name: release-dist-${{ steps.versions.outputs.mod_version }}
           path: dist/**/*
+
+  publish-maven:
+    name: Publish extension API to Maven
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: maven-releases
+    permissions:
+      contents: read
+    concurrency:
+      group: reposilite-releases
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Publish extension API
+        env:
+          RELEASE_VERSION: ${{ needs.build.outputs.mod_version }}
+          ORG_GRADLE_PROJECT_reposiliteUsername: ${{ secrets.MAVEN_NAME }}
+          ORG_GRADLE_PROJECT_reposilitePassword: ${{ secrets.MAVEN_SECRET }}
+        run: |
+          : "${ORG_GRADLE_PROJECT_reposiliteUsername:?Set MAVEN_NAME in the maven-releases environment}"
+          : "${ORG_GRADLE_PROJECT_reposilitePassword:?Set MAVEN_SECRET in the maven-releases environment}"
+          ./gradlew --console=plain :extension-api:publishExtensionApiPublicationToReposiliteRepository \
+            -Pchannel=release "-Pmod_version=$RELEASE_VERSION"

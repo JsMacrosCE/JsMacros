@@ -36,8 +36,9 @@ fun Project.registerDocumentationTasks(supportedVersions: List<String>, defaultT
     val modVersion = version.toString()
     val docsVersion = docsDirectoryName(modVersion)
     val docletJar = rootProject.file("buildSrc/build/libs/buildSrc.jar")
-    val extensionProjects = rootProject.allprojects.filter {
-        it.path.startsWith(":extension") && it.extensions.findByType<SourceSetContainer>() != null
+    // The Maven API project reuses common sources, which are already supplied per target below.
+    val extensionProjects = rootProject.project(":extension").allprojects.filter {
+        it.extensions.findByType<SourceSetContainer>() != null
     }
     val extensionSources = files(extensionProjects.map { it.extensions.getByType<SourceSetContainer>()["main"].allJava })
     val kinds = linkedMapOf("Py" to "pydoclet", "TS" to "tsdoclet", "Web" to "webdoclet", "Vitepress" to "mddoclet")
