@@ -34,7 +34,8 @@ const listener = JsMacros.on("RecvMessage", true, JavaWrapper.methodToJava((even
     event.cancel();
     return;
   }
-  Chat.log(`[${event.messageType}] ${event.text.getString()}`);
+  if (event.getText() === null) return;
+  Chat.log(`[${event.messageType}] ${event.getText().getString()}`);
 }));
 ```
 
@@ -126,12 +127,16 @@ const next = JsMacros.waitForEvent("RecvMessage", true);
 // Reading the payload does not need the lock. Release it before unrelated work.
 next.context.releaseLock();
 
-Chat.log(`next message: ${next.event.text.getString()}`);
+if (next.event.getText() !== null) {
+  Chat.log(`next message: ${next.event.getText().getString()}`);
+}
 ```
 
-The result has two fields: `event` and `context`. For a cancellable event, the main
-thread is waiting on that lock, so release it as soon as you no longer need the
-delivery. If you need to cancel the event, cancel first, then release.
+The result has two fields: `event` and `context`. The overload with `true` requests
+joined handling when the event permits it, so the main thread is waiting on that
+lock; release it as soon as you no longer need the delivery. If you need to cancel
+the event, cancel first, then release. A wait without the flag is read-only and
+cannot cancel or change the event.
 
 `waitForEvent` also releases the event lock the script was already holding before
 it blocks. That is what makes it safe to call from inside a cancellable handler:
@@ -142,7 +147,7 @@ You can filter and add a pre-wait callback:
 ```js
 const next = JsMacros.waitForEvent(
   "RecvMessage",
-  JavaWrapper.methodToJava((event) => event.text.getString().includes("done"))
+  JavaWrapper.methodToJava((event) => event.getText() !== null && event.getText().getString().includes("done"))
 );
 ```
 
@@ -199,10 +204,10 @@ There are two separate switches:
 - **The listener asks for it.** Pass `true` to `JsMacros.on`.
 
 The listener's `true` is only a request. An event that is not joinable ignores it.
-Cancellable events already wait for their listeners, so passing `true` there adds
-nothing, and a custom event with `cancelable = true` is already joinable. Among
-the built-in events, every joinable event is currently cancellable, so joining is
-practical only for custom events raised by another script.
+The simple `on` form does not request joining; pass `true` to ask for it. A custom
+event with `cancelable = true` is also joinable. Among the built-in events, every joinable
+event is currently cancellable, so explicit joining is practical only for custom
+events raised by another script.
 
 For example, script A owns a cache and answers `Lookup` requests, and script B
 needs the answer before its next line:

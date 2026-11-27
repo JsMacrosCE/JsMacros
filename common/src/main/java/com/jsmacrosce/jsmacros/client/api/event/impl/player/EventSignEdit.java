@@ -1,23 +1,26 @@
 package com.jsmacrosce.jsmacros.client.api.event.impl.player;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.api.math.Pos3D;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
- * Fires when the local player opens a sign editing screen. Cancelling the event or setting
- * {@link #closeScreen} prevents the screen from opening and sends the edited text to the server.
- * Changed text is also applied to the local sign immediately. {@link #signText} starts with the
- * sign's current text; only its first four entries are used, missing entries become empty, and
- * {@code null} blanks all four lines.
+ * Fires when the local player opens a sign editing screen. A joined listener can cancel the event
+ * or call {@code setShouldCloseScreen(...)} to prevent the screen from opening and send the edited
+ * text to the server. Changed text is also applied to the local sign immediately.
+ * {@code getSignText()} starts with the sign's current text; only its first four entries are used,
+ * missing entries become empty, and {@code null} blanks all four lines.
  * <pre>
- * JsMacros.on("SignEdit", JavaWrapper.methodToJava(function (event) {
- *   const text = event.signText;
+ * JsMacros.on("SignEdit", true, JavaWrapper.methodToJava(function (event) {
+ *   const text = event.getSignText();
  *   if (text === null) {
  *     return;
  *   }
@@ -50,21 +53,99 @@ public class EventSignEdit extends BaseEvent {
      * The sign's block position in block coordinates.
      */
     public final Pos3D pos;
+
     /**
      * Whether to send the edit without opening the screen; defaults to {@code false}. Setting it
      * to {@code true} has the same effect as cancelling the event.
+     * @deprecated Removal in 3.0.0: Use {@link #shouldCloseScreen()} and {@link #setShouldCloseScreen(boolean)} instead.
      */
+    @Deprecated
     public boolean closeScreen = false;
+
     /**
      * {@code true} when editing the front side; {@code false} when editing the back side.
+     * @deprecated Removal in 3.0.0: Use {@link #isFront()} instead.
      */
+    @Deprecated
     public boolean front;
+
     /**
      * The sign's four text lines, initially copied from the current sign text. Only the first four
      * entries are used; missing entries become empty, and {@code null} blanks all four lines.
+     * @deprecated Removal in 3.0.0: Use {@link #getSignText()} and {@link #setSignText(List)} instead.
      */
     @Nullable
+    @Deprecated
     public List<String> signText;
+
+    /**
+     * Returns whether the edit should skip the sign editor and be sent immediately.
+     *
+     * @return {@code true} when the screen should stay closed
+     * @since 2.2.0
+     */
+    public boolean shouldCloseScreen() {
+        return closeScreen;
+    }
+
+    /**
+     * Chooses whether to send the edit without opening the screen. {@code true} has the same effect
+     * as cancelling the event.
+     *
+     * @param shouldCloseScreen {@code true} to send the edit without opening the screen
+     * @throws IllegalStateException if this delivery is not joined or its event lock was released
+     * @since 2.2.0
+     */
+    public void setShouldCloseScreen(boolean shouldCloseScreen) {
+        assertCanModify("setShouldCloseScreen");
+        this.closeScreen = shouldCloseScreen;
+    }
+
+    /**
+     * Returns whether the edited side is the front.
+     *
+     * @return {@code true} for the front side; {@code false} for the back
+     * @since 2.2.0
+     */
+    public boolean isFront() {
+        return front;
+    }
+
+    /**
+     * Returns the sign's text lines. A joined delivery receives the live list; a non-joined
+     * delivery receives an unmodifiable view so it cannot change the sign after dispatch.
+     *
+     * @return the current text list, an unmodifiable view, or {@code null} to blank all four lines
+     * @since 2.2.0
+     */
+    @Nullable
+    public List<String> getSignText() {
+        if (signText == null || canModify()) {
+            return signText;
+        }
+        return Collections.unmodifiableList(signText);
+    }
+
+    /** Returns the live text list for the raising game code after dispatch. Internal hook. */
+    @ApiStatus.Internal
+    @DocletIgnore
+    @Nullable
+    public List<String> getSignTextForDispatch() {
+        return signText;
+    }
+
+    /**
+     * Replaces the text lines. Only the first four entries are used; missing entries become empty,
+     * and {@code null} blanks all four lines.
+     *
+     * @param signText replacement list, or {@code null} to blank all four lines
+     * @throws IllegalStateException if this delivery is not joined or its event lock was released
+     * @since 2.2.0
+     */
+    public void setSignText(@Nullable List<String> signText) {
+        assertCanModify("setSignText");
+        this.signText = signText;
+    }
 
     /**
      * Initializes the event with its client core, block position, edited text, and sign side.

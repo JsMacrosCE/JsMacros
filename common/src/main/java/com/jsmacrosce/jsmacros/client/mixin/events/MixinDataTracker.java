@@ -40,7 +40,7 @@ public class MixinDataTracker {
                 event.trigger();
                 if (event.isCanceled()) ci.cancel();
                 else {
-                    TextHelper res = event.newName;
+                    TextHelper res = event.getNewName();
                     Component modified = res == null ? null : res.getRaw();
                     if (ObjectUtils.notEqual(newName, modified)) {
                         ci.cancel();

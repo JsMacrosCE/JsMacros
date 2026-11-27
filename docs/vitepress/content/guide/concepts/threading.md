@@ -90,8 +90,8 @@ The trade-off is that a joined listener is on the critical path. Keep it short:
 ```js
 const blocked = ["password", "secret"];
 JsMacros.on("SendMessage", true, JavaWrapper.methodToJava((event) => {
-  if (event.message === null) return;
-  if (blocked.some((word) => event.message.toLowerCase().includes(word))) {
+  if (event.getMessage() === null) return;
+  if (blocked.some((word) => event.getMessage().toLowerCase().includes(word))) {
     event.cancel(); // the message is not sent
   }
 }));
@@ -103,12 +103,12 @@ while the script waits:
 
 ```js
 JsMacros.on("SendMessage", true, JavaWrapper.methodToJava((event) => {
-  if (event.message !== "confirm") return;
+  if (event.getMessage() !== "confirm") return;
   event.cancel(); // hold this message back until there is an answer
 
   // The current cancellable event is released while this waits.
   const next = JsMacros.waitForEvent("RecvMessage", true, JavaWrapper.methodToJava(
-    (received) => received.text.getString() === "yes"
+    (received) => received.getText() !== null && received.getText().getString() === "yes"
   ));
   try {
     // Remember, this will trigger another SendMessage event
@@ -125,7 +125,8 @@ game continue before this callback returns:
 ```js
 const next = JsMacros.waitForEvent("RecvMessage", true);
 try {
-  if (next.event.text.getString() === "yes") {
+  const text = next.event.getText();
+  if (text !== null && text.getString() === "yes") {
     Chat.say("confirmed");
   }
 } finally {

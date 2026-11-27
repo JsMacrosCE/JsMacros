@@ -3,7 +3,6 @@ package com.jsmacrosce.jsmacros.client.api.event.impl;
 import com.jsmacrosce.doclet.DocletCategory;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.api.helper.TextHelper;
@@ -26,7 +25,8 @@ import net.minecraft.client.GuiMessageTag;
  *     event.cancel();
  *     return;
  *   }
- *   Chat.log(`[${event.messageType}] ${event.text.getString()}`);
+ *   if (event.getText() === null) return;
+ *   Chat.log(`[${event.messageType}] ${event.getText().getString()}`);
  * }))
  * </pre>
  * @author Wagyourtail
@@ -39,9 +39,37 @@ public class EventRecvMessage extends BaseEvent {
      * Message content to be added to the HUD. Replacing it changes the displayed and logged
      * content and marks the line with a {@code "Modified"} {@link #messageType}; assigning
      * {@code null} instead causes the HUD message to be skipped.
+     * @deprecated Removal in 3.0.0: Use {@link #getText()} and {@link #setText(TextHelper)} instead.
      */
-    @NotNull
+    @Nullable
+    @Deprecated
     public TextHelper text;
+
+    /**
+     * Returns the message content to be added to the HUD, or {@code null} when the message is
+     * skipped.
+     *
+     * @return the current message helper, or {@code null}
+     * @since 2.2.0
+     */
+    @Nullable
+    public TextHelper getText() {
+        return text;
+    }
+
+    /**
+     * Replaces the message content. A replacement changes the displayed and logged content and
+     * marks the line with a {@code "Modified"} {@link #messageType}; {@code null} skips the HUD
+     * message.
+     *
+     * @param text replacement helper, or {@code null} to skip the message
+     * @throws IllegalStateException if this delivery is not joined or its event lock was released
+     * @since 2.2.0
+     */
+    public void setText(@Nullable TextHelper text) {
+        assertCanModify("setText");
+        this.text = text;
+    }
 
     /**
      * Raw message-signature bytes, or {@code null} when no signature was supplied. Present
@@ -53,7 +81,7 @@ public class EventRecvMessage extends BaseEvent {
 
     /**
      * Minecraft chat-log tag for the message, or {@code null} when no tag was supplied. JsMacros
-     * sets this to {@code "Modified"} when a listener changes {@link #text}.
+     * sets this to {@code "Modified"} when a listener calls {@code setText(...)}.
      * @since 1.8.2
      */
     @Nullable
@@ -62,8 +90,8 @@ public class EventRecvMessage extends BaseEvent {
     /**
      * Initializes the event with the supplied message, signature bytes, and chat-log tag; this
      * constructor does not add or dispatch a HUD message. The message is wrapped with
-     * {@link TextHelper#wrap(Component)}, which returns {@code null} for a null component despite
-     * the non-null annotation on {@link #text}. The signature byte array is retained, not copied.
+     * {@link TextHelper#wrap(Component)}, which returns {@code null}. The signature
+     * byte array is retained, not copied.
      * @param message raw message content, or {@code null}
      * @param signature raw signature, or {@code null}; its byte array is retained
      * @param indicator HUD tag, or {@code null}; its log tag is stored as {@link #messageType}
@@ -82,7 +110,7 @@ public class EventRecvMessage extends BaseEvent {
     }
 
     /**
-     * Formats a diagnostic string from the event name and the current values of {@link #text},
+     * Formats a diagnostic string from the event name and the current values of {@code getText()},
      * {@link #signature}, and {@link #messageType}. Its shape is
      * {@code eventName:{"text": "textValue", "signature": boolean, "messageType": "tagValue"}};
      * the text and tag are inserted using ordinary string formatting, not JSON escaping. The
@@ -91,6 +119,6 @@ public class EventRecvMessage extends BaseEvent {
      * @return diagnostic string containing the current field values
      */
     public String toString() {
-        return String.format("%s:{\"text\": \"%s\", \"signature\": %s, \"messageType\": \"%s\"}", this.getEventName(), text, signature != null && signature.length > 0, messageType);
+        return String.format("%s:{\"text\": \"%s\", \"signature\": %s, \"messageType\": \"%s\"}", this.getEventName(), getText(), signature != null && signature.length > 0, messageType);
     }
 }

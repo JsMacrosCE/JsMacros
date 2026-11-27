@@ -109,7 +109,7 @@ Wrap risky work in `try`/`catch` when the callback should survive one bad event:
 ```js
 JsMacros.on("RecvMessage", JavaWrapper.methodToJava((event) => {
   try {
-    const text = event.text.getString();
+    const text = event.getText().getString();
     if (text.includes("auction")) {
       Chat.log("auction message");
     }

@@ -12,15 +12,16 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires when the client receives a title, subtitle, or action-bar message; {@link #type} identifies
- * the HUD line. Action-bar messages include client-side system messages. Listeners can replace
- * {@link #message}, assign {@code null}, or cancel the event to suppress the message.
+ * the HUD line. Action-bar messages include client-side system messages. A joined listener can
+ * replace the message with {@code setMessage(...)}, assign {@code null}, or cancel the
+ * event to suppress it.
  * <pre>
  * JsMacros.on("Title", true, JavaWrapper.methodToJava(function (event) {
- *   if (event.message === null) {
+ *   if (event.getMessage() === null) {
  *     return;
  *   }
  *   if (event.type === "ACTIONBAR") {
- *     if (event.message.getString().includes("moved too quickly")) {
+ *     if (event.getMessage().getString().includes("moved too quickly")) {
  *       // hide the lag message, the game shows nothing in its place
  *       event.cancel();
  *       return;
@@ -28,7 +29,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  *   }
  *   if (event.type === "TITLE") {
  *     // keep the line but put something else in it
- *     event.message = Chat.createTextHelperFromString("hello");
+ *     event.setMessage(Chat.createTextHelperFromString("hello"));
  *   }
  * }))
  * </pre>
@@ -49,9 +50,35 @@ public class EventTitle extends BaseEvent {
      * Message to display, wrapped in a {@link TextHelper}; assigning a replacement changes the
      * displayed text. {@code null} or cancelling passes no component to the game. For action-bar
      * messages, the usual display timer is still reset when suppressed.
+     * @deprecated Removal in 3.0.0: Use {@link #getMessage()} and {@link #setMessage(TextHelper)} instead.
      */
     @Nullable
+    @Deprecated
     public TextHelper message;
+
+    /**
+     * Returns the message to display, or {@code null} when no component will be passed to the game.
+     *
+     * @return the current message helper, or {@code null}
+     * @since 2.2.0
+     */
+    @Nullable
+    public TextHelper getMessage() {
+        return message;
+    }
+
+    /**
+     * Replaces the text to display. {@code null} or cancelling passes no component to the game. For
+     * action-bar messages, the usual display timer is still reset when suppressed.
+     *
+     * @param message replacement helper, or {@code null} to suppress the line
+     * @throws IllegalStateException if this delivery is not joined or its event lock was released
+     * @since 2.2.0
+     */
+    public void setMessage(@Nullable TextHelper message) {
+        assertCanModify("setMessage");
+        this.message = message;
+    }
 
     /**
      * Initializes this event with a HUD line identifier and its supplied component; this does not dispatch or display the event.
@@ -74,7 +101,7 @@ public class EventTitle extends BaseEvent {
      */
     @Override
     public String toString() {
-        return String.format("%s:{\"type\": \"%s\", \"message\": \"%s\"}", this.getEventName(), type, message);
+        return String.format("%s:{\"type\": \"%s\", \"message\": \"%s\"}", this.getEventName(), type, getMessage());
     }
 
 }

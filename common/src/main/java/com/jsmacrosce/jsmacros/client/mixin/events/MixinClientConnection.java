@@ -47,7 +47,7 @@ public class MixinClientConnection {
         }
         EventRecvPacket event = new EventRecvPacket(packet);
         event.trigger();
-        if (event.isCanceled() || event.packet == null) {
+        if (event.isCanceled() || event.getPacket() == null) {
             ci.cancel();
             return;
         }
@@ -56,7 +56,7 @@ public class MixinClientConnection {
 
     @ModifyArg(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/protocol/Packet;)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/Connection;genericsFtw(Lnet/minecraft/network/protocol/Packet;Lnet/minecraft/network/PacketListener;)V"), index = 0)
     public Packet<?> modifyReceivedPacket(Packet<?> packet) {
-        return jsmacros$eventRecvPacket.packet;
+        return jsmacros$eventRecvPacket.getPacket();
     }
 
     @Inject(method = "sendPacket", at = @At("HEAD"), cancellable = true)
@@ -71,7 +71,7 @@ public class MixinClientConnection {
             CallbackInfo ci) {
         EventSendPacket event = new EventSendPacket(packet);
         event.trigger();
-        if (event.isCanceled() || event.packet == null) {
+        if (event.isCanceled() || event.getPacket() == null) {
             ci.cancel();
             return;
         }
@@ -80,7 +80,7 @@ public class MixinClientConnection {
 
     @ModifyVariable(method = "sendPacket", at = @At(value = "LOAD"), ordinal = 0, argsOnly = true)
     public Packet<?> modifySendPacket(Packet<?> packet) {
-        return jsmacros$eventSendPacket.packet;
+        return jsmacros$eventSendPacket.getPacket();
     }
 
 }

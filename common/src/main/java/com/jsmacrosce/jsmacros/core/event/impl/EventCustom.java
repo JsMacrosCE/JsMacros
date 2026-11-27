@@ -81,9 +81,8 @@ public class EventCustom extends BaseEvent {
 
     /**
      * Dispatches this event to listeners registered under its name and eligible {@code ANYTHING}
-     * listeners. If {@code joinable()} is true, waits for listeners that requested joined handling;
-     * cancellable events wait without that request. The wait ends when each joined listener releases
-     * its event lock, normally on callback return.
+     * listeners. If {@code joinable()} is true, waits for listeners that requested joined handling.
+     * The wait ends when each joined listener releases its event lock, normally on callback return.
      *
      * @since 1.2.8
      */
@@ -115,9 +114,11 @@ public class EventCustom extends BaseEvent {
      * @param name argument key
      * @param i value to store
      * @return the stored integer value
+     * @throws IllegalStateException if the current delivery cannot change the event
      * @since 1.2.8
      */
     public int putInt(String name, int i) {
+        assertCanModify("putInt");
         args.put(name, i);
         return i;
     }
@@ -128,9 +129,11 @@ public class EventCustom extends BaseEvent {
      * @param name argument key
      * @param str value to store
      * @return the stored string value
+     * @throws IllegalStateException if the current delivery cannot change the event
      * @since 1.2.8
      */
     public String putString(String name, String str) {
+        assertCanModify("putString");
         args.put(name, str);
         return str;
     }
@@ -141,9 +144,11 @@ public class EventCustom extends BaseEvent {
      * @param name argument key
      * @param d value to store
      * @return the stored double value
+     * @throws IllegalStateException if the current delivery cannot change the event
      * @since 1.2.8
      */
     public double putDouble(String name, double d) {
+        assertCanModify("putDouble");
         args.put(name, d);
         return d;
     }
@@ -154,9 +159,11 @@ public class EventCustom extends BaseEvent {
      * @param name argument key
      * @param b value to store
      * @return the stored boolean value
+     * @throws IllegalStateException if the current delivery cannot change the event
      * @since 1.2.8
      */
     public boolean putBoolean(String name, boolean b) {
+        assertCanModify("putBoolean");
         args.put(name, b);
         return b;
     }
@@ -167,9 +174,11 @@ public class EventCustom extends BaseEvent {
      * @param name argument key
      * @param o value to store
      * @return the stored object
+     * @throws IllegalStateException if the current delivery cannot change the event
      * @since 1.2.8
      */
     public Object putObject(String name, Object o) {
+        assertCanModify("putObject");
         if (runner.extensions.isGuestObject(o)) {
             throw new AssertionError("Cannot put a guest object into an event");
         }

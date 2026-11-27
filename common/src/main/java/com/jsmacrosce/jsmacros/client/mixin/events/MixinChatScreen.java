@@ -24,16 +24,17 @@ public abstract class MixinChatScreen extends Screen {
     public void onSendChatMessage(String chatText, boolean addToHistory, CallbackInfo ci) {
         final EventSendMessage event = new EventSendMessage(chatText);
         event.trigger();
-        if (event.message == null || event.message.equals("") || event.isCanceled()) {
+        String message = event.getMessage();
+        if (message == null || message.equals("") || event.isCanceled()) {
             ci.cancel();
-        } else if (!event.message.equals(chatText)) {
+        } else if (!message.equals(chatText)) {
             ci.cancel();
             assert this.minecraft != null;
             assert this.minecraft.player != null;
-            if (event.message.startsWith("/")) {
-                this.minecraft.player.connection.sendCommand(event.message.substring(1));
+            if (message.startsWith("/")) {
+                this.minecraft.player.connection.sendCommand(message.substring(1));
             } else {
-                this.minecraft.player.connection.sendChat(event.message);
+                this.minecraft.player.connection.sendChat(message);
             }
         }
     }

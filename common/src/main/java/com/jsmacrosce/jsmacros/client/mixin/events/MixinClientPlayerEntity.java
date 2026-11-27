@@ -86,11 +86,12 @@ abstract class MixinClientPlayerEntity extends AbstractClientPlayer {
         event.trigger();
 
         // Cleanup sign edit result, null or lines != 4 need to be fixed.
-        List<String> lines = event.signText;
+        List<String> signText = event.getSignTextForDispatch();
+        List<String> lines = signText;
         if (lines == null || lines.size() != 4) lines = Arrays.asList("", "", "", "");
-        if (event.signText != null) {
-            for (int i = 0; i < Math.min(4, event.signText.size()); i++) {
-                lines.set(i, event.signText.get(i));
+        if (signText != null) {
+            for (int i = 0; i < Math.min(4, signText.size()); i++) {
+                lines.set(i, signText.get(i));
             }
         }
 
@@ -100,7 +101,7 @@ abstract class MixinClientPlayerEntity extends AbstractClientPlayer {
         }
 
         // Cancel only if needed
-        if (event.closeScreen || event.isCanceled()) {
+        if (event.shouldCloseScreen() || event.isCanceled()) {
             connection.send(SignCompat.update(sign, front, lines));
             ci.cancel();
         }

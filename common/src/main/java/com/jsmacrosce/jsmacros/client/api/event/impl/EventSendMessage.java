@@ -13,16 +13,16 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * {@code /} selects command submission, with the slash removed.
  * <pre>
  * JsMacros.on("SendMessage", true, JavaWrapper.methodToJava(function (event) {
- *   if (event.message === null) {
+ *   if (event.getMessage() === null) {
  *     return;
  *   }
- *   if (event.message === "/hello") {
+ *   if (event.getMessage() === "/hello") {
  *     // swallow it, nothing is sent and nothing is added to the history
  *     event.cancel();
  *     return;
  *   }
  *   // rewrite it, the client sends this instead of what was typed
- *   event.message = `say ${event.message}`;
+ *   event.setMessage(`say ${event.getMessage()}`);
  * }))
  * </pre>
  * @since 1.2.7
@@ -34,9 +34,36 @@ public class EventSendMessage extends BaseEvent {
      * The raw text submitted in the chat screen. A changed, nonempty value is sent without
      * normalization or history insertion; a leading {@code /} selects command submission, with the
      * slash removed. {@code null}, an empty string, or cancelling the event prevents sending.
+     * @deprecated Removal in 3.0.0: Use {@link #getMessage()} and {@link #setMessage(String)} instead.
      */
     @Nullable
+    @Deprecated
     public String message;
+
+    /**
+     * Returns the raw text submitted in the chat screen. {@code null} means no text will be sent.
+     *
+     * @return the current message text, or {@code null}
+     * @since 2.2.0
+     */
+    @Nullable
+    public String getMessage() {
+        return message;
+    }
+
+    /**
+     * Replaces the text that will be sent. A changed, nonempty value is sent without normalization
+     * or history insertion; a leading {@code /} selects command submission, with the slash
+     * removed. {@code null}, an empty string, or cancelling the event prevents sending.
+     *
+     * @param message replacement text, or {@code null} to prevent sending
+     * @throws IllegalStateException if this delivery is not joined or its event lock was released
+     * @since 2.2.0
+     */
+    public void setMessage(@Nullable String message) {
+        assertCanModify("setMessage");
+        this.message = message;
+    }
 
     /**
      * Initializes the event with the supplied message; construction does not dispatch the event.
@@ -55,7 +82,7 @@ public class EventSendMessage extends BaseEvent {
      */
     @Override
     public String toString() {
-        return String.format("%s:{\"message\": \"%s\"}", this.getEventName(), message);
+        return String.format("%s:{\"message\": \"%s\"}", this.getEventName(), getMessage());
     }
 
 }

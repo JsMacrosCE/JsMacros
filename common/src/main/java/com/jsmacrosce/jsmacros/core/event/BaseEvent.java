@@ -23,7 +23,7 @@ import java.util.Iterator;
  * check the current delivery before attempting a change.
  * <pre>
  * const listener = JsMacros.on("SendMessage", true, JavaWrapper.methodToJava(event => {
- *   if (event.message === "/hello") {
+ *   if (event.getMessage() === "/hello") {
  *     // Cancel before the message is sent or added to chat history.
  *     event.cancel();
  *   }

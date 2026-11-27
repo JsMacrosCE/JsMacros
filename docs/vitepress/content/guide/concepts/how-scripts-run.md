@@ -84,7 +84,9 @@ script should pause until something specific happens.
 ```js
 const next = JsMacros.waitForEvent("RecvMessage", true);
 try {
-  Chat.log(`someone said: ${next.event.text.getString()}`);
+  if (next.event.getText() !== null) {
+    Chat.log(`someone said: ${next.event.getText().getString()}`);
+  }
 } finally {
   // This wait requested joined handling; release it as soon as you are done.
   next.context.releaseLock();

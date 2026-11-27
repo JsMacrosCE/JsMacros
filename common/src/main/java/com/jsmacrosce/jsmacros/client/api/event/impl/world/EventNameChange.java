@@ -11,8 +11,9 @@ import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
- * Fires when an entity's custom-name data changes. Cancelling prevents the update; otherwise,
- * listeners can replace {@link #newName}, including setting it to {@code null} to clear the name.
+ * Fires when an entity's custom-name data changes. Cancelling prevents the update; otherwise, a
+ * joined listener can replace the name with {@code setNewName(...)}, including setting it
+ * to {@code null} to clear it.
  * @author aMelonRind
  * @since 1.9.1
  */
@@ -32,9 +33,35 @@ public class EventNameChange extends BaseEvent {
      * New custom name, or {@code null} to clear it. A listener may replace the incoming value;
      * cancellation prevents the update. Create replacement text with
      * {@link com.jsmacrosce.jsmacros.client.api.library.impl.FChat#createTextHelperFromString(String) Chat.createTextHelperFromString(String)}.
+     * @deprecated Removal in 3.0.0: Use {@link #getNewName()} and {@link #setNewName(TextHelper)} instead.
      */
     @Nullable
+    @Deprecated
     public TextHelper newName;
+
+    /**
+     * Returns the incoming custom name, or {@code null} when the name is being cleared.
+     *
+     * @return the current replacement helper, or {@code null}
+     * @since 2.2.0
+     */
+    @Nullable
+    public TextHelper getNewName() {
+        return newName;
+    }
+
+    /**
+     * Replaces the incoming custom name. {@code null} clears the name. Create replacement text with
+     * {@link com.jsmacrosce.jsmacros.client.api.library.impl.FChat#createTextHelperFromString(String) Chat.createTextHelperFromString(String)}.
+     *
+     * @param newName replacement helper, or {@code null} to clear the name
+     * @throws IllegalStateException if this delivery is not joined or its event lock was released
+     * @since 2.2.0
+     */
+    public void setNewName(@Nullable TextHelper newName) {
+        assertCanModify("setNewName");
+        this.newName = newName;
+    }
 
     /**
      * Wraps the entity and custom-name values for a name-change event; it does not apply the
@@ -60,7 +87,7 @@ public class EventNameChange extends BaseEvent {
      */
     @Override
     public String toString() {
-        return String.format("%s:{\"oldName\": %s, \"newName\": %s}", this.getEventName(), oldName == null ? null : oldName.getString(), newName == null ? null : newName.getString());
+        return String.format("%s:{\"oldName\": %s, \"newName\": %s}", this.getEventName(), oldName == null ? null : oldName.getString(), getNewName() == null ? null : getNewName().getString());
     }
 
 }

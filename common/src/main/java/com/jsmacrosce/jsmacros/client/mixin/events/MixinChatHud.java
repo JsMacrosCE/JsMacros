@@ -74,7 +74,7 @@ class MixinChatHud {
         if (text == null || jsmacros$eventRecvMessage == null) {
             return null;
         }
-        final TextHelper result = jsmacros$eventRecvMessage.text;
+        final TextHelper result = jsmacros$eventRecvMessage.getText();
         if (result == null) {
             return null;
         }
