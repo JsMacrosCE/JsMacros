@@ -27,7 +27,7 @@ import java.util.List;
  *   for (let i = 0; i !== teams.size(); i += 1) {
  *     const team = teams.get(i);
  *     Chat.log(`${team.getName()} is shown as ${team.getDisplayName().getString()}`);
- *     Chat.log(`  colour ${team.getColorName()}, value ${team.getColorValue()}`);
+ *     Chat.log(`  color ${team.getColorName()}, value ${team.getColorValue()}`);
  *     Chat.log(`  ${team.getPlayerList().size()} members, prefix ${team.getPrefix()}`);
  *   }
  * }

@@ -1,12 +1,13 @@
 package com.jsmacrosce.jsmacros.core.language;
 
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 
 import java.util.ArrayList;
 import java.util.List;
 
-/** Tracks a joined event's lock and callbacks queued until its release.
+/** Tracks an event delivery's lock and callbacks queued until its release. A delivery may be joined or read-only.
  * @param <T> associated script-context type
  * @since 1.4.0
  */
@@ -15,8 +16,10 @@ public class EventContainer<T extends BaseScriptContext<?>> {
     private final T ctx;
     private Thread lockThread;
     private boolean locked = true;
+    private boolean joined;
 
     private final List<Runnable> then = new ArrayList<>();
+    private final List<Runnable> releaseHooks = new ArrayList<>();
 
     /** Stores the supplied context reference and starts locked with no lock thread or queued callbacks.
      * A {@code null} context is accepted, but the first {@link #releaseLock()} call then fails with {@link NullPointerException}.
@@ -31,6 +34,37 @@ public class EventContainer<T extends BaseScriptContext<?>> {
      */
     public synchronized boolean isLocked() {
         return locked;
+    }
+
+    /** Reports whether dispatch waits on this container before the raiser continues.
+     * @return {@code true} when this delivery is joined
+     * @since 2.2.0
+     */
+    @DocletIgnore
+    public synchronized boolean isJoined() {
+        return joined;
+    }
+
+    /** Marks whether dispatch waits on this container before the raiser continues.
+     * @param joined whether this delivery is joined
+     * @since 2.2.0
+     */
+    @DocletIgnore
+    public synchronized void setJoined(boolean joined) {
+        this.joined = joined;
+    }
+
+    /** Registers a callback to run once when the lock is released; runs immediately when already released.
+     * @param hook callback to run on release
+     * @since 2.2.0
+     */
+    @DocletIgnore
+    public synchronized void onRelease(Runnable hook) {
+        if (locked) {
+            releaseHooks.add(hook);
+        } else {
+            runReleaseHook(hook);
+        }
     }
 
     /** Sets the lock thread; while locked and when a context is present, registers this container in its event map.
@@ -107,11 +141,27 @@ public class EventContainer<T extends BaseScriptContext<?>> {
             }
         }
         then.clear();
+        for (Runnable hook : releaseHooks) {
+            runReleaseHook(hook);
+        }
+        releaseHooks.clear();
         this.notifyAll();
         if (ctx == null) return;
         synchronized (ctx) {
             if (lockThread != null)
                 ctx.events.remove(lockThread);
+        }
+    }
+
+    private void runReleaseHook(Runnable hook) {
+        try {
+            hook.run();
+        } catch (Throwable t) {
+            if (ctx != null) {
+                ctx.runner.profile.logError(t);
+            } else {
+                t.printStackTrace();
+            }
         }
     }
 

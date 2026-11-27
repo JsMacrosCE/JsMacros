@@ -63,21 +63,24 @@ Whether the game can continue depends on where the event fires in the game's own
 code. Some events sit immediately before an action the game is about to take:
 sending a chat message, handling a key press, opening a container, clicking a
 slot, playing a sound, sending or receiving a packet. Those are **cancellable**,
-because there is still something to stop. The game cannot continue until it knows
-the answer, so dispatch waits for the listener: the listener is joined to the main
-thread. The event decides this, not the registration. So `joined: false` does not opt
-out of a cancellable event.
+because there is still something to stop. A listener that requests joined handling
+runs before the game continues, so it can cancel or change the event. The simple
+`JsMacros.on(event, callback)` form does not request joined handling; pass `true`
+as the second argument to request it. A non-joined callback is not awaited, so the
+game may already have read the event by the time it runs; it must treat the event
+as read-only.
 
 Events that report something already done like a tick passing, health changing, a
-chunk loading, which have nothing to stop. Their listeners are queued instead: the game
-continues, the callback runs afterwards on the script's thread, and
+chunk loading, which have nothing to stop. Their listeners are scheduled instead: the
+game continues without waiting, the callback runs on the script's thread, and
 `event.cancel()` is not available.
 
 **Requesting a join** covers the middle case: an event that is not cancellable but
 whose raiser is willing to wait. A listener asks by passing `true` as the second
 argument to `JsMacros.on`, and a custom event must set `joinable = true` before it
-is triggered. Cancellable events already do this. Dispatch then waits until the
-listener releases its event lock, normally when the callback returns. The request
+is triggered. Cancellable events permit this too; pass `true` to request it.
+Dispatch then waits until the listener releases its event lock, normally when the
+callback returns. The request
 is per listener: only listeners that asked are joined, and a script cannot join
 its own listener. See
 [Joinable events](/guide/concepts/events#joinable-events-making-trigger-wait-for-another-script)
@@ -87,9 +90,9 @@ The trade-off is that a joined listener is on the critical path. Keep it short:
 
 ```js
 const blocked = ["password", "secret"];
-JsMacros.on("SendMessage", JavaWrapper.methodToJava((event) => {
-  if (event.message === null) return;
-  if (blocked.some((word) => event.message.toLowerCase().includes(word))) {
+JsMacros.on("SendMessage", true, JavaWrapper.methodToJava((event) => {
+  if (event.getMessage() === null) return;
+  if (blocked.some((word) => event.getMessage().toLowerCase().includes(word))) {
     event.cancel(); // the message is not sent
   }
 }));
@@ -100,13 +103,13 @@ the current bound event lock before it blocks, so the main thread can continue
 while the script waits:
 
 ```js
-JsMacros.on("SendMessage", JavaWrapper.methodToJava((event) => {
-  if (event.message !== "confirm") return;
+JsMacros.on("SendMessage", true, JavaWrapper.methodToJava((event) => {
+  if (event.getMessage() !== "confirm") return;
   event.cancel(); // hold this message back until there is an answer
 
   // The current cancellable event is released while this waits.
-  const next = JsMacros.waitForEvent("RecvMessage", JavaWrapper.methodToJava(
-    (received) => received.text.getString() === "yes"
+  const next = JsMacros.waitForEvent("RecvMessage", true, JavaWrapper.methodToJava(
+    (received) => received.getText() !== null && received.getText().getString() === "yes"
   ));
   try {
     // Remember, this will trigger another SendMessage event
@@ -121,9 +124,10 @@ The returned container holds a lock for the second event. Releasing it lets the
 game continue before this callback returns:
 
 ```js
-const next = JsMacros.waitForEvent("RecvMessage");
+const next = JsMacros.waitForEvent("RecvMessage", true);
 try {
-  if (next.event.text.getString() === "yes") {
+  const text = next.event.getText();
+  if (text !== null && text.getString() === "yes") {
     Chat.say("confirmed");
   }
 } finally {

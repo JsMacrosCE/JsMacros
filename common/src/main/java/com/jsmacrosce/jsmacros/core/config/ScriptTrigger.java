@@ -26,31 +26,35 @@ public class ScriptTrigger {
     public Path scriptFile;
     /** Whether listener execution is allowed; changing this does not stop an in-flight run. */
     public boolean enabled;
-    /** Whether joined handling is requested where the event supports it. */
-    public boolean joined;
+    /**
+     * Whether joined handling is requested where the event supports it.
+     * @since 2.2.0
+     */
+    @SerializedName("joined")
+    public boolean joinRequested;
 
     /** Initializes the trigger configuration; the path is stringified and reconstructed by the other constructor.
      * @param triggerType dispatch mode
      * @param event event name or key/modifier combination
      * @param scriptFile configured script path
      * @param enabled whether listener execution is allowed
-     * @param joined whether to request joined handling where supported
+     * @param joinRequested whether to request joined handling where supported
      */
-    public ScriptTrigger(TriggerType triggerType, String event, Path scriptFile, boolean enabled, boolean joined) {
-        this(triggerType, event, scriptFile.toString(), enabled, joined);
+    public ScriptTrigger(TriggerType triggerType, String event, Path scriptFile, boolean enabled, boolean joinRequested) {
+        this(triggerType, event, scriptFile.toString(), enabled, joinRequested);
     }
 
     @DocletIgnore
     @Deprecated
-    public ScriptTrigger(TriggerType triggerType, String event, String scriptFile, boolean enabled, boolean joined) {
+    public ScriptTrigger(TriggerType triggerType, String event, String scriptFile, boolean enabled, boolean joinRequested) {
         this.triggerType = triggerType;
         this.event = event;
         this.scriptFile = Path.of(scriptFile);
         this.enabled = enabled;
-        this.joined = joined;
+        this.joinRequested = joinRequested;
     }
 
-    /** Compares trigger type, case-insensitive event text, and path; enabled and joined are ignored.
+    /** Compares trigger type, case-insensitive event text, and path; enabled and joinRequested are ignored.
      * @param macro trigger to compare
      * @return whether those three configuration values match
      */
@@ -58,11 +62,11 @@ public class ScriptTrigger {
         return triggerType == macro.triggerType && event.equalsIgnoreCase(macro.event) && scriptFile.equals(macro.scriptFile);
     }
 
-    /** Returns a diagnostic description of the configured type, event, path, enabled flag, and joined flag; this is not a serialization format.
+    /** Returns a diagnostic description of the configured type, event, path, enabled flag, and join-request flag; this is not a serialization format.
      * @return diagnostic description
      */
     public String toString() {
-        return String.format("RawMacro:{\"type\": \"%s\", \"eventkey\": \"%s\", \"scriptFile\": \"%s\", \"enabled\": %b, \"joined\": %b}", triggerType.toString(), event, scriptFile, enabled, joined);
+        return String.format("RawMacro:{\"type\": \"%s\", \"eventkey\": \"%s\", \"scriptFile\": \"%s\", \"enabled\": %b, \"joined\": %b}", triggerType.toString(), event, scriptFile, enabled, joinRequested);
     }
 
     /** Copies a trigger's configuration into a new instance.
@@ -70,7 +74,7 @@ public class ScriptTrigger {
      * @return new trigger with the same configuration
      */
     public static ScriptTrigger copy(ScriptTrigger m) {
-        return new ScriptTrigger(m.triggerType, m.event, m.scriptFile, m.enabled, m.joined);
+        return new ScriptTrigger(m.triggerType, m.event, m.scriptFile, m.enabled, m.joinRequested);
     }
 
     /** Returns a new trigger with this instance's configuration.

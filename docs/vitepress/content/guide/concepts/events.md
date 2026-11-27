@@ -29,12 +29,13 @@ You do not need to create one. You do need to know when it is released:
 ## Subscribe with `on`
 
 ```js
-const listener = JsMacros.on("RecvMessage", JavaWrapper.methodToJava((event, context) => {
+const listener = JsMacros.on("RecvMessage", true, JavaWrapper.methodToJava((event, context) => {
   if (event.messageType === "Chat Error") {
     event.cancel();
     return;
   }
-  Chat.log(`[${event.messageType}] ${event.text.getString()}`);
+  if (event.getText() === null) return;
+  Chat.log(`[${event.messageType}] ${event.getText().getString()}`);
 }));
 ```
 
@@ -81,7 +82,7 @@ cancelling it leaves the item where it is.
 
 ```js
 // Require sneak, so a stray press of the drop key cannot throw away the held item.
-JsMacros.on("DropSlot", JavaWrapper.methodToJava((event) => {
+JsMacros.on("DropSlot", true, JavaWrapper.methodToJava((event) => {
   const player = Player.getPlayer();
   if (player === null || player.isSneaking()) return;
   event.cancel();
@@ -91,16 +92,20 @@ JsMacros.on("DropSlot", JavaWrapper.methodToJava((event) => {
 Cancellation only does something for an event that declares itself cancellable.
 Calling `cancel()` on any other event throws `UnsupportedOperationException`.
 
-Cancellable events also **join** the main thread. The game waits for the callback
-to finish before it decides whether to continue. This happens even if you registered
-the listener with `joined: false`: the cancellable flag forces joined dispatch. Keep
-the handler short.
+Cancellable events can **join** the main thread. The game waits for a joined
+callback before it decides whether to continue, so the listener can cancel or
+replace the event. The simple `JsMacros.on(event, callback)` form does not request
+joined handling; pass `true` as the second argument to request it. A listener that
+does not request joining receives a read-only delivery: it runs asynchronously on a
+worker thread, may start before dispatch returns, and must treat the event as
+read-only. `event.cancel()` and the checked setters throw; direct writes to
+deprecated payload fields are not checked. Keep a joined handler short.
 
 If the handler only needs a quick decision, cancel or not, and then wants to do
 slow work, release the context first:
 
 ```js
-JsMacros.on("Key", JavaWrapper.methodToJava((event, context) => {
+JsMacros.on("Key", true, JavaWrapper.methodToJava((event, context) => {
   if (event.action !== 1 || event.key !== "key.keyboard.j") return;
 
   // The decision is made. Let the game continue before the expensive part.
@@ -110,25 +115,30 @@ JsMacros.on("Key", JavaWrapper.methodToJava((event, context) => {
 ```
 
 Do not release before `event.cancel()` if you intend to cancel. The game reads the
-cancelled flag when the lock is released. See [Threading](/guide/concepts/threading)
-for the full model.
+cancelled flag when the lock is released. Setter calls made after
+`context.releaseLock()` throw, even from a joined listener; direct field writes are
+not checked. See [Threading](/guide/concepts/threading) for the full model.
 
 ## Waiting for one event
 
 `waitForEvent` blocks the script until a matching event arrives:
 
 ```js
-const next = JsMacros.waitForEvent("RecvMessage");
+const next = JsMacros.waitForEvent("RecvMessage", true);
 
 // Reading the payload does not need the lock. Release it before unrelated work.
 next.context.releaseLock();
 
-Chat.log(`next message: ${next.event.text.getString()}`);
+if (next.event.getText() !== null) {
+  Chat.log(`next message: ${next.event.getText().getString()}`);
+}
 ```
 
-The result has two fields: `event` and `context`. For a cancellable event, the main
-thread is waiting on that lock, so release it as soon as you no longer need the
-delivery. If you need to cancel the event, cancel first, then release.
+The result has two fields: `event` and `context`. The overload with `true` requests
+joined handling when the event permits it, so the main thread is waiting on that
+lock; release it as soon as you no longer need the delivery. If you need to cancel
+the event, cancel first, then release. A wait without the flag is read-only and
+cannot cancel or change the event.
 
 `waitForEvent` also releases the event lock the script was already holding before
 it blocks. That is what makes it safe to call from inside a cancellable handler:
@@ -139,7 +149,7 @@ You can filter and add a pre-wait callback:
 ```js
 const next = JsMacros.waitForEvent(
   "RecvMessage",
-  JavaWrapper.methodToJava((event) => event.text.getString().includes("done"))
+  JavaWrapper.methodToJava((event) => event.getText() !== null && event.getText().getString().includes("done"))
 );
 ```
 
@@ -196,10 +206,11 @@ There are two separate switches:
 - **The listener asks for it.** Pass `true` to `JsMacros.on`.
 
 The listener's `true` is only a request. An event that is not joinable ignores it.
-Cancellable events already wait for their listeners, so passing `true` there adds
-nothing, and a custom event with `cancelable = true` is already joinable. Among
-the built-in events, every joinable event is currently cancellable, so joining is
-practical only for custom events raised by another script.
+The simple `on` form does not request joining; pass `true` to ask for it. A custom
+event with `cancelable = true` is also joinable. Among the built-in events, every
+joinable event is currently cancellable, so explicit joining is what lets a listener
+cancel or change one; for custom events it also makes the raising script's
+`trigger()` wait for a response.
 
 For example, script A owns a cache and answers `Lookup` requests, and script B
 needs the answer before its next line:

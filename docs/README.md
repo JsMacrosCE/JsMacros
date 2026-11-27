@@ -23,14 +23,14 @@ The mod version and Minecraft version are independent:
 build/docs/targets/1.21.8/
   python/JsMacrosAC/
   typescript/headers/
-  web/2.1.0/
-  vitepress/content/2.1.0/1.21.8/
-  vitepress/markdown/2.1.0/1.21.8/
+  web/2.2.0/
+  vitepress/content/2.2.0/1.21.8/
+  vitepress/markdown/2.2.0/1.21.8/
 
 build/docs/targets/26.1.2/
   ...
 
-build/docs/vitepress/content/2.1.0/
+build/docs/vitepress/content/2.2.0/
   1.21.8/
   26.1.2/
 ```
@@ -276,7 +276,7 @@ Two outputs are HTML and both are read by crawlers and link-preview clients:
   are static files in the public directory.
 
   The favicon is a dedicated mark, not the wordmark: at 16px the wordmark's three
-  colours and five letters collapse into a smudge. It is the green `CE` from the
+  colors and five letters collapse into a smudge. It is the green `CE` from the
   wordmark on the same dark tile as the social card, and the same geometry is
   rasterised into `favicon.ico`, `apple-touch-icon.png`, and the legacy devkit's
   `android-chrome-*` icons and manifest. The wide wordmark stays on the card.

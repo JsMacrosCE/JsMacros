@@ -1,14 +1,21 @@
 package com.jsmacrosce.jsmacros.core.event.impl;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
+import java.util.AbstractMap;
+import java.util.AbstractSet;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -16,7 +23,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * also reaches eligible {@code ANYTHING} listeners. Set {@code cancelable} before dispatch to let
  * listeners cancel this instance; check {@link #isCanceled()} after dispatch returns. Set
  * {@code joinable} before dispatch to let {@code trigger()} wait for listeners that asked to be
- * awaited.
+ * awaited. Arguments may be changed before dispatch, by the creator between dispatches, or from a
+ * joined listener; a non-joined listener must treat them as read-only.
  *
  * @author Wagyourtail
  * @since 1.2.8
@@ -26,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Event("Custom")
 public class EventCustom extends BaseEvent {
     protected Map<String, Object> args = new ConcurrentHashMap<>();
+    private final Map<String, Object> checkedArgs = new CheckedArgumentMap();
     /** Name used as this custom event's dispatch and subscription-registration key. Changing it does not register the new name; call {@link #registerEvent()} separately. */
     public String eventName;
     /** Whether {@code trigger()} may wait for listeners that requested joined handling; defaults to
@@ -36,6 +45,17 @@ public class EventCustom extends BaseEvent {
     public boolean joinable;
     /** Whether this event permits cancellation; defaults to {@code false}. */
     public boolean cancelable;
+
+    /** Custom events are script-owned and may be reused, so their creator keeps write access
+     * between dispatches. Non-joined listeners still cannot change arguments.
+     * @return {@code true}
+     */
+    @Override
+    @ApiStatus.Internal
+    @DocletIgnore
+    protected boolean canCreatorModifyAfterDispatch() {
+        return true;
+    }
 
     /**
      * Whether this event permits joining, based on its current {@code joinable} or {@code cancelable} flag.
@@ -66,9 +86,8 @@ public class EventCustom extends BaseEvent {
 
     /**
      * Dispatches this event to listeners registered under its name and eligible {@code ANYTHING}
-     * listeners. If {@code joinable()} is true, waits for listeners that requested joined handling;
-     * cancellable events wait without that request. The wait ends when each joined listener releases
-     * its event lock, normally on callback return.
+     * listeners. If {@code joinable()} is true, waits for listeners that requested joined handling.
+     * The wait ends when each joined listener releases its event lock, normally on callback return.
      *
      * @since 1.2.8
      */
@@ -100,10 +119,11 @@ public class EventCustom extends BaseEvent {
      * @param name argument key
      * @param i value to store
      * @return the stored integer value
+     * @throws IllegalStateException if the current delivery cannot change the event
      * @since 1.2.8
      */
     public int putInt(String name, int i) {
-        args.put(name, i);
+        modify("putInt", () -> args.put(name, i));
         return i;
     }
 
@@ -113,10 +133,11 @@ public class EventCustom extends BaseEvent {
      * @param name argument key
      * @param str value to store
      * @return the stored string value
+     * @throws IllegalStateException if the current delivery cannot change the event
      * @since 1.2.8
      */
     public String putString(String name, String str) {
-        args.put(name, str);
+        modify("putString", () -> args.put(name, str));
         return str;
     }
 
@@ -126,10 +147,11 @@ public class EventCustom extends BaseEvent {
      * @param name argument key
      * @param d value to store
      * @return the stored double value
+     * @throws IllegalStateException if the current delivery cannot change the event
      * @since 1.2.8
      */
     public double putDouble(String name, double d) {
-        args.put(name, d);
+        modify("putDouble", () -> args.put(name, d));
         return d;
     }
 
@@ -139,10 +161,11 @@ public class EventCustom extends BaseEvent {
      * @param name argument key
      * @param b value to store
      * @return the stored boolean value
+     * @throws IllegalStateException if the current delivery cannot change the event
      * @since 1.2.8
      */
     public boolean putBoolean(String name, boolean b) {
-        args.put(name, b);
+        modify("putBoolean", () -> args.put(name, b));
         return b;
     }
 
@@ -152,13 +175,16 @@ public class EventCustom extends BaseEvent {
      * @param name argument key
      * @param o value to store
      * @return the stored object
+     * @throws IllegalStateException if the current delivery cannot change the event
      * @since 1.2.8
      */
     public Object putObject(String name, Object o) {
-        if (runner.extensions.isGuestObject(o)) {
-            throw new AssertionError("Cannot put a guest object into an event");
-        }
-        args.put(name, o);
+        modify("putObject", () -> {
+            if (runner.extensions.isGuestObject(o)) {
+                throw new AssertionError("Cannot put a guest object into an event");
+            }
+            args.put(name, o);
+        });
         return o;
     }
 
@@ -269,11 +295,104 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * @return the live map backing this event; changes to it change the event's arguments
+     * Returns a live view of the argument map. The creator and a joined delivery may change it;
+     * a non-joined or already released delivery receives an unmodifiable view. A retained view
+     * stays live for reads, but writes through it (including entries and iterators) are checked
+     * when they happen and throw after the delivery can no longer change the event.
+     *
+     * @return a live map view, or an unmodifiable view when this delivery cannot change the event
      * @since 1.6.4
      */
     public Map<String, Object> getUnderlyingMap() {
-        return args;
+        if (canModify()) {
+            return checkedArgs;
+        }
+        return Collections.unmodifiableMap(checkedArgs);
+    }
+
+    /** Live map view whose mutations re-check the current delivery instead of trusting the
+     * permission that existed when the view was returned. */
+    private final class CheckedArgumentMap extends AbstractMap<String, Object> {
+        private final Set<Entry<String, Object>> entries = new AbstractSet<>() {
+            @Override
+            public Iterator<Entry<String, Object>> iterator() {
+                Iterator<Entry<String, Object>> delegate = args.entrySet().iterator();
+                return new Iterator<>() {
+                    @Override
+                    public boolean hasNext() {
+                        return delegate.hasNext();
+                    }
+
+                    @Override
+                    public Entry<String, Object> next() {
+                        Entry<String, Object> entry = delegate.next();
+                        return new SimpleEntry<>(entry.getKey(), entry.getValue()) {
+                            @Override
+                            public Object setValue(Object value) {
+                                Object previous = modifyValue("entry.setValue", () -> args.put(entry.getKey(), value));
+                                super.setValue(value);
+                                return previous;
+                            }
+                        };
+                    }
+
+                    @Override
+                    public void remove() {
+                        modify("remove", delegate::remove);
+                    }
+                };
+            }
+
+            @Override
+            public int size() {
+                return args.size();
+            }
+
+            @Override
+            public void clear() {
+                modify("clear", args::clear);
+            }
+        };
+
+        @Override
+        public Object get(Object key) {
+            return args.get(key);
+        }
+
+        @Override
+        public boolean containsKey(Object key) {
+            return args.containsKey(key);
+        }
+
+        @Override
+        public int size() {
+            return args.size();
+        }
+
+        @Override
+        public Object put(String key, Object value) {
+            return modifyValue("put", () -> args.put(key, value));
+        }
+
+        @Override
+        public void putAll(Map<? extends String, ?> map) {
+            modify("putAll", () -> args.putAll(map));
+        }
+
+        @Override
+        public Object remove(Object key) {
+            return modifyValue("remove", () -> args.remove(key));
+        }
+
+        @Override
+        public void clear() {
+            modify("clear", args::clear);
+        }
+
+        @Override
+        public Set<Entry<String, Object>> entrySet() {
+            return entries;
+        }
     }
 
     /**

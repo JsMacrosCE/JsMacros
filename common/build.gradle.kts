@@ -125,6 +125,17 @@ tasks.named("check") {
     dependsOn(testStringHashTrie)
 }
 
+val testEventDelivery = tasks.register<JavaExec>("testEventDelivery") {
+    group = "verification"
+    description = "Checks that only joined, still-locked deliveries may cancel or change an event"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.EventDeliveryTest")
+}
+tasks.named("check") {
+    dependsOn(testEventDelivery)
+}
+
 val testBuiltinEventJoinability = tasks.register<JavaExec>("testBuiltinEventJoinability") {
     group = "verification"
     description = "Checks built-in event joinability still matches the Events guide"

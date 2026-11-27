@@ -11,7 +11,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * wheel sensitivity or converted by the discrete-scroll setting. Cancelling prevents the game's
  * scroll handling, including its input notification and gameplay effects.
  * <pre>
- * JsMacros.on("MouseScroll", JavaWrapper.methodToJava(function (event) {
+ * JsMacros.on("MouseScroll", true, JavaWrapper.methodToJava(function (event) {
  *   if (event.deltaY > 0.0) {
  *     // positive is up, negative is down
  *     Chat.log(`scrolled up by ${event.deltaY}`);

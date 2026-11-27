@@ -36,7 +36,7 @@ public class ServiceTrigger {
     /**
      * Converts this configuration to an event trigger for the {@code Service} event.
      * The new trigger uses {@code file.toString()}, this instance's enabled flag,
-     * and {@code joined == false}; conversion does not register or start a service.
+     * and {@code joinRequested == false}; conversion does not register or start a service.
      * A null file causes {@link NullPointerException}.
      * @return a new service event trigger
      */

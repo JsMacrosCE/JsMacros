@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 /**
  * Provides access to a scoreboard's objectives, display slots, and teams. The
  * {@link #getObjectiveSlot(int)} index covers all 19 display slots (tab list, sidebar, below-name,
- * then team-colour sidebars); {@link #getObjectiveForTeamColorIndex(int)} indexes only the latter
+ * then team-color sidebars); {@link #getObjectiveForTeamColorIndex(int)} indexes only the latter
  * 16, starting with black.
  * <pre>
  * const board = World.getScoreboards();
@@ -35,9 +35,9 @@ import java.util.stream.Collectors;
  *     }
  *   }
  *
- *   // the local player's team, and its colour
- *   const colour = board.getTeamColorName();
- *   Chat.log(colour === null ? "no team" : `team colour: ${colour}`);
+ *   // the local player's team, and its color
+ *   const color = board.getTeamColorName();
+ *   Chat.log(color === null ? "no team" : `team color: ${color}`);
  * }
  * </pre>
  *
@@ -58,10 +58,10 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     }
 
     /**
-     * Returns the objective in a team-colour sidebar. Index {@code 0} is black and {@code 15} is
+     * Returns the objective in a team-color sidebar. Index {@code 0} is black and {@code 15} is
      * white; negative or larger indices return {@code null}, as does an empty slot.
      *
-     * @param index the team colour index, from zero to fifteen.
+     * @param index the team color index, from zero to fifteen.
      * @return the objective in that team's sidebar, or {@code null} if there is none.
      * @since 1.2.9
      */
@@ -76,7 +76,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
 
     /**
      * Returns the objective in a display slot: {@code 0} is the tab list, {@code 1} the sidebar,
-     * {@code 2} below-name, and {@code 3}–{@code 18} the team-colour sidebars (black to white).
+     * {@code 2} below-name, and {@code 3}–{@code 18} the team-color sidebars (black to white).
      * Other indices and empty slots return {@code null}.
      *
      * @param slot the display slot, from zero to eighteen.
@@ -93,12 +93,12 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     }
 
     /**
-     * Returns the player's team-colour index: {@code 0} is black and {@code 15} is white. Returns
+     * Returns the player's team-color index: {@code 0} is black and {@code 15} is white. Returns
      * {@code -1} if the player has no team; this index can be passed to
      * {@link #getObjectiveForTeamColorIndex(int)} when non-negative.
      *
-     * @param entity the player to find the team colour of.
-     * @return the team colour index for that player, or {@code -1} if they are on no team.
+     * @param entity the player to find the team color of.
+     * @return the team color index for that player, or {@code -1} if they are on no team.
      * @since 1.2.9
      */
     public int getPlayerTeamColorIndex(PlayerEntityHelper<Player> entity) {
@@ -106,11 +106,11 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     }
 
     /**
-     * Returns the local player's team-colour index: {@code 0} is black and {@code 15} is white, or
+     * Returns the local player's team-color index: {@code 0} is black and {@code 15} is white, or
      * {@code -1} if the player has no team. Unlike the overload taking a player, this uses the
      * client player.
      *
-     * @return the local player's team-colour index, or {@code -1} if they have no team.
+     * @return the local player's team-color index, or {@code -1} if they have no team.
      * @since 1.6.5
      */
     public int getPlayerTeamColorIndex() {
@@ -118,8 +118,8 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     }
 
     /**
-     * Returns the local player's team colour as text formatting, or {@code null} if the player has
-     * no team colour.
+     * Returns the local player's team color as text formatting, or {@code null} if the player has
+     * no team color.
      *
      * @return the formatting for the client player's team, {@code null} if the player is not in a
      * team.
@@ -132,8 +132,8 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     }
 
     /**
-     * Returns a player's team colour as text formatting, or {@code null} if the player has no team
-     * colour. The overload without a parameter uses the local player.
+     * Returns a player's team color as text formatting, or {@code null} if the player has no team
+     * color. The overload without a parameter uses the local player.
      *
      * @param player the player to get the team color's formatting for.
      * @return the formatting for the given player's team, {@code null} if the player is not in a
@@ -147,12 +147,12 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     }
 
     /**
-     * Returns a player's packed team colour value, or {@code -1} if they have no team colour. This
-     * differs from {@link #getPlayerTeamColorIndex(PlayerEntityHelper)}, which returns the colour
+     * Returns a player's packed team color value, or {@code -1} if they have no team color. This
+     * differs from {@link #getPlayerTeamColorIndex(PlayerEntityHelper)}, which returns the color
      * index rather than the packed value.
      *
      * @param player the player to get the team color for
-     * @return the packed team colour, or {@code -1} if no colour is assigned.
+     * @return the packed team color, or {@code -1} if no color is assigned.
      * @since 1.8.4
      */
     public int getTeamColor(PlayerEntityHelper<Player> player) {
@@ -161,9 +161,9 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     }
 
     /**
-     * Returns the local player's packed team colour, or {@code -1} if they have no team colour.
+     * Returns the local player's packed team color, or {@code -1} if they have no team color.
      *
-     * @return the packed team colour, or {@code -1} if none is assigned.
+     * @return the packed team color, or {@code -1} if none is assigned.
      * @since 1.8.4
      */
     public int getTeamColor() {
@@ -172,7 +172,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     }
 
     /**
-     * Returns the given player's team colour name, or {@code null} if they have no team colour.
+     * Returns the given player's team color name, or {@code null} if they have no team color.
      *
      * @param player the player to get the team color's name for
      * @return the name of the specified player's team color or {@code null} if the player is not in
@@ -186,9 +186,9 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     }
 
     /**
-     * Returns the local player's team colour name, or {@code null} if they have no team colour.
+     * Returns the local player's team color name, or {@code null} if they have no team color.
      *
-     * @return the team colour name, or {@code null} if none is assigned.
+     * @return the team color name, or {@code null} if none is assigned.
      * @since 1.8.4
      */
     @Nullable
@@ -248,10 +248,10 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     }
 
     /**
-     * The colour index of a given player's team, or {@code -1} if they are on no team.
+     * The color index of a given player's team, or {@code -1} if they are on no team.
      *
-     * @param entity the player to find the team colour of.
-     * @return the colour index, or {@code -1} if the player is on no team.
+     * @param entity the player to find the team color of.
+     * @return the color index, or {@code -1} if the player is on no team.
      * @since 1.2.9
      */
     protected int getPlayerTeamColorIndex(Player entity) {
@@ -260,8 +260,8 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     }
 
     /**
-     * The team colour of a given player, or {@code null} if they are on no team. This is the
-     * lookup the other team colour calls are all built on.
+     * The team color of a given player, or {@code null} if they are on no team. This is the
+     * lookup the other team color calls are all built on.
      *
      * @param player the player to get the team color for
      * @return the team color for the player or {@code null} if the player is not in a team.
@@ -277,10 +277,10 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     }
 
     /**
-     * Returns the local player's team-colour sidebar if present, otherwise the plain sidebar. If
+     * Returns the local player's team-color sidebar if present, otherwise the plain sidebar. If
      * neither slot has an objective, returns {@code null}.
      *
-     * @return the team-colour sidebar objective, or the plain sidebar objective if that is absent;
+     * @return the team-color sidebar objective, or the plain sidebar objective if that is absent;
      * {@code null} if neither exists.
      * @since 1.2.9
      */
@@ -298,7 +298,7 @@ public class ScoreboardsHelper extends BaseHelper<Scoreboard> {
     /**
      * Returns a diagnostic string containing the current sidebar objective, with literal
      * {@code null} when no objective is present. This uses the local player to select a
-     * team-colour sidebar and requires a local player.
+     * team-color sidebar and requires a local player.
      *
      * @return a diagnostic string containing the current sidebar objective, with literal
      * {@code null} when none is present.

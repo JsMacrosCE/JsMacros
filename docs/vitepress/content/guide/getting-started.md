@@ -70,7 +70,8 @@ A script that only runs once is not very useful. Register a listener instead:
 
 ```js
 JsMacros.on("RecvMessage", JavaWrapper.methodToJava((event) => {
-  Chat.log(`chat: ${event.text.getString()}`);
+  if (event.getText() === null) return;
+  Chat.log(`chat: ${event.getText().getString()}`);
 }));
 ```
 
@@ -83,7 +84,8 @@ To stop listening, keep the handle and turn it off:
 
 ```js
 const listener = JsMacros.on("RecvMessage", JavaWrapper.methodToJava((event) => {
-  Chat.log(event.text.getString());
+  if (event.getText() === null) return;
+  Chat.log(event.getText().getString());
 }));
 
 // later, for example inside another event handler

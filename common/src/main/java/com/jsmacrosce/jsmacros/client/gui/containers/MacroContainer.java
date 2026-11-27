@@ -105,7 +105,7 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
 
         if (!isEventMacro) {
             joinedBtn = addRenderableWidget(new Button(x + w / 4 - height * 2, y + 1, height, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal(""), (btn) -> {
-                macro.joined = !macro.joined;
+                macro.joinRequested = !macro.joinRequested;
             }));
             keyStateBtn = addRenderableWidget(new Button(x + w / 4 - height, y + 1, height, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal(""), (btn) -> {
                 switch (macro.triggerType) {
@@ -123,7 +123,7 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
             }));
         } else {
             joinedBtn = addRenderableWidget(new Button(x + w / 4 - height, y + 1, height, height - 2, textRenderer, 0, 0xFF000000, 0x7F7F7F7F, 0xFFFFFFFF, Component.literal(""), (btn) -> {
-                macro.joined = !macro.joined;
+                macro.joinRequested = !macro.joinRequested;
             }));
         }
 
@@ -159,6 +159,7 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
         BaseEventRegistry reg = JsMacrosClient.clientCore.eventRegistry;
         reg.removeScriptTrigger(macro);
         macro.event = type;
+        macro.joinRequested = false;
         reg.addScriptTrigger(macro);
         keyBtn.setMessage(getTranslatedEventName(macro.event));
     }
@@ -211,6 +212,7 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
     public void setKey(String translationKeys) {
         JsMacrosClient.clientCore.eventRegistry.removeScriptTrigger(macro);
         macro.event = translationKeys;
+        macro.joinRequested = false;
         JsMacrosClient.clientCore.eventRegistry.addScriptTrigger(macro);
         keyBtn.setMessage(buildKeyName(translationKeys));
         selectkey = false;
@@ -227,7 +229,7 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
             joinedBtn.active = reg.joinableEvents.contains(macro.event);
             if (!joinedBtn.active) {
                 joinedBtn.setColor(0xA0000000);
-                macro.joined = false;
+                macro.joinRequested = false;
             } else {
                 joinedBtn.setColor(0);
             }
@@ -252,7 +254,7 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
             // icon for keystate
             ResourceLocation tex;
             if (macro.triggerType != ScriptTrigger.TriggerType.EVENT) {
-                if (macro.joined) {
+                if (macro.joinRequested) {
                     tex = script_join_tex;
                 } else {
                     tex = script_fork_tex;
@@ -310,7 +312,7 @@ public class MacroContainer extends MultiElementContainer<MacroScreen> {
                 /*GlStateManager._disableBlend();
                 *///?}
             } else {
-                if (macro.joined) {
+                if (macro.joinRequested) {
                     tex = script_join_tex;
                 } else {
                     tex = script_fork_tex;

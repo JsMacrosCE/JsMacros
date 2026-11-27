@@ -114,7 +114,7 @@ public class Image implements RenderElement, Alignable<Image> {
     /**
     * the tint, packed with the alpha in the top byte.
     * <p>
-    * A colour with no alpha of its own is made opaque unless it was pure black; for
+    * A color with no alpha of its own is made opaque unless it was pure black; for
     * example, a bare RGB red is stored with alpha {@code 0xFF}.
     */
     public int color;
@@ -170,7 +170,7 @@ public class Image implements RenderElement, Alignable<Image> {
     /**
     * constructs an image from a texture region, with alpha supplied separately.
     * <p>
-    * The alpha replaces the top byte of the colour outright, so a colour that came with
+    * The alpha replaces the top byte of the color outright, so a color that came with
     * an alpha of its own loses it, and a value outside 0 to 255 is not clamped. As in
     * the shorter constructor finite rotations are normalized to {@code [-180, 180)}.
     *
@@ -180,7 +180,7 @@ public class Image implements RenderElement, Alignable<Image> {
     * @param height        the height the piece is drawn at
     * @param zIndex        the z-index against the other elements on the overlay
     * @param alpha         the alpha, in the top byte
-    * @param color         the colour, whose top byte is replaced
+    * @param color         the color, whose top byte is replaced
     * @param id            the texture to draw from, with the namespace optional
     * @param imageX        the x position in the texture to start from
     * @param imageY        the y position in the texture to start from
@@ -382,7 +382,7 @@ public class Image implements RenderElement, Alignable<Image> {
     * Chat.log(`0x${(icon.getColor() >>> 0).toString(16)}`); // ffff0000
     * </pre>
     *
-    * @param color packed ARGB colour, with alpha in the top byte
+    * @param color packed ARGB color, with alpha in the top byte
     * @return self for chaining
     * @since 1.6.5
     */
@@ -392,11 +392,11 @@ public class Image implements RenderElement, Alignable<Image> {
     }
 
     /**
-    * Sets the RGB tint with an explicit alpha byte, allowing transparent nonblack colours.
+    * Sets the RGB tint with an explicit alpha byte, allowing transparent nonblack colors.
     * Uses the low 24 bits of {@code color} and the low 8 bits of {@code alpha}; values outside
     * {@code 0..255} wrap rather than clamp, without changing the RGB bits.
     *
-    * @param color packed RGB colour; its existing alpha byte is ignored
+    * @param color packed RGB color; its existing alpha byte is ignored
     * @param alpha alpha from {@code 0} (transparent) to {@code 255} (opaque); only the low byte is used
     * @return self for chaining
     * @since 1.6.5

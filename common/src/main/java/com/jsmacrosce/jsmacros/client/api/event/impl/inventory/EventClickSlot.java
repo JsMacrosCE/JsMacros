@@ -23,7 +23,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * For drops on their own, see {@link EventDropSlot}. For a single slot changing because the
  * server sent an update, see {@link EventSlotUpdate}.
  * <pre>
- * JsMacros.on("ClickSlot", JavaWrapper.methodToJava(function (event) {
+ * JsMacros.on("ClickSlot", true, JavaWrapper.methodToJava(function (event) {
  *   if (event.mode === 1) {
  *     // mode 1 is the shift-click quick move, refuse it entirely
  *     event.cancel();

@@ -43,7 +43,7 @@ public class EventRegistry extends BaseEventRegistry {
         if (rawMacro.triggerType == ScriptTrigger.TriggerType.EVENT) {
             if (rawMacro.event.startsWith("Joined")) {
                 rawMacro.event = rawMacro.event.substring(6);
-                rawMacro.joined = true;
+                rawMacro.joinRequested = true;
             }
             addListener(rawMacro.event, new EventListener(rawMacro, runner));
         } else {

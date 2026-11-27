@@ -51,11 +51,23 @@ public abstract class BaseListener implements IEventListener {
 
     /**
      * Reports the trigger's current join preference.
-     * @return the current value of the trigger's {@code joined} setting
+     * @return the current value of the trigger's {@code joinRequested} setting
+     * @since 2.2.0
      */
     @Override
+    public boolean joinRequested() {
+        return trigger.joinRequested;
+    }
+
+    /**
+     * Reports the trigger's current join preference.
+     * @return the current value of the trigger's {@code joinRequested} setting
+     * @deprecated Removal in 3.0.0: Use {@link #joinRequested()} instead.
+     */
+    @Override
+    @Deprecated
     public boolean joined() {
-        return trigger.joined;
+        return joinRequested();
     }
 
     /**

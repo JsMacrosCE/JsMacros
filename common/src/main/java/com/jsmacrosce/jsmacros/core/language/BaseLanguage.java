@@ -56,7 +56,9 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
         } else {
             file = runner.config.macroFolder.toPath().resolve(macro.scriptFile).toFile();
         }
+        final boolean deliveryJoined = event != null && staticMacro.joinRequested && runner.eventRegistry.isJoinable(event);
         EventContainer<T> ctx = new EventContainer<>(createContext(event, file));
+        ctx.setJoined(deliveryJoined);
         runner.threadPool.runTask(() -> {
             Thread t = Thread.currentThread();
             preThread.run();
@@ -70,7 +72,12 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
 
                     runner.addContext(ctx);
 
-                    exec(ctx, staticMacro, event);
+                    if (event != null) event.beginDelivery(ctx, deliveryJoined);
+                    try {
+                        exec(ctx, staticMacro, event);
+                    } finally {
+                        if (event != null) event.endDelivery();
+                    }
                     try {
                         if (then != null) {
                             then.run();
@@ -136,6 +143,7 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
     public final EventContainer<T> trigger(String lang, String script, File fakeFile, BaseEvent event, Runnable then, Consumer<Throwable> catcher) {
         final Thread ct = Thread.currentThread();
         EventContainer<T> ctx = new EventContainer<>(createContext(event, fakeFile));
+        ctx.setJoined(false);
         runner.threadPool.runTask(() -> {
             Thread t = Thread.currentThread();
             preThread.run();
@@ -145,6 +153,8 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
 
                 runner.addContext(ctx);
 
+                // This overload runs arbitrary source for a caller; it is not an event delivery,
+                // so leave the event's modification state to the dispatch that produced it.
                 exec(ctx, lang, script, event);
                 executionFinished = true;
 

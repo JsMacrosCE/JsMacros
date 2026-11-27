@@ -261,8 +261,8 @@ public class EntityTraceLine extends TraceLine {
         }
 
         /**
-         * Stores the packed colour unchanged and derives alpha from its high byte. If that byte is {@code 0},
-         * nonzero RGB is treated as opaque; an all-zero colour remains transparent.
+         * Stores the packed color unchanged and derives alpha from its high byte. If that byte is {@code 0},
+         * nonzero RGB is treated as opaque; an all-zero color remains transparent.
          * <p>
          *
          * @param color the color of the line
@@ -276,7 +276,7 @@ public class EntityTraceLine extends TraceLine {
         }
 
         /**
-         * Sets the packed colour and alpha separately; any alpha byte in {@code color} is not extracted.
+         * Sets the packed color and alpha separately; any alpha byte in {@code color} is not extracted.
          *
          * @param color the color of the line
          * @param alpha the alpha value of the line's color
@@ -290,7 +290,7 @@ public class EntityTraceLine extends TraceLine {
         }
 
         /**
-         * Packs the red, green, and blue components into the colour without changing alpha. Components are not clamped.
+         * Packs the red, green, and blue components into the color without changing alpha. Components are not clamped.
          *
          * @param r the red component of the color
          * @param g the green component of the color
@@ -304,7 +304,7 @@ public class EntityTraceLine extends TraceLine {
         }
 
         /**
-         * Packs the RGB components into the colour and stores alpha separately; components are not clamped.
+         * Packs the RGB components into the color and stores alpha separately; components are not clamped.
          *
          * @param r the red component of the color
          * @param g the green component of the color
@@ -320,7 +320,7 @@ public class EntityTraceLine extends TraceLine {
         }
 
         /**
-         * Returns the packed colour currently stored by this builder.
+         * Returns the packed color currently stored by this builder.
          *
          * @return the color of the line
          * @since 1.9.0
@@ -330,7 +330,7 @@ public class EntityTraceLine extends TraceLine {
         }
 
         /**
-         * Sets the alpha independently of the colour, from {@code 0} (transparent) to
+         * Sets the alpha independently of the color, from {@code 0} (transparent) to
          * {@code 255} (opaque). Values are not clamped.
          *
          * @param alpha the alpha value for the line's color

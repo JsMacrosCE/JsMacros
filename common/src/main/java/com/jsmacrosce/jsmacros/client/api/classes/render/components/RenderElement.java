@@ -118,9 +118,9 @@ public interface RenderElement extends Renderable {
     * Scales an ARGB color's RGB channels by the packed light brightness and preserves
     * its alpha channel.
     *
-    * @param argb        the colour to darken
+    * @param argb        the color to darken
     * @param packedLight the packed lightmap value
-    * @return the colour with its RGB scaled by the brightness.
+    * @return the color with its RGB scaled by the brightness.
     */
     @DocletIgnore
     static int applyLight(int argb, int packedLight) {

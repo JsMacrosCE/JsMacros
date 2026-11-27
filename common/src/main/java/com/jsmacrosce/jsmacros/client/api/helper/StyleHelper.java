@@ -23,10 +23,10 @@ import java.util.stream.Collectors;
  * visited text run. These accessors report properties stored on that style, not formatting
  * inherited from surrounding text.
  * <p>
- * Decoration accessors return booleans. For colours, {@link #getColorIndex()} and
- * {@link #getColorValue()} return {@code -1} when there is no legacy named colour; use
- * {@link #getCustomColor()} for the packed RGB of either colour kind, or {@code -1} when unset.
- * {@link #hasColor()} and {@link #hasCustomColor()} distinguish unset, legacy, and custom colours.
+ * Decoration accessors return booleans. For colors, {@link #getColorIndex()} and
+ * {@link #getColorValue()} return {@code -1} when there is no legacy named color; use
+ * {@link #getCustomColor()} for the packed RGB of either color kind, or {@code -1} when unset.
+ * {@link #hasColor()} and {@link #hasCustomColor()} distinguish unset, legacy, and custom colors.
  * <p>
  * Click and hover accessors expose the action separately from its value. JsMacros-registered
  * clicks report {@code "custom"}; retrieve their runnable with {@link #getCustomClickValue()}.
@@ -36,10 +36,10 @@ import java.util.stream.Collectors;
  * text.visit(JavaWrapper.methodToJava(function (style, run) {
  *   if (style.hasColor()) {
  *     if (style.hasCustomColor()) {
- *       // an arbitrary rgb colour, packed as 0xRRGGBB
- *       Chat.log(`${run} is colour #${style.getCustomColor().toString(16)}`);
+ *       // an arbitrary rgb color, packed as 0xRRGGBB
+ *       Chat.log(`${run} is color #${style.getCustomColor().toString(16)}`);
  *     } else {
- *       // one of the sixteen legacy named colours
+ *       // one of the sixteen legacy named colors
  *       Chat.log(`${run} is ${style.getColorName()}, index ${style.getColorIndex()}`);
  *     }
  *   }
@@ -67,9 +67,9 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * Whether this style has a colour set.
+     * Whether this style has a color set.
      *
-     * @return {@code true} if a colour is set, {@code false} otherwise
+     * @return {@code true} if a color is set, {@code false} otherwise
      * @since 1.6.5
      */
     public boolean hasColor() {
@@ -77,7 +77,7 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * @return the legacy colour index, or {@code -1} if unset or custom
+     * @return the legacy color index, or {@code -1} if unset or custom
      * @deprecated use {@link #getColorIndex()} instead.
      */
     @DocletIgnore
@@ -87,10 +87,10 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * Returns the legacy formatting for this style's colour. An arbitrary RGB colour returns
-     * {@code null}; when no colour is set, this method throws {@link java.lang.NullPointerException}.
+     * Returns the legacy formatting for this style's color. An arbitrary RGB color returns
+     * {@code null}; when no color is set, this method throws {@link java.lang.NullPointerException}.
      *
-     * @return the legacy formatting, or {@code null} for an arbitrary rgb colour
+     * @return the legacy formatting, or {@code null} for an arbitrary rgb color
      * @since 1.8.4
      */
     @Nullable
@@ -100,10 +100,10 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * Returns this style's legacy colour index. Custom RGB colours are not assigned a legacy
+     * Returns this style's legacy color index. Custom RGB colors are not assigned a legacy
      * index.
      *
-     * @return the legacy colour index, or {@code -1} if no colour is set or it is an arbitrary rgb colour
+     * @return the legacy color index, or {@code -1} if no color is set or it is an arbitrary rgb color
      * @since 1.8.4
      */
     public int getColorIndex() {
@@ -115,8 +115,8 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * Returns the RGB value associated with a legacy named colour; custom RGB colours and
-     * unset colours return {@code -1}.
+     * Returns the RGB value associated with a legacy named color; custom RGB colors and
+     * unset colors return {@code -1}.
      *
      * @return the color value of this style or {@code -1} if it doesn't have one.
      * @since 1.8.4
@@ -130,8 +130,8 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * Returns the serialized colour of this style, or {@code null} if unset. Legacy colours
-     * serialize by name and custom colours as hash-prefixed hexadecimal RGB.
+     * Returns the serialized color of this style, or {@code null} if unset. Legacy colors
+     * serialize by name and custom colors as hash-prefixed hexadecimal RGB.
      *
      * @return the color name of this style or {@code null} if it has no color.
      * @since 1.8.4
@@ -142,10 +142,10 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * Returns whether this style has a custom RGB colour. Returns {@code false} when unset; use
-     * {@link #hasColor()} to distinguish unset from a legacy colour.
+     * Returns whether this style has a custom RGB color. Returns {@code false} when unset; use
+     * {@link #hasColor()} to distinguish unset from a legacy color.
      *
-     * @return {@code true} if this run has a colour that is not one of the legacy named ones
+     * @return {@code true} if this run has a color that is not one of the legacy named ones
      * @since 1.6.5
      */
     public boolean hasCustomColor() {
@@ -153,10 +153,10 @@ public class StyleHelper extends BaseHelper<Style> {
     }
 
     /**
-     * Returns this style's colour as packed {@code 0xRRGGBB}, whether custom or legacy, or
+     * Returns this style's color as packed {@code 0xRRGGBB}, whether custom or legacy, or
      * {@code -1} if unset. Use {@link #hasCustomColor()} to distinguish custom from legacy.
      *
-     * @return the packed rgb value of this run's colour, or {@code -1} if it has no colour
+     * @return the packed rgb value of this run's color, or {@code -1} if it has no color
      * @since 1.6.5
      */
     public int getCustomColor() {

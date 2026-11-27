@@ -11,7 +11,7 @@ There are definitely some issues with the API, please report any bugs you find o
 - Horse owner and some other passive-mob state is not synchronized to the client. A missing horse owner or a false client-side wetness flag on a wolf is not authoritative server state.
 - `EndCrystalEntityHelper.isNatural()` exposes the crystal's *show-bottom* flag, not a provable origin. Other client-side entity predicates based on equipment or custom names are similarly heuristics.
 - `EntityHelper.asServerEntity()` is available only with an integrated server and returns a live server entity. Further access to that helper must take place on the integrated-server thread. This should be gated in the Doclet somehow in the future.
-- Cancellable packet event listeners execute synchronously so cancellation can take effect before network dispatch. Keep these callbacks short: a slow script can delay packet processing and hit the configured event-lock watchdog limit.
+- A cancellable packet event listener that requests joined handling makes network dispatch wait for the script, so cancellation or replacement takes effect before the packet is handled. A non-joined packet listener is read-only and runs asynchronously on a worker thread; dispatch does not wait for it, so its callback can start before network dispatch finishes. Keep joined callbacks short: a slow script can delay packet processing and hit the configured event-lock watchdog limit.
 
 ## Script Engine
 To the best of my knowledge, there are no major issues with the script engine itself at this time.

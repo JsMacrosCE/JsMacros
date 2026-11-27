@@ -2,7 +2,6 @@ package com.jsmacrosce.jsmacros.core;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import com.jsmacrosce.jsmacros.core.event.BaseListener;
 import com.jsmacrosce.jsmacros.core.event.IEventListener;
 import com.jsmacrosce.jsmacros.core.language.EventContainer;
 
@@ -16,10 +15,11 @@ import com.jsmacrosce.jsmacros.core.language.EventContainer;
 public class EventLockWatchdog {
 
     /** Starts a lock monitor using the container's context and runner.
-     * After the delay, the monitor checks whether the lock is held; if so, it disables a {@link BaseListener} listener, closes the context, and logs a {@link WatchdogException}.
-     * A release observed at the check avoids those actions; a release after the check may still race with them. Other listener implementations are not disabled.
+     * After the delay, the monitor checks whether the lock is held; if so, it turns off the
+     * listener, closes the context, and logs a {@link WatchdogException}. A release observed at the
+     * check avoids those actions; a release after the check may still race with them.
      * @param lock non-null container with a non-null context and initialized runner thread pool
-     * @param listener nullable listener; only a {@link BaseListener} is disabled when the timed check finds the lock held
+     * @param listener nullable listener; a non-null listener is turned off when the timed check finds the lock held
      * @param maxTime nonnegative delay before the timed check, in milliseconds
      */
     public static void startWatchdog(@NotNull EventContainer<?> lock, @Nullable IEventListener listener, long maxTime) {
@@ -32,8 +32,8 @@ public class EventLockWatchdog {
                             return;
                         }
                     }
-                    if (listener instanceof BaseListener baseListener) {
-                        baseListener.off();
+                    if (listener != null) {
+                        listener.off();
                     }
                     lock.getCtx().closeContext();
                     lock.getCtx().runner.profile.logError(new WatchdogException(String.format("Script \n\"%s\"\n joined longer than allowed time of %d ms.", listener, maxTime)));

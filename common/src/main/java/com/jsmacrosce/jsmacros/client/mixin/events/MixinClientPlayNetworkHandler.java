@@ -78,10 +78,10 @@ public abstract class MixinClientPlayNetworkHandler extends ClientCommonPacketLi
     public Component onTitle(Component title) {
         EventTitle et = new EventTitle("TITLE", title);
         et.trigger();
-        if (et.message == null || et.isCanceled()) {
+        if (et.getMessage() == null || et.isCanceled()) {
             return null;
         } else {
-            return et.message.getRaw();
+            return et.getMessage().getRaw();
         }
     }
 
@@ -93,10 +93,10 @@ public abstract class MixinClientPlayNetworkHandler extends ClientCommonPacketLi
     public Component onSubtitle(Component title) {
         EventTitle et = new EventTitle("SUBTITLE", title);
         et.trigger();
-        if (et.message == null || et.isCanceled()) {
+        if (et.getMessage() == null || et.isCanceled()) {
             return null;
         } else {
-            return et.message.getRaw();
+            return et.getMessage().getRaw();
         }
     }
 
@@ -108,10 +108,10 @@ public abstract class MixinClientPlayNetworkHandler extends ClientCommonPacketLi
     public Component onOverlayMessage(Component title) {
         EventTitle et = new EventTitle("ACTIONBAR", title);
         et.trigger();
-        if (et.message == null || et.isCanceled()) {
+        if (et.getMessage() == null || et.isCanceled()) {
             return null;
         } else {
-            return et.message.getRaw();
+            return et.getMessage().getRaw();
         }
     }
 

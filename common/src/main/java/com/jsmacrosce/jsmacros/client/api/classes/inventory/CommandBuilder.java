@@ -638,7 +638,7 @@ public abstract class CommandBuilder implements Registrable<CommandBuilder> {
         lock.setLockThread(Thread.currentThread());
         EventLockWatchdog.startWatchdog(lock, new IEventListener() {
             @Override
-            public boolean joined() {
+            public boolean joinRequested() {
                 return false;
             }
 

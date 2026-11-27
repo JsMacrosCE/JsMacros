@@ -15,7 +15,9 @@
 # Documentation work
 
 When writing or revising Javadoc, doclet annotations, or generated-documentation
-code, read `docs/STYLE.md` and `docs/README.md` first.
+code, read `docs/STYLE.md` and `docs/README.md` first. For release notes under
+`docs/releases`, read `docs/releases/AGENTS.md` first; that is a separate style
+and validation guide.
 
 - Write concise API contracts, not a tutorial for every member. Keep verified
   caveats; remove filler and unsupported claims.

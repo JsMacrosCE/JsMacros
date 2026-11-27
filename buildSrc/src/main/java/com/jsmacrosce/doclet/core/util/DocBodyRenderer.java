@@ -328,7 +328,7 @@ public final class DocBodyRenderer {
     /**
      * Maps a javadoc link signature that refers to a simple Java type (boxed
      * number, {@code String}, {@code Boolean}) to its display alias.
-     * Returns {@code null} when the signature is not a recognised simple type.
+     * Returns {@code null} when the signature is not a recognized simple type.
      */
     public static String mapSimpleLinkSignature(String sig) {
         if (sig == null) {

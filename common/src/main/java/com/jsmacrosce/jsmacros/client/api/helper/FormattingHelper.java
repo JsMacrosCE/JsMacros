@@ -17,7 +17,7 @@ import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
  * A {@link StyleHelper} returns this only for legacy formatting values; arbitrary RGB colors do
  * not have a formatting code.
  * <pre>
- * const line = Chat.createTextBuilder().append("a coloured run").withColor(0xc).build();
+ * const line = Chat.createTextBuilder().append("a colored run").withColor(0xc).build();
  * line.visit(JavaWrapper.methodToJava(function (style, run) {
  *   if (style.hasColor()) {
  *     const formatting = style.getFormatting();

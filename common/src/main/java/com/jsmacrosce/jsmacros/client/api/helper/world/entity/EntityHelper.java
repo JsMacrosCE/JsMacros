@@ -503,7 +503,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
      * Sets the entity's client-side glow color using a packed color value. This can
      * override the color used for drawing without changing its team color.
      *
-     * @param color the packed rgb colour to glow in
+     * @param color the packed rgb color to glow in
      * @return self for chaining.
      */
     public EntityHelper<T> setGlowingColor(int color) {
@@ -512,7 +512,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Restores the entity's team-derived glow colour after {@link #setGlowingColor(int)}.
+     * Restores the entity's team-derived glow color after {@link #setGlowingColor(int)}.
      * This does not change whether the entity glows; use {@link #resetGlowing()} for that.
      *
      * @return self for chaining.
@@ -523,8 +523,8 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
     }
 
     /**
-     * Returns the entity's team colour, or {@code 0} if it has no team colour.
-     * A colour set by {@link #setGlowingColor(int)} can override the colour used for drawing
+     * Returns the entity's team color, or {@code 0} if it has no team color.
+     * A color set by {@link #setGlowingColor(int)} can override the color used for drawing
      * without changing this value.
      *
      * @return glow color
@@ -549,7 +549,7 @@ public class EntityHelper<T extends Entity> extends BaseHelper<T> {
 
     /**
      * Restores the game's decision about whether the entity glows. This does not reset
-     * its glow colour; use {@link #resetGlowingColor()} for that.
+     * its glow color; use {@link #resetGlowingColor()} for that.
      *
      * @return self for chaining.
      * @since 1.6.3

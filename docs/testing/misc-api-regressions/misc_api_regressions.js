@@ -163,7 +163,7 @@ run('Unsupported packet buffers can be checked before construction', function ()
       threw = String(e).indexOf('IllegalArgumentException') !== -1;
     }
     assertEq(threw, true, 'documented unsupported-packet exception');
-    event.packet = null;
+    event.setPacket(null);
     assertEq(event.canGetPacketBuffer(), false, 'event null packet');
   });
 });
@@ -332,10 +332,18 @@ run('Surface builds copy position independently of builder and siblings', functi
 run('Formatting modifiers have sentinel color; colors retain RGB', function () {
   var Formatting = type('client.api.helper.FormattingHelper');
   var values = Java.type('net.minecraft.ChatFormatting').values();
+  var colors = [
+    0x000000, 0x0000AA, 0x00AA00, 0x00AAAA,
+    0xAA0000, 0xAA00AA, 0xFFAA00, 0xAAAAAA,
+    0x555555, 0x5555FF, 0x55FF55, 0x55FFFF,
+    0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF
+  ];
   for (var i = 0; i < values.length; i++) {
     var raw = values[i];
     var helper = new Formatting(raw);
-    assertEq(helper.getColorValue(), raw.isColor() ? Number(raw.getColor()) : -1, String(raw));
+    assertEq(helper.isColor(), i < 16, String(raw) + ' color flag');
+    assertEq(helper.isModifier(), i >= 16 && i <= 20, String(raw) + ' modifier flag');
+    assertEq(helper.getColorValue(), i < 16 ? colors[i] : -1, String(raw));
     helper.toString();
   }
 });
@@ -548,7 +556,45 @@ run('EventContainer null-thread diagnostics and repeated release', function () {
 });
 
 ['on', 'once'].forEach(function (mode) {
-  run('Cancellable custom event runs same-context ' + mode + ' listener inline', function () {
+  run('Same-context non-joined cancellable ' + mode + ' listener is read-only', function () {
+    var core = type('client.JsMacrosClient').clientCore;
+    var name = 'MiscApiRegression_' + Java.type('java.util.UUID').randomUUID();
+    var custom = JsMacros.createCustomEvent(name);
+    custom.cancelable = true;
+    custom.registerEvent();
+    var completed = new (Java.type('java.util.concurrent.Semaphore'))(0);
+    var rejected = false;
+    var calls = 0;
+    var listener = null;
+    try {
+      listener = JsMacros[mode](name, false, JavaWrapper.methodToJava(function (event) {
+        calls++;
+        try {
+          event.cancel();
+        } catch (e) {
+          rejected = true;
+        } finally {
+          completed.release();
+        }
+      }));
+      custom.trigger();
+      var finished = false;
+      var deadline = Date.now() + 2000;
+      while (!finished && Date.now() < deadline) {
+        finished = completed.tryAcquire();
+        if (!finished) Time.sleep(50);
+      }
+      assertEq(finished, true, 'non-joined callback completed');
+      assertEq(calls, 1, 'one callback');
+      assertEq(rejected, true, 'non-joined cancellation is rejected');
+      assertEq(custom.isCanceled(), false, 'non-joined cancellation does not reach the event');
+    } finally {
+      if (listener != null) JsMacros.off(listener);
+      core.eventRegistry.events.remove(name);
+    }
+  });
+
+  run('Same-context joined cancellable ' + mode + ' listener keeps the deadlock guard', function () {
     var core = type('client.JsMacrosClient').clientCore;
     var name = 'MiscApiRegression_' + Java.type('java.util.UUID').randomUUID();
     var custom = JsMacros.createCustomEvent(name);
@@ -557,15 +603,11 @@ run('EventContainer null-thread diagnostics and repeated release', function () {
     var calls = 0;
     var listener = null;
     try {
-      listener = JsMacros[mode](name, false, JavaWrapper.methodToJava(function (event) {
+      listener = JsMacros[mode](name, true, JavaWrapper.methodToJava(function (event) {
         calls++;
-        event.cancel();
       }));
-      custom.trigger();
-      assertEq(custom.isCanceled(), true, 'cancellation before dispatch returns');
-      assertEq(calls, 1, 'one callback');
-      custom.trigger();
-      assertEq(calls, mode === 'once' ? 1 : 2, 'listener lifetime');
+      assertThrows(function () { custom.trigger(); }, 'Cannot join');
+      assertEq(calls, 0, 'same-context joined listener never runs');
     } finally {
       if (listener != null) JsMacros.off(listener);
       core.eventRegistry.events.remove(name);

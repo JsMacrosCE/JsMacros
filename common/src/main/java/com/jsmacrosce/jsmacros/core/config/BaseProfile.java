@@ -123,50 +123,69 @@ public abstract class BaseProfile {
 
     /**
      * Dispatches an event to its named listeners and, unless ignored, to {@code ANYTHING} listeners.
-     * Joined dispatch is used for joined listeners or cancellable events when the event is joinable
-     * (or its name is configured as joinable); joined callbacks are awaited.
+     * A listener is joined only when it requests joined handling and the event permits joining;
+     * joined callbacks are awaited. A listener that does not request joining receives a read-only
+     * delivery that dispatch does not wait for and cannot change the event.
      * @param event event to dispatch
      * @since 1.2.7
      */
     public void triggerEvent(BaseEvent event) {
-        boolean joinedMain = checkJoinedThreadStack();
-        if (event instanceof EventCustom) {
-            for (IEventListener macro : runner.eventRegistry.getListeners(((EventCustom) event).eventName)) {
-                if ((macro.joined() || event.cancellable()) && event.joinable()) {
-                    runJoinedEventListener(event, joinedMain, macro);
-                } else {
-                    macro.trigger(event);
-                }
-            }
-
-            if (!runner.config.getOptions(CoreConfigV2.class).anythingIgnored.contains(((EventCustom) event).eventName)) {
-                for (IEventListener macro : runner.eventRegistry.getListeners("ANYTHING")) {
-                    if ((macro.joined() || event.cancellable()) && event.joinable()) {
+        event.beginDispatch(Thread.currentThread());
+        try {
+            boolean joinedMain = checkJoinedThreadStack();
+            boolean joinable = runner.eventRegistry.isJoinable(event);
+            if (event instanceof EventCustom custom) {
+                for (IEventListener macro : runner.eventRegistry.getListeners(custom.eventName)) {
+                    if (macro.joinRequested() && joinable) {
                         runJoinedEventListener(event, joinedMain, macro);
                     } else {
-                        macro.trigger(event);
+                        triggerReadOnly(event, macro);
+                    }
+                }
+
+                if (!runner.config.getOptions(CoreConfigV2.class).anythingIgnored.contains(custom.eventName)) {
+                    for (IEventListener macro : runner.eventRegistry.getListeners("ANYTHING")) {
+                        if (macro.joinRequested() && joinable) {
+                            runJoinedEventListener(event, joinedMain, macro);
+                        } else {
+                            triggerReadOnly(event, macro);
+                        }
+                    }
+                }
+            } else {
+                String eventName = event.getEventName();
+                for (IEventListener macro : runner.eventRegistry.getListeners(eventName)) {
+                    if (macro.joinRequested() && joinable) {
+                        runJoinedEventListener(event, joinedMain, macro);
+                    } else {
+                        triggerReadOnly(event, macro);
+                    }
+                }
+
+                if (!runner.config.getOptions(CoreConfigV2.class).anythingIgnored.contains(eventName)) {
+                    for (IEventListener macro : runner.eventRegistry.getListeners("ANYTHING")) {
+                        if (macro.joinRequested() && joinable) {
+                            runJoinedEventListener(event, joinedMain, macro);
+                        } else {
+                            triggerReadOnly(event, macro);
+                        }
                     }
                 }
             }
-        } else {
-            String eventName = event.getEventName();
-            for (IEventListener macro : runner.eventRegistry.getListeners(eventName)) {
-                if ((macro.joined() || event.cancellable()) && (event.joinable() || runner.eventRegistry.joinableEvents.contains(eventName))) {
-                    runJoinedEventListener(event, joinedMain, macro);
-                } else {
-                    macro.trigger(event);
-                }
-            }
+        } finally {
+            event.endDispatch();
+        }
+    }
 
-            if (!runner.config.getOptions(CoreConfigV2.class).anythingIgnored.contains(eventName)) {
-                for (IEventListener macro : runner.eventRegistry.getListeners("ANYTHING")) {
-                    if ((macro.joined() || event.cancellable()) && (event.joinable() || runner.eventRegistry.joinableEvents.contains(eventName))) {
-                        runJoinedEventListener(event, joinedMain, macro);
-                    } else {
-                        macro.trigger(event);
-                    }
-                }
-            }
+    /** Runs a listener that did not request joined handling. The delivery is marked read-only for
+     * synchronous third-party listeners; built-in listeners set their own marker around the actual
+     * callback, which may run later on another thread. */
+    private void triggerReadOnly(BaseEvent event, IEventListener macroListener) {
+        event.beginDelivery(null, false);
+        try {
+            macroListener.trigger(event);
+        } finally {
+            event.endDelivery();
         }
     }
 
@@ -174,7 +193,7 @@ public abstract class BaseProfile {
         if (macroListener instanceof FJsMacros.ScriptEventListener) {
             BaseScriptContext<?> ctx = ((FJsMacros.ScriptEventListener) macroListener).getCtx();
             if (ctx != null && ctx.getBoundThreads().contains(Thread.currentThread()) && !ctx.isMultiThreaded()) {
-                if (!macroListener.joined()) {
+                if (!macroListener.joinRequested()) {
                     ((FJsMacros.ScriptEventListener) macroListener).triggerInline(event);
                     return;
                 }
@@ -185,6 +204,7 @@ public abstract class BaseProfile {
         if (t == null) {
             return;
         }
+        t.setJoined(true);
         try {
             if (joinedMain) {
                 joinedThreadStack.add(t.getLockThread());

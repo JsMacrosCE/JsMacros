@@ -30,7 +30,7 @@ import java.util.Set;
  * JsMacros updates its pressed-key tracker before filtering or firing the event, so cancellation
  * does not undo that update. Use {@link #key} to distinguish keyboard keys from mouse buttons.
  * <pre>
- * JsMacros.on("Key", JavaWrapper.methodToJava(function (event) {
+ * JsMacros.on("Key", true, JavaWrapper.methodToJava(function (event) {
  *   if (event.action === 0) {
  *     // 0 is the release, 1 is the press
  *     return;

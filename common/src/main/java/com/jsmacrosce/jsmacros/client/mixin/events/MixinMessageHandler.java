@@ -23,10 +23,10 @@ public class MixinMessageHandler {
     private Component modifyOverlayMessage(Component text) {
         EventTitle et = new EventTitle("ACTIONBAR", text);
         et.trigger();
-        if (et.message == null || et.isCanceled()) {
+        if (et.getMessage() == null || et.isCanceled()) {
             return null;
         } else {
-            return et.message.getRaw();
+            return et.getMessage().getRaw();
         }
     }
 

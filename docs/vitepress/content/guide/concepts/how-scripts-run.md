@@ -28,9 +28,11 @@ to bottom. It is not run on the Minecraft main thread. That is why a script may
 do some work while the game keeps rendering, and why work that must touch the game
 has a separate rule (see [Threading](/guide/concepts/threading)).
 
-The script still runs on that worker for a cancellable event. What changes is that
-the game's main thread may wait, or be **joined**, on the script's event lock. The
-script is not moved onto the main thread; the main thread is made to wait for it.
+The script still runs on that worker for a cancellable event. If the trigger requests
+joined handling, the game's main thread may wait, or be **joined**, on the script's
+event lock. The script is not moved onto the main thread; the main thread is made to
+wait for it. A trigger that does not request joining receives a read-only delivery
+that dispatch does not wait for and must treat the event as read-only.
 
 ## The context lives while it is needed
 
@@ -80,11 +82,13 @@ point of the event system. Prefer a listener, or `JsMacros.waitForEvent` when th
 script should pause until something specific happens.
 
 ```js
-const next = JsMacros.waitForEvent("RecvMessage");
+const next = JsMacros.waitForEvent("RecvMessage", true);
 try {
-  Chat.log(`someone said: ${next.event.text.getString()}`);
+  if (next.event.getText() !== null) {
+    Chat.log(`someone said: ${next.event.getText().getString()}`);
+  }
 } finally {
-  // Cancellable events join the main thread; release it as soon as you are done.
+  // This wait requested joined handling; release it as soon as you are done.
   next.context.releaseLock();
 }
 ```

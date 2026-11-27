@@ -16,7 +16,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * {@link com.jsmacrosce.jsmacros.client.api.event.impl.player.EventOpenScreen}, it only fires for
  * container screens and fires after that event.
  * <pre>
- * JsMacros.on("OpenContainer", JavaWrapper.methodToJava(function (event) {
+ * JsMacros.on("OpenContainer", true, JavaWrapper.methodToJava(function (event) {
  *   if (event.screen.getScreenClassName() === "ShulkerBoxScreen") {
  *     Chat.log("no shulker boxes today");
  *     event.cancel();
