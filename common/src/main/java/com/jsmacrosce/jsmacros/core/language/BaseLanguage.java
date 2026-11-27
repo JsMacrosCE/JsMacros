@@ -153,12 +153,9 @@ public abstract class BaseLanguage<U, T extends BaseScriptContext<U>> {
 
                 runner.addContext(ctx);
 
-                if (event != null) event.beginDelivery(ctx, false);
-                try {
-                    exec(ctx, lang, script, event);
-                } finally {
-                    if (event != null) event.endDelivery();
-                }
+                // This overload runs arbitrary source for a caller; it is not an event delivery,
+                // so leave the event's modification state to the dispatch that produced it.
+                exec(ctx, lang, script, event);
                 executionFinished = true;
 
                 if (then != null) {
