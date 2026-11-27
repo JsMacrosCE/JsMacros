@@ -2,8 +2,10 @@ package com.jsmacrosce;
 
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
+import com.jsmacrosce.jsmacros.core.event.impl.EventCustom;
 import com.jsmacrosce.jsmacros.core.language.EventContainer;
 
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -18,8 +20,11 @@ public final class EventDeliveryTest {
         missingContainerIsReadOnly();
         nestedDeliveriesRestoreOuter();
         containerCleanupRemovesMatchingDelivery();
+        containerCleanupRemovesNewestMatchingDelivery();
         nestedDispatchesKeepOuterWritable();
         creatorOwnedEventStaysWritable();
+        releasedMarkerDoesNotHideCreatorAccess();
+        customEventMapEntryUpdatesValue();
         concurrentDispatchesKeepTheirOwnState();
         finishedDispatchIsReadOnly();
         nonCancellableStillRejectsCancel();
@@ -56,11 +61,11 @@ public final class EventDeliveryTest {
     private static void releasedDeliveryIsReadOnly() {
         CancellableEvent event = new CancellableEvent();
         event.beginDispatch(Thread.currentThread());
+        event.endDispatch();
         event.beginDelivery(unlockedContainer(), true);
         check(!event.canModify(), "a joined delivery cannot modify after its lock is released");
         expectThrows(IllegalStateException.class, event::cancel, "a released joined delivery cannot cancel");
         event.endDelivery();
-        event.endDispatch();
     }
 
     private static void missingContainerIsReadOnly() {
@@ -97,6 +102,18 @@ public final class EventDeliveryTest {
         event.endDispatch();
     }
 
+    private static void containerCleanupRemovesNewestMatchingDelivery() {
+        CancellableEvent event = new CancellableEvent();
+        EventContainer<?> shared = lockedContainer();
+        event.beginDispatch(Thread.currentThread());
+        event.beginDelivery(shared, false);
+        event.beginDelivery(shared, true);
+        event.endDelivery(shared);
+        check(!event.canModify(), "removing a container marker removes the newest matching marker");
+        event.endDelivery();
+        event.endDispatch();
+    }
+
     private static void nestedDispatchesKeepOuterWritable() {
         CancellableEvent event = new CancellableEvent();
         event.beginDispatch(Thread.currentThread());
@@ -112,6 +129,27 @@ public final class EventDeliveryTest {
         event.beginDispatch(Thread.currentThread());
         event.endDispatch();
         check(event.canModify(), "a creator-owned reusable event stays writable after dispatch");
+    }
+
+    private static void releasedMarkerDoesNotHideCreatorAccess() {
+        ReusableEvent event = new ReusableEvent();
+        event.beginDispatch(Thread.currentThread());
+        event.endDispatch();
+        event.beginDelivery(unlockedContainer(), true);
+        check(event.canModify(), "a released marker left by another thread does not hide creator access");
+        event.endDelivery();
+    }
+
+    private static void customEventMapEntryUpdatesValue() {
+        EventCustom event = new EventCustom(null, "DeliveryTestCustomMap");
+        event.beginDispatch(Thread.currentThread());
+        event.endDispatch();
+        Map<String, Object> args = event.getUnderlyingMap();
+        args.put("key", "first");
+        Map.Entry<String, Object> entry = args.entrySet().iterator().next();
+        check("first".equals(entry.setValue("second")), "entry.setValue returns the previous value");
+        check("second".equals(entry.getValue()), "entry.setValue updates the entry value");
+        check("second".equals(args.get("key")), "entry.setValue updates the map");
     }
 
     private static void concurrentDispatchesKeepTheirOwnState() throws InterruptedException {
