@@ -2412,7 +2412,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * Nothing here may depend on Mojang class or field names: production Fabric remaps those to
      * intermediary names, while string literals such as {@code "net.minecraft...HandshakePacketTypes"}
      * or the field name {@code STREAM_CODEC} keep their spelling and fail. Class literals are
-     * remapped by the loader, protocol templates are recognised by their
+     * remapped by the loader, protocol templates are recognized by their
      * {@link ProtocolInfo.DetailsProvider} type, and packet codecs by their generic signature,
      * which also survives remapping.
      */

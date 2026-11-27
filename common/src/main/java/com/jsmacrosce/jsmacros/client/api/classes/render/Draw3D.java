@@ -270,8 +270,8 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param x2 the x coordinate of the second corner
      * @param y2 the y coordinate of the second corner
      * @param z2 the z coordinate of the second corner
-     * @param color the colour of the outline, with or without an alpha of its own
-     * @param fillColor the colour of the inside
+     * @param color the color of the outline, with or without an alpha of its own
+     * @param fillColor the color of the inside
      * @param fill whether to draw the inside as well as the outline
      * @return the added box
      * @since 1.0.6
@@ -289,8 +289,8 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param x2 the x coordinate of the second corner
      * @param y2 the y coordinate of the second corner
      * @param z2 the z coordinate of the second corner
-     * @param color the colour of the outline, with or without an alpha of its own
-     * @param fillColor the colour of the inside
+     * @param color the color of the outline, with or without an alpha of its own
+     * @param fillColor the color of the inside
      * @param fill whether to draw the inside as well as the outline
      * @param cull whether to depth-test the box against world geometry; {@code false} draws over it
      * @return the added box
@@ -311,9 +311,9 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param x2 the x coordinate of the second corner
      * @param y2 the y coordinate of the second corner
      * @param z2 the z coordinate of the second corner
-     * @param color the colour of the outline
+     * @param color the color of the outline
      * @param alpha the alpha of the outline, from 0 to 255
-     * @param fillColor the colour of the inside
+     * @param fillColor the color of the inside
      * @param fillAlpha the alpha of the inside, from 0 to 255
      * @param fill whether to draw the inside as well as the outline
      * @return the added box
@@ -334,9 +334,9 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param x2 the x coordinate of the second corner
      * @param y2 the y coordinate of the second corner
      * @param z2 the z coordinate of the second corner
-     * @param color the colour of the outline
+     * @param color the color of the outline
      * @param alpha the alpha of the outline, from 0 to 255
-     * @param fillColor the colour of the inside
+     * @param fillColor the color of the inside
      * @param fillAlpha the alpha of the inside, from 0 to 255
      * @param fill whether to draw the inside as well as the outline
      * @param cull whether the box is depth tested, so terrain draws over it
@@ -391,7 +391,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param x2 the x coordinate of the end
      * @param y2 the y coordinate of the end
      * @param z2 the z coordinate of the end
-     * @param color the colour of the line, with or without an alpha of its own
+     * @param color the color of the line, with or without an alpha of its own
      * @param cull whether to depth-test the line against world geometry
      * @return the {@link Line3D} you added.
      * @since 1.3.1
@@ -413,7 +413,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param x2 the x coordinate of the end
      * @param y2 the y coordinate of the end
      * @param z2 the z coordinate of the end
-     * @param color the colour of the line
+     * @param color the color of the line
      * @param alpha the alpha of the line, from 0 to 255
      * @return the {@link Line3D} you added.
      * @since 1.1.8
@@ -432,7 +432,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param x2 the x coordinate of the end
      * @param y2 the y coordinate of the end
      * @param z2 the z coordinate of the end
-     * @param color the colour of the line
+     * @param color the color of the line
      * @param alpha the alpha of the line, from 0 to 255
      * @param cull whether to depth-test the line against world geometry
      * @return the {@link Line3D} you added.
@@ -468,7 +468,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param x the x coordinate of the target
      * @param y the y coordinate of the target
      * @param z the z coordinate of the target
-     * @param color the colour of the line
+     * @param color the color of the line
      * @return the {@link TraceLine} you added.
      * @since 1.9.0
      */
@@ -487,7 +487,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * @param x the x coordinate of the target
      * @param y the y coordinate of the target
      * @param z the z coordinate of the target
-     * @param color the colour of the line
+     * @param color the color of the line
      * @param alpha the alpha of the line, from 0 to 255
      * @return the {@link TraceLine} you added.
      * @since 1.9.0
@@ -505,7 +505,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * changes to {@code pos} do not move the target; the line draws over terrain by default.
      *
      * @param pos the position of the target
-     * @param color the colour of the line
+     * @param color the color of the line
      * @return the {@link TraceLine} you added.
      * @since 1.9.0
      */
@@ -523,7 +523,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * terrain by default.
      *
      * @param pos the position of the target
-     * @param color the colour of the line
+     * @param color the color of the line
      * @param alpha the alpha of the line, from 0 to 255
      * @return the {@link TraceLine} you added.
      * @since 1.9.0
@@ -542,7 +542,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * terrain by default and is removed from the overlay after the entity is gone.
      *
      * @param entity the entity to point at
-     * @param color the colour of the line
+     * @param color the color of the line
      * @return the {@link EntityTraceLine} you added.
      * @since 1.9.0
      */
@@ -559,7 +559,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * default 0.5-block vertical offset and is drawn over the world.
      *
      * @param entity the entity to point at
-     * @param color the colour of the line
+     * @param color the color of the line
      * @param alpha the alpha of the line, from 0 to 255
      * @return the {@link EntityTraceLine} you added.
      * @since 1.9.0
@@ -583,7 +583,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * </pre>
      *
      * @param entity the entity to point at
-     * @param color the colour of the line
+     * @param color the color of the line
      * @param alpha the alpha of the line, from 0 to 255
      * @param yOffset how far above the entity's feet to aim, in blocks
      * @return the {@link EntityTraceLine} you added.
@@ -604,7 +604,7 @@ public class Draw3D implements Registrable<Draw3D> {
      * allows terrain to hide it.
      *
      * @param entity the entity to point at
-     * @param color the colour of the line
+     * @param color the color of the line
      * @param alpha the alpha of the line, from 0 to 255
      * @param yOffset how far above the entity's feet to aim, in blocks
      * @param alwaysOnTop whether to draw over the world instead of allowing terrain to hide the line

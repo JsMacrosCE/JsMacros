@@ -199,11 +199,11 @@ public class DisplayEntityHelper<T extends Display> extends EntityHelper<T> {
     }
 
     /**
-     * Returns the display's glow-colour override, or {@code -1} when unset. The inherited
-     * {@link EntityHelper#getGlowingColor() getGlowingColor()} reports the entity's team colour;
-     * for a display, Minecraft uses this override when determining its outline colour.
+     * Returns the display's glow-color override, or {@code -1} when unset. The inherited
+     * {@link EntityHelper#getGlowingColor() getGlowingColor()} reports the entity's team color;
+     * for a display, Minecraft uses this override when determining its outline color.
      *
-     * @return the packed glow colour, or -1 if there is no override
+     * @return the packed glow color, or -1 if there is no override
      * @since 1.9.1
      */
     public int getGlowColorOverride() {

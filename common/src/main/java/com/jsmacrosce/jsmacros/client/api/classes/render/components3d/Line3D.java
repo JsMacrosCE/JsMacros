@@ -72,7 +72,7 @@ public class Line3D implements RenderElement3D<Line3D> {
      */
     public Vec3D pos;
     /**
-     * The line colour packed as ARGB, with alpha in the top byte. Writable; see
+     * The line color packed as ARGB, with alpha in the top byte. Writable; see
      * {@link #setColor(int)} for alpha handling.
      *
      * @since 1.0.6
@@ -172,10 +172,10 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
 
     /**
-     * Sets the packed colour, making a non-black RGB colour opaque when its alpha byte
+     * Sets the packed color, making a non-black RGB color opaque when its alpha byte
      * is zero. Use {@link #setColor(int, int)} to explicitly set alpha to zero.
      *
-     * @param color packed line colour
+     * @param color packed line color
      * @since 1.0.6
      */
     public void setColor(int color) {
@@ -186,7 +186,7 @@ public class Line3D implements RenderElement3D<Line3D> {
      * Sets RGB from the low 24 bits of {@code color} and alpha in the top byte; alpha
      * is not clamped.
      *
-     * @param color RGB colour; its alpha byte is ignored
+     * @param color RGB color; its alpha byte is ignored
      * @param alpha alpha value, packed into the top byte
      * @since 1.1.8
      */
@@ -195,10 +195,10 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
 
     /**
-     * Returns the line colour's low 24 bits; read alpha separately with
+     * Returns the line color's low 24 bits; read alpha separately with
      * {@link #getAlpha()}.
      *
-     * @return the RGB colour, without alpha.
+     * @return the RGB color, without alpha.
      * @since 2.1.0
      */
     public int getColor() {
@@ -206,7 +206,7 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
 
     /**
-     * Replaces the top byte of the packed colour without changing its RGB bits.
+     * Replaces the top byte of the packed color without changing its RGB bits.
      *
      * @param alpha value packed into the top byte; values are not clamped to 0–255
      * @since 1.1.8
@@ -216,7 +216,7 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
 
     /**
-     * Returns the packed colour's top byte.
+     * Returns the packed color's top byte.
      *
      * @return the alpha byte, from 0 to 255.
      * @since 2.1.0
@@ -274,7 +274,7 @@ public class Line3D implements RenderElement3D<Line3D> {
     }
 
     /**
-     * Orders lines by their endpoint coordinates, in endpoint order; colour and culling do not affect the comparison. Reversing a segment's endpoints can change its order.
+     * Orders lines by their endpoint coordinates, in endpoint order; color and culling do not affect the comparison. Reversing a segment's endpoints can change its order.
      *
      * @param o another line to order this one against
      * @return a negative number, zero, or a positive number as this line is before, the
@@ -521,7 +521,7 @@ public class Line3D implements RenderElement3D<Line3D> {
         }
 
         /**
-         * Sets the colour and derives the builder's alpha from its top byte after applying
+         * Sets the color and derives the builder's alpha from its top byte after applying
          * the renderer's zero-alpha rule.
          *
          * @param color the color of the line
@@ -535,7 +535,7 @@ public class Line3D implements RenderElement3D<Line3D> {
         }
 
         /**
-         * Sets the packed colour and alpha independently; the colour is stored as given.
+         * Sets the packed color and alpha independently; the color is stored as given.
          *
          * @param color the color of the line
          * @param alpha the alpha value of the line's color

@@ -126,7 +126,7 @@ public class CommandContextHelper extends BaseEvent {
      * {@link com.jsmacrosce.jsmacros.client.api.helper.inventory.ItemStackHelper} of one item, an
      * NBT argument becomes the matching
      * {@link com.jsmacrosce.jsmacros.client.api.helper.NBTElementHelper}, text becomes a
-     * {@link com.jsmacrosce.jsmacros.client.api.helper.TextHelper}, a colour becomes a
+     * {@link com.jsmacrosce.jsmacros.client.api.helper.TextHelper}, a color becomes a
      * {@link com.jsmacrosce.jsmacros.client.api.helper.FormattingHelper}, an angle becomes a plain
      * number, an enchantment becomes an
      * {@link com.jsmacrosce.jsmacros.client.api.helper.inventory.EnchantmentHelper}, a particle

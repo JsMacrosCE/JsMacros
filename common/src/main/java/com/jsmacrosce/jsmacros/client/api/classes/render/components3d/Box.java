@@ -36,8 +36,8 @@ import com.mojang.blaze3d.platform.DepthTestFunction;
 
 /**
  * An axis-aligned cuboid with an outline and an optional filled interior. Its position
- * is defined by two opposite corners, and its outline and fill have independent colours.
- * Setters taking a packed colour make a zero alpha byte opaque unless the whole value
+ * is defined by two opposite corners, and its outline and fill have independent colors.
+ * Setters taking a packed color make a zero alpha byte opaque unless the whole value
  * is zero; overloads taking a separate alpha preserve zero alpha.
  * <p>
  * {@code cull} enables depth testing, allowing terrain to hide the box; otherwise it is
@@ -82,14 +82,14 @@ public class Box implements RenderElement3D<Box> {
      */
     public Vec3D pos;
     /**
-     * The outline colour, packed with alpha in the top byte. The outline is drawn
+     * The outline color, packed with alpha in the top byte. The outline is drawn
      * whether or not {@link #fill} is set.
      *
      * @since 1.0.6
      */
     public int color;
     /**
-     * The fill colour, packed the same way as {@link #color}; used only when
+     * The fill color, packed the same way as {@link #color}; used only when
      * {@link #fill} is {@code true}.
      *
      * @since 1.0.6
@@ -111,7 +111,7 @@ public class Box implements RenderElement3D<Box> {
 
     /**
      * Constructs a detached box from two ordered opposite corners in world-space block
-     * coordinates and packed outline and fill colours. For each colour, a nonzero RGB value
+     * coordinates and packed outline and fill colors. For each color, a nonzero RGB value
      * with a zero alpha byte becomes opaque, while zero remains transparent.
      * This does not add or register the box with a {@link Draw3D} overlay.
      *
@@ -121,8 +121,8 @@ public class Box implements RenderElement3D<Box> {
      * @param x2 x coordinate of the opposite corner
      * @param y2 y coordinate of the opposite corner
      * @param z2 z coordinate of the opposite corner
-     * @param color packed outline colour
-     * @param fillColor packed fill colour
+     * @param color packed outline color
+     * @param fillColor packed fill color
      * @param fill whether to draw the interior
      * @param cull whether to enable the renderer's depth-testing setting
      */
@@ -136,7 +136,7 @@ public class Box implements RenderElement3D<Box> {
 
     /**
      * Constructs a detached box from two ordered opposite corners in world-space block
-     * coordinates, with outline and fill alpha supplied separately. Each colour's
+     * coordinates, with outline and fill alpha supplied separately. Each color's
      * existing alpha byte is ignored;
      * its low 24 bits are combined with the corresponding alpha using a left shift,
      * without range validation. This does not add or register the box with an overlay.
@@ -228,11 +228,11 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * Replaces the outline colour. If its alpha byte is zero but its RGB value is
+     * Replaces the outline color. If its alpha byte is zero but its RGB value is
      * nonzero, the alpha is made opaque; transparent black remains transparent.
      * Use {@link #setColor(int, int)} to specify zero alpha explicitly.
      *
-     * @param color the colour of the outline
+     * @param color the color of the outline
      * @since 1.0.6
      */
     public void setColor(int color) {
@@ -240,10 +240,10 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * Replaces the fill colour using the same zero-alpha handling as
-     * {@link #setColor(int)}. The colour is stored even while filling is disabled.
+     * Replaces the fill color using the same zero-alpha handling as
+     * {@link #setColor(int)}. The color is stored even while filling is disabled.
      *
-     * @param fillColor the colour of the inside
+     * @param fillColor the color of the inside
      * @since 1.0.6
      */
     public void setFillColor(int fillColor) {
@@ -254,7 +254,7 @@ public class Box implements RenderElement3D<Box> {
      * Sets the outline RGB and alpha explicitly. The alpha replaces the top byte;
      * zero remains transparent.
      *
-     * @param color the colour of the outline
+     * @param color the color of the outline
      * @param alpha the alpha of the outline, from 0 to 255
      * @since 1.1.8
      */
@@ -263,7 +263,7 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * Replaces the outline alpha without changing its RGB or the fill colour.
+     * Replaces the outline alpha without changing its RGB or the fill color.
      *
      * @param alpha the alpha of the outline, from 0 to 255
      * @since 1.1.8
@@ -276,7 +276,7 @@ public class Box implements RenderElement3D<Box> {
      * Sets the fill RGB and alpha explicitly, preserving zero alpha. It is visible
      * only when {@link #fill} is true.
      *
-     * @param fillColor the colour of the inside
+     * @param fillColor the color of the inside
      * @param alpha the alpha of the inside, from 0 to 255
      * @since 1.1.8
      */
@@ -307,7 +307,7 @@ public class Box implements RenderElement3D<Box> {
     }
 
     /**
-     * Tests equality by exact runtime class and current position value; colour, fill,
+     * Tests equality by exact runtime class and current position value; color, fill,
      * and depth-testing settings are ignored. A null argument or a different class
      * does not match; null positions compare equal to null positions.
      * @param o object to compare
@@ -323,7 +323,7 @@ public class Box implements RenderElement3D<Box> {
 
     /**
      * Computes a hash from the current position only. Since position is mutable, the
-     * hash may change when it changes; colour, fill, and depth-testing settings are ignored.
+     * hash may change when it changes; color, fill, and depth-testing settings are ignored.
      * @return hash of the current position
      */
     @Override
@@ -333,7 +333,7 @@ public class Box implements RenderElement3D<Box> {
 
     /**
      * Compares this box's corner coordinates lexicographically with another box's.
-     * The comparison is not based on distance or overlap; colour, fill, and culling
+     * The comparison is not based on distance or overlap; color, fill, and culling
      * do not affect the result.
      *
      * @param other another box to order this one against
@@ -433,7 +433,7 @@ public class Box implements RenderElement3D<Box> {
      * Configures a {@link Box} before building it. {@link #build()} returns the box
      * without adding it; {@link #buildAndAdd()} adds it to the originating overlay.
      * The default is a zero-size box at the origin with opaque white outline and fill
-     * colours, no fill, and no depth testing.
+     * colors, no fill, and no depth testing.
      * <p>
      * Use {@link #forBlock(int, int, int)} for a one-block box or the corner setters
      * to specify arbitrary bounds.
@@ -679,8 +679,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Sets the outline colour and derives its alpha from the packed value, making
-         * a zero alpha byte opaque for non-black colours.
+         * Sets the outline color and derives its alpha from the packed value, making
+         * a zero alpha byte opaque for non-black colors.
          *
          * @param color the color of the box
          * @return self for chaining.
@@ -693,7 +693,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Sets the outline colour and alpha separately; the colour is stored unchanged,
+         * Sets the outline color and alpha separately; the color is stored unchanged,
          * including any alpha byte, which is ignored when building the box's outline.
          *
          * @param color the color of the box
@@ -739,7 +739,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Returns the stored outline colour, which may retain an alpha byte even though
+         * Returns the stored outline color, which may retain an alpha byte even though
          * the built box uses the separately stored alpha.
          *
          * @return the color of the box.
@@ -750,7 +750,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Sets the outline alpha independently of its colour; a later colour setter
+         * Sets the outline alpha independently of its color; a later color setter
          * that accepts alpha may replace it. The fill alpha is separate.
          *
          * @param alpha the alpha value for the box's color
@@ -773,8 +773,8 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Stores the colour and sets the separate fill alpha from its alpha byte;
-         * a non-black colour with zero alpha is made opaque.
+         * Stores the color and sets the separate fill alpha from its alpha byte;
+         * a non-black color with zero alpha is made opaque.
          *
          * @param fillColor the fill color of the box
          * @return self for chaining.
@@ -787,7 +787,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Stores the colour and alpha separately from the outline; the colour is kept
+         * Stores the color and alpha separately from the outline; the color is kept
          * exactly as given, including any alpha byte in it.
          *
          * @param fillColor the fill color of the box
@@ -834,7 +834,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Returns the stored fill colour, which may include an alpha byte; the built
+         * Returns the stored fill color, which may include an alpha byte; the built
          * box combines this value with the separately stored fill alpha.
          *
          * @return the fill color of the box.
@@ -845,7 +845,7 @@ public class Box implements RenderElement3D<Box> {
         }
 
         /**
-         * Sets the separate fill alpha without changing the fill colour or outline.
+         * Sets the separate fill alpha without changing the fill color or outline.
          *
          * @param fillAlpha the alpha value for the box's fill color
          * @return self for chaining.

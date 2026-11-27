@@ -642,7 +642,7 @@ public class FChat extends BaseLibrary {
     /**
      * Converts section symbols to {@code &} and doubles literal ampersands, reversing
      * {@link #ampersandToSectionSymbol(String)} character by character. For example, a section
-     * symbol in a hex colour sequence becomes {@code &}, while its {@code #} remains unchanged.
+     * symbol in a hex color sequence becomes {@code &}, while its {@code #} remains unchanged.
      * The inverse conversion restores these characters.
      *
      * @param string the string to convert
@@ -695,14 +695,14 @@ public class FChat extends BaseLibrary {
     }
 
     /**
-     * removes matching legacy colour and style codes from a string.
+     * removes matching legacy color and style codes from a string.
      * <p>
      * This works on a plain string and is the cheap way to get readable text out of something
      * that is full of codes. For a {@code TextHelper},
      * {@link TextHelper#getStringStripFormatting() getStringStripFormatting()} does the same
      * thing and walks the actual styled text rather than a pattern.<br>
      * The pattern removes {@code §} followed by one legacy formatting character. It does not
-     * parse a full hex-colour sequence such as {@code §x§1§2§3§4§5§6}; that input becomes
+     * parse a full hex-color sequence such as {@code §x§1§2§3§4§5§6}; that input becomes
      * {@code §x123456}, because {@code x} is not matched while each following section-sign
      * and digit pair is. A
      * {@code null} is not handled and raises.<br>

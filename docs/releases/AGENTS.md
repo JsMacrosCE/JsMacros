@@ -121,7 +121,7 @@ Bad:
 
 Better:
 
-> - The `Color` library creates and inspects packed ARGB colours with
+> - The `Color` library creates and inspects packed ARGB colors with
 >   `Color.rgb(...)`, `Color.argb(...)`, `Color.fromPacked(...)`, and
 >   `Color.withAlpha(...)`.
 > - `Draw2D.clear()` removes an overlay's elements without unregistering it.
@@ -227,10 +227,6 @@ fenced block; do not scatter snippets through the other sections.
 - Conditional action: "If you use ...", "Existing profiles keep ...", "Fresh
   configurations start with ...".
 - Uncertain behavior: narrow the claim or omit it. Never fill a gap with a guess.
-
-Match the spelling already used in the file; do not churn existing spelling. The
-2.1.0 notes use British spellings such as "colour" and "recognised", so keep that
-style when editing that file.
 
 ## Accuracy checklist
 

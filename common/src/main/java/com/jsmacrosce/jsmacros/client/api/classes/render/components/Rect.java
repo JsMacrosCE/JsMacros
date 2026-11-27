@@ -84,7 +84,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     * @param y1       the first y position of this rectangle
     * @param x2       the second x position of this rectangle
     * @param y2       the second y position of this rectangle
-    * @param color    the colour, with the alpha in the top byte
+    * @param color    the color, with the alpha in the top byte
     * @param rotation the rotation in degrees
     * @param zIndex   the z-index against the other elements on the overlay
     */
@@ -101,7 +101,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     * @param y1       the first y position of this rectangle
     * @param x2       the second x position of this rectangle
     * @param y2       the second y position of this rectangle
-    * @param color    the colour, whose top byte is replaced by the alpha
+    * @param color    the color, whose top byte is replaced by the alpha
     * @param alpha    the value shifted into the top byte
     * @param rotation the rotation in degrees
     * @param zIndex   the z-index against the other elements on the overlay
@@ -324,7 +324,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     /**
     * Sets the packed ARGB color, making zero-alpha colors with nonzero RGB opaque; zero-alpha black stays transparent, and explicit alpha is preserved.
     *
-    * @param color the packed colour, with the alpha in the top byte
+    * @param color the packed color, with the alpha in the top byte
     * @return self for chaining.
     * @since 1.0.5
     */
@@ -337,7 +337,7 @@ public class Rect implements RenderElement, Alignable<Rect> {
     * sets the packed color and replaces its top byte with {@code alpha}; the value is
     * shifted directly and is not clamped to 0–255.
     *
-    * @param color the colour, whose top byte is replaced
+    * @param color the color, whose top byte is replaced
     * @param alpha the alpha, in the top byte
     * @return self for chaining.
     * @since 1.1.8

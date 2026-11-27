@@ -10,7 +10,7 @@ import net.minecraft.world.entity.animal.TropicalFish;
 //?}
 
 /**
- * Provides a tropical fish's pattern, body size, and base and pattern colours.
+ * Provides a tropical fish's pattern, body size, and base and pattern colors.
  * <pre>
  * const fish = World.getEntities(32, "tropical_fish");
  * if (fish !== null) {
@@ -64,7 +64,7 @@ public class TropicalFishEntityHelper extends FishEntityHelper<TropicalFish> {
     }
 
     /**
-     * The base dye colour's packed texture-diffuse RGB value.
+     * The base dye color's packed texture-diffuse RGB value.
      *
      * @return the base dye color's packed texture-diffuse RGB value.
      * @since 1.8.4
@@ -74,7 +74,7 @@ public class TropicalFishEntityHelper extends FishEntityHelper<TropicalFish> {
     }
 
     /**
-     * The pattern dye colour's packed texture-diffuse RGB value.
+     * The pattern dye color's packed texture-diffuse RGB value.
      *
      * @return the pattern dye color's packed texture-diffuse RGB value.
      * @since 1.8.4
@@ -84,7 +84,7 @@ public class TropicalFishEntityHelper extends FishEntityHelper<TropicalFish> {
     }
 
     /**
-     * The packed variant integer encoding the fish's pattern and colours.
+     * The packed variant integer encoding the fish's pattern and colors.
      *
      * @return the packed variant integer encoding the fish's pattern and colors.
      * @since 1.8.4

@@ -98,7 +98,7 @@ public class TextDisplayEntityHelper extends DisplayEntityHelper<Display.TextDis
          * black ({@code Color.argb(0x40, 0x00, 0x00, 0x00)}), and {@code 0} disables the box.
          * Its alpha is independent of {@link #getTextOpacity()}.
          *
-         * @return the packed ARGB colour of the background box
+         * @return the packed ARGB color of the background box
          * @since 1.9.1
          */
         public int getBackgroundColor() {

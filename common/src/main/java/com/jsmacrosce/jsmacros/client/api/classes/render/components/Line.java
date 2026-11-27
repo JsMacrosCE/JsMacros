@@ -95,7 +95,7 @@ public class Line implements RenderElement, Alignable<Line> {
     * @param y1       the y position of the start of the line
     * @param x2       the x position of the end of the line
     * @param y2       the y position of the end of the line
-    * @param color    the colour, with the alpha in the top byte
+    * @param color    the color, with the alpha in the top byte
     * @param rotation the rotation in degrees
     * @param width    the thickness of the line
     * @param zIndex   the z-index against the other elements on the overlay

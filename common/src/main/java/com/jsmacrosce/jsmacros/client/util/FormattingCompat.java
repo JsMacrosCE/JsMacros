@@ -14,9 +14,9 @@ import net.minecraft.world.scores.TeamColor;
 /**
  * Keeps the legacy formatting metadata that 26.2 removed from {@link ChatFormatting}.
  * <p>
- * Up to 26.1 the enum carried its colour value, id, name, code character and colour/modifier
- * flags. 26.2 reduced it to the colour names and a code lookup, moving colour values to
- * {@code TextColor} and team colours to {@code TeamColor}. These helpers derive the old values
+ * Up to 26.1 the enum carried its color value, id, name, code character and color/modifier
+ * flags. 26.2 reduced it to the color names and a code lookup, moving color values to
+ * {@code TextColor} and team colors to {@code TeamColor}. These helpers derive the old values
  * from the enum's ordinal, name and code so the script API keeps reporting the same data.
  */
 @DocletIgnore
@@ -89,7 +89,7 @@ public final class FormattingCompat {
     //?}
 
     /**
-     * Reads a team's colour in the legacy {@link ChatFormatting} form. Up to 26.1 the team
+     * Reads a team's color in the legacy {@link ChatFormatting} form. Up to 26.1 the team
      * returns a nullable {@code ChatFormatting}; 26.2 returns an {@code Optional<TeamColor>}.
      */
     public static ChatFormatting getTeamColor(PlayerTeam team) {

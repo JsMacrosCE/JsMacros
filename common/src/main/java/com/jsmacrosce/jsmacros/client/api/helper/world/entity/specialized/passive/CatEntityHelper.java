@@ -12,14 +12,14 @@ import net.minecraft.world.entity.animal.Cat;
 //?}
 
 /**
- * A tameable cat with a coat variant and collar colour.
+ * A tameable cat with a coat variant and collar color.
  * <p>
  * {@link #getVariant() getVariant} is the registry id of the cat's coat - {@code
  * minecraft:tabby} and the like - with the namespace on the front. That is unlike most of
  * the variant names in this package, which are the bare serialized name such as {@code
  * red_blue}, so a script that compares variant strings across animals will not match here.
  * <p>
- * The collar is there whether or not the cat is tamed, so a collar colour is not evidence of
+ * The collar is there whether or not the cat is tamed, so a collar color is not evidence of
  * anything having happened to the cat.
  * <pre>
  * const cats = World.getEntities(32, "cat");
@@ -60,7 +60,7 @@ public class CatEntityHelper extends TameableEntityHelper<Cat> {
     }
 
     /**
-     * Returns the cat's collar colour, whether or not it is tamed.
+     * Returns the cat's collar color, whether or not it is tamed.
      *
      * @return the color of this cat's collar.
      * @since 1.8.4

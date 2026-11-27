@@ -141,7 +141,7 @@ public class TextFieldWidgetHelper extends ClickableWidgetHelper<TextFieldWidget
     /**
      * Sets the color used to draw text while the field is editable.
      *
-     * @param color the packed rgb colour to draw editable text in
+     * @param color the packed rgb color to draw editable text in
      * @return self for chaining.
      * @since 1.0.5
      */
@@ -174,7 +174,7 @@ public class TextFieldWidgetHelper extends ClickableWidgetHelper<TextFieldWidget
     /**
      * Sets the color used to draw text while the field is not editable.
      *
-     * @param color the packed rgb colour to draw uneditable text in
+     * @param color the packed rgb color to draw uneditable text in
      * @return self for chaining.
      * @since 1.0.5
      */

@@ -25,7 +25,7 @@ import com.jsmacrosce.jsmacros.util.ColorMath;
 import java.nio.FloatBuffer;
 
  /**
- * A positioned text element with colour, shadow, scale, and rotation.
+ * A positioned text element with color, shadow, scale, and rotation.
  * <p>
  * Text may be plain or carry styling, hover text, and click actions through
  * {@link TextHelper}. Its font-measured width is cached when created and refreshed by
@@ -112,7 +112,7 @@ public class Text implements RenderElement, Alignable<Text> {
     * @param text    what to draw
     * @param x       the x position
     * @param y       the y position
-    * @param color   the colour, with the alpha in the top byte
+    * @param color   the color, with the alpha in the top byte
     * @param zIndex  the z-index against the other elements on the overlay
     * @param shadow  whether to draw the game's drop shadow behind the glyphs
     * @param scale   the scale to apply
@@ -130,7 +130,7 @@ public class Text implements RenderElement, Alignable<Text> {
     * @param text    what to draw, with its styling
     * @param x       the x position
     * @param y       the y position
-    * @param color   the colour, with the alpha in the top byte
+    * @param color   the color, with the alpha in the top byte
     * @param zIndex  the z-index against the other elements on the overlay
     * @param shadow  whether to draw the game's drop shadow behind the glyphs
     * @param scale   the scale to apply

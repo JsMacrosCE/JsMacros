@@ -29,7 +29,7 @@ import java.util.*;
  * Builds styled text by appending sections and applying styles to the latest section. Obtain it
  * with {@code Chat.createTextBuilder()} and pass {@link #build()} to text-display APIs.
  * <pre>
- * // a line with two colours in it: the styling applies to what comes
+ * // a line with two colors in it: the styling applies to what comes
  * // after it, so the second append needs its own withColor
  * const text = Chat.createTextBuilder()
  *   .append("hello, ").withColor(0xc).append(" World!").withColor(0x6)
@@ -59,7 +59,7 @@ public class TextBuilder {
      * contributes its underlying component by reference; a {@link TextBuilder} contributes its
      * built component, while other values are converted with {@code toString()}.
      * <pre>
-     * // three sections in one line, each with its own colour
+     * // three sections in one line, each with its own color
      * const text = Chat.createTextBuilder()
      *   .append("first ")
      *   .withColor(0x6)
@@ -127,19 +127,19 @@ public class TextBuilder {
      * Sets the current section's color from RGB channel values.
      * <p>
      * This is a true rgb value rather than one of the sixteen codes, so it is the form to reach
-     * for when the colour is not one the game has a code for. Each channel is masked to a single
+     * for when the color is not one the game has a code for. Each channel is masked to a single
      * byte, so a value outside {@code 0-255} is wrapped into range rather than refused, and the
-     * colour is opaque: there is no alpha to set here.
+     * color is opaque: there is no alpha to set here.
      * <p>
-     * A colour set this way replaces one set by {@link #withColor(int)} on the same section
-     * rather than adding to it, since the section has one colour.
+     * A color set this way replaces one set by {@link #withColor(int)} on the same section
+     * rather than adding to it, since the section has one color.
      * <pre>
-     * // an rgb colour, which is the form for a shade the game's own
+     * // an rgb color, which is the form for a shade the game's own
      * // sixteen codes do not cover
      * const text = Chat.createTextBuilder()
      *   .append("custom ")
      *   .withColor(255, 85, 85)
-     *   .append("colour")
+     *   .append("color")
      *   .build();
      * Chat.actionbar(text);
      * </pre>
@@ -164,7 +164,7 @@ public class TextBuilder {
      * written in, so a positional call is worth reading twice.
      * <p>
      * This is a separate call from {@link #withColor(int)} rather than part of it, so a section
-     * can have both a colour and decorations. Setting decorations on a section that already has
+     * can have both a color and decorations. Setting decorations on a section that already has
      * some replaces them rather than adding to them, since the same call also drops the ones set
      * to false.
      * <pre>
@@ -400,9 +400,9 @@ public class TextBuilder {
      * Replaces the current section's entire style with the supplied style, including any existing
      * color, formatting, hover, or click event.
      * <pre class="language-typescript">
-     * // this replaces the whole style, so a colour set earlier on the
+     * // this replaces the whole style, so a color set earlier on the
      * // same section is gone afterwards. The visitor below hands over the
-     * // style of a section that has both a colour and a decoration
+     * // style of a section that has both a color and a decoration
      * const source = Chat.createTextBuilder()
      *   .append("x")
      *   .withColor(0xc)

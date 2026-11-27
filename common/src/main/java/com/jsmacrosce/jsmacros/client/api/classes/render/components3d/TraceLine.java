@@ -170,9 +170,9 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * Sets the line colour, making non-black RGB opaque when its alpha byte is zero.
+     * Sets the line color, making non-black RGB opaque when its alpha byte is zero.
      * <p>
-     * An all-zero colour stays transparent; use {@link #setColor(int, int)} to set alpha explicitly.
+     * An all-zero color stays transparent; use {@link #setColor(int, int)} to set alpha explicitly.
      *
      * @param color the color of the line
      * @return self for chaining
@@ -184,7 +184,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * Sets the RGB colour and alpha separately; the alpha is packed into the top byte and is not clamped.
+     * Sets the RGB color and alpha separately; the alpha is packed into the top byte and is not clamped.
      *
      * @param color the color of the line
      * @param alpha the alpha value of the line's color
@@ -197,7 +197,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * Returns the RGB colour without its alpha byte; use {@link #getAlpha()} to read alpha.
+     * Returns the RGB color without its alpha byte; use {@link #getAlpha()} to read alpha.
      *
      * @return the color of the line.
      * @since 2.1.0
@@ -218,7 +218,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * Returns the alpha byte of the packed colour, from {@code 0} (transparent) to {@code 255} (opaque).
+     * Returns the alpha byte of the packed color, from {@code 0} (transparent) to {@code 255} (opaque).
      *
      * @return the alpha value of the line's color.
      * @since 2.1.0
@@ -275,7 +275,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
     }
 
     /**
-     * Compares trace lines by their target endpoint's coordinates. Colour is not
+     * Compares trace lines by their target endpoint's coordinates. Color is not
      * considered; lines with the same target compare equal.
      *
      * @param other another trace line to order this one against
@@ -445,7 +445,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * Sets the packed colour and derives alpha from its top byte after applying the
+         * Sets the packed color and derives alpha from its top byte after applying the
          * renderer's zero-alpha rule; non-black RGB with a zero alpha becomes opaque.
          *
          * @param color the color of the line
@@ -459,7 +459,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * Stores the colour integer unchanged and sets alpha separately; neither value is clamped.
+         * Stores the color integer unchanged and sets alpha separately; neither value is clamped.
          *
          * @param color the color of the line
          * @param alpha the alpha value of the line's color
@@ -503,7 +503,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * Returns the colour integer stored by the builder unchanged.
+         * Returns the color integer stored by the builder unchanged.
          *
          * @return the color of the line
          * @since 1.9.0
@@ -513,7 +513,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * Sets alpha independently of the stored colour integer; the value is not clamped.
+         * Sets alpha independently of the stored color integer; the value is not clamped.
          *
          * @param alpha the alpha value for the line's color
          * @return self for chaining
@@ -542,7 +542,7 @@ public class TraceLine implements RenderElement3D<TraceLine> {
         }
 
         /**
-         * Returns the alpha value stored by the builder, initially {@code 255}. {@link #color(int)} derives it from the supplied packed colour.
+         * Returns the alpha value stored by the builder, initially {@code 255}. {@link #color(int)} derives it from the supplied packed color.
          *
          * @return the alpha value of the line's color
          * @since 1.9.0
