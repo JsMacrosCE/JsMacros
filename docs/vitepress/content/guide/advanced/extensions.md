@@ -55,7 +55,7 @@ repositories {
 }
 
 dependencies {
-    compileOnly("com.jsmacrosce.jsmacros:extension-api:2.1.0")
+    compileOnly("com.jsmacrosce.jsmacros:extension-api:2.2.0")
 }
 ```
 
