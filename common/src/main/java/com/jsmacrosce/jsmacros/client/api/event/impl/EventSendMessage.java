@@ -12,7 +12,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * normalization or history insertion; {@code null} or an empty replacement is not sent. A leading
  * {@code /} selects command submission, with the slash removed.
  * <pre>
- * JsMacros.on("SendMessage", JavaWrapper.methodToJava(function (event) {
+ * JsMacros.on("SendMessage", true, JavaWrapper.methodToJava(function (event) {
  *   if (event.message === null) {
  *     return;
  *   }

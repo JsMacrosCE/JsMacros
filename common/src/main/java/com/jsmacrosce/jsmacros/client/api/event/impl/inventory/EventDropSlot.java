@@ -16,7 +16,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * clicks, such as shift-clicks, do not raise this event.
  * <p>Use {@link #getInventory()} to access the source inventory; the hotbar-key case has no screen.
  * <pre>
- * JsMacros.on("DropSlot", JavaWrapper.methodToJava(function (event) {
+ * JsMacros.on("DropSlot", true, JavaWrapper.methodToJava(function (event) {
  *   if (event.slot === -999) {
  *     // dropping what is on the cursor by clicking outside the window
  *     event.cancel();

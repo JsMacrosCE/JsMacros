@@ -73,7 +73,7 @@ with a changed control.
 The `Key` event fires before the game handles the input and is cancellable:
 
 ```js
-JsMacros.on("Key", JavaWrapper.methodToJava((event, context) => {
+JsMacros.on("Key", true, JavaWrapper.methodToJava((event, context) => {
   if (event.action !== 1) return; // 0 is release, 1 is press
   if (event.key === "key.keyboard.j" && event.mods === "key.keyboard.left.control") {
     Chat.log("ctrl+J taken by the script");
@@ -83,10 +83,12 @@ JsMacros.on("Key", JavaWrapper.methodToJava((event, context) => {
 }));
 ```
 
-The `Key` event is cancellable, so its listeners are joined to the main thread. Keep
-the handler short. If the script needs to do slow work after deciding whether to
-cancel, call `context.releaseLock()` first; see [Events](/guide/concepts/events) and
-[Threading](/guide/concepts/threading).
+The `Key` event is cancellable. Passing `true` to `JsMacros.on` requests joined
+handling, so the listener can cancel and runs on the main thread's critical path.
+Keep the handler short. A listener registered without the flag runs after dispatch
+and cannot cancel or change the event. If a joined script needs to do slow
+work after deciding whether to cancel, call `context.releaseLock()` first; see
+[Events](/guide/concepts/events) and [Threading](/guide/concepts/threading).
 
 Unknown keys and key repeats are filtered before the event is created. The event
 still reports the release for keys that were already down when a screen opened.

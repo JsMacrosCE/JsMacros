@@ -29,7 +29,7 @@ You do not need to create one. You do need to know when it is released:
 ## Subscribe with `on`
 
 ```js
-const listener = JsMacros.on("RecvMessage", JavaWrapper.methodToJava((event, context) => {
+const listener = JsMacros.on("RecvMessage", true, JavaWrapper.methodToJava((event, context) => {
   if (event.messageType === "Chat Error") {
     event.cancel();
     return;
@@ -81,7 +81,7 @@ cancelling it leaves the item where it is.
 
 ```js
 // Require sneak, so a stray press of the drop key cannot throw away the held item.
-JsMacros.on("DropSlot", JavaWrapper.methodToJava((event) => {
+JsMacros.on("DropSlot", true, JavaWrapper.methodToJava((event) => {
   const player = Player.getPlayer();
   if (player === null || player.isSneaking()) return;
   event.cancel();
@@ -91,16 +91,18 @@ JsMacros.on("DropSlot", JavaWrapper.methodToJava((event) => {
 Cancellation only does something for an event that declares itself cancellable.
 Calling `cancel()` on any other event throws `UnsupportedOperationException`.
 
-Cancellable events also **join** the main thread. The game waits for the callback
-to finish before it decides whether to continue. This happens even if you registered
-the listener with `joined: false`: the cancellable flag forces joined dispatch. Keep
-the handler short.
+Cancellable events can **join** the main thread. The game waits for a joined
+callback before it decides whether to continue, so the listener can cancel or
+replace the event. The simple `JsMacros.on(event, callback)` form does not request
+joined handling; pass `true` as the second argument to request it. A listener that
+does not request joining runs after dispatch and must treat the event as read-only:
+`event.cancel()` and field changes throw. Keep a joined handler short.
 
 If the handler only needs a quick decision, cancel or not, and then wants to do
 slow work, release the context first:
 
 ```js
-JsMacros.on("Key", JavaWrapper.methodToJava((event, context) => {
+JsMacros.on("Key", true, JavaWrapper.methodToJava((event, context) => {
   if (event.action !== 1 || event.key !== "key.keyboard.j") return;
 
   // The decision is made. Let the game continue before the expensive part.
@@ -110,15 +112,16 @@ JsMacros.on("Key", JavaWrapper.methodToJava((event, context) => {
 ```
 
 Do not release before `event.cancel()` if you intend to cancel. The game reads the
-cancelled flag when the lock is released. See [Threading](/guide/concepts/threading)
-for the full model.
+cancelled flag when the lock is released. Changes made after `context.releaseLock()`
+throw, even from a joined listener. See [Threading](/guide/concepts/threading) for
+the full model.
 
 ## Waiting for one event
 
 `waitForEvent` blocks the script until a matching event arrives:
 
 ```js
-const next = JsMacros.waitForEvent("RecvMessage");
+const next = JsMacros.waitForEvent("RecvMessage", true);
 
 // Reading the payload does not need the lock. Release it before unrelated work.
 next.context.releaseLock();

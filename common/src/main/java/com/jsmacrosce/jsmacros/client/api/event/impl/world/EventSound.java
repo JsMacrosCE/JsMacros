@@ -11,7 +11,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * Fires when the sound engine receives a sound instance, before it attempts playback. The reported
  * position may be relative rather than world coordinates. Cancelling prevents the playback attempt.
  * <pre>
- * JsMacros.on("Sound", JavaWrapper.methodToJava(function (event) {
+ * JsMacros.on("Sound", true, JavaWrapper.methodToJava(function (event) {
  *   if (event.sound === null) {
  *     return;
  *   }

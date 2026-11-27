@@ -15,7 +15,7 @@ import com.jsmacrosce.jsmacros.core.event.Event;
  * the HUD line. Action-bar messages include client-side system messages. Listeners can replace
  * {@link #message}, assign {@code null}, or cancel the event to suppress the message.
  * <pre>
- * JsMacros.on("Title", JavaWrapper.methodToJava(function (event) {
+ * JsMacros.on("Title", true, JavaWrapper.methodToJava(function (event) {
  *   if (event.message === null) {
  *     return;
  *   }

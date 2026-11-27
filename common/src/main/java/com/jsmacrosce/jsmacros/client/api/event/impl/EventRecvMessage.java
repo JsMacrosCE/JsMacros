@@ -20,7 +20,7 @@ import net.minecraft.client.GuiMessageTag;
  * Fired before a message is added to the chat HUD. Cancelling skips the HUD's entire
  * {@code addMessage} call, including its chat-log output and queue updates.
  * <pre>
- * JsMacros.on("RecvMessage", JavaWrapper.methodToJava(function (event) {
+ * JsMacros.on("RecvMessage", true, JavaWrapper.methodToJava(function (event) {
  *   if (event.messageType === "Chat Error") {
  *     // Hide the chat-validation error message.
  *     event.cancel();

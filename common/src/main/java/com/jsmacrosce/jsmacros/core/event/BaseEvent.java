@@ -22,7 +22,7 @@ import java.util.Iterator;
  * already read the event by then, so it cannot cancel or change it. Call {@link #canModify()} to
  * check the current delivery before attempting a change.
  * <pre>
- * const listener = JsMacros.on("SendMessage", JavaWrapper.methodToJava(event => {
+ * const listener = JsMacros.on("SendMessage", true, JavaWrapper.methodToJava(event => {
  *   if (event.message === "/hello") {
  *     // Cancel before the message is sent or added to chat history.
  *     event.cancel();
