@@ -18,6 +18,7 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.world.level.storage.LevelStorageException;
 import net.minecraft.world.level.storage.LevelStorageSource;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import com.jsmacrosce.doclet.DocletIgnore;
@@ -90,6 +91,7 @@ public class FClient extends PerExecLibrary {
     /**
      * Shared synchronizer used by client-tick waits.
      */
+    @ApiStatus.Internal
     @DocletIgnore
     public static TickSync tickSynchronizer = new TickSync();
 

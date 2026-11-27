@@ -6,6 +6,7 @@ import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import org.spongepowered.asm.mixin.Final;
@@ -31,6 +32,7 @@ import net.minecraft.client.GuiMessageTag;
 //? }
 
 @Mixin(ChatComponent.class)
+@ApiStatus.Internal
 @DocletIgnore
 public abstract class MixinChatHud implements IChatHud {
 

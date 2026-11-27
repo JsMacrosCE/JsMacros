@@ -7,10 +7,12 @@ import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import com.jsmacrosce.jsmacros.client.access.IRecipeBookResults;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.List;
 
 @Mixin(RecipeBookPage.class)
+@ApiStatus.Internal
 @DocletIgnore
 public class MixinRecipeBookResults implements IRecipeBookResults {
 

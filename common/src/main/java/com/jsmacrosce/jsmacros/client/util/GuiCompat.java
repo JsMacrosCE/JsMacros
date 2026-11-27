@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.ToastManager;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.gui.screens.Screen;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 //? if >=26.2 {
@@ -14,6 +15,7 @@ import net.minecraft.client.gui.Gui;
 //?}
 
 // 26.2 moved screen/overlay ownership to Gui and split the HUD into Gui.hud.
+@ApiStatus.Internal
 @DocletIgnore
 public final class GuiCompat {
     private GuiCompat() {

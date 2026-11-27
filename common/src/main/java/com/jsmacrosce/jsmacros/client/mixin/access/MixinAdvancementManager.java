@@ -7,6 +7,7 @@ import net.minecraft.advancements.AdvancementTree;
 import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.Map;
 import java.util.Set;
@@ -17,6 +18,7 @@ import java.util.Set;
  * @since 1.8.4
  */
 @Mixin(AdvancementTree.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinAdvancementManager {
 

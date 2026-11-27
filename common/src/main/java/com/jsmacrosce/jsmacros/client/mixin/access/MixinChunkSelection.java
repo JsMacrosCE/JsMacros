@@ -6,8 +6,10 @@ import net.minecraft.world.level.chunk.LevelChunkSection;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import com.jsmacrosce.jsmacros.client.access.IChunkSection;
+import org.jetbrains.annotations.ApiStatus;
 
 @Mixin(LevelChunkSection.class)
+@ApiStatus.Internal
 @DocletIgnore
 public class MixinChunkSelection implements IChunkSection {
 

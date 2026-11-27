@@ -5,8 +5,10 @@ import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.OptionInstance;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
+import org.jetbrains.annotations.ApiStatus;
 
 @Mixin(OptionInstance.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinSimpleOption {
     @Accessor("value")

@@ -8,12 +8,14 @@ import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
+import org.jetbrains.annotations.ApiStatus;
 
 /**
  * @author Etheradon
  * @since 1.8.4
  */
 @Mixin(AbstractFurnaceMenu.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinAbstractFurnaceScreenHandler {
 

@@ -7,10 +7,12 @@ import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.Optional;
 
 @Mixin(Entity.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinEntity2 {
 

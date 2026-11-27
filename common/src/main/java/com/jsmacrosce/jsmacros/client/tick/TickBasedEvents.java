@@ -16,6 +16,7 @@ import com.jsmacrosce.jsmacros.client.api.event.impl.player.EventFallFlying;
 import com.jsmacrosce.jsmacros.client.api.event.impl.player.EventHeldItemChange;
 import com.jsmacrosce.jsmacros.client.api.event.impl.world.EventTick;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FClient;
+import org.jetbrains.annotations.ApiStatus;
 
 /**
  * Provides client tick bookkeeping and native {@code ItemStack} comparison helpers.
@@ -86,6 +87,7 @@ public class TickBasedEvents {
         return (a.isEmpty() && b.isEmpty()) || (!a.isEmpty() && !b.isEmpty() && ItemStack.isSameItem(a, b) && a.getCount() == b.getCount() && areTagsEqualIgnoreDamage(a, b));
     }
 
+    @ApiStatus.Internal
     @DocletIgnore
     public static void onTick(Minecraft mc) {
         if (JsMacrosClient.keyBinding.consumeClick() && GuiCompat.screen(mc) == null) {

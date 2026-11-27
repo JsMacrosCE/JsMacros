@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.access;
 
 import com.jsmacrosce.jsmacros.client.util.InputCompat;
+import org.jetbrains.annotations.ApiStatus;
 
 //? if >=26.1 {
 /*import com.mojang.blaze3d.platform.InputConstants;
@@ -9,6 +10,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import com.jsmacrosce.doclet.DocletIgnore;
 
+@ApiStatus.Internal
 @DocletIgnore
 public interface IScreenInternal {
     void jsmacros_render(GuiGraphics drawContext, int mouseX, int mouseY, float delta);

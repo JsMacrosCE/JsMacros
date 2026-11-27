@@ -5,6 +5,7 @@ import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
+import org.jetbrains.annotations.ApiStatus;
 
 /**
  * Invokes {@link AbstractPiglin}'s protected zombification-immunity check.
@@ -13,6 +14,7 @@ import org.spongepowered.asm.mixin.gen.Invoker;
  * @since 1.8.4
  */
 @Mixin(AbstractPiglin.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinAbstractPiglinEntity {
 

@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.core.language;
 import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +41,7 @@ public class EventContainer<T extends BaseScriptContext<?>> {
      * @return {@code true} when this delivery is joined
      * @since 2.2.0
      */
+    @ApiStatus.Internal
     @DocletIgnore
     public synchronized boolean isJoined() {
         return joined;
@@ -49,6 +51,7 @@ public class EventContainer<T extends BaseScriptContext<?>> {
      * @param joined whether this delivery is joined
      * @since 2.2.0
      */
+    @ApiStatus.Internal
     @DocletIgnore
     public synchronized void setJoined(boolean joined) {
         this.joined = joined;
@@ -58,6 +61,7 @@ public class EventContainer<T extends BaseScriptContext<?>> {
      * @param hook callback to run on release
      * @since 2.2.0
      */
+    @ApiStatus.Internal
     @DocletIgnore
     public synchronized void onRelease(Runnable hook) {
         if (locked) {

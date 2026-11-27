@@ -4,12 +4,14 @@ import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.gui.components.EditBox;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
+import org.jetbrains.annotations.ApiStatus;
 
 /** Accessors for private state on Minecraft's text-editing widget.
  * @author Etheradon
  * @since 1.8.4
  */
 @Mixin(EditBox.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinTextFieldWidget {
 

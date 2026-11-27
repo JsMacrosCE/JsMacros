@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.core.service;
 import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.objects.Object2LongArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.Pair;
@@ -244,6 +245,7 @@ public class ServiceManager {
     }
 
     /** Stops the service only if the supplied context is its current run. */
+    @ApiStatus.Internal
     @DocletIgnore
     public synchronized boolean stopServiceContext(BaseScriptContext<?> ctx) {
         if (!(ctx.getTriggeringEvent() instanceof EventService event)) return false;
@@ -254,6 +256,7 @@ public class ServiceManager {
     }
 
     /** Checks for a stop request made from this service's own stop hook. */
+    @ApiStatus.Internal
     @DocletIgnore
     public boolean isStoppingOnCurrentThread(BaseScriptContext<?> ctx) {
         return stoppingContexts.get(ctx) == Thread.currentThread();

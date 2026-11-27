@@ -9,8 +9,10 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import com.jsmacrosce.jsmacros.client.access.IResourcePackManager;
+import org.jetbrains.annotations.ApiStatus;
 
 @Mixin(PackRepository.class)
+@ApiStatus.Internal
 @DocletIgnore
 public class MixinResourcePackManager implements IResourcePackManager {
 

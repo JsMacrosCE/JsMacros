@@ -9,8 +9,10 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 import java.util.List;
 
 import net.minecraft.advancements.critereon.BlockPredicate;
+import org.jetbrains.annotations.ApiStatus;
 
 @Mixin(AdventureModePredicate.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinBlockPredicatesChecker {
 

@@ -17,6 +17,7 @@ import net.minecraft.network.chat.Style;
 
 import org.apache.commons.lang3.StringUtils;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import org.spongepowered.asm.mixin.*;
@@ -53,6 +54,7 @@ import net.minecraft.client.gui.TextAlignment;
 import net.minecraft.client.gui.GuiGraphics;
 
 @SuppressWarnings("AddedMixinMembersNamePattern")
+@ApiStatus.Internal
 @DocletIgnore
 @Mixin(Screen.class)
 @Implements(@Interface(iface = IScreen.class, prefix = "soft$"))

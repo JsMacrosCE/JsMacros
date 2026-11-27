@@ -12,11 +12,13 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.jsmacrosce.jsmacros.client.api.library.impl.FWorld;
 import com.jsmacrosce.jsmacros.client.tick.TPSData;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.LinkedList;
 import java.util.List;
 
 @Mixin(ClientPacketListener.class)
+@ApiStatus.Internal
 @DocletIgnore
 public class MixinClientPlayNetworkHandler {
 

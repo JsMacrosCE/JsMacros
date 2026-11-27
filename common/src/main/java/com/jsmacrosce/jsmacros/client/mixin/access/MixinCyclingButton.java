@@ -7,6 +7,7 @@ import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.function.Function;
 
@@ -15,6 +16,7 @@ import java.util.function.Function;
  * @since 1.8.4
  */
 @Mixin(CycleButton.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinCyclingButton<T> {
 

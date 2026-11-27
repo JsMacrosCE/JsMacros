@@ -11,12 +11,14 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.core.extensions.Extension;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 @Mixin(ClientLanguage.class)
+@ApiStatus.Internal
 @DocletIgnore
 public class MixinTranslationStorage {
 

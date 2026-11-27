@@ -9,8 +9,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import com.jsmacrosce.jsmacros.client.access.IMixinEntity;
+import org.jetbrains.annotations.ApiStatus;
 
 @Mixin(Entity.class)
+@ApiStatus.Internal
 @DocletIgnore
 public abstract class MixinEntity implements IMixinEntity {
 

@@ -5,8 +5,10 @@ import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.world.entity.Interaction;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
+import org.jetbrains.annotations.ApiStatus;
 
 @Mixin(Interaction.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinInteractionEntity2 {
 

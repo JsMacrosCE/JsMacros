@@ -4,6 +4,7 @@ import com.jsmacrosce.doclet.DocletIgnore;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
+import org.jetbrains.annotations.ApiStatus;
 
 //? if >=1.21.11 {
 /*import net.minecraft.world.entity.animal.equine.AbstractHorse;
@@ -16,6 +17,7 @@ import net.minecraft.world.entity.animal.horse.AbstractHorse;
  * @since 1.8.4
  */
 @Mixin(AbstractHorse.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinAbstractHorseEntity {
 

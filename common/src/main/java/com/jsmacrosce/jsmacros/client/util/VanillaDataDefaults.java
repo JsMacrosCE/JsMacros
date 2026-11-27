@@ -1,4 +1,5 @@
 package com.jsmacrosce.jsmacros.client.util;
+import org.jetbrains.annotations.ApiStatus;
 
 //? if >=26.3 {
 /*import com.jsmacrosce.doclet.DocletIgnore;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 
 // Isolated vanilla bootstraps: never apply fallback tags or components to the live registries.
+@ApiStatus.Internal
 @DocletIgnore
 public final class VanillaDataDefaults {
     private VanillaDataDefaults() {

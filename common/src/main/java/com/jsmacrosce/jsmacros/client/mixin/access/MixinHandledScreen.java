@@ -17,7 +17,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.client.access.IInventory;
 import com.jsmacrosce.jsmacros.client.config.ClientConfigV2;
+import org.jetbrains.annotations.ApiStatus;
 
+@ApiStatus.Internal
 @DocletIgnore
 @Mixin(AbstractContainerScreen.class)
 public class MixinHandledScreen<T extends AbstractContainerMenu> extends Screen implements IInventory {

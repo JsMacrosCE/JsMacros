@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.client.mixin.access;
 import com.jsmacrosce.doclet.DocletIgnore;
 
 import net.minecraft.client.DeltaTracker;
+import org.jetbrains.annotations.ApiStatus;
 //? if >=26.2 {
 /*import net.minecraft.client.gui.Hud;
 *///?} else {
@@ -23,6 +24,7 @@ import java.util.Comparator;
 *///?} else {
 @Mixin(Gui.class)
 //?}
+@ApiStatus.Internal
 @DocletIgnore
 public class MixinInGameHud {
     //? if >=26.1 {

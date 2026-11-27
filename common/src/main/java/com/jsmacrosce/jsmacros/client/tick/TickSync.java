@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.tick;
 
 import com.jsmacrosce.doclet.DocletIgnore;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.PriorityQueue;
 
@@ -8,6 +9,7 @@ import java.util.PriorityQueue;
  * Coordinates threads waiting for client ticks. {@link #tick()} advances the shared counter and
  * notifies threads waiting in {@link #waitTick()} or on queued tick targets.
  */
+@ApiStatus.Internal
 @DocletIgnore
 public class TickSync {
     int tc = 0;
@@ -45,6 +47,7 @@ public class TickSync {
         }
     }
 
+    @ApiStatus.Internal
     @DocletIgnore
     public static class TickSyncInt implements Comparable<TickSyncInt> {
         public final int tick;

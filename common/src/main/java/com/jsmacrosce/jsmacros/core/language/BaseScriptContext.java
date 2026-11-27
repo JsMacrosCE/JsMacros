@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.core.language;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.core.Core;
@@ -209,6 +210,7 @@ public abstract class BaseScriptContext<T> {
     }
 
     /** Starts intentional shutdown once, before listener cleanup and context closure. */
+    @ApiStatus.Internal
     @DocletIgnore
     public synchronized boolean beginScriptStop() {
         if (closed || scriptStopRequested) return false;
@@ -217,12 +219,14 @@ public abstract class BaseScriptContext<T> {
     }
 
     /** Returns whether this run requested intentional shutdown. */
+    @ApiStatus.Internal
     @DocletIgnore
     public boolean isScriptStopRequested() {
         return scriptStopRequested;
     }
 
     /** Registers a listener atomically with respect to intentional shutdown. */
+    @ApiStatus.Internal
     @DocletIgnore
     public synchronized void registerScriptListener(String event, IEventListener listener) {
         if (closed || scriptStopRequested) {
@@ -233,6 +237,7 @@ public abstract class BaseScriptContext<T> {
     }
 
     /** Removes listeners registered by this run, including interrupted event waits. */
+    @ApiStatus.Internal
     @DocletIgnore
     public void removeScriptListeners() {
         ImmutableList<IEventListener> listeners;
@@ -244,6 +249,7 @@ public abstract class BaseScriptContext<T> {
     }
 
     /** Identifies cancellation caused by this run's explicit stop without hiding other failures. */
+    @ApiStatus.Internal
     @DocletIgnore
     public boolean isScriptStopException(Throwable failure) {
         if (!scriptStopRequested) return false;
@@ -327,6 +333,7 @@ public abstract class BaseScriptContext<T> {
     }
 
     /** Distinguishes an attempt to use a closed context from unrelated script assertions. */
+    @ApiStatus.Internal
     @DocletIgnore
     public static class ScriptContextClosedException extends ScriptAssertionError {
         public ScriptContextClosedException(String message) {

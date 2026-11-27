@@ -15,6 +15,7 @@ import net.minecraft.util.Crypt;
 import net.minecraft.util.CryptException;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.security.PublicKey;
 import java.util.Collection;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 // These script wire formats outlive FriendlyByteBuf's convenience methods.
+@ApiStatus.Internal
 @DocletIgnore
 public final class PacketBufferCompat {
     private PacketBufferCompat() {

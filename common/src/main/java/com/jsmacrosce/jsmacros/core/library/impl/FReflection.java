@@ -17,6 +17,7 @@ import com.jsmacrosce.jsmacros.core.library.impl.classes.ClassBuilder;
 import com.jsmacrosce.jsmacros.core.library.impl.classes.LibraryBuilder;
 import com.jsmacrosce.jsmacros.core.library.impl.classes.ProxyBuilder;
 import com.jsmacrosce.jsmacros.core.library.impl.classes.proxypackage.Neighbor;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -606,6 +607,7 @@ public class FReflection extends PerExecLibrary {
      * @param name the string to rewrite
      * @return a new string with every occurrence of "xyz.wagyourtail." replaced by "com.jsmacrosce."
      */
+    @ApiStatus.Internal
     @DocletIgnore
     public static String redirectWagYourTail(String name) {
         return name.replace("xyz.wagyourtail.", "com.jsmacrosce.");

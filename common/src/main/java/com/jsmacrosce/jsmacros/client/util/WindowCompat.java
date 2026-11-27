@@ -2,6 +2,7 @@ package com.jsmacrosce.jsmacros.client.util;
 
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.mojang.blaze3d.platform.Window;
+import org.jetbrains.annotations.ApiStatus;
 
 //? if >=26.3 {
 /*import org.lwjgl.sdl.SDLVideo;
@@ -9,6 +10,7 @@ import com.mojang.blaze3d.platform.Window;
 import org.lwjgl.glfw.GLFW;
 //?}
 
+@ApiStatus.Internal
 @DocletIgnore
 public final class WindowCompat {
     private WindowCompat() {

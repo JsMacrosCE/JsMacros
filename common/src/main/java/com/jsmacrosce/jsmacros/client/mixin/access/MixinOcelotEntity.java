@@ -4,6 +4,7 @@ import com.jsmacrosce.doclet.DocletIgnore;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
+import org.jetbrains.annotations.ApiStatus;
 
 //? if >=1.21.11 {
 /*import net.minecraft.world.entity.animal.feline.Ocelot;
@@ -16,6 +17,7 @@ import net.minecraft.world.entity.animal.Ocelot;
  * @since 1.8.4
  */
 @Mixin(Ocelot.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinOcelotEntity {
 

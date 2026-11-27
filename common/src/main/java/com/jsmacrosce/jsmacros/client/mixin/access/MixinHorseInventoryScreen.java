@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
 
 import com.jsmacrosce.doclet.DocletIgnore;
+import org.jetbrains.annotations.ApiStatus;
 
 //? if <1.21.11 {
 import net.minecraft.client.gui.screens.inventory.HorseInventoryScreen;
@@ -13,6 +14,7 @@ import com.jsmacrosce.jsmacros.client.access.IAbstractMountInventoryScreen;
 import net.minecraft.world.entity.animal.horse.AbstractHorse;
 
 @Mixin(HorseInventoryScreen.class)
+@ApiStatus.Internal
 @DocletIgnore
 public class MixinHorseInventoryScreen implements IAbstractMountInventoryScreen {
     @Shadow
@@ -31,6 +33,7 @@ import net.minecraft.client.gui.screens.inventory.HorseInventoryScreen;
 import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(HorseInventoryScreen.class)
+@ApiStatus.Internal
 @DocletIgnore
 public class MixinHorseInventoryScreen {}
 *///? }

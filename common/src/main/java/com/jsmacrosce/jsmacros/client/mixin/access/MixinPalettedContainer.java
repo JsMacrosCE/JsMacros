@@ -7,11 +7,13 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import com.jsmacrosce.jsmacros.client.access.IPalettedContainer;
 import com.jsmacrosce.jsmacros.client.access.IPalettedContainerData;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
 
 @Mixin(PalettedContainer.class)
+@ApiStatus.Internal
 @DocletIgnore
 public class MixinPalettedContainer<T> implements IPalettedContainer<T> {
 

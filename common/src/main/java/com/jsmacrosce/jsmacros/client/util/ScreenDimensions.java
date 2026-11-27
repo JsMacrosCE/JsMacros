@@ -1,6 +1,7 @@
 package com.jsmacrosce.jsmacros.client.util;
 
 import com.jsmacrosce.doclet.DocletIgnore;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -24,6 +25,7 @@ import java.lang.reflect.Modifier;
  * static, does not return an object with public {@code int width()} and {@code int height()}
  * accessors, returns {@code null}, or fails while being read keeps the field value.
  */
+@ApiStatus.Internal
 @DocletIgnore
 public final class ScreenDimensions {
     private ScreenDimensions() {

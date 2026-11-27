@@ -2,9 +2,11 @@ package com.jsmacrosce.jsmacros.client.util;
 
 import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.Util;
+import org.jetbrains.annotations.ApiStatus;
 import java.io.File;
 import java.net.URI;
 
+@ApiStatus.Internal
 @DocletIgnore
 public final class PlatformCompat {
     private PlatformCompat() {

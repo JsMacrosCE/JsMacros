@@ -48,6 +48,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import com.jsmacrosce.doclet.DocletCategory;
@@ -1882,6 +1883,7 @@ public class PacketByteBufferHelper extends BaseHelper<FriendlyByteBuf> {
      * @param requestedName the name configured on the filterer, or {@code null} for no filtering
      * @return whether the names refer to the same packet
      */
+    @ApiStatus.Internal
     @DocletIgnore
     public static boolean packetNameMatches(String actualName, @Nullable String requestedName) {
         if (requestedName == null || actualName.equals(requestedName)) return true;

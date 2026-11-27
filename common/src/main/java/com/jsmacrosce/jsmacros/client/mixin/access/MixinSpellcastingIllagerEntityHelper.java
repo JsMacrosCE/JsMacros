@@ -4,6 +4,7 @@ import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
+import org.jetbrains.annotations.ApiStatus;
 
 //? if >=1.21.11 {
 /*import net.minecraft.world.entity.monster.illager.SpellcasterIllager;
@@ -17,6 +18,7 @@ import net.minecraft.world.entity.monster.SpellcasterIllager;
  * @since 1.8.4
  */
 @Mixin(SpellcasterIllager.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinSpellcastingIllagerEntityHelper {
 

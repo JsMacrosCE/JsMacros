@@ -18,6 +18,7 @@ import com.jsmacrosce.jsmacros.client.config.ClientConfigV2;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 import com.jsmacrosce.wagyourgui.BaseScreen;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -124,6 +125,7 @@ public class EventKey extends BaseEvent {
         return parse(InputCompat.legacyKey(key), action, mods);
     }
 
+    @ApiStatus.Internal
     @DocletIgnore
     public static boolean parse(InputConstants.Key keycode, int action, int mods) {
         String keyStr = keycode.getName();

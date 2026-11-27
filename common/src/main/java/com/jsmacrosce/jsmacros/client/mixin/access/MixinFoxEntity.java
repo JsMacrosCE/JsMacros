@@ -6,6 +6,7 @@ import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Invoker;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.stream.Stream;
 
@@ -20,6 +21,7 @@ import net.minecraft.world.entity.animal.Fox;
  * @since 1.8.4
  */
 @Mixin(Fox.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinFoxEntity {
 

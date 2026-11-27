@@ -1,4 +1,5 @@
 package com.jsmacrosce.jsmacros.client.util;
+import org.jetbrains.annotations.ApiStatus;
 
 //? if >=26.3 {
 /*import com.jsmacrosce.doclet.DocletIgnore;
@@ -28,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+@ApiStatus.Internal
 @DocletIgnore
 public final class LocalServerData {
     private LocalServerData() {

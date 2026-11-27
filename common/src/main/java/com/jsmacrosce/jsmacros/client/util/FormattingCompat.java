@@ -3,6 +3,7 @@ package com.jsmacrosce.jsmacros.client.util;
 import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.ChatFormatting;
 import net.minecraft.world.scores.PlayerTeam;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.Locale;
 
@@ -19,6 +20,7 @@ import net.minecraft.world.scores.TeamColor;
  * {@code TextColor} and team colors to {@code TeamColor}. These helpers derive the old values
  * from the enum's ordinal, name and code so the script API keeps reporting the same data.
  */
+@ApiStatus.Internal
 @DocletIgnore
 public final class FormattingCompat {
     private FormattingCompat() {

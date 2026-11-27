@@ -1,4 +1,5 @@
 package com.jsmacrosce.jsmacros.client.mixin.access;
+import org.jetbrains.annotations.ApiStatus;
 
 //? if >=26.3 {
 /*import com.jsmacrosce.doclet.DocletIgnore;
@@ -18,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.List;
 import java.util.Map;
 
+@ApiStatus.Internal
 @DocletIgnore
 @Mixin(FeatureRenderDispatcher.PreparedFrame.class)
 public abstract class MixinOverlayPreparedFrame implements IOverlayPreparedFrame {

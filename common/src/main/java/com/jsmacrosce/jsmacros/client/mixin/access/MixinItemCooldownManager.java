@@ -9,10 +9,12 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import com.jsmacrosce.jsmacros.client.access.IItemCooldownEntry;
 import com.jsmacrosce.jsmacros.client.access.IItemCooldownManager;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.Map;
 
 @Mixin(ItemCooldowns.class)
+@ApiStatus.Internal
 @DocletIgnore
 public class MixinItemCooldownManager implements IItemCooldownManager {
 

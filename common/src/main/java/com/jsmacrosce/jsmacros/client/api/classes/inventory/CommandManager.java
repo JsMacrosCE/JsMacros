@@ -15,6 +15,7 @@ import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.client.api.helper.CommandNodeHelper;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -46,6 +47,7 @@ public abstract class CommandManager {
      * {@code Chat.getCommandManager()}.
      * @since 1.7.0
      */
+    @ApiStatus.Internal
     @DocletIgnore
     public static CommandManager instance;
     private static final Minecraft mc = Minecraft.getInstance();

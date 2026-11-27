@@ -289,6 +289,7 @@ public class BaseEvent {
      * Fails unless the current delivery may change this event.
      * @param action action name used in the diagnostic message
      */
+    @ApiStatus.Internal
     @DocletIgnore
     protected final void assertCanModify(String action) {
         Delivery current = currentDelivery();

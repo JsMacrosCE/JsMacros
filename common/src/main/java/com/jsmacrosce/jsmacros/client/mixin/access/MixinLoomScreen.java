@@ -6,8 +6,10 @@ import net.minecraft.client.gui.screens.inventory.LoomScreen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import com.jsmacrosce.jsmacros.client.access.ILoomScreen;
+import org.jetbrains.annotations.ApiStatus;
 
 @Mixin(LoomScreen.class)
+@ApiStatus.Internal
 @DocletIgnore
 public class MixinLoomScreen implements ILoomScreen {
 

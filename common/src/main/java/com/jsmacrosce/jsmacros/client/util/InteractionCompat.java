@@ -7,6 +7,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import com.jsmacrosce.doclet.DocletIgnore;
 import net.minecraft.client.player.LocalPlayer;
+import org.jetbrains.annotations.ApiStatus;
 //? if >=26.3 {
 /*import net.minecraft.network.protocol.game.ServerboundPunchPacket;
 *///?}
@@ -25,6 +26,7 @@ public final class InteractionCompat {
     private InteractionCompat() {
     }
 
+    @ApiStatus.Internal
     @DocletIgnore
     public static void swingAttack(LocalPlayer player) {
         //? if >=26.3 {
@@ -35,6 +37,7 @@ public final class InteractionCompat {
         //?}
     }
 
+    @ApiStatus.Internal
     @DocletIgnore
     public static void swingInteraction(LocalPlayer player, InteractionHand hand) {
         //? if >=26.3 {

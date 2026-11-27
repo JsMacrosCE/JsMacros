@@ -3,7 +3,9 @@ package com.jsmacrosce.jsmacros.client.util;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.mojang.blaze3d.vertex.PoseStack;
 import org.joml.Quaternionf;
+import org.jetbrains.annotations.ApiStatus;
 
+@ApiStatus.Internal
 @DocletIgnore
 public final class PoseCompat {
     private PoseCompat() {

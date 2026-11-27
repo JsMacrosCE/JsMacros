@@ -21,6 +21,7 @@ import com.jsmacrosce.jsmacros.core.library.LibraryRegistry;
 import com.jsmacrosce.jsmacros.core.library.ScriptTypeRegistry;
 import com.jsmacrosce.jsmacros.core.service.ServiceManager;
 import com.jsmacrosce.jsmacros.core.threads.JsMacrosThreadPool;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.io.File;
 import java.lang.invoke.MethodHandle;
@@ -53,6 +54,7 @@ public class Core<T extends BaseProfile, U extends BaseEventRegistry> {
     /** Registry of scripting libraries associated with this core. */
     public final LibraryRegistry libraryRegistry = new LibraryRegistry(this);
     /** Share the list of Java types, but let each script create its own language-specific values. */
+    @ApiStatus.Internal
     @DocletIgnore
     public final ScriptTypeRegistry scriptTypeRegistry = new ScriptTypeRegistry();
     /** Event registry supplied by the event-registry factory. */

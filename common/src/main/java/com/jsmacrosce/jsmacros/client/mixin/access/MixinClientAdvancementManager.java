@@ -7,6 +7,7 @@ import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.client.multiplayer.ClientAdvancements;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.Map;
 
@@ -15,6 +16,7 @@ import java.util.Map;
  * @since 1.8.4
  */
 @Mixin(ClientAdvancements.class)
+@ApiStatus.Internal
 @DocletIgnore
 public interface MixinClientAdvancementManager {
 

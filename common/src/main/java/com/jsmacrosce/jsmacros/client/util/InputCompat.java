@@ -3,10 +3,12 @@ package com.jsmacrosce.jsmacros.client.util;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
+import org.jetbrains.annotations.ApiStatus;
 //? if >1.21.8 {
 /*import net.minecraft.client.input.KeyEvent;
 *///?}
 
+@ApiStatus.Internal
 @DocletIgnore
 public final class InputCompat {
     private InputCompat() {

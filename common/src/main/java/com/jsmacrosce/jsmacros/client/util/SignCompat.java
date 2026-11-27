@@ -5,12 +5,14 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ServerboundSignUpdatePacket;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
+import org.jetbrains.annotations.ApiStatus;
 import java.util.Arrays;
 import java.util.List;
 //? if >=26.3 {
 /*import net.minecraft.world.level.block.entity.SignTextSlot;
 *///?}
 
+@ApiStatus.Internal
 @DocletIgnore
 public final class SignCompat {
     private SignCompat() {
