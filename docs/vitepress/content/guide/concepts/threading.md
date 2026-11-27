@@ -66,12 +66,13 @@ slot, playing a sound, sending or receiving a packet. Those are **cancellable**,
 because there is still something to stop. A listener that requests joined handling
 runs before the game continues, so it can cancel or change the event. The simple
 `JsMacros.on(event, callback)` form does not request joined handling; pass `true`
-as the second argument to request it. A non-joined callback runs after the game
-has already read the event, so it must treat the event as read-only.
+as the second argument to request it. A non-joined callback is not awaited, so the
+game may already have read the event by the time it runs; it must treat the event
+as read-only.
 
 Events that report something already done like a tick passing, health changing, a
-chunk loading, which have nothing to stop. Their listeners are queued instead: the game
-continues, the callback runs afterwards on the script's thread, and
+chunk loading, which have nothing to stop. Their listeners are scheduled instead: the
+game continues without waiting, the callback runs on the script's thread, and
 `event.cancel()` is not available.
 
 **Requesting a join** covers the middle case: an event that is not cancellable but

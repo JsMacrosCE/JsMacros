@@ -124,8 +124,8 @@ public abstract class BaseProfile {
     /**
      * Dispatches an event to its named listeners and, unless ignored, to {@code ANYTHING} listeners.
      * A listener is joined only when it requests joined handling and the event permits joining;
-     * joined callbacks are awaited. A listener that does not request joining runs after dispatch
-     * returns and cannot change the event.
+     * joined callbacks are awaited. A listener that does not request joining receives a read-only
+     * delivery that dispatch does not wait for and cannot change the event.
      * @param event event to dispatch
      * @since 1.2.7
      */

@@ -96,8 +96,10 @@ Cancellable events can **join** the main thread. The game waits for a joined
 callback before it decides whether to continue, so the listener can cancel or
 replace the event. The simple `JsMacros.on(event, callback)` form does not request
 joined handling; pass `true` as the second argument to request it. A listener that
-does not request joining runs after dispatch and must treat the event as read-only:
-`event.cancel()` and field changes throw. Keep a joined handler short.
+does not request joining receives a read-only delivery: it runs asynchronously on a
+worker thread, may start before dispatch returns, and must treat the event as
+read-only. `event.cancel()` and the checked setters throw; direct writes to
+deprecated payload fields are not checked. Keep a joined handler short.
 
 If the handler only needs a quick decision, cancel or not, and then wants to do
 slow work, release the context first:
@@ -113,9 +115,9 @@ JsMacros.on("Key", true, JavaWrapper.methodToJava((event, context) => {
 ```
 
 Do not release before `event.cancel()` if you intend to cancel. The game reads the
-cancelled flag when the lock is released. Changes made after `context.releaseLock()`
-throw, even from a joined listener. See [Threading](/guide/concepts/threading) for
-the full model.
+cancelled flag when the lock is released. Setter calls made after
+`context.releaseLock()` throw, even from a joined listener; direct field writes are
+not checked. See [Threading](/guide/concepts/threading) for the full model.
 
 ## Waiting for one event
 
@@ -205,9 +207,10 @@ There are two separate switches:
 
 The listener's `true` is only a request. An event that is not joinable ignores it.
 The simple `on` form does not request joining; pass `true` to ask for it. A custom
-event with `cancelable = true` is also joinable. Among the built-in events, every joinable
-event is currently cancellable, so explicit joining is practical only for custom
-events raised by another script.
+event with `cancelable = true` is also joinable. Among the built-in events, every
+joinable event is currently cancellable, so explicit joining is what lets a listener
+cancel or change one; for custom events it also makes the raising script's
+`trigger()` wait for a response.
 
 For example, script A owns a cache and answers `Lookup` requests, and script B
 needs the answer before its next line:

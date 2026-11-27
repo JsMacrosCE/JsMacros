@@ -5,13 +5,13 @@ import com.jsmacrosce.jsmacros.core.language.EventContainer;
 /**
  * A listener invoked when a registered event is dispatched. Script subscriptions and profile
  * macro triggers use this interface. Dispatch waits on the returned container only when the
- * listener requests joined handling and the event permits joining; otherwise listener work may
- * continue after dispatch returns. A joined dispatch waits until the container is released,
- * subject to the configured lock watchdog. A {@code null} container is never awaited.
+ * listener requests joined handling and the event permits joining; otherwise it is a read-only
+ * delivery that dispatch does not wait for. A joined dispatch waits until the container is
+ * released, subject to the configured lock watchdog. A {@code null} container is never awaited.
  * <p>
  * Only a joined delivery may cancel or change the event while its lock is held. A listener that
- * does not request joining receives the event after the raiser has continued, so it must treat
- * the event as read-only; see {@link BaseEvent#canModify()}.
+ * does not request joining receives a read-only delivery and must treat the event as read-only;
+ * see {@link BaseEvent#canModify()}.
  */
 public interface IEventListener {
     /**

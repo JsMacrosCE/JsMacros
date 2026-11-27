@@ -85,9 +85,10 @@ JsMacros.on("Key", true, JavaWrapper.methodToJava((event, context) => {
 
 The `Key` event is cancellable. Passing `true` to `JsMacros.on` requests joined
 handling, so the listener can cancel and runs on the main thread's critical path.
-Keep the handler short. A listener registered without the flag runs after dispatch
-and cannot cancel or change the event. If a joined script needs to do slow
-work after deciding whether to cancel, call `context.releaseLock()` first; see
+Keep the handler short. A listener registered without the flag receives a read-only
+delivery that dispatch does not wait for and cannot cancel or change the event. If a
+joined script needs to do slow work after deciding whether to cancel, call
+`context.releaseLock()` first; see
 [Events](/guide/concepts/events) and [Threading](/guide/concepts/threading).
 
 Unknown keys and key repeats are filtered before the event is created. The event

@@ -412,9 +412,9 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Registers a listener for an event. The listener does not request joined handling, so it runs
-     * after dispatch and receives the event as read-only. Use the overload with a boolean to
-     * request joined handling and keep the ability to cancel or change the event.
+     * Registers a listener for an event. The listener does not request joined handling, so dispatch
+     * does not wait for it and it receives the event as read-only. Use the overload with a boolean
+     * to request joined handling and keep the ability to cancel or change the event.
      *
      * @param event registered event name; script subscriptions are not remapped from old aliases
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
@@ -431,7 +431,7 @@ public class FJsMacros extends PerExecLibrary {
     /**
      * Registers a listener for an event and chooses whether it requests joined handling. A joined
      * listener waits for the event lock before the raiser continues, so it may cancel or change the
-     * event; a non-joined listener runs after dispatch and must treat the event as read-only.
+     * event; a non-joined listener receives a read-only delivery that dispatch does not wait for.
      * Cancelling or changing a non-joined delivery throws. The request only applies when the event
      * permits joining. Joined handling needs the listener to belong to another script, because a
      * script cannot wait on a listener in its own run.
@@ -469,8 +469,8 @@ public class FJsMacros extends PerExecLibrary {
     /**
      * Registers a listener for an event, optionally filtering which events reach the callback, and
      * chooses whether it requests joined handling. A joined listener waits for the event lock before
-     * the raiser continues, so it may cancel or change the event; a non-joined listener runs after
-     * dispatch and must treat the event as read-only. The request only applies when the event
+     * the raiser continues, so it may cancel or change the event; a non-joined listener receives a
+     * read-only delivery that dispatch does not wait for. The request only applies when the event
      * permits joining. Joined handling needs the listener to belong to another script, because a
      * script cannot wait on a listener in its own run.
      *
@@ -606,8 +606,8 @@ public class FJsMacros extends PerExecLibrary {
 
     /**
      * Registers a listener that is removed when the event triggers and chooses whether it requests
-     * joined handling. A joined listener may cancel or change the event; a non-joined listener runs
-     * after dispatch and must treat it as read-only.
+     * joined handling. A joined listener may cancel or change the event; a non-joined listener
+     * receives a read-only delivery that dispatch does not wait for.
      *
      * @param event registered event name; script subscriptions are not remapped from old aliases
      * @param requestJoined whether to request joined handling; ignored by events that do not permit joining
@@ -890,9 +890,9 @@ public class FJsMacros extends PerExecLibrary {
      * Waits until an event passes the optional filter. The listener is registered before
      * {@code runBeforeWaiting} runs; any currently bound event lock is released before waiting.
      * There is no timeout, and filter exceptions are wrapped in a {@link RuntimeException}.
-     * A joined wait lets the script cancel or change the event; an unjoined wait runs after
-     * dispatch and must treat the event as read-only. The request is ignored when the event does
-     * not permit joining.
+     * A joined wait lets the script cancel or change the event; an unjoined wait receives a
+     * read-only delivery that dispatch does not wait for. The request is ignored when the event
+     * does not permit joining.
      *
      * @param event registered event name
      * @param requestJoined whether to request joined handling; the request is ignored when the event does not permit joining

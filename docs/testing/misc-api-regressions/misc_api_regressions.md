@@ -261,9 +261,10 @@ joinable/cancellable combinations, and joined versus non-joined listeners.
 Write a callback-complete marker after a short sleep (well below watchdog time).
 When joining is required, the producer must see completion before `trigger()`
 returns. A joined cancellable listener must reflect cancellation synchronously;
-a non-joined cancellable listener must reject `cancel()` and field changes and
-run after dispatch. The simple `on` form must not join; pass `true` to request
-joined handling for cancellable built-in events. Non-joinable events must not join
+a non-joined cancellable listener must reject `cancel()` and checked setter calls
+and receives a read-only delivery that dispatch does not wait for. The simple
+`on` form must not join; pass `true` to request joined handling for cancellable
+built-in events. Non-joinable events must not join
 merely because the listener requests it. Async cases require a bounded wait for
 the marker, not an immediate assumption of completion; yield the script while
 waiting (for example `Time.sleep`) so a same-context callback can run. A blocking
@@ -274,9 +275,10 @@ Repeat with an actual cancellable SendPacket/RecvPacket event in a disposable
 connection (cancel only a selected harmless packet, not all packets), including
 `ANYTHING`. Verify cancelled packets aren't dispatched and callbacks complete
 before network continuation. Keep callbacks short. Test a same-context non-joined
-cancellable listener for read-only rejection (`cancel()` and field changes throw)
-with a bounded wait, filter rejection, exceptions (listener removed/logged, locks
-released), and a same-context **explicitly joined** listener: it must retain the
+cancellable listener for read-only rejection (`cancel()` and checked setter calls
+throw; direct writes to deprecated payload fields are not checked) with a bounded
+wait, filter rejection, exceptions (listener removed/logged, locks released), and a
+same-context **explicitly joined** listener: it must retain the
 IllegalThreadStateException guard rather than deadlock. Remove all
 listeners/services and custom registry names.
 

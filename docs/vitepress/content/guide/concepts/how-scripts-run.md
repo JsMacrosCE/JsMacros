@@ -31,8 +31,8 @@ has a separate rule (see [Threading](/guide/concepts/threading)).
 The script still runs on that worker for a cancellable event. If the trigger requests
 joined handling, the game's main thread may wait, or be **joined**, on the script's
 event lock. The script is not moved onto the main thread; the main thread is made to
-wait for it. A trigger that does not request joining runs after dispatch and must
-treat the event as read-only.
+wait for it. A trigger that does not request joining receives a read-only delivery
+that dispatch does not wait for and must treat the event as read-only.
 
 ## The context lives while it is needed
 
