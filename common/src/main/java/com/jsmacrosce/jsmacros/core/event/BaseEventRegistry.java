@@ -6,6 +6,7 @@ import com.jsmacrosce.doclet.DocletCategory;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.config.ScriptTrigger;
+import com.jsmacrosce.jsmacros.core.event.impl.EventCustom;
 import com.jsmacrosce.jsmacros.core.library.impl.FJsMacros;
 
 import java.util.*;
@@ -141,6 +142,19 @@ public abstract class BaseEventRegistry {
      * @since 1.2.9
      */
     public abstract boolean removeScriptTrigger(ScriptTrigger rawmacro);
+
+    /**
+     * Returns whether dispatch may wait for a listener on this event instance. A custom event uses
+     * its own joinable and cancellable flags; a named event may also be joinable through
+     * {@link #joinableEvents}, which supports bare registered names.
+     *
+     * @param event event instance being dispatched
+     * @return {@code true} when the event permits joined handling
+     * @since 2.2.0
+     */
+    public boolean isJoinable(BaseEvent event) {
+        return event.joinable() || !(event instanceof EventCustom) && joinableEvents.contains(event.getEventName());
+    }
 
     /**
      * Returns the live listener map used by dispatch; changes to it affect dispatch.

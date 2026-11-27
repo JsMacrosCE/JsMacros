@@ -412,7 +412,9 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Registers a listener for an event.
+     * Registers a listener for an event. The listener does not request joined handling, so it runs
+     * after dispatch and receives the event as read-only. Use the overload with a boolean to
+     * request joined handling and keep the ability to cancel or change the event.
      *
      * @param event registered event name; script subscriptions are not remapped from old aliases
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
@@ -427,26 +429,29 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Registers a listener for an event. {@code joined} asks a joinable event to wait for this
-     * listener; cancellable events wait regardless. Joined handling needs the listener to belong to
-     * another script, because a script cannot wait on a listener in its own run.
+     * Registers a listener for an event and chooses whether it requests joined handling. A joined
+     * listener waits for the event lock before the raiser continues, so it may cancel or change the
+     * event; a non-joined listener runs after dispatch and must treat the event as read-only.
+     * Cancelling or changing a non-joined delivery throws. The request only applies when the event
+     * permits joining. Joined handling needs the listener to belong to another script, because a
+     * script cannot wait on a listener in its own run.
      *
      * @param event registered event name; script subscriptions are not remapped from old aliases
-     * @param joined whether to request waiting for this listener on a joinable event; the request
-     *               does nothing if the event is not joinable
+     * @param requestJoined whether to request joined handling; ignored by events that do not permit joining
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
      * @return the registered listener, or {@code null} if the callback is {@code null}
      * @see IEventListener
      * @since 1.9.0
      */
     @DocletReplaceTypeParams("E extends keyof Events")
-    @DocletReplaceParams("event: E, joined: boolean, callback: MethodWrapper<Events[E], EventContainer>")
-    public IEventListener on(String event, boolean joined, MethodWrapper<BaseEvent, EventContainer<?>, Object, ?> callback) {
-        return on(event, null, joined, callback);
+    @DocletReplaceParams("event: E, requestJoined: boolean, callback: MethodWrapper<Events[E], EventContainer>")
+    public IEventListener on(String event, boolean requestJoined, MethodWrapper<BaseEvent, EventContainer<?>, Object, ?> callback) {
+        return on(event, null, requestJoined, callback);
     }
 
     /**
      * Registers a listener for an event, optionally filtering which events reach the callback.
+     * The listener does not request joined handling, so it receives the event as read-only.
      *
      * @param event registered event name; script subscriptions are not remapped from old aliases
      * @param filterer filterer that must support this event; {@code null} accepts events without filtering
@@ -462,23 +467,24 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Registers a listener for an event, optionally filtering which events reach the callback.
-     * {@code joined} asks a joinable event to wait for this listener; cancellable events wait
-     * regardless. Joined handling needs the listener to belong to another script, because a script
-     * cannot wait on a listener in its own run.
+     * Registers a listener for an event, optionally filtering which events reach the callback, and
+     * chooses whether it requests joined handling. A joined listener waits for the event lock before
+     * the raiser continues, so it may cancel or change the event; a non-joined listener runs after
+     * dispatch and must treat the event as read-only. The request only applies when the event
+     * permits joining. Joined handling needs the listener to belong to another script, because a
+     * script cannot wait on a listener in its own run.
      *
      * @param event registered event name; script subscriptions are not remapped from old aliases
      * @param filterer filterer that must support this event; {@code null} accepts events without filtering
-     * @param joined whether to request waiting for this listener on a joinable event; the request
-     *               does nothing if the event is not joinable
+     * @param requestJoined whether to request joined handling; ignored by events that do not permit joining
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
      * @return the registered listener, or {@code null} if the callback is {@code null}
      * @see IEventListener
      * @since 1.9.1
      */
     @DocletReplaceTypeParams("E extends keyof Events")
-    @DocletReplaceParams("event: E, filterer: EventFilterer, joined: boolean, callback: MethodWrapper<Events[E], EventContainer>")
-    public IEventListener on(String event, EventFilterer filterer, boolean joined, MethodWrapper<BaseEvent, EventContainer<?>, Object, ?> callback) {
+    @DocletReplaceParams("event: E, filterer: EventFilterer, requestJoined: boolean, callback: MethodWrapper<Events[E], EventContainer>")
+    public IEventListener on(String event, EventFilterer filterer, boolean requestJoined, MethodWrapper<BaseEvent, EventContainer<?>, Object, ?> callback) {
         if (callback == null) {
             return null;
         }
@@ -493,25 +499,32 @@ public class FJsMacros extends PerExecLibrary {
         IEventListener listener = new ScriptEventListener() {
 
             @Override
-            public boolean joined() {
-                return joined;
+            public boolean joinRequested() {
+                return requestJoined;
             }
 
             @Override
             public EventContainer<?> trigger(BaseEvent e) {
                 if (isListenerStopping(callback)) return null;
                 if (filterer != null && !filterer.test(e)) return null;
+                boolean deliveryJoined = requestJoined && runner.eventRegistry.isJoinable(e);
                 EventContainer<?> p = new EventContainer<>(callback.getCtx());
+                p.setJoined(deliveryJoined);
                 Thread ot = callback.overrideThread();
                 Thread th = runner.threadPool.runTask(() -> {
                     Thread t = Thread.currentThread();
                     t.setName(this.toString());
                     try {
                         if (isListenerStopping(callback)) return;
-                        if (e.cancellable() || joined) {
-                            callback.apply(e, p);
-                        } else {
-                            callback.accept(e, p);
+                        e.beginDelivery(p, deliveryJoined);
+                        try {
+                            if (deliveryJoined) {
+                                callback.apply(e, p);
+                            } else {
+                                callback.accept(e, p);
+                            }
+                        } finally {
+                            e.endDelivery();
                         }
                     } catch (Throwable ex) {
                         runner.eventRegistry.removeListener(event, this);
@@ -529,11 +542,13 @@ public class FJsMacros extends PerExecLibrary {
                 if (isListenerStopping(callback)) return;
                 if (filterer != null && !filterer.test(e)) return;
                 EventContainer<?> container = new EventContainer<>(callback.getCtx());
+                container.setJoined(true);
                 try {
-                    if (e.cancellable()) {
+                    e.beginDelivery(container, true);
+                    try {
                         callback.apply(e, container);
-                    } else {
-                        callback.accept(e, container);
+                    } finally {
+                        e.endDelivery();
                     }
                 } catch (Throwable ex) {
                     runner.eventRegistry.removeListener(event, this);
@@ -573,7 +588,8 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Registers a listener that is removed when the event triggers.
+     * Registers a listener that is removed when the event triggers. The listener does not request
+     * joined handling, so it receives the event as read-only.
      *
      * @param event registered event name; script subscriptions are not remapped from old aliases
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
@@ -589,18 +605,20 @@ public class FJsMacros extends PerExecLibrary {
 
 
     /**
-     * Registers a listener that is removed when the event triggers; {@code joined} requests joined handling when supported.
+     * Registers a listener that is removed when the event triggers and chooses whether it requests
+     * joined handling. A joined listener may cancel or change the event; a non-joined listener runs
+     * after dispatch and must treat it as read-only.
      *
      * @param event registered event name; script subscriptions are not remapped from old aliases
-     * @param joined whether to request joined handling for a joinable event
+     * @param requestJoined whether to request joined handling; ignored by events that do not permit joining
      * @param callback calls your method as a {@link java.util.function.BiConsumer BiConsumer}&lt;{@link BaseEvent}, {@link EventContainer}&gt;
      * @return the registered listener, or {@code null} if the callback is {@code null}
      * @see IEventListener
      * @since 1.9.0
      */
     @DocletReplaceTypeParams("E extends keyof Events")
-    @DocletReplaceParams("event: E, joined: boolean, callback: MethodWrapper<Events[E], EventContainer>")
-    public IEventListener once(String event, boolean joined, MethodWrapper<BaseEvent, EventContainer<?>, Object, ?> callback) {
+    @DocletReplaceParams("event: E, requestJoined: boolean, callback: MethodWrapper<Events[E], EventContainer>")
+    public IEventListener once(String event, boolean requestJoined, MethodWrapper<BaseEvent, EventContainer<?>, Object, ?> callback) {
         if (callback == null) {
             return null;
         }
@@ -611,15 +629,17 @@ public class FJsMacros extends PerExecLibrary {
         String creatorName = th.getName();
         IEventListener listener = new ScriptEventListener() {
             @Override
-            public boolean joined() {
-                return joined;
+            public boolean joinRequested() {
+                return requestJoined;
             }
 
             @Override
             public EventContainer<?> trigger(BaseEvent e) {
                 if (isListenerStopping(callback)) return null;
                 runner.eventRegistry.removeListener(event, this);
+                boolean deliveryJoined = requestJoined && runner.eventRegistry.isJoinable(e);
                 EventContainer<?> p = new EventContainer<>(callback.getCtx());
+                p.setJoined(deliveryJoined);
                 Thread ot = callback.overrideThread();
                 Thread th = runner.threadPool.runTask(() -> {
                     Thread t = Thread.currentThread();
@@ -627,10 +647,15 @@ public class FJsMacros extends PerExecLibrary {
                     t.setName(this.toString());
                     try {
                         if (isListenerStopping(callback)) return;
-                        if (e.cancellable() || joined) {
-                            callback.apply(e, p);
-                        } else {
-                            callback.accept(e, p);
+                        e.beginDelivery(p, deliveryJoined);
+                        try {
+                            if (deliveryJoined) {
+                                callback.apply(e, p);
+                            } else {
+                                callback.accept(e, p);
+                            }
+                        } finally {
+                            e.endDelivery();
                         }
                     } catch (Throwable ex) {
                         if (!isScriptStopException(callback, ex)) runner.profile.logError(ex);
@@ -647,11 +672,13 @@ public class FJsMacros extends PerExecLibrary {
                 if (isListenerStopping(callback)) return;
                 runner.eventRegistry.removeListener(event, this);
                 EventContainer<?> container = new EventContainer<>(callback.getCtx());
+                container.setJoined(true);
                 try {
-                    if (e.cancellable()) {
+                    e.beginDelivery(container, true);
+                    try {
                         callback.apply(e, container);
-                    } else {
-                        callback.accept(e, container);
+                    } finally {
+                        e.endDelivery();
                     }
                 } catch (Throwable ex) {
                     if (!isScriptStopException(callback, ex)) runner.profile.logError(ex);
@@ -773,80 +800,81 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Waits for the next event of the given name.
+     * Waits for the next event of the given name without requesting joined handling. The returned
+     * event is read-only; use the overload with a boolean to request joined handling when the event
+     * supports it.
      * @param event registered event name
-     * @return the event and its context. This form requests no explicit join, but cancellable
-     * events still join. Release the returned context's lock promptly after processing a held event.
-     * @throws InterruptedException
+     * @return the event and its context; release the context lock promptly after processing a held event
+     * @throws InterruptedException if the waiting thread is interrupted
      * @since 1.5.0
      */
     @DocletReplaceTypeParams("E extends keyof Events")
     @DocletReplaceParams("event: E")
     @DocletReplaceReturn("FJsMacros$EventAndContext<Events[E]>")
     public EventAndContext<?> waitForEvent(String event) throws InterruptedException {
-        return waitForEvent(event, null, null);
+        return waitForEvent(event, false, null, null);
     }
 
     /**
-     * Waits for the next event, optionally requesting a join when the event supports it.
+     * Waits for the next event, optionally requesting joined handling when the event supports it.
      * @param event registered event name
-     * @param join whether to request joining a joinable event; cancellable events join regardless
+     * @param requestJoined whether to request joined handling; the request is ignored when the event does not permit joining
      * @return the event and its context; release the context lock promptly if the event is held
-     * @throws InterruptedException
+     * @throws InterruptedException if the waiting thread is interrupted
      * @since 1.9.0
      */
     @DocletReplaceTypeParams("E extends keyof Events")
-    @DocletReplaceParams("event: E, join: boolean")
+    @DocletReplaceParams("event: E, requestJoined: boolean")
     @DocletReplaceReturn("FJsMacros$EventAndContext<Events[E]>")
-    public EventAndContext<?> waitForEvent(String event, boolean join) throws InterruptedException {
-        return waitForEvent(event, join, null, null);
+    public EventAndContext<?> waitForEvent(String event, boolean requestJoined) throws InterruptedException {
+        return waitForEvent(event, requestJoined, null, null);
     }
 
     /**
      * Waits until an event arrives for which the optional filter returns true. The listener is
      * registered before waiting, and any currently bound event lock is released before blocking.
      * There is no timeout; a filter exception ends the wait with a {@link RuntimeException}.
+     * The wait does not request joined handling, so the returned event is read-only.
      *
      * @param event registered event name
      * @param filter accepts an event, or {@code null} to accept the first event
-     * @return the event and its context. This form requests no explicit join, but cancellable
-     * events still join. Release the returned context's lock promptly after processing a held event.
-     * @throws InterruptedException
+     * @return the event and its context; release the context lock promptly after processing a held event
+     * @throws InterruptedException if the waiting thread is interrupted
      * @since 1.5.0
      */
     @DocletReplaceTypeParams("E extends keyof Events")
     @DocletReplaceParams("event: E, filter: MethodWrapper<Events[E], undefined, boolean> | null")
     @DocletReplaceReturn("FJsMacros$EventAndContext<Events[E]>")
     public EventAndContext<?> waitForEvent(String event, @Nullable MethodWrapper<BaseEvent, Object, Boolean, ?> filter) throws InterruptedException {
-        return waitForEvent(event, filter, null);
+        return waitForEvent(event, false, filter, null);
     }
 
 
     /**
      * @param event registered event name
-     * @param join whether to request joining a joinable event; cancellable events join regardless
+     * @param requestJoined whether to request joined handling; the request is ignored when the event does not permit joining
      * @param filter accepts an event, or {@code null} to accept the first event
      * @return the event and its context; release the context lock promptly if the event is held
-     * @throws InterruptedException
+     * @throws InterruptedException if the waiting thread is interrupted
      * @since 1.9.0
      */
     @DocletReplaceTypeParams("E extends keyof Events")
-    @DocletReplaceParams("event: E, join: boolean, filter: MethodWrapper<Events[E], undefined, boolean> | null")
+    @DocletReplaceParams("event: E, requestJoined: boolean, filter: MethodWrapper<Events[E], undefined, boolean> | null")
     @DocletReplaceReturn("FJsMacros$EventAndContext<Events[E]>")
-    public EventAndContext<?> waitForEvent(String event, boolean join, @Nullable MethodWrapper<BaseEvent, Object, Boolean, ?> filter) throws InterruptedException {
-        return waitForEvent(event, join, filter, null);
+    public EventAndContext<?> waitForEvent(String event, boolean requestJoined, @Nullable MethodWrapper<BaseEvent, Object, Boolean, ?> filter) throws InterruptedException {
+        return waitForEvent(event, requestJoined, filter, null);
     }
 
     /**
      * Waits until an event arrives for which the optional filter returns true. Registers its listener
      * before running {@code runBeforeWaiting}, then releases any currently bound event lock before waiting.
+     * The wait does not request joined handling, so the returned event is read-only.
      *
      * @param event registered event name
      * @param filter accepts an event, or {@code null} to accept the first event
      * @param runBeforeWaiting callback run after listener registration and before waiting
-     * @return the event and its context. This form requests no explicit join, but cancellable
-     * events still join. Release the returned context's lock promptly after processing a held event.
-     * @throws InterruptedException
+     * @return the event and its context; release the context lock promptly after processing a held event
+     * @throws InterruptedException if the waiting thread is interrupted
      * @since 1.5.0
      */
     @DocletReplaceTypeParams("E extends keyof Events")
@@ -862,21 +890,22 @@ public class FJsMacros extends PerExecLibrary {
      * Waits until an event passes the optional filter. The listener is registered before
      * {@code runBeforeWaiting} runs; any currently bound event lock is released before waiting.
      * There is no timeout, and filter exceptions are wrapped in a {@link RuntimeException}.
-     * Cancellable events join regardless of {@code join}; other events join only when requested
-     * and joinable. Release the returned context's lock promptly when the event is held.
+     * A joined wait lets the script cancel or change the event; an unjoined wait runs after
+     * dispatch and must treat the event as read-only. The request is ignored when the event does
+     * not permit joining.
      *
      * @param event registered event name
-     * @param join whether to request joining a joinable event; cancellable events join regardless
+     * @param requestJoined whether to request joined handling; the request is ignored when the event does not permit joining
      * @param filter accepts an event, or {@code null} to accept the first event
      * @param runBeforeWaiting callback run after listener registration and before waiting
      * @return the event and its context
-     * @throws InterruptedException
+     * @throws InterruptedException if the waiting thread is interrupted
      * @since 1.9.0
      */
     @DocletReplaceTypeParams("E extends keyof Events")
-    @DocletReplaceParams("event: E, join: boolean, filter: MethodWrapper<Events[E], undefined, boolean> | null, runBeforeWaiting: MethodWrapper<JavaObject, JavaObject, JavaObject> | null")
+    @DocletReplaceParams("event: E, requestJoined: boolean, filter: MethodWrapper<Events[E], undefined, boolean> | null, runBeforeWaiting: MethodWrapper<JavaObject, JavaObject, JavaObject> | null")
     @DocletReplaceReturn("FJsMacros$EventAndContext<Events[E]>")
-    public EventAndContext<?> waitForEvent(String event, boolean join, @Nullable MethodWrapper<BaseEvent, Object, Boolean, ?> filter, @Nullable MethodWrapper<Object, Object, Object, ?> runBeforeWaiting) throws InterruptedException {
+    public EventAndContext<?> waitForEvent(String event, boolean requestJoined, @Nullable MethodWrapper<BaseEvent, Object, Boolean, ?> filter, @Nullable MethodWrapper<Object, Object, Object, ?> runBeforeWaiting) throws InterruptedException {
         // event return values
         final BaseEvent[] ev = {null};
         // create a new event container so we can actually release joined events
@@ -900,8 +929,8 @@ public class FJsMacros extends PerExecLibrary {
                 private int pendingTriggers;
 
                 @Override
-                public boolean joined() {
-                    return join;
+                public boolean joinRequested() {
+                    return requestJoined;
                 }
 
                 @Override
@@ -999,7 +1028,14 @@ public class FJsMacros extends PerExecLibrary {
 
         });
         // returns new context and event value to the user so they can release joined stuff early
-        return new EventAndContext<>(ev[0], ctxCont[0]);
+        BaseEvent eventValue = ev[0];
+        boolean deliveryJoined = eventValue != null && requestJoined && runner.eventRegistry.isJoinable(eventValue);
+        ctxCont[0].setJoined(deliveryJoined);
+        if (eventValue != null) {
+            eventValue.beginDelivery(ctxCont[0], deliveryJoined);
+            ctxCont[0].onRelease(() -> eventValue.endDelivery(ctxCont[0]));
+        }
+        return new EventAndContext<>(eventValue, ctxCont[0]);
     }
 
     /**

@@ -202,7 +202,7 @@ public class FClient extends PerExecLibrary {
                 lock.setLockThread(Thread.currentThread());
                 EventLockWatchdog.startWatchdog(lock, new IEventListener() {
                     @Override
-                    public boolean joined() {
+                    public boolean joinRequested() {
                         return false;
                     }
 

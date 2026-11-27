@@ -1,13 +1,16 @@
 package com.jsmacrosce.jsmacros.core.event.impl;
 
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletCategory;
+import com.jsmacrosce.doclet.DocletIgnore;
 import com.jsmacrosce.doclet.DocletReplaceReturn;
 import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -16,7 +19,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * also reaches eligible {@code ANYTHING} listeners. Set {@code cancelable} before dispatch to let
  * listeners cancel this instance; check {@link #isCanceled()} after dispatch returns. Set
  * {@code joinable} before dispatch to let {@code trigger()} wait for listeners that asked to be
- * awaited.
+ * awaited. Arguments may be changed before dispatch, by the creator between dispatches, or from a
+ * joined listener; a non-joined listener must treat them as read-only.
  *
  * @author Wagyourtail
  * @since 1.2.8
@@ -36,6 +40,17 @@ public class EventCustom extends BaseEvent {
     public boolean joinable;
     /** Whether this event permits cancellation; defaults to {@code false}. */
     public boolean cancelable;
+
+    /** Custom events are script-owned and may be reused, so their creator keeps write access
+     * between dispatches. Non-joined listeners still cannot change arguments.
+     * @return {@code true}
+     */
+    @Override
+    @ApiStatus.Internal
+    @DocletIgnore
+    protected boolean canCreatorModifyAfterDispatch() {
+        return true;
+    }
 
     /**
      * Whether this event permits joining, based on its current {@code joinable} or {@code cancelable} flag.
@@ -269,11 +284,17 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * @return the live map backing this event; changes to it change the event's arguments
+     * Returns the argument map. A joined delivery receives the live map; a non-joined delivery
+     * receives an unmodifiable view so it cannot change the event after dispatch.
+     *
+     * @return the live map for the creator or a joined delivery, an unmodifiable view otherwise
      * @since 1.6.4
      */
     public Map<String, Object> getUnderlyingMap() {
-        return args;
+        if (canModify()) {
+            return args;
+        }
+        return Collections.unmodifiableMap(args);
     }
 
     /**

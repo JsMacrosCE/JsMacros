@@ -6,7 +6,7 @@ import com.jsmacrosce.jsmacros.core.language.EventContainer;
 
 /**
  * Runs a profile macro trigger in response to its registered event. The trigger's enabled and
- * joined settings are read when dispatch occurs.
+ * joined-handling request are read when dispatch occurs.
  */
 public class EventListener extends BaseListener {
 
