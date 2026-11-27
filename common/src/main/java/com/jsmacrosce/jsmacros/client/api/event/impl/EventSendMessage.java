@@ -61,8 +61,7 @@ public class EventSendMessage extends BaseEvent {
      * @since 2.2.0
      */
     public void setMessage(@Nullable String message) {
-        assertCanModify("setMessage");
-        this.message = message;
+        modify("setMessage", () -> this.message = message);
     }
 
     /**

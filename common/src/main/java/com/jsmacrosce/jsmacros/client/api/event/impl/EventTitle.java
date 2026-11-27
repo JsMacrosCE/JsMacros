@@ -76,8 +76,7 @@ public class EventTitle extends BaseEvent {
      * @since 2.2.0
      */
     public void setMessage(@Nullable TextHelper message) {
-        assertCanModify("setMessage");
-        this.message = message;
+        modify("setMessage", () -> this.message = message);
     }
 
     /**

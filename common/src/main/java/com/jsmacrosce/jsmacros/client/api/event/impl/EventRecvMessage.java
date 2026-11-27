@@ -37,8 +37,8 @@ import net.minecraft.client.GuiMessageTag;
 public class EventRecvMessage extends BaseEvent {
     /**
      * Message content to be added to the HUD. Replacing it changes the displayed and logged
-     * content and marks the line with a {@code "Modified"} {@link #messageType}; assigning
-     * {@code null} instead causes the HUD message to be skipped.
+     * content and marks the displayed line as {@code "Modified"}; assigning {@code null} instead
+     * causes the HUD message to be skipped.
      * @deprecated Removal in 3.0.0: Use {@link #getText()} and {@link #setText(TextHelper)} instead.
      */
     @Nullable
@@ -58,17 +58,16 @@ public class EventRecvMessage extends BaseEvent {
     }
 
     /**
-     * Replaces the message content. A replacement changes the displayed and logged content and
-     * marks the line with a {@code "Modified"} {@link #messageType}; {@code null} skips the HUD
-     * message.
+     * Replaces the message content. A replacement changes the displayed and logged content; when
+     * the displayed text differs, the game marks the line as {@code "Modified"}. {@code null}
+     * skips the HUD message.
      *
      * @param text replacement helper, or {@code null} to skip the message
      * @throws IllegalStateException if this delivery is not joined or its event lock was released
      * @since 2.2.0
      */
     public void setText(@Nullable TextHelper text) {
-        assertCanModify("setText");
-        this.text = text;
+        modify("setText", () -> this.text = text);
     }
 
     /**
@@ -80,8 +79,9 @@ public class EventRecvMessage extends BaseEvent {
     public byte[] signature;
 
     /**
-     * Minecraft chat-log tag for the message, or {@code null} when no tag was supplied. JsMacros
-     * sets this to {@code "Modified"} when a listener calls {@code setText(...)}.
+     * Minecraft chat-log tag for the message, or {@code null} when no tag was supplied. This field
+     * is not changed when a listener replaces the text; the game adds its {@code "Modified"} tag
+     * when the displayed text differs.
      * @since 1.8.2
      */
     @Nullable

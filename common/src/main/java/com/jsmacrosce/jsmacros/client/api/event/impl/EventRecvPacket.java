@@ -14,9 +14,10 @@ import com.jsmacrosce.jsmacros.core.event.Event;
 
 /**
  * Fires for an incoming packet before it is handled by the game. A joined listener can cancel or
- * replace the packet with {@code setPacket(...)}; assigning {@code null} drops it. A joined
- * listener runs on the network thread, so keep it short; pass {@code false} to observe
- * asynchronously without changing or cancelling the packet. Bundled packets are reported as a
+ * replace the packet with {@code setPacket(...)}; assigning {@code null} drops it. A joined script
+ * listener runs on a worker thread while the network thread waits until the script releases the
+ * packet, so keep it short; pass {@code false} to observe asynchronously without blocking or
+ * changing the packet. Bundled packets are reported as a
  * single packet, not as separate events for their contents. Use a filterer to restrict which
  * packets invoke a listener. Packet-buffer edits affect handling only
  * after the decoded packet is assigned with {@code setPacket(...)}; check
@@ -72,8 +73,7 @@ public class EventRecvPacket extends BaseEvent {
      * @since 2.2.0
      */
     public void setPacket(@Nullable Packet<?> packet) {
-        assertCanModify("setPacket");
-        this.packet = packet;
+        modify("setPacket", () -> this.packet = packet);
     }
     /**
      * The packet's convenience name, matching names in

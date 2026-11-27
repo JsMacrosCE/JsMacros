@@ -59,8 +59,7 @@ public class EventNameChange extends BaseEvent {
      * @since 2.2.0
      */
     public void setNewName(@Nullable TextHelper newName) {
-        assertCanModify("setNewName");
-        this.newName = newName;
+        modify("setNewName", () -> this.newName = newName);
     }
 
     /**

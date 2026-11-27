@@ -10,8 +10,12 @@ import com.jsmacrosce.jsmacros.core.MethodWrapper;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
+import java.util.AbstractMap;
+import java.util.AbstractSet;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -30,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Event("Custom")
 public class EventCustom extends BaseEvent {
     protected Map<String, Object> args = new ConcurrentHashMap<>();
+    private final Map<String, Object> checkedArgs = new CheckedArgumentMap();
     /** Name used as this custom event's dispatch and subscription-registration key. Changing it does not register the new name; call {@link #registerEvent()} separately. */
     public String eventName;
     /** Whether {@code trigger()} may wait for listeners that requested joined handling; defaults to
@@ -118,8 +123,7 @@ public class EventCustom extends BaseEvent {
      * @since 1.2.8
      */
     public int putInt(String name, int i) {
-        assertCanModify("putInt");
-        args.put(name, i);
+        modify("putInt", () -> args.put(name, i));
         return i;
     }
 
@@ -133,8 +137,7 @@ public class EventCustom extends BaseEvent {
      * @since 1.2.8
      */
     public String putString(String name, String str) {
-        assertCanModify("putString");
-        args.put(name, str);
+        modify("putString", () -> args.put(name, str));
         return str;
     }
 
@@ -148,8 +151,7 @@ public class EventCustom extends BaseEvent {
      * @since 1.2.8
      */
     public double putDouble(String name, double d) {
-        assertCanModify("putDouble");
-        args.put(name, d);
+        modify("putDouble", () -> args.put(name, d));
         return d;
     }
 
@@ -163,8 +165,7 @@ public class EventCustom extends BaseEvent {
      * @since 1.2.8
      */
     public boolean putBoolean(String name, boolean b) {
-        assertCanModify("putBoolean");
-        args.put(name, b);
+        modify("putBoolean", () -> args.put(name, b));
         return b;
     }
 
@@ -178,11 +179,12 @@ public class EventCustom extends BaseEvent {
      * @since 1.2.8
      */
     public Object putObject(String name, Object o) {
-        assertCanModify("putObject");
-        if (runner.extensions.isGuestObject(o)) {
-            throw new AssertionError("Cannot put a guest object into an event");
-        }
-        args.put(name, o);
+        modify("putObject", () -> {
+            if (runner.extensions.isGuestObject(o)) {
+                throw new AssertionError("Cannot put a guest object into an event");
+            }
+            args.put(name, o);
+        });
         return o;
     }
 
@@ -293,17 +295,104 @@ public class EventCustom extends BaseEvent {
     }
 
     /**
-     * Returns the argument map. A joined delivery receives the live map; a non-joined delivery
-     * receives an unmodifiable view so it cannot change the event after dispatch.
+     * Returns a live view of the argument map. The creator and a joined delivery may change it;
+     * a non-joined or already released delivery receives an unmodifiable view. A retained view
+     * stays live for reads, but writes through it (including entries and iterators) are checked
+     * when they happen and throw after the delivery can no longer change the event.
      *
-     * @return the live map for the creator or a joined delivery, an unmodifiable view otherwise
+     * @return a live map view, or an unmodifiable view when this delivery cannot change the event
      * @since 1.6.4
      */
     public Map<String, Object> getUnderlyingMap() {
         if (canModify()) {
-            return args;
+            return checkedArgs;
         }
-        return Collections.unmodifiableMap(args);
+        return Collections.unmodifiableMap(checkedArgs);
+    }
+
+    /** Live map view whose mutations re-check the current delivery instead of trusting the
+     * permission that existed when the view was returned. */
+    private final class CheckedArgumentMap extends AbstractMap<String, Object> {
+        private final Set<Entry<String, Object>> entries = new AbstractSet<>() {
+            @Override
+            public Iterator<Entry<String, Object>> iterator() {
+                Iterator<Entry<String, Object>> delegate = args.entrySet().iterator();
+                return new Iterator<>() {
+                    @Override
+                    public boolean hasNext() {
+                        return delegate.hasNext();
+                    }
+
+                    @Override
+                    public Entry<String, Object> next() {
+                        Entry<String, Object> entry = delegate.next();
+                        return new SimpleEntry<>(entry.getKey(), entry.getValue()) {
+                            @Override
+                            public Object setValue(Object value) {
+                                Object previous = modifyValue("entry.setValue", () -> args.put(entry.getKey(), value));
+                                super.setValue(value);
+                                return previous;
+                            }
+                        };
+                    }
+
+                    @Override
+                    public void remove() {
+                        modify("remove", delegate::remove);
+                    }
+                };
+            }
+
+            @Override
+            public int size() {
+                return args.size();
+            }
+
+            @Override
+            public void clear() {
+                modify("clear", args::clear);
+            }
+        };
+
+        @Override
+        public Object get(Object key) {
+            return args.get(key);
+        }
+
+        @Override
+        public boolean containsKey(Object key) {
+            return args.containsKey(key);
+        }
+
+        @Override
+        public int size() {
+            return args.size();
+        }
+
+        @Override
+        public Object put(String key, Object value) {
+            return modifyValue("put", () -> args.put(key, value));
+        }
+
+        @Override
+        public void putAll(Map<? extends String, ?> map) {
+            modify("putAll", () -> args.putAll(map));
+        }
+
+        @Override
+        public Object remove(Object key) {
+            return modifyValue("remove", () -> args.remove(key));
+        }
+
+        @Override
+        public void clear() {
+            modify("clear", args::clear);
+        }
+
+        @Override
+        public Set<Entry<String, Object>> entrySet() {
+            return entries;
+        }
     }
 
     /**

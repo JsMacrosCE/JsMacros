@@ -85,10 +85,11 @@ abstract class MixinClientPlayerEntity extends AbstractClientPlayer {
                 sign.getBlockPos().getX(), sign.getBlockPos().getY(), sign.getBlockPos().getZ(), front);
         event.trigger();
 
-        // Cleanup sign edit result, null or lines != 4 need to be fixed.
+        // Cleanup sign edit result, null or lines != 4 need to be fixed. Copy a full-size list so a
+        // listener-supplied immutable list is never written to.
         List<String> signText = event.getSignTextForDispatch();
-        List<String> lines = signText;
-        if (lines == null || lines.size() != 4) lines = Arrays.asList("", "", "", "");
+        List<String> lines = signText != null && signText.size() == 4 ? new ArrayList<>(signText) : null;
+        if (lines == null) lines = Arrays.asList("", "", "", "");
         if (signText != null) {
             for (int i = 0; i < Math.min(4, signText.size()); i++) {
                 lines.set(i, signText.get(i));

@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.Iterator;
+import java.util.function.Supplier;
 
 /**
  * Base class for event payloads dispatched to registered listeners. By default, the runtime
@@ -18,9 +19,10 @@ import java.util.Iterator;
  * <p>
  * Dispatch waits for a listener only when that listener requests joined handling and the event
  * permits joining. A joined listener may cancel or change the event while its event lock is held.
- * A listener that did not request joined handling runs after dispatch returns; the game has
- * already read the event by then, so it cannot cancel or change it. Call {@link #canModify()} to
- * check the current delivery before attempting a change.
+ * A listener that did not request joined handling receives a read-only delivery: dispatch does not
+ * wait for it, so the game may already have read the event by the time its callback runs. It cannot
+ * cancel or change the event. Call {@link #canModify()} to check the current delivery before
+ * attempting a change.
  * <pre>
  * const listener = JsMacros.on("SendMessage", true, JavaWrapper.methodToJava(event => {
  *   if (event.getMessage() === "/hello") {
@@ -93,15 +95,26 @@ public class BaseEvent {
      * @since 2.2.0
      */
     public final boolean canModify() {
-        Delivery current = currentDelivery();
-        if (current != null) {
-            return current.joined() && current.container() != null && current.container().isLocked();
+        ArrayDeque<Delivery> stack = delivery.get();
+        if (stack != null) {
+            for (Delivery current : stack) {
+                if (current.joined() && current.container() != null) {
+                    if (current.container().isLocked()) {
+                        return true;
+                    }
+                    // releaseLock() can run on another thread, which cannot reach this thread's
+                    // marker stack. Ignore the released marker rather than let it hide creator
+                    // access; endDelivery() removes it if the owner thread gets the chance.
+                    continue;
+                }
+                return false;
+            }
         }
         if (!hasDispatched) {
             return true;
         }
-        ArrayDeque<Thread> stack = dispatches.get();
-        if (stack != null && !stack.isEmpty()) {
+        ArrayDeque<Thread> dispatchStack = dispatches.get();
+        if (dispatchStack != null && !dispatchStack.isEmpty()) {
             return true;
         }
         return creatorThread == Thread.currentThread() && canCreatorModifyAfterDispatch();
@@ -184,7 +197,7 @@ public class BaseEvent {
         if (stack == null) {
             return;
         }
-        Iterator<Delivery> iterator = stack.descendingIterator();
+        Iterator<Delivery> iterator = stack.iterator();
         while (iterator.hasNext()) {
             if (iterator.next().container() == container) {
                 iterator.remove();
@@ -213,8 +226,63 @@ public class BaseEvent {
         if (!cancellable()) {
             throw new UnsupportedOperationException("Event is not cancellable");
         }
-        assertCanModify("cancel");
-        cancelled = true;
+        modify("cancel", () -> cancelled = true);
+    }
+
+    /**
+     * Runs a checked change while holding the delivery lock, so a concurrent release cannot happen
+     * between the permission check and the write.
+     *
+     * @param action action name used in the diagnostic message
+     * @param write change to apply
+     */
+    @DocletIgnore
+    protected final void modify(String action, Runnable write) {
+        modifyValue(action, () -> {
+            write.run();
+            return null;
+        });
+    }
+
+    /**
+     * Runs a checked change that returns a value while holding the delivery lock.
+     *
+     * @param action action name used in the diagnostic message
+     * @param write change to apply
+     * @param <T> change result type
+     * @return the value returned by {@code write}
+     */
+    @DocletIgnore
+    protected final <T> T modifyValue(String action, Supplier<T> write) {
+        EventContainer<?> container = lockedContainer();
+        if (container == null) {
+            assertCanModify(action);
+            return write.get();
+        }
+        synchronized (container) {
+            assertCanModify(action);
+            return write.get();
+        }
+    }
+
+    /** Returns the innermost joined delivery's container while its lock is held, or {@code null}
+     * when an outer marker is read-only or no delivery is joined and locked. */
+    @Nullable
+    private EventContainer<?> lockedContainer() {
+        ArrayDeque<Delivery> stack = delivery.get();
+        if (stack == null) {
+            return null;
+        }
+        for (Delivery current : stack) {
+            if (current.joined() && current.container() != null) {
+                if (current.container().isLocked()) {
+                    return current.container();
+                }
+                continue;
+            }
+            return null;
+        }
+        return null;
     }
 
     /**
@@ -223,12 +291,12 @@ public class BaseEvent {
      */
     @DocletIgnore
     protected final void assertCanModify(String action) {
+        Delivery current = currentDelivery();
         if (canModify()) {
             return;
         }
-        Delivery current = currentDelivery();
         if (current != null && !current.joined()) {
-            throw new IllegalStateException(action + "() requires joined handling. Enable Joined on the trigger or pass true to JsMacros.on(event, true, callback); a non-joined listener receives the event after dispatch and cannot change it.");
+            throw new IllegalStateException(action + "() requires joined handling. Enable Joined on the trigger or pass true to JsMacros.on(event, true, callback); a non-joined listener receives a read-only event and cannot change it.");
         }
         if (current != null) {
             throw new IllegalStateException(action + "() cannot run after the event lock is released. Cancel or change the event before calling context.releaseLock().");

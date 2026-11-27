@@ -9,6 +9,8 @@ import com.jsmacrosce.jsmacros.client.JsMacrosClient;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.Event;
 
+import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -97,8 +99,7 @@ public class EventSignEdit extends BaseEvent {
      * @since 2.2.0
      */
     public void setShouldCloseScreen(boolean shouldCloseScreen) {
-        assertCanModify("setShouldCloseScreen");
-        this.closeScreen = shouldCloseScreen;
+        modify("setShouldCloseScreen", () -> this.closeScreen = shouldCloseScreen);
     }
 
     /**
@@ -112,18 +113,48 @@ public class EventSignEdit extends BaseEvent {
     }
 
     /**
-     * Returns the sign's text lines. A joined delivery receives the live list; a non-joined
-     * delivery receives an unmodifiable view so it cannot change the sign after dispatch.
+     * Returns the sign's text lines. A joined delivery receives a live, checked list; a non-joined
+     * or already released delivery receives an unmodifiable view. A retained live list can still be
+     * read after release, but writes through it are checked when they happen.
      *
      * @return the current text list, an unmodifiable view, or {@code null} to blank all four lines
      * @since 2.2.0
      */
     @Nullable
     public List<String> getSignText() {
-        if (signText == null || canModify()) {
-            return signText;
+        List<String> current = signText;
+        if (current == null) {
+            return null;
         }
-        return Collections.unmodifiableList(signText);
+        if (!canModify()) {
+            return Collections.unmodifiableList(current);
+        }
+        return new AbstractList<>() {
+            @Override
+            public String get(int index) {
+                return current.get(index);
+            }
+
+            @Override
+            public int size() {
+                return current.size();
+            }
+
+            @Override
+            public String set(int index, String element) {
+                return modifyValue("signText.set", () -> current.set(index, element));
+            }
+
+            @Override
+            public void add(int index, String element) {
+                modify("signText.add", () -> current.add(index, element));
+            }
+
+            @Override
+            public String remove(int index) {
+                return modifyValue("signText.remove", () -> current.remove(index));
+            }
+        };
     }
 
     /** Returns the live text list for the raising game code after dispatch. Internal hook. */
@@ -136,23 +167,23 @@ public class EventSignEdit extends BaseEvent {
 
     /**
      * Replaces the text lines. Only the first four entries are used; missing entries become empty,
-     * and {@code null} blanks all four lines.
+     * and {@code null} blanks all four lines. The list is copied, so later changes to the passed
+     * list do not affect the event.
      *
      * @param signText replacement list, or {@code null} to blank all four lines
      * @throws IllegalStateException if this delivery is not joined or its event lock was released
      * @since 2.2.0
      */
     public void setSignText(@Nullable List<String> signText) {
-        assertCanModify("setSignText");
-        this.signText = signText;
+        modify("setSignText", () -> this.signText = signText == null ? null : new ArrayList<>(signText));
     }
 
     /**
      * Initializes the event with its client core, block position, edited text, and sign side.
      * The supplied coordinates are integer block coordinates stored in a new {@link Pos3D};
-     * {@code front} is stored unchanged. {@code signText} is stored as the supplied list reference,
-     * including {@code null}, without copying or normalizing it.
-     * @param signText the text list to retain, or {@code null}
+     * {@code front} is stored unchanged. {@code signText} is copied without normalizing it, so
+     * later changes to the passed list do not affect this event.
+     * @param signText the text list to copy, or {@code null}
      * @param x the block-coordinate x position
      * @param y the block-coordinate y position
      * @param z the block-coordinate z position
@@ -163,7 +194,7 @@ public class EventSignEdit extends BaseEvent {
         super(JsMacrosClient.clientCore);
         this.pos = new Pos3D(x, y, z);
         this.front = front;
-        this.signText = signText;
+        this.signText = signText == null ? null : new ArrayList<>(signText);
     }
 
     /**

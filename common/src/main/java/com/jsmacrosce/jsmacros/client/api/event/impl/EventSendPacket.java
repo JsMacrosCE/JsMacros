@@ -15,8 +15,9 @@ import com.jsmacrosce.jsmacros.core.library.impl.FReflection;
 /**
  * Fires synchronously at the client's packet-send path, including for non-gameplay packets.
  * A joined listener can cancel sending or replace the packet with {@code setPacket(...)};
- * assigning {@code null} drops it. A joined listener runs on the network thread, so keep it short;
- * pass {@code false} to observe asynchronously without changing or cancelling the packet. A buffer
+ * assigning {@code null} drops it. A joined script listener runs on a worker thread while the
+ * sending thread waits until the script releases the packet, so keep it short; pass {@code false}
+ * to observe asynchronously without blocking or changing the packet. A buffer
  * from {@code getPacketBuffer()} is independent, so apply edits by decoding it and assigning the
  * result to {@code setPacket(...)}. Use a filterer to limit which packets invoke a listener.
  * @author Etheradon
@@ -57,8 +58,7 @@ public class EventSendPacket extends BaseEvent {
      * @since 2.2.0
      */
     public void setPacket(@Nullable Packet<?> packet) {
-        assertCanModify("setPacket");
-        this.packet = packet;
+        modify("setPacket", () -> this.packet = packet);
     }
     /**
      * The convenience name used by {@link PacketByteBufferHelper#getPacketNames()} and
@@ -94,9 +94,10 @@ public class EventSendPacket extends BaseEvent {
      * @since 1.8.4
      */
     public void replacePacket(Object... args) {
-        assertCanModify("replacePacket");
-        //noinspection DataFlowIssue
-        setPacket(FReflection.newInstance0(getPacket().getClass(), args));
+        modify("replacePacket", () -> {
+            //noinspection DataFlowIssue
+            setPacket(FReflection.newInstance0(getPacket().getClass(), args));
+        });
     }
 
     /**
