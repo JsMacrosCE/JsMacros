@@ -264,9 +264,11 @@ returns. A joined cancellable listener must reflect cancellation synchronously;
 a non-joined cancellable listener must reject `cancel()` and field changes and
 run after dispatch. The simple `on` form must not join; pass `true` to request
 joined handling for cancellable built-in events. Non-joinable events must not join
-merely because the listener requests it. Async cases require
-a bounded wait for the marker, not an immediate assumption of completion. Verify
-`once` fires once.
+merely because the listener requests it. Async cases require a bounded wait for
+the marker, not an immediate assumption of completion; yield the script while
+waiting (for example `Time.sleep`) so a same-context callback can run. A blocking
+Java wait holds the script queue and makes the wait time out. Verify `once` fires
+once.
 
 Repeat with an actual cancellable SendPacket/RecvPacket event in a disposable
 connection (cancel only a selected harmless packet, not all packets), including

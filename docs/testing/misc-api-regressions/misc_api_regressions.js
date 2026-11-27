@@ -332,10 +332,18 @@ run('Surface builds copy position independently of builder and siblings', functi
 run('Formatting modifiers have sentinel color; colors retain RGB', function () {
   var Formatting = type('client.api.helper.FormattingHelper');
   var values = Java.type('net.minecraft.ChatFormatting').values();
+  var colors = [
+    0x000000, 0x0000AA, 0x00AA00, 0x00AAAA,
+    0xAA0000, 0xAA00AA, 0xFFAA00, 0xAAAAAA,
+    0x555555, 0x5555FF, 0x55FF55, 0x55FFFF,
+    0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF
+  ];
   for (var i = 0; i < values.length; i++) {
     var raw = values[i];
     var helper = new Formatting(raw);
-    assertEq(helper.getColorValue(), raw.isColor() ? Number(raw.getColor()) : -1, String(raw));
+    assertEq(helper.isColor(), i < 16, String(raw) + ' color flag');
+    assertEq(helper.isModifier(), i >= 16 && i <= 20, String(raw) + ' modifier flag');
+    assertEq(helper.getColorValue(), i < 16 ? colors[i] : -1, String(raw));
     helper.toString();
   }
 });
@@ -570,8 +578,13 @@ run('EventContainer null-thread diagnostics and repeated release', function () {
         }
       }));
       custom.trigger();
-      assertEq(completed.tryAcquire(2, Java.type('java.util.concurrent.TimeUnit').SECONDS), true,
-          'non-joined callback completed');
+      var finished = false;
+      var deadline = Date.now() + 2000;
+      while (!finished && Date.now() < deadline) {
+        finished = completed.tryAcquire();
+        if (!finished) Time.sleep(50);
+      }
+      assertEq(finished, true, 'non-joined callback completed');
       assertEq(calls, 1, 'one callback');
       assertEq(rejected, true, 'non-joined cancellation is rejected');
       assertEq(custom.isCanceled(), false, 'non-joined cancellation does not reach the event');
