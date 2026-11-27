@@ -260,19 +260,23 @@ as appropriate. Test `on` and `once`, named and `ANYTHING` listeners, all four
 joinable/cancellable combinations, and joined versus non-joined listeners.
 Write a callback-complete marker after a short sleep (well below watchdog time).
 When joining is required, the producer must see completion before `trigger()`
-returns; cancellable events must reflect cancellation synchronously even when
-the listener wasn't explicitly joined. Non-joinable events must not join merely
-because the listener requests it. Async cases require a bounded wait for the
-marker, not an immediate assumption of completion. Verify `once` fires once.
+returns. A joined cancellable listener must reflect cancellation synchronously;
+a non-joined cancellable listener must reject `cancel()` and field changes and
+run after dispatch. The simple `on` form must not join; pass `true` to request
+joined handling for cancellable built-in events. Non-joinable events must not join
+merely because the listener requests it. Async cases require
+a bounded wait for the marker, not an immediate assumption of completion. Verify
+`once` fires once.
 
 Repeat with an actual cancellable SendPacket/RecvPacket event in a disposable
 connection (cancel only a selected harmless packet, not all packets), including
 `ANYTHING`. Verify cancelled packets aren't dispatched and callbacks complete
-before network continuation. Keep callbacks short. Test same-context non-joined
-cancellable listeners inline (also automated), filter rejection, exceptions
-(listener removed/logged, locks released), and a same-context **explicitly
-joined** listener: it must retain the IllegalThreadStateException guard rather
-than deadlock. Remove all listeners/services and custom registry names.
+before network continuation. Keep callbacks short. Test a same-context non-joined
+cancellable listener for read-only rejection (`cancel()` and field changes throw)
+with a bounded wait, filter rejection, exceptions (listener removed/logged, locks
+released), and a same-context **explicitly joined** listener: it must retain the
+IllegalThreadStateException guard rather than deadlock. Remove all
+listeners/services and custom registry names.
 
 ## L2 — Watchdog quarantine, closure and non-main producers
 
@@ -352,7 +356,7 @@ packet for each; compare metadata IDs with the actual ProtocolInfo packet list,
 not only `id >= 0`. Test shared packets' explicit phase overloads and current
 connection preference, unique packets off-world, wrong/unknown phase, unknown
 class/name, bundles without codecs, and unregistered packets. Verify both event
-support queries after replacing/nulling `event.packet`.
+support queries after replacing/nulling the packet with `setPacket`.
 
 Repeat registry-backed reset with a **nonempty** item stack carrying registry
 data and with a caller-supplied RegistryFriendlyByteBuf containing known bytes.

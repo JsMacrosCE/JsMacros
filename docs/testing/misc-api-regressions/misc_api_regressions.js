@@ -163,7 +163,7 @@ run('Unsupported packet buffers can be checked before construction', function ()
       threw = String(e).indexOf('IllegalArgumentException') !== -1;
     }
     assertEq(threw, true, 'documented unsupported-packet exception');
-    event.packet = null;
+    event.setPacket(null);
     assertEq(event.canGetPacketBuffer(), false, 'event null packet');
   });
 });
@@ -548,7 +548,40 @@ run('EventContainer null-thread diagnostics and repeated release', function () {
 });
 
 ['on', 'once'].forEach(function (mode) {
-  run('Cancellable custom event runs same-context ' + mode + ' listener inline', function () {
+  run('Same-context non-joined cancellable ' + mode + ' listener is read-only', function () {
+    var core = type('client.JsMacrosClient').clientCore;
+    var name = 'MiscApiRegression_' + Java.type('java.util.UUID').randomUUID();
+    var custom = JsMacros.createCustomEvent(name);
+    custom.cancelable = true;
+    custom.registerEvent();
+    var completed = new (Java.type('java.util.concurrent.Semaphore'))(0);
+    var rejected = false;
+    var calls = 0;
+    var listener = null;
+    try {
+      listener = JsMacros[mode](name, false, JavaWrapper.methodToJava(function (event) {
+        calls++;
+        try {
+          event.cancel();
+        } catch (e) {
+          rejected = true;
+        } finally {
+          completed.release();
+        }
+      }));
+      custom.trigger();
+      assertEq(completed.tryAcquire(2, Java.type('java.util.concurrent.TimeUnit').SECONDS), true,
+          'non-joined callback completed');
+      assertEq(calls, 1, 'one callback');
+      assertEq(rejected, true, 'non-joined cancellation is rejected');
+      assertEq(custom.isCanceled(), false, 'non-joined cancellation does not reach the event');
+    } finally {
+      if (listener != null) JsMacros.off(listener);
+      core.eventRegistry.events.remove(name);
+    }
+  });
+
+  run('Same-context joined cancellable ' + mode + ' listener keeps the deadlock guard', function () {
     var core = type('client.JsMacrosClient').clientCore;
     var name = 'MiscApiRegression_' + Java.type('java.util.UUID').randomUUID();
     var custom = JsMacros.createCustomEvent(name);
@@ -557,15 +590,11 @@ run('EventContainer null-thread diagnostics and repeated release', function () {
     var calls = 0;
     var listener = null;
     try {
-      listener = JsMacros[mode](name, false, JavaWrapper.methodToJava(function (event) {
+      listener = JsMacros[mode](name, true, JavaWrapper.methodToJava(function (event) {
         calls++;
-        event.cancel();
       }));
-      custom.trigger();
-      assertEq(custom.isCanceled(), true, 'cancellation before dispatch returns');
-      assertEq(calls, 1, 'one callback');
-      custom.trigger();
-      assertEq(calls, mode === 'once' ? 1 : 2, 'listener lifetime');
+      assertThrows(function () { custom.trigger(); }, 'Cannot join');
+      assertEq(calls, 0, 'same-context joined listener never runs');
     } finally {
       if (listener != null) JsMacros.off(listener);
       core.eventRegistry.events.remove(name);

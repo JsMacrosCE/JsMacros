@@ -56,7 +56,7 @@ function waitForDecision() {
   while (true) {
     ev = JsMacros.waitForEvent('SendMessage');
     if (ev == null || ev.event == null) continue;
-    message = ev.event.message;
+    message = ev.event.getMessage();
     if (message == null) continue;
     trimmed = String(message).trim();
 
