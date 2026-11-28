@@ -105,6 +105,10 @@ Contract notes for event tests:
   automatic count is what the results summary reports.
 - Avoid cancelling events unless the test is explicitly about cancellation, and
   restore any listener or registrable in `teardown`.
+- A listener that calls `event.cancel()` or a checked setter must request
+  joined handling with `JsMacros.on(event, true, callback)`. The simple
+  `JsMacros.on(event, callback)` form receives a read-only delivery and the
+  mutation throws `IllegalStateException`.
 
 ## Known limits
 

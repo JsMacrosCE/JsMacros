@@ -1953,7 +1953,7 @@ const TESTS = [
         prepare(state) {
             state.seen = null;
             state.cancelled = false;
-            state.listener = JsMacros.on("DropSlot", wrap((event, ctx) => {
+            state.listener = JsMacros.on("DropSlot", true, wrap((event, ctx) => {
                 if (state.seen != null || event.slot < 36 || event.slot > 44) return;
                 const inventory = event.getInventory();
                 state.seen = {

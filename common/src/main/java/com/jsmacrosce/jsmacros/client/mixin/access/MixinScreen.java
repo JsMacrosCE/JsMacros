@@ -1112,6 +1112,11 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
     private static void onHandleTextClick(ClickEvent clickEvent, Minecraft minecraft, Screen screen, CallbackInfo ci) {
         handleCustomClickEvent(clickEvent, ci);
     }
+
+    @Inject(method = "defaultHandleClickEvent", at = @At("HEAD"), cancellable = true)
+    private static void onHandleTextClickWithoutPlayer(ClickEvent clickEvent, Minecraft minecraft, Screen screen, CallbackInfo ci) {
+        handleCustomClickEvent(clickEvent, ci);
+    }
     *///? } else if >1.21.5 {
     @Inject(method = "handleComponentClicked", at = @At("HEAD"), cancellable = true)
     private void onHandleTextClick(Style style, CallbackInfoReturnable<Boolean> cir) {
@@ -1133,6 +1138,11 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
         }
     }
 
+    /**
+     * Runs a JsMacros custom click action. On 1.21.11+ both the game click handler and its
+     * player-less fallback are hooked, because the game handler requires a player and the
+     * fallback would otherwise only log that it does not know the click event.
+     */
     // For 1.21.11+
     private static void handleCustomClickEvent(ClickEvent clickEvent, CallbackInfo ci) {
         if (clickEvent instanceof CustomClickEvent) {
