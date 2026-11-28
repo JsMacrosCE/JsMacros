@@ -179,6 +179,23 @@ public abstract class BaseEventRegistry {
     }
 
     /**
+     * Returns an immutable snapshot of every event name and its listeners. Walk this instead of
+     * {@code getListeners()} when touching more than one name: dispatch and registration can add
+     * names to the live map while that map is being iterated.
+     *
+     * @return every event name mapped to an immutable snapshot of its listeners, in the order the
+     * names were first used.
+     * @since 2.2.0
+     */
+    public synchronized Map<String, Set<IEventListener>> getListenersSnapshot() {
+        Map<String, Set<IEventListener>> snapshot = new LinkedHashMap<>();
+        for (Map.Entry<String, Set<IEventListener>> entry : listeners.entrySet()) {
+            snapshot.put(entry.getKey(), ImmutableSet.copyOf(entry.getValue()));
+        }
+        return Collections.unmodifiableMap(snapshot);
+    }
+
+    /**
      * Returns the macro triggers represented by registered {@link BaseListener} listeners, not
      * runtime script listeners.
      *

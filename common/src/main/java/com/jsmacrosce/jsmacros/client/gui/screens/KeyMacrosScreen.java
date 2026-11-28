@@ -2,7 +2,6 @@ package com.jsmacrosce.jsmacros.client.gui.screens;
 
 import com.jsmacrosce.jsmacros.client.util.InputCompat;
 
-import com.google.common.collect.ImmutableList;
 import com.jsmacrosce.doclet.DocletIgnore;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.screens.Screen;
@@ -36,14 +35,13 @@ public class KeyMacrosScreen extends MacroScreen {
         super.init();
         keyScreen.setColor(0x4FFFFFFF);
 
-        Set<IEventListener> listeners = JsMacrosClient.clientCore.eventRegistry.getListeners().get(EventKey.class.getAnnotation(Event.class).value());
+        Set<IEventListener> listeners = JsMacrosClient.clientCore.eventRegistry.getListenersSnapshot()
+                .getOrDefault(EventKey.class.getAnnotation(Event.class).value(), Set.of());
         List<ScriptTrigger> macros = new ArrayList<>();
 
-        if (listeners != null) {
-            for (IEventListener event : ImmutableList.copyOf(listeners)) {
-                if (event instanceof BaseListener && ((BaseListener) event).getRawTrigger().triggerType != ScriptTrigger.TriggerType.EVENT) {
-                    macros.add(((BaseListener) event).getRawTrigger());
-                }
+        for (IEventListener event : listeners) {
+            if (event instanceof BaseListener && ((BaseListener) event).getRawTrigger().triggerType != ScriptTrigger.TriggerType.EVENT) {
+                macros.add(((BaseListener) event).getRawTrigger());
             }
         }
 

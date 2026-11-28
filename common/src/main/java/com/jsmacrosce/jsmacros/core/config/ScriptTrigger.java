@@ -24,8 +24,11 @@ public class ScriptTrigger {
     public String event;
     /** Configured script path. */
     public Path scriptFile;
-    /** Whether listener execution is allowed; changing this does not stop an in-flight run. */
-    public boolean enabled;
+    /**
+     * Whether listener execution is allowed. A change is visible to dispatch on other threads and
+     * does not stop an in-flight run.
+     */
+    public volatile boolean enabled;
     /**
      * Whether joined handling is requested where the event supports it.
      * @since 2.2.0
@@ -150,6 +153,18 @@ public class ScriptTrigger {
      */
     public boolean getEnabled() {
         return enabled;
+    }
+
+    /**
+     * Enables or disables this trigger for future dispatches. The trigger stays registered, so the
+     * macro editor can enable it again, and the change is written to the profile on the next save.
+     * A run that is already in progress is not stopped.
+     *
+     * @param enabled whether listener execution is allowed
+     * @since 2.2.0
+     */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
 }

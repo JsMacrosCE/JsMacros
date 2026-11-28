@@ -743,41 +743,45 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Will also disable all listeners for the given event, including JsMacros own event listeners.
+     * Stops every listener for the given event: script-created listeners are removed, profile
+     * macros are disabled on their stored trigger, and JsMacros' own listeners receive
+     * {@code off()}.
      *
-     * @param event the event to remove all listeners from
+     * @param event the event whose listeners to stop
      * @since 1.8.4
      */
     @DocletReplaceParams("event: keyof Events")
     public void disableAllListeners(String event) {
-        for (IEventListener listener : ImmutableList.copyOf(runner.eventRegistry.getListeners(event))) {
+        for (IEventListener listener : runner.eventRegistry.getListeners(event)) {
             listener.off();
         }
     }
 
     /**
-     * Will also disable all listeners, including JsMacros own event listeners.
+     * Stops every listener, for every event. See {@code disableAllListeners(String)} for what
+     * happens to each kind.
      *
      * @since 1.8.4
      */
     public void disableAllListeners() {
-        for (Map.Entry<String, Set<IEventListener>> entry : runner.eventRegistry.getListeners().entrySet()) {
-            for (IEventListener listener : ImmutableList.copyOf(entry.getValue())) {
+        for (Set<IEventListener> listeners : runner.eventRegistry.getListenersSnapshot().values()) {
+            for (IEventListener listener : listeners) {
                 listener.off();
             }
         }
     }
 
     /**
-     * Removes script-created listeners for the given event, leaving built-in listeners untouched.
-     * Use {@link #disableAllListeners(String)} to remove both kinds.
+     * Removes script-created listeners for the given event, leaving profile macros and JsMacros'
+     * own listeners untouched. Use {@code disableAllListeners(String)} to stop those too, or
+     * {@code JsMacros.macroTriggers()} to edit the macro triggers directly.
      *
-     * @param event the event to remove all listeners from
+     * @param event the event whose script listeners to remove
      * @since 1.8.4
      */
     @DocletReplaceParams("event: keyof Events")
     public void disableScriptListeners(String event) {
-        for (IEventListener listener : ImmutableList.copyOf(runner.eventRegistry.getListeners(event))) {
+        for (IEventListener listener : runner.eventRegistry.getListeners(event)) {
             if (listener instanceof ScriptEventListener) {
                 listener.off();
             }
@@ -785,13 +789,14 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
-     * Removes script-created listeners for all events, leaving built-in listeners untouched.
+     * Removes script-created listeners for all events, leaving profile macros and JsMacros' own
+     * listeners untouched.
      *
      * @since 1.8.4
      */
     public void disableScriptListeners() {
-        for (Map.Entry<String, Set<IEventListener>> entry : runner.eventRegistry.getListeners().entrySet()) {
-            for (IEventListener listener : ImmutableList.copyOf(entry.getValue())) {
+        for (Set<IEventListener> listeners : runner.eventRegistry.getListenersSnapshot().values()) {
+            for (IEventListener listener : listeners) {
                 if (listener instanceof ScriptEventListener) {
                     listener.off();
                 }
@@ -1039,8 +1044,11 @@ public class FJsMacros extends PerExecLibrary {
     }
 
     /**
+     * Returns the listeners registered for an event, excluding profile macros. Use
+     * {@code JsMacros.macroTriggers()} to read the macro editor's triggers, including disabled ones.
+     *
      * @param event event name
-     * @return listeners for this event other than built-in {@code BaseListener} instances
+     * @return listeners for this event other than profile macros
      * @since 1.2.3
      */
     @DocletReplaceParams("event: keyof Events")
@@ -1052,6 +1060,32 @@ public class FJsMacros extends PerExecLibrary {
             }
         }
         return listeners;
+    }
+
+    /**
+     * Returns the profile macros and key macros configured in the macro editor, including disabled
+     * ones. These are the triggers that run the scripts listed there; listeners created by
+     * {@code JsMacros.on(...)} and related methods are not included.
+     * <p>
+     * Each item is the live trigger used for dispatch. Changing it, such as with
+     * {@code ScriptTrigger.setEnabled(false)}, takes effect on the next occurrence and is written
+     * to the profile on the next save. A run that is already in progress is not stopped.
+     * <pre>
+     * // Turn off every macro registered for Tick without touching script listeners.
+     * const macros = JsMacros.macroTriggers();
+     * for (let i = 0; i < macros.size(); i++) {
+     *   const trigger = macros.get(i);
+     *   if (trigger.getEvent() === "Tick") {
+     *     trigger.setEnabled(false);
+     *   }
+     * }
+     * </pre>
+     *
+     * @return the currently registered macro triggers
+     * @since 2.2.0
+     */
+    public List<ScriptTrigger> macroTriggers() {
+        return runner.eventRegistry.getScriptTriggers();
     }
 
     /**

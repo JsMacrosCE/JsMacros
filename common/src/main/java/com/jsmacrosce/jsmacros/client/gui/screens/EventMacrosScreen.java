@@ -12,6 +12,7 @@ import com.jsmacrosce.jsmacros.core.event.IEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @DocletIgnore
 public class EventMacrosScreen extends MacroScreen {
@@ -37,11 +38,10 @@ public class EventMacrosScreen extends MacroScreen {
                 }
             }
         }
-        if (JsMacrosClient.clientCore.eventRegistry.getListeners().containsKey("")) {
-            for (IEventListener macro : JsMacrosClient.clientCore.eventRegistry.getListeners().get("")) {
-                if (macro instanceof BaseListener) {
-                    macros.add(((BaseListener) macro).getRawTrigger());
-                }
+        for (IEventListener macro : JsMacrosClient.clientCore.eventRegistry
+                .getListenersSnapshot().getOrDefault("", Set.of())) {
+            if (macro instanceof BaseListener) {
+                macros.add(((BaseListener) macro).getRawTrigger());
             }
         }
 
