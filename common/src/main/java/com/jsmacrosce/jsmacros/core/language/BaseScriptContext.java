@@ -1,7 +1,7 @@
 package com.jsmacrosce.jsmacros.core.language;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import com.jsmacrosce.doclet.DocletIgnore;
@@ -9,6 +9,7 @@ import com.jsmacrosce.jsmacros.core.Core;
 import com.jsmacrosce.jsmacros.core.event.BaseEvent;
 import com.jsmacrosce.jsmacros.core.event.IEventListener;
 import com.jsmacrosce.jsmacros.core.service.ServiceManager;
+import com.jsmacrosce.jsmacros.core.threads.JsMacrosThreadPool;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -19,15 +20,17 @@ import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Holds a language runtime context and tracks threads and event containers associated with its execution.
- * Closing releases bound event locks, interrupts bound threads, and removes this context from its runner.
+ * Closing releases bound event locks, interrupts the threads the script owns, and removes this context
+ * from its runner. Engine threads that only call into the script for a callback are excluded from that
+ * interrupt wave, because interrupting a game or network thread mid-work corrupts state outside the script.
  * @param <T> language-specific runtime context type
  * @since 1.4.0
  */
 public abstract class BaseScriptContext<T> {
     /** The {@code Core} that owns this context; the reference is fixed, but the runner itself is not immutable. */
     public final Core<?, ?> runner;
-    protected boolean preventLog = false;
-    protected boolean closed = false;
+    protected volatile boolean preventLog = false;
+    protected volatile boolean closed = false;
     private volatile boolean scriptStopRequested = false;
     /** Construction timestamp in milliseconds since the Unix epoch, not the language-execution start time. */
     public final long startTime = System.currentTimeMillis();
@@ -41,10 +44,19 @@ public abstract class BaseScriptContext<T> {
     protected final File mainFile;
 
     /** The language-specific runtime context, or {@code null} before it is set. */
-    protected T context = null;
+    protected volatile T context = null;
     protected Thread mainThread = null;
 
     protected final Set<Thread> threads = Collections.newSetFromMap(new ConcurrentHashMap<>());
+
+    /**
+     * Threads bound only so a callback can re-enter this context. Engine threads, such as the
+     * Minecraft render thread running a screen widget callback, must not be interrupted when the
+     * context closes: interrupting the render thread mid-frame corrupts GL state, and interrupting
+     * a network thread mid-packet breaks the connection. These entries are excluded from the
+     * interrupt wave in {@link #closeContext()}.
+     */
+    protected final Set<Thread> borrowedThreads = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     protected final Map<Thread, EventContainer<? extends BaseScriptContext<T>>> events = new ConcurrentHashMap<>();
 
@@ -104,17 +116,20 @@ public abstract class BaseScriptContext<T> {
     }
 
     /** Releases the event lock for the thread's bound event container, if present.
+     * The event is located under the context monitor but released after it is dropped, so this
+     * path and {@link #closeContext()} acquire the event and context monitors in the same order.
      * @param thread thread whose event lock is released
      * @return {@code true} if an event container was present; otherwise {@code false}
      * @since 1.6.0
      */
-    public synchronized boolean releaseBoundEventIfPresent(Thread thread) {
-        EventContainer<? extends BaseScriptContext<T>> event = events.get(thread);
-        if (event != null) {
-            event.releaseLock();
-            return true;
+    public boolean releaseBoundEventIfPresent(Thread thread) {
+        EventContainer<? extends BaseScriptContext<T>> event;
+        synchronized (this) {
+            event = events.get(thread);
         }
-        return false;
+        if (event == null) return false;
+        event.releaseLock();
+        return true;
     }
 
     /** Returns the language-specific runtime context.
@@ -132,7 +147,8 @@ public abstract class BaseScriptContext<T> {
         return mainThread;
     }
 
-    /** Adds a thread to this context's bound-thread set.
+    /** Adds a thread to this context's bound-thread set as a thread the script owns. Owned threads
+     * are interrupted when the context closes.
      * @param t thread to bind; {@code null} and binding after closure are rejected
      * @return {@code true} if the thread was not already bound
      * @since 1.6.0
@@ -147,13 +163,48 @@ public abstract class BaseScriptContext<T> {
         return threads.add(t);
     }
 
+    /**
+     * Binds the calling thread so it can dispatch a script callback.
+     * <p>
+     * A thread that only calls into the script for a single callback — for example the Minecraft
+     * render thread running a screen button handler — does not belong to the script. It is
+     * recorded as borrowed and left out of {@link #closeContext()}'s interrupt wave, because
+     * interrupting it mid-frame or mid-packet corrupts state outside the script. Thread-pool
+     * workers are still bound as owned, since a callback running on one can be interrupted
+     * safely.
+     *
+     * @return {@code true} if the thread was not already bound
+     * @since 2.2.0
+     */
+    @ApiStatus.Internal
+    @DocletIgnore
+    public synchronized boolean bindCallerThread() {
+        if (closed) {
+            throw new ScriptContextClosedException("Cannot bind thread to closed context");
+        }
+        Thread t = Thread.currentThread();
+        boolean newlyBound = threads.add(t);
+        // Mark only threads this call newly bound. A non-pool thread that a language explicitly
+        // bound as owned keeps its interruptible status when it later dispatches a callback.
+        if (newlyBound && !(t instanceof JsMacrosThreadPool.PoolThread)) {
+            borrowedThreads.add(t);
+        }
+        return newlyBound;
+    }
+
     /** Removes a bound thread and releases its associated event lock, if present.
+     * The event is located under the context monitor but released after it is dropped, so this
+     * path and {@link #closeContext()} acquire the event and context monitors in the same order.
      * @param t bound thread; throws {@link ScriptAssertionError} if it is not bound
      * @since 1.6.0
      */
-    public synchronized void unbindThread(Thread t) {
-        if (!threads.remove(t)) throw new ScriptAssertionError("Cannot unbind thread that is not bound");
-        EventContainer<?> container = events.get(t);
+    public void unbindThread(Thread t) {
+        EventContainer<?> container;
+        synchronized (this) {
+            if (!threads.remove(t)) throw new ScriptAssertionError("Cannot unbind thread that is not bound");
+            borrowedThreads.remove(t);
+            container = events.get(t);
+        }
         if (container != null) {
             container.releaseLock();
         }
@@ -188,23 +239,40 @@ public abstract class BaseScriptContext<T> {
     }
 
     /** Sets the language runtime context once; a second assignment is rejected.
+     * If this context closed while the runtime was being built, the runtime is closed instead of
+     * published, so it cannot run after a stop.
      * @param context runtime context to store
+     * @throws ScriptContextClosedException if this context closed before the runtime was published
      */
     public void setContext(T context) {
-        if (this.context != null) {
-            throw new ScriptAssertionError("Context already set");
+        boolean rejected;
+        synchronized (this) {
+            if (this.context != null) {
+                throw new ScriptAssertionError("Context already set");
+            }
+            rejected = closed;
+            if (!rejected) {
+                this.context = context;
+            }
         }
-        this.context = context;
+        if (rejected) {
+            closeRuntime(context);
+            throw new ScriptContextClosedException("Cannot publish a runtime to a closed context");
+        }
     }
 
     /** Returns whether the context is closed; also closes it if its weakly held sync object was cleared.
+     * Closing is done outside this context's monitor so a language runtime close can wait for
+     * threads that need to unbind themselves.
      * @return {@code true} if closed
      */
-    public synchronized boolean isContextClosed() {
-        if (syncObject.get() == null) {
-            if (!closed) {
-                closeContext();
-            }
+    public boolean isContextClosed() {
+        boolean needsClose;
+        synchronized (this) {
+            needsClose = !closed && syncObject.get() == null;
+        }
+        if (needsClose) {
+            closeContext();
         }
         return closed;
     }
@@ -268,20 +336,68 @@ public abstract class BaseScriptContext<T> {
     }
 
     /** Closes this context and sets whether the execution wrapper suppresses its cancellation log.
+     * A call made after the context already closed still records the flag but performs no teardown.
      * @param preventLog whether to suppress the cancellation log
      */
-    public synchronized void closeContext(boolean preventLog) {
+    public final void closeContext(boolean preventLog) {
         this.preventLog = preventLog;
         closeContext();
     }
 
-    /** Closes this context, releases bound event locks, interrupts bound threads, and unregisters it from the runner. */
-    public synchronized void closeContext() {
-        closed = true;
-        // fix concurrency issue the "fun" way
-        ImmutableList.copyOf(getBoundEvents().values()).forEach(EventContainer::releaseLock);
-        ImmutableSet.copyOf(getBoundThreads()).forEach(Thread::interrupt);
-        runner.getContexts().remove(this);
+    /**
+     * Closes this context once: releases bound event locks, interrupts the threads the script
+     * owns, gives the language a chance to close its runtime, and unregisters the context from
+     * the runner. Later calls do nothing.
+     * <p>
+     * Threads bound only for callback dispatch through {@link #bindCallerThread()} are not
+     * interrupted here; a language runtime may still apply its own cancellation while
+     * {@link #doSubclassClose()} runs. The context monitor is released before event locks are
+     * released and before the language runtime closes, because an interrupted thread may need to
+     * unbind itself and closing a runtime may wait for those threads. Owned threads are selected
+     * and interrupted under the monitor so an unbind cannot finish between those two steps.
+     */
+    public final void closeContext() {
+        final ImmutableList<EventContainer<? extends BaseScriptContext<T>>> boundEvents;
+
+        synchronized (this) {
+            if (closed) return;
+            closed = true;
+            // fix concurrency issue the "fun" way
+            boundEvents = ImmutableList.copyOf(getBoundEvents().values());
+        }
+
+        boundEvents.forEach(EventContainer::releaseLock);
+        synchronized (this) {
+            // Select and interrupt together so a callback cannot unbind between the two steps and
+            // receive the interrupt after the thread has left this context.
+            Sets.difference(getBoundThreads(), borrowedThreads).forEach(Thread::interrupt);
+        }
+        try {
+            doSubclassClose();
+        } finally {
+            // Removal must happen even if the language runtime fails to close, or the runner would
+            // keep a dead context in its open-context list.
+            runner.getContexts().remove(this);
+        }
+    }
+
+    /**
+     * Closes language-specific runtime resources after base cleanup has released locks and
+     * interrupted owned threads. Called at most once, outside the context monitor, so an
+     * implementation may block while threads unwind from the interrupt. The default
+     * implementation closes the published runtime through {@link #closeRuntime(Object)}.
+     */
+    protected void doSubclassClose() {
+        closeRuntime(getContext());
+    }
+
+    /**
+     * Closes a runtime that will not be used, either because the context closed while the runtime
+     * was being built or because the runtime was never published. Language contexts that own a
+     * runtime should override this; the default implementation does nothing.
+     * @param runtime runtime to close; may be {@code null}
+     */
+    protected void closeRuntime(T runtime) {
     }
 
     /** Returns the script file supplied when this context was created, if any.
