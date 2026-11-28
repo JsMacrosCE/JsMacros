@@ -163,7 +163,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
                 boolean bound = false;
                 boolean queued = false;
                 try {
-                    ctx.bindThread(Thread.currentThread());
+                    ctx.bindCallerThread();
                     bound = true;
                     if (!ctx.isMultiThreaded()) {
                         WrappedThread wt = new WrappedThread(Thread.currentThread(), priority);
@@ -214,7 +214,7 @@ public class FWrapper extends PerExecLanguageLibrary<Context, GraalScriptContext
             boolean bound = false;
             boolean queued = false;
             try {
-                ctx.bindThread(Thread.currentThread());
+                ctx.bindCallerThread();
                 bound = true;
                 if (!ctx.isMultiThreaded()) {
                     WrappedThread wt = new WrappedThread(Thread.currentThread(), priority);

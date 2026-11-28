@@ -136,6 +136,17 @@ tasks.named("check") {
     dependsOn(testEventDelivery)
 }
 
+val testContextClose = tasks.register<JavaExec>("testContextClose") {
+    group = "verification"
+    description = "Checks context close interrupts owned threads only and runs language teardown once"
+    dependsOn(tasks.named("testClasses"))
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("com.jsmacrosce.jsmacros.core.language.ContextCloseTest")
+}
+tasks.named("check") {
+    dependsOn(testContextClose)
+}
+
 val testBuiltinEventJoinability = tasks.register<JavaExec>("testBuiltinEventJoinability") {
     group = "verification"
     description = "Checks built-in event joinability still matches the Events guide"

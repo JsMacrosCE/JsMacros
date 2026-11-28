@@ -28,11 +28,10 @@ public class GraalScriptContext extends BaseScriptContext<Context> {
         super(runner, event, file);
     }
 
-    /** Releases bound event locks, interrupts bound threads and unregisters this context through base cleanup,
-     * then calls {@code close(true)} on the assigned Graal runtime if present. */
+    /** Closes the assigned Graal runtime, cancelling execution still in progress. The base context
+     * calls this at most once, after releasing event locks and interrupting script-owned threads. */
     @Override
-    public void closeContext() {
-        super.closeContext();
+    protected void doSubclassClose() {
         Context ctx = getContext();
         if (ctx != null) {
             ctx.close(true);
