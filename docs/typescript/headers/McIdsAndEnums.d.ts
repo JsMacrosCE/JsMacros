@@ -35,6 +35,7 @@ type FeatureId = string
 type PaintingId = string
 type ParticleId = string
 type StatTypeId = string
+type CustomStatId = string
 type RecipeTypeId = string
 type SensorTypeId = string
 type PotionTypeId = string

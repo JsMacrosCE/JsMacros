@@ -623,6 +623,19 @@ public class RegistryHelper {
     }
 
     /**
+     * Returns identifiers for the built-in custom statistics, such as
+     * {@code minecraft:fly_one_cm}. The list comes from the local built-in registry, independent of
+     * a server connection and without server data-pack additions.
+     *
+     * @return the built-in custom statistic identifiers.
+     * @since 2.2.0
+     */
+    @DocletReplaceReturn("JavaList<CustomStatId>")
+    public List<String> getCustomStatIds() {
+        return BuiltInRegistries.CUSTOM_STAT.keySet().stream().map(ResourceLocation::toString).collect(Collectors.toList());
+    }
+
+    /**
      * Returns identifiers for built-in entity attributes, such as health and movement speed. The
      * list comes from the local built-in registry, independent of a server connection and without
      * server data-pack additions.

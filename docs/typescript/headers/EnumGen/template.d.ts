@@ -75,6 +75,8 @@ type PaintingId = string
 type ParticleId = string
 //@RegistryHelper getStatTypeIds
 type StatTypeId = string
+//@RegistryHelper getCustomStatIds
+type CustomStatId = string
 //@RegistryHelper getRecipeTypeIds
 type RecipeTypeId = string
 //@RegistryHelper getSensorTypeIds

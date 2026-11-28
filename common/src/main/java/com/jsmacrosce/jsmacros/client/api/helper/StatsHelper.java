@@ -18,6 +18,7 @@ import com.jsmacrosce.doclet.DocletReplaceParams;
 import com.jsmacrosce.jsmacros.client.api.classes.RegistryHelper;
 import com.jsmacrosce.jsmacros.client.mixin.access.MixinStatHandler;
 import com.jsmacrosce.jsmacros.core.helpers.BaseHelper;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.List;
@@ -28,10 +29,12 @@ import java.util.stream.Collectors;
  * Provides access to the player's client-side statistics counters.
  * <p>
  * Typed methods query a named registry statistic, while custom-stat methods query the named custom
- * statistic directly. Keyed methods accept names from {@link #getStatList()}; unknown keys throw
- * {@link IllegalArgumentException}. {@link #getStatText(String)} returns the statistic type's
- * display name, not an individual statistic name. {@link #updateStatistics()} requests updated
- * statistics from the server.
+ * statistic directly. Keyed methods accept names from {@link #getStatList()}. Count getters throw
+ * {@link IllegalArgumentException} for unknown ids, since a count cannot represent absence, while
+ * formatted and text lookups return {@code null}. {@link #hasCustomStat(String)} reports whether a
+ * custom id is registered without throwing.
+ * {@link #getStatText(String)} returns the statistic type's display name, not an individual
+ * statistic name. {@link #updateStatistics()} requests updated statistics from the server.
  * <pre>
  * if (World.isWorldLoaded()) {
  *   const stats = Player.getStatistics();
@@ -73,16 +76,14 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
      * a name specific to that statistic.
      *
      * @param statKey one of the keys from {@link #getStatList()}
-     * @return the text component naming that statistic's category
+     * @return the text component naming that statistic's category, or {@code null} if no realized
+     *         statistic has that key
      * @since 1.8.4
      */
+    @Nullable
     public Component getStatText(String statKey) {
-        for (Stat<?> stat : ImmutableSet.copyOf(((MixinStatHandler) base).getStatMap().keySet())) {
-            if (stat.getName().equals(statKey)) {
-                return stat.getType().getDisplayName();
-            }
-        }
-        throw new IllegalArgumentException("Stat not found: " + statKey);
+        Stat<?> stat = findStat(statKey);
+        return stat == null ? null : stat.getType().getDisplayName();
     }
 
     /**
@@ -90,15 +91,11 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
      *
      * @param statKey one of the keys from {@link #getStatList()}
      * @return the raw value of the matching statistic
+     * @throws IllegalArgumentException if no realized statistic has that key
      * @since 1.8.4
      */
     public int getRawStatValue(String statKey) {
-        for (Stat<?> stat : ImmutableSet.copyOf(((MixinStatHandler) base).getStatMap().keySet())) {
-            if (stat.getName().equals(statKey)) {
-                return base.getValue(stat);
-            }
-        }
-        throw new IllegalArgumentException("Stat not found: " + statKey);
+        return base.getValue(requireStat(statKey));
     }
 
     /**
@@ -106,16 +103,33 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
      * statistic's formatter.
      *
      * @param statKey one of the keys from {@link #getStatList()}
-     * @return the formatted value of the matching statistic
+     * @return the formatted value of the matching statistic, or {@code null} if no realized
+     *         statistic has that key
      * @since 1.8.4
      */
+    @Nullable
     public String getFormattedStatValue(String statKey) {
+        Stat<?> stat = findStat(statKey);
+        return stat == null ? null : stat.format(base.getValue(stat));
+    }
+
+    /** Finds a realized statistic by its unique name without failing for unknown keys. */
+    @Nullable
+    private Stat<?> findStat(String statKey) {
         for (Stat<?> stat : ImmutableSet.copyOf(((MixinStatHandler) base).getStatMap().keySet())) {
             if (stat.getName().equals(statKey)) {
-                return stat.format(base.getValue(stat));
+                return stat;
             }
         }
-        throw new IllegalArgumentException("Stat not found: " + statKey);
+        return null;
+    }
+
+    private Stat<?> requireStat(String statKey) {
+        Stat<?> stat = findStat(statKey);
+        if (stat == null) {
+            throw new IllegalArgumentException("Stat not found: " + statKey);
+        }
+        return stat;
     }
 
     /**
@@ -153,6 +167,7 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
      *
      * @param id the identifier of the entity
      * @return the kill count
+     * @throws IllegalArgumentException if the id is not a registered entity type
      * @since 1.8.4
      */
     @DocletReplaceParams("id: EntityId")
@@ -165,6 +180,7 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
      *
      * @param id the identifier of the entity
      * @return the death count
+     * @throws IllegalArgumentException if the id is not a registered entity type
      * @since 1.8.4
      */
     @DocletReplaceParams("id: EntityId")
@@ -177,6 +193,7 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
      *
      * @param id the identifier of the block
      * @return the mined count
+     * @throws IllegalArgumentException if the id is not a registered block
      * @since 1.8.4
      */
     @DocletReplaceParams("id: BlockId")
@@ -189,6 +206,7 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
      *
      * @param id the identifier of the item
      * @return the broken count
+     * @throws IllegalArgumentException if the id is not a registered item
      * @since 1.8.4
      */
     @DocletReplaceParams("id: ItemId")
@@ -201,6 +219,7 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
      *
      * @param id the identifier of the item
      * @return the crafted count
+     * @throws IllegalArgumentException if the id is not a registered item
      * @since 1.8.4
      */
     @DocletReplaceParams("id: ItemId")
@@ -213,6 +232,7 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
      *
      * @param id the identifier of the item
      * @return the used count
+     * @throws IllegalArgumentException if the id is not a registered item
      * @since 1.8.4
      */
     @DocletReplaceParams("id: ItemId")
@@ -225,6 +245,7 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
      *
      * @param id the identifier of the item
      * @return the picked-up count
+     * @throws IllegalArgumentException if the id is not a registered item
      * @since 1.8.4
      */
     @DocletReplaceParams("id: ItemId")
@@ -237,6 +258,7 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
      *
      * @param id the identifier of the item
      * @return the dropped count
+     * @throws IllegalArgumentException if the id is not a registered item
      * @since 1.8.4
      */
     @DocletReplaceParams("id: ItemId")
@@ -245,30 +267,67 @@ public class StatsHelper extends BaseHelper<StatsCounter> {
     }
 
     /**
+     * Returns whether a custom statistic with this identifier is registered. Use this to tell an
+     * unknown identifier apart from a registered statistic whose counter is zero.
+     *
+     * @param id the custom statistic identifier
+     * @return {@code true} if the id names a registered custom statistic
+     * @since 2.2.0
+     */
+    @DocletReplaceParams("id: CanOmitNamespace<CustomStatId>")
+    public boolean hasCustomStat(String id) {
+        return BuiltInRegistries.CUSTOM_STAT.containsKey(RegistryHelper.parseIdentifier(id));
+    }
+
+    /**
      * Returns the counter for the custom statistic identified by {@code id}.
      *
      * @param id the custom statistic identifier
      * @return the raw counter value
+     * @throws IllegalArgumentException if no custom statistic with that id is registered
      * @since 1.8.4
      */
+    @DocletReplaceParams("id: CanOmitNamespace<CustomStatId>")
     public int getCustomStat(String id) {
-        return base.getValue(Stats.CUSTOM.get(RegistryHelper.parseIdentifier(id)));
+        Stat<ResourceLocation> stat = findCustomStat(id);
+        if (stat == null) {
+            throw new IllegalArgumentException("Custom stat not found: " + id);
+        }
+        return base.getValue(stat);
     }
 
     private <T> int getStat(StatType<T> type, Registry<T> registry, String id) {
-        return base.getValue(type.get(registry.getValue(RegistryHelper.parseIdentifier(id))));
+        ResourceLocation key = RegistryHelper.parseIdentifier(id);
+        if (!registry.containsKey(key)) {
+            throw new IllegalArgumentException("Stat registry entry not found: " + id);
+        }
+        return base.getValue(type.get(registry.getValue(key)));
+    }
+
+    /** StatType and the registry both match values by identity, so the registered instance is
+     * required; a freshly parsed identifier is not equal to it and would make name building fail. */
+    @Nullable
+    private Stat<ResourceLocation> findCustomStat(String id) {
+        ResourceLocation key = RegistryHelper.parseIdentifier(id);
+        if (!BuiltInRegistries.CUSTOM_STAT.containsKey(key)) {
+            return null;
+        }
+        return Stats.CUSTOM.get(BuiltInRegistries.CUSTOM_STAT.getValue(key));
     }
 
     /**
      * Returns the formatted counter for the custom statistic identified by {@code id}.
      *
      * @param id the custom statistic identifier
-     * @return the formatted counter value
+     * @return the formatted counter value, or {@code null} if no custom statistic with that id is
+     *         registered
      * @since 1.8.4
      */
+    @DocletReplaceParams("id: CanOmitNamespace<CustomStatId>")
+    @Nullable
     public String getCustomFormattedStat(String id) {
-        Stat<ResourceLocation> stat = Stats.CUSTOM.get(RegistryHelper.parseIdentifier(id));
-        return stat.format(base.getValue(stat));
+        Stat<ResourceLocation> stat = findCustomStat(id);
+        return stat == null ? null : stat.format(base.getValue(stat));
     }
 
     /**
