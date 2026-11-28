@@ -19,6 +19,7 @@ Modes: `auto` (headless, chat report), `screen` (suite page controls),
 | `WIDGETS-PREDICATE-001` | Text Field Predicate | `screen` | `setTextPredicate`/`resetTextPredicate` filter typed and programmatic text. | [suite.js](suite.js) | Manual |
 | `RENDER-PRIMITIVES-001` | Render Primitives | `screen` | Text, rect, line, image, item, nested Draw2D, ordering, and mutation. | [suite.js](suite.js) | Manual |
 | `DRAW2D-OVERLAY-001` | Draw2D Overlay | `observe` | Overlay register/unregister lifecycle; the overlay renders on the normal HUD. | [suite.js](suite.js) | Visual, chat verdict |
+| `DRAW2D-LINE-WIDTH-001` | Fractional Line Widths | `observe` | Width sweep 0.50-4.00 in 0.25 steps plus 45-degree samples; confirms fractional sizes are visually distinct. | [suite.js](suite.js) | Visual, chat verdict, requires world |
 | `TEXT-INTERACTION-001` | Text Interaction | `screen` | Text hover for exact styled segments, no duplicate/hidden text after hover, and a custom click action. | [suite.js](suite.js) | Manual |
 | `TEXT-WORLD-HOVER-001` | World Hover | `screen` | Item and entity hover payloads using the local player. | [suite.js](suite.js) | Manual, requires world |
 | `SCREEN-RENDER-001` | Screen Render Callback | `screen` | Screen render callback execution without raw draw-context coupling. | [suite.js](suite.js) | Manual |

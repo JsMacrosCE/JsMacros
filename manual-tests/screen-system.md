@@ -20,7 +20,8 @@ unavailable.
 | Integration | `SCREEN-HOST-001` | The API wraps a vanilla screen captured before the suite opens. |
 
 `DRAW2D-OVERLAY-001` and `INTERACT-TARGET-001` moved to `observe` mode (world
-visible); see [world-system.md](world-system.md).
+visible), and `DRAW2D-LINE-WIDTH-001` is an overlay visual check as well; see
+[world-system.md](world-system.md).
 
 ## Target-specific expectations
 

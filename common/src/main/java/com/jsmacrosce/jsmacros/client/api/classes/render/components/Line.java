@@ -19,11 +19,12 @@ import com.jsmacrosce.jsmacros.client.api.classes.render.components3d.SurfaceRen
  /**
  * A line is defined by two endpoints, a stroke thickness, and a rotation. The
  * endpoint differences determine its scaled width and height; {@code width} is the
- * stroke thickness. Nonpositive thickness is not rendered, and the 2D renderer
- * rounds positive thickness and rendered length up to whole pixels. Rotation is
- * about the first endpoint by default, or the midpoint when {@code rotateCenter}
- * is true. Constructors and {@link #setRotation(double)} normalize finite angles to
- * {@code [-180, 180)}.
+ * stroke thickness. Nonpositive or non-finite thickness is not rendered. Positive
+ * fractional thickness and length are drawn as stored rather than rounded,
+ * although the renderer raises thickness to at least one physical pixel and does
+ * not antialias the strip's edges. Rotation is about the first endpoint by
+ * default, or the midpoint when {@code rotateCenter} is true. Constructors and
+ * {@link #setRotation(double)} normalize finite angles to {@code [-180, 180)}.
  * <p>
   * <pre>
  * const draw = Hud.createDraw2D();
@@ -77,7 +78,8 @@ public class Line implements RenderElement, Alignable<Line> {
     public boolean rotateCenter;
     /**
     * The stroke thickness in screen pixels. The value is stored as a float; the builder
-    * defaults to one, and the 2D renderer rounds positive widths up when drawing.
+    * defaults to one, and the 2D renderer draws fractional widths as stored, clamped to
+    * at least one physical pixel.
     */
     public float width;
     /**
@@ -354,7 +356,8 @@ public class Line implements RenderElement, Alignable<Line> {
 
     /**
     * Sets the line's stroke thickness in screen pixels. Values are stored as floats;
-    * non-positive widths are not rendered, and fractional widths are rounded up when drawn.
+    * non-positive and non-finite widths are not rendered, and positive fractional
+    * widths keep their size when drawn, clamped to at least one physical pixel.
     *
     * @param width the width of the line
     * @return self for chaining.
@@ -400,10 +403,13 @@ public class Line implements RenderElement, Alignable<Line> {
 
     /**
      * Draws the line as a filled strip between its endpoints, applying the element's
-     * rotation and endpoint orientation. Widths less than or equal to zero skip drawing.
-     * The strip bounds use floor/ceiling integer rounding of its thickness and length.
-     * The mouse coordinates and frame delta are unused. The graphics pose is pushed
-     * and popped on normal completion.
+     * rotation and endpoint orientation. Nonpositive and non-finite widths skip drawing.
+     * The strip is a unit rectangle scaled by the line's length and thickness, so
+     * fractional widths keep their stored size instead of being rounded. Thickness is
+     * raised to at least one physical pixel so very thin lines still appear, and the
+     * GUI renderer does not antialias the strip's edges. The mouse coordinates and
+     * frame delta are unused. The graphics pose is pushed and popped on normal
+     * completion.
      *
      * @param drawContext the graphics context receiving the strip
      * @param mouseX unused mouse x coordinate
@@ -412,7 +418,7 @@ public class Line implements RenderElement, Alignable<Line> {
      */
     @Override
     public void render(GuiGraphics drawContext, int mouseX, int mouseY, float delta) {
-        if (width <= 0) return;
+        if (!Float.isFinite(width) || width <= 0) return;
         //? if >1.21.5 {
         Matrix3x2fStack matrices = drawContext.pose();
         matrices.pushMatrix();
@@ -422,7 +428,6 @@ public class Line implements RenderElement, Alignable<Line> {
         *///?}
         setupMatrix(matrices, x1, y1, 1, rotation, getScaledWidth(), getScaledHeight(), rotateCenter);
 
-        float halfWidth = this.width / 2.0f;
         float dx = this.x2 - this.x1;
         float dy = this.y2 - this.y1;
         float length = (float) Math.sqrt(dx * dx + dy * dy);
@@ -436,13 +441,21 @@ public class Line implements RenderElement, Alignable<Line> {
         matrices.mulPose(new Quaternionf().rotateLocalZ(angle));
         *///?}
 
-        drawContext.fill(
-                0,
-                -(int) Math.floor(halfWidth),
-                (int) Math.ceil(length),
-                -(int) Math.floor(halfWidth) + Math.max(1, (int) Math.ceil(this.width)),
-                this.color
-        );
+        // A GUI unit can cover several physical pixels, so keep the stroke at least
+        // one physical pixel wide or thin fractional lines can disappear.
+        float stroke = Math.max(this.width, (float) (1.0 / mc.getWindow().getGuiScale()));
+
+        // Scale a unit rectangle instead of rounding it to whole GUI pixels. The
+        // vertices are transformed with the float pose, so the thickness survives at
+        // any GUI scale.
+        //? if >1.21.5 {
+        matrices.translate(0, -stroke / 2.0f);
+        matrices.scale(length, stroke);
+        //?} else {
+        /*matrices.translate(0, -stroke / 2.0f, 0);
+        matrices.scale(length, stroke, 1);
+        *///?}
+        drawContext.fill(0, 0, 1, 1, this.color);
 
         //? if >1.21.5 {
         matrices.popMatrix();

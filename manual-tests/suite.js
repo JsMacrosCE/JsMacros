@@ -639,6 +639,80 @@ const TESTS = [
         }
     },
     {
+        id: "DRAW2D-LINE-WIDTH-001",
+        category: "Rendering",
+        mode: "observe",
+        title: "Fractional Line Widths",
+        instructions: [
+            "A dark HUD panel lists widths 0.50 to 4.00 in 0.25 steps, then five 45-degree samples.",
+            "Each line should be at least as thick as the one above it; at GUI scale 2 or higher, adjacent 0.25 steps differ.",
+            "At GUI scale 1, values below 1.00 clamp to one physical pixel, so 0.50, 0.75 and 1.00 match.",
+            "The 45-degree samples use 1.00, 1.50, 2.00, 2.50 and 3.00; their edges may look stepped because this renderer does not antialias."
+        ],
+        prepare(state) {
+            if (Player.getPlayer() == null) {
+                return false;
+            }
+            const overlay = Hud.createDraw2D();
+            state.lines = [];
+            overlay.setOnInit(wrap(draw => {
+                state.lines = [];
+                const width = draw.getWidth();
+                const height = draw.getHeight();
+                // The window's GUI scale is the raw-to-scaled ratio; rounding handles
+                // the one-pixel slack the window keeps when it divides the screen.
+                const guiScale = width > 0 ? Math.max(1, Math.round(Hud.getWindowWidth() / width)) : 1;
+                const margin = 20;
+                const gap = 10;
+                const columnWidth = Math.floor((width - margin * 2 - gap * 2) / 3);
+                const lineLength = Math.max(12, columnWidth - 46);
+                const widths = [];
+                for (let value = 0.5; value <= 4.0 + 1e-9; value += 0.25) {
+                    widths.push(Math.round(value * 100) / 100);
+                }
+                draw.addRect(10, 34, width - 10, Math.min(height - 12, 226), 0x101010, 210, 0, -1);
+                draw.addText("Line widths 0.50-4.00, step 0.25", margin, 42, 0x55FFFF, false);
+                draw.addText(`GUI scale ${guiScale}; each row >= the previous`, margin, 54, 0xFFFFFF, false);
+                const top = 76;
+                for (let i = 0; i < widths.length; i++) {
+                    const column = Math.floor(i / 5);
+                    const row = i % 5;
+                    const x = margin + column * (columnWidth + gap);
+                    const y = top + row * 14;
+                    const value = widths[i];
+                    draw.addText(value.toFixed(2), x, y - 4, 0xFFFF88, false);
+                    state.lines.push(draw.addLine(x + 42, y, x + 42 + lineLength, y, 0xFFFFFF, 0, value));
+                }
+                // A rotated group makes it obvious that the thickness follows the
+                // stroke normal instead of only the screen's vertical axis.
+                const diagonalTop = 190;
+                draw.addText("45deg: 1.00  1.50  2.00  2.50  3.00", margin, diagonalTop - 34, 0xFFFF88, false);
+                const diagonalWidths = [1, 1.5, 2, 2.5, 3];
+                const step = Math.max(30, Math.floor((width - margin * 2 - 30) / diagonalWidths.length));
+                for (let i = 0; i < diagonalWidths.length; i++) {
+                    const x = margin + 12 + i * step;
+                    draw.addLine(x, diagonalTop, x + 22, diagonalTop - 22, 0xFF88FF, 0, diagonalWidths[i]);
+                }
+            }));
+            overlay.register();
+            state.overlay = overlay;
+            check(state, state.lines.length === 15, "The sweep adds 0.50 through 4.00 in 0.25 steps");
+            check(state, approx(state.lines[0].getWidth(), 0.5), "0.50 is stored as a fractional width");
+            check(state, approx(state.lines[5].getWidth(), 1.75), "1.75 is stored as a fractional width");
+            check(state, approx(state.lines[14].getWidth(), 4.0), "4.00 is stored as a whole width");
+            return true;
+        },
+        teardown(state) {
+            if (state.overlay != null) {
+                try {
+                    state.overlay.unregister();
+                } catch (_err) {
+                }
+                state.overlay = null;
+            }
+        }
+    },
+    {
         id: "TEXT-INTERACTION-001",
         category: "Text",
         mode: "screen",
