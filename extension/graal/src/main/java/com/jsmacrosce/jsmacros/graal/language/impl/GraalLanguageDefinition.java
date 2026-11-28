@@ -47,6 +47,10 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
         synchronized (GraalLanguageDefinition.class) {
             if (engine != null) return engine;
 
+            if (useAndroidFallbackRuntime()) {
+                runner.profile.LOGGER.info("Android detected; using GraalVM's interpreter-only fallback because its native attach library cannot load there");
+            }
+
             Engine.Builder b = Engine.newBuilder()
                     .option("engine.WarnInterpreterOnly", "false");
 
@@ -63,6 +67,27 @@ public class GraalLanguageDefinition extends BaseLanguage<Context, GraalScriptCo
 
             return engine = b.build();
         }
+    }
+
+    /**
+     * Selects GraalVM's interpreter-only runtime on Android before the engine is created.
+     * Android refuses to load the native attach library GraalVM extracts into the user cache, so
+     * engine creation fails during startup unless that library is avoided. An explicit
+     * {@code truffle.UseFallbackRuntime} setting is left alone.
+     *
+     * @return whether this call enabled the fallback runtime
+     */
+    private static boolean useAndroidFallbackRuntime() {
+        if (System.getProperty("truffle.UseFallbackRuntime") != null) {
+            return false;
+        }
+        if (System.getenv("ANDROID_ROOT") == null
+                && System.getenv("ANDROID_DATA") == null
+                && System.getenv("POJAV_NATIVEDIR") == null) {
+            return false;
+        }
+        System.setProperty("truffle.UseFallbackRuntime", "true");
+        return true;
     }
 
     public static void warmUp(Core<?, ?> runner) {
