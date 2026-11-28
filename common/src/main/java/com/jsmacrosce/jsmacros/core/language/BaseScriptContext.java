@@ -45,7 +45,7 @@ public abstract class BaseScriptContext<T> {
     protected final File mainFile;
 
     /** The language-specific runtime context, or {@code null} before it is set. */
-    protected T context = null;
+    protected volatile T context = null;
     protected Thread mainThread = null;
 
     protected final Set<Thread> threads = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -117,17 +117,20 @@ public abstract class BaseScriptContext<T> {
     }
 
     /** Releases the event lock for the thread's bound event container, if present.
+     * The event is located under the context monitor but released after it is dropped, so this
+     * path and {@link #closeContext()} acquire the event and context monitors in the same order.
      * @param thread thread whose event lock is released
      * @return {@code true} if an event container was present; otherwise {@code false}
      * @since 1.6.0
      */
-    public synchronized boolean releaseBoundEventIfPresent(Thread thread) {
-        EventContainer<? extends BaseScriptContext<T>> event = events.get(thread);
-        if (event != null) {
-            event.releaseLock();
-            return true;
+    public boolean releaseBoundEventIfPresent(Thread thread) {
+        EventContainer<? extends BaseScriptContext<T>> event;
+        synchronized (this) {
+            event = events.get(thread);
         }
-        return false;
+        if (event == null) return false;
+        event.releaseLock();
+        return true;
     }
 
     /** Returns the language-specific runtime context.
@@ -191,13 +194,18 @@ public abstract class BaseScriptContext<T> {
     }
 
     /** Removes a bound thread and releases its associated event lock, if present.
+     * The event is located under the context monitor but released after it is dropped, so this
+     * path and {@link #closeContext()} acquire the event and context monitors in the same order.
      * @param t bound thread; throws {@link ScriptAssertionError} if it is not bound
      * @since 1.6.0
      */
-    public synchronized void unbindThread(Thread t) {
-        if (!threads.remove(t)) throw new ScriptAssertionError("Cannot unbind thread that is not bound");
-        borrowedThreads.remove(t);
-        EventContainer<?> container = events.get(t);
+    public void unbindThread(Thread t) {
+        EventContainer<?> container;
+        synchronized (this) {
+            if (!threads.remove(t)) throw new ScriptAssertionError("Cannot unbind thread that is not bound");
+            borrowedThreads.remove(t);
+            container = events.get(t);
+        }
         if (container != null) {
             container.releaseLock();
         }
@@ -232,13 +240,26 @@ public abstract class BaseScriptContext<T> {
     }
 
     /** Sets the language runtime context once; a second assignment is rejected.
+     * If this context closed while the runtime was being built, the runtime is closed instead of
+     * published, so it cannot run after a stop.
      * @param context runtime context to store
+     * @throws ScriptContextClosedException if this context closed before the runtime was published
      */
     public void setContext(T context) {
-        if (this.context != null) {
-            throw new ScriptAssertionError("Context already set");
+        boolean rejected;
+        synchronized (this) {
+            if (this.context != null) {
+                throw new ScriptAssertionError("Context already set");
+            }
+            rejected = closed;
+            if (!rejected) {
+                this.context = context;
+            }
         }
-        this.context = context;
+        if (rejected) {
+            closeRuntime(context);
+            throw new ScriptContextClosedException("Cannot publish a runtime to a closed context");
+        }
     }
 
     /** Returns whether the context is closed; also closes it if its weakly held sync object was cleared.
@@ -361,9 +382,20 @@ public abstract class BaseScriptContext<T> {
     /**
      * Closes language-specific runtime resources after base cleanup has released locks and
      * interrupted owned threads. Called at most once, outside the context monitor, so an
-     * implementation may block while threads unwind from the interrupt.
+     * implementation may block while threads unwind from the interrupt. The default
+     * implementation closes the published runtime through {@link #closeRuntime(Object)}.
      */
     protected void doSubclassClose() {
+        closeRuntime(getContext());
+    }
+
+    /**
+     * Closes a runtime that will not be used, either because the context closed while the runtime
+     * was being built or because the runtime was never published. Language contexts that own a
+     * runtime should override this; the default implementation does nothing.
+     * @param runtime runtime to close; may be {@code null}
+     */
+    protected void closeRuntime(T runtime) {
     }
 
     /** Returns the script file supplied when this context was created, if any.

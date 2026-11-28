@@ -19,7 +19,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Checks that a closing script context interrupts the threads the script owns but not the engine
  * threads that call into the script for a single callback. Also checks that language teardown runs
- * once and cannot keep the context in the runner's open-context list.
+ * once, cannot keep the context in the runner's open-context list, closes an unpublished runtime,
+ * and releases events without inverting the event/context monitor order.
  */
 public final class ContextCloseTest {
     private static int checks;
@@ -34,6 +35,10 @@ public final class ContextCloseTest {
         explicitlyOwnedThreadKeepsOwnership(core);
         teardownRunsOnce(core);
         teardownFailureStillUnregisters(core);
+        publishedRuntimeClosesOnContextClose(core);
+        unpublishedRuntimeIsClosedWhenContextAlreadyClosed(core);
+        unbindReleasesEventOutsideContextMonitor(core);
+        releaseBoundEventDoesNotHoldContextMonitor(core);
 
         System.out.println("ContextClose: " + checks + " checks passed");
     }
@@ -158,6 +163,51 @@ public final class ContextCloseTest {
         check(!core.getContexts().contains(ctx), "a failed teardown still unregisters the context");
     }
 
+    private static void publishedRuntimeClosesOnContextClose(Core<?, ?> core) {
+        TestContext ctx = new TestContext(core, false);
+        Object runtime = new Object();
+        ctx.setContext(runtime);
+        check(ctx.getContext() == runtime, "the runtime is published while the context is open");
+
+        ctx.closeContext();
+        check(ctx.closedRuntime == runtime, "closing the context closes the published runtime");
+        check(ctx.teardownCalls.get() == 1, "the published runtime is closed exactly once");
+    }
+
+    private static void unpublishedRuntimeIsClosedWhenContextAlreadyClosed(Core<?, ?> core) {
+        TestContext ctx = new TestContext(core, false);
+        ctx.closeContext();
+        Object runtime = new Object();
+
+        expectThrows(BaseScriptContext.ScriptContextClosedException.class,
+            () -> ctx.setContext(runtime), "a closed context rejects a late runtime");
+        check(ctx.closedRuntime == runtime, "the late runtime is closed instead of published");
+        check(ctx.getContext() == null, "the late runtime is not published");
+    }
+
+    private static void unbindReleasesEventOutsideContextMonitor(Core<?, ?> core) {
+        TestContext ctx = new TestContext(core, false);
+        Thread thread = Thread.currentThread();
+        ctx.bindThread(thread);
+        ProbeContainer event = new ProbeContainer(ctx);
+        event.setLockThread(thread);
+
+        ctx.unbindThread(thread);
+        check(!event.releasedWhileHoldingContextLock,
+            "unbindThread releases the event without holding the context monitor");
+    }
+
+    private static void releaseBoundEventDoesNotHoldContextMonitor(Core<?, ?> core) {
+        TestContext ctx = new TestContext(core, false);
+        Thread thread = Thread.currentThread();
+        ProbeContainer event = new ProbeContainer(ctx);
+        event.setLockThread(thread);
+
+        check(ctx.releaseBoundEventIfPresent(thread), "the bound event was released");
+        check(!event.releasedWhileHoldingContextLock,
+            "releaseBoundEventIfPresent releases the event without holding the context monitor");
+    }
+
     private static Core<BaseProfile, BaseEventRegistry> core() throws Exception {
         File configFolder = Files.createTempDirectory("jsmacros-context-close-config").toFile();
         File macroFolder = Files.createTempDirectory("jsmacros-context-close-macros").toFile();
@@ -218,6 +268,7 @@ public final class ContextCloseTest {
     private static final class TestContext extends BaseScriptContext<Object> {
         private final AtomicInteger teardownCalls = new AtomicInteger();
         private final boolean failTeardown;
+        private Object closedRuntime;
 
         private TestContext(Core<?, ?> runner, boolean failTeardown) {
             super(runner, null, null);
@@ -232,9 +283,29 @@ public final class ContextCloseTest {
         @Override
         protected void doSubclassClose() {
             teardownCalls.incrementAndGet();
+            closeRuntime(getContext());
             if (failTeardown) {
                 throw new IllegalStateException("language teardown failed");
             }
+        }
+
+        @Override
+        protected void closeRuntime(Object runtime) {
+            closedRuntime = runtime;
+        }
+    }
+
+    private static final class ProbeContainer extends EventContainer<TestContext> {
+        private boolean releasedWhileHoldingContextLock;
+
+        private ProbeContainer(TestContext ctx) {
+            super(ctx);
+        }
+
+        @Override
+        public synchronized void releaseLock() {
+            releasedWhileHoldingContextLock = Thread.holdsLock(getCtx());
+            super.releaseLock();
         }
     }
 }
