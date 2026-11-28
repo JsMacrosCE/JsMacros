@@ -283,7 +283,7 @@ public final class ContextCloseTest {
         @Override
         protected void doSubclassClose() {
             teardownCalls.incrementAndGet();
-            closeRuntime(getContext());
+            super.doSubclassClose();
             if (failTeardown) {
                 throw new IllegalStateException("language teardown failed");
             }

@@ -1,7 +1,6 @@
 package com.jsmacrosce.jsmacros.core.language;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
@@ -352,24 +351,27 @@ public abstract class BaseScriptContext<T> {
      * <p>
      * Threads bound only for callback dispatch through {@link #bindCallerThread()} are not
      * interrupted here; a language runtime may still apply its own cancellation while
-     * {@link #doSubclassClose()} runs. The context monitor is released before locks are released,
-     * threads are interrupted, or the language runtime closes: an interrupted thread may need to
-     * unbind itself, and closing a language runtime may wait for those threads.
+     * {@link #doSubclassClose()} runs. The context monitor is released before event locks are
+     * released and before the language runtime closes, because an interrupted thread may need to
+     * unbind itself and closing a runtime may wait for those threads. Owned threads are selected
+     * and interrupted under the monitor so an unbind cannot finish between those two steps.
      */
     public final void closeContext() {
         final ImmutableList<EventContainer<? extends BaseScriptContext<T>>> boundEvents;
-        final ImmutableSet<Thread> threadsToInterrupt;
 
         synchronized (this) {
             if (closed) return;
             closed = true;
             // fix concurrency issue the "fun" way
             boundEvents = ImmutableList.copyOf(getBoundEvents().values());
-            threadsToInterrupt = Sets.difference(getBoundThreads(), borrowedThreads).immutableCopy();
         }
 
         boundEvents.forEach(EventContainer::releaseLock);
-        threadsToInterrupt.forEach(Thread::interrupt);
+        synchronized (this) {
+            // Select and interrupt together so a callback cannot unbind between the two steps and
+            // receive the interrupt after the thread has left this context.
+            Sets.difference(getBoundThreads(), borrowedThreads).forEach(Thread::interrupt);
+        }
         try {
             doSubclassClose();
         } finally {
