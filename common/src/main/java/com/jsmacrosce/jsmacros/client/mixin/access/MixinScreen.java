@@ -828,8 +828,17 @@ public abstract class MixinScreen extends AbstractContainerEventHandler implemen
         return this;
     }
 
+    /**
+     * Provides {@link IScreen#close()} by delegating to the screen's own close handling.
+     *
+     * <p>The {@code soft$} prefix is required: Mixin merges this method into the target as
+     * {@code close()} and, because it is {@code @Intrinsic}, leaves an existing {@code close()}
+     * alone. That existing method is real, not hypothetical: Yarn-mapped development environments
+     * name {@code Screen.onClose()} {@code close()}. Declaring this method unprefixed makes Mixin
+     * treat it as an intrinsic that was never renamed and abort with an invalid-mixin error there.
+     */
     @Intrinsic
-    public void close() {
+    public void soft$close() {
         onClose();
     }
 
