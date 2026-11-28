@@ -10,7 +10,8 @@ website: <https://jsmacrosce.com>
 ## Downloads/Releases
 
 [![Build Dev](https://github.com/JsMacrosCE/JsMacros/actions/workflows/dev.yml/badge.svg)](https://github.com/JsMacrosCE/JsMacros/actions/workflows/dev.yml)
-[![Build Release](https://github.com/JsMacrosCE/JsMacros/actions/workflows/release.yml/badge.svg)](https://github.com/JsMacrosCE/JsMacros/actions/workflows/release.yml)
+[![Modrinth Downloads](https://img.shields.io/modrinth/dt/jsmacrosce?label=Modrinth%20Downloads)](https://modrinth.com/mod/jsmacrosce)
+[![Stable Release](https://img.shields.io/github/v/release/JsMacrosCE/JsMacros?label=Stable%20Release)](https://github.com/JsMacrosCE/JsMacros/releases/latest)
 
 ### For the releases of both fabric and neoforge versions see:
 
